@@ -1,0 +1,231 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../contexts/AuthContext';
+import { messageService } from '../services/messageService';
+import { supabase } from '../config/supabase';
+
+interface ConversationWithProfile {
+  id: string;
+  sender_id: string;
+  recipient_id: string;
+  content: string;
+  created_at: string;
+  is_read: boolean;
+  partnerId?: string;
+  partnerProfile?: {
+    name?: string;
+    profile_picture?: string;
+    email?: string;
+  };
+}
+
+export default function MessagesListScreen({ navigation }: any) {
+  const { user } = useAuth();
+  const [conversations, setConversations] = useState<ConversationWithProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadConversations();
+    const interval = setInterval(loadConversations, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadConversations = async () => {
+    try {
+      if (user) {
+        const data = await messageService.getConversations(user.id);
+
+        // Fetch profile data for each conversation partner
+        const conversationsWithProfiles = await Promise.all(
+          data.map(async (conversation: any) => {
+            const partnerId = conversation.sender_id === user.id
+              ? conversation.recipient_id
+              : conversation.sender_id;
+
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('name, profile_picture, email')
+              .eq('id', partnerId)
+              .single();
+
+            return {
+              ...conversation,
+              partnerProfile: profileData,
+              partnerId,
+            };
+          })
+        );
+
+        setConversations(conversationsWithProfiles);
+      }
+    } catch (error) {
+      console.error('Error loading conversations:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderConversation = ({ item }: { item: ConversationWithProfile }) => {
+    const partnerId = item.partnerId || (item.sender_id === user?.id ? item.recipient_id : item.sender_id);
+
+    return (
+      <TouchableOpacity
+        style={styles.conversationCard}
+        onPress={() =>
+          navigation.navigate('Chat', {
+            partnerId: partnerId,
+            partnerEmail: item.partnerProfile?.email || 'User',
+          })
+        }
+      >
+        {item.partnerProfile?.profile_picture ? (
+          <Image
+            source={{ uri: item.partnerProfile.profile_picture }}
+            style={styles.avatar}
+          />
+        ) : (
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>
+              {item.partnerProfile?.name?.charAt(0).toUpperCase() ||
+               item.partnerProfile?.email?.charAt(0).toUpperCase() || '?'}
+            </Text>
+          </View>
+        )}
+        <View style={styles.conversationInfo}>
+          <Text style={styles.userName}>
+            {item.partnerProfile?.name || item.partnerProfile?.email?.split('@')[0] || 'User'}
+          </Text>
+          <Text style={styles.lastMessage} numberOfLines={1}>
+            {item.content}
+          </Text>
+        </View>
+        <View style={styles.metaInfo}>
+          <Text style={styles.timestamp}>
+            {new Date(item.created_at).toLocaleDateString()}
+          </Text>
+          {!item.is_read && <View style={styles.unreadBadge} />}
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Messages</Text>
+      </View>
+
+      <FlatList
+        data={conversations}
+        keyExtractor={(item) => item.id}
+        renderItem={renderConversation}
+        contentContainerStyle={styles.list}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Ionicons name="chatbubbles-outline" size={64} color="#ccc" />
+            <Text style={styles.emptyText}>No messages yet</Text>
+            <Text style={styles.emptySubtext}>
+              Start a conversation with your team members
+            </Text>
+          </View>
+        }
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  header: {
+    padding: 20,
+    paddingTop: 50,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  list: {
+    padding: 10,
+  },
+  conversationCard: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 10,
+    alignItems: 'center',
+  },
+  avatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#0ea5e9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  avatarText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  conversationInfo: {
+    flex: 1,
+  },
+  userName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  lastMessage: {
+    fontSize: 14,
+    color: '#666',
+  },
+  metaInfo: {
+    alignItems: 'flex-end',
+  },
+  timestamp: {
+    fontSize: 12,
+    color: '#999',
+    marginBottom: 4,
+  },
+  unreadBadge: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#0ea5e9',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#999',
+    marginTop: 20,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#ccc',
+    marginTop: 5,
+    textAlign: 'center',
+  },
+});
