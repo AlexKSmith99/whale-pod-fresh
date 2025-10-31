@@ -68,7 +68,7 @@ const [selectedReviewee, setSelectedReviewee] = useState<any>(null);
 
       const memberPursuitIds = memberships?.map(m => m.pursuit_id) || [];
       
-      let memberPursuits = [];
+      let memberPursuits: any[] = [];
       if (memberPursuitIds.length > 0) {
         const { data } = await supabase
           .from('pursuits')
@@ -151,21 +151,24 @@ const loadReviewableTeammates = async () => {
     // Check which ones haven't been reviewed yet
     const reviewableList = [];
     for (const teammate of teammates || []) {
-      const hasReviewed = await reviewService.hasReviewed(
-        user.id,
-        teammate.user_id,
-        teammate.pursuit_id
-      );
-      if (!hasReviewed) {
-        reviewableList.push({
-          userId: teammate.user_id,
-          userName: teammate.profiles?.name || 'Unknown',
-          userPicture: teammate.profiles?.profile_picture,
-          pursuitId: teammate.pursuit_id,
-          pursuitTitle: teammate.pursuits?.title || 'Unknown Pursuit',
-        });
-      }
-    }
+  const hasReviewed = await reviewService.hasReviewed(
+    user.id,
+    teammate.user_id,
+    teammate.pursuit_id
+  );
+  if (!hasReviewed) {
+    const profile = Array.isArray(teammate.profiles) ? teammate.profiles[0] : teammate.profiles;
+    const pursuit = Array.isArray(teammate.pursuits) ? teammate.pursuits[0] : teammate.pursuits;
+    
+    reviewableList.push({
+      userId: teammate.user_id,
+      userName: (profile as any)?.name || 'Unknown',
+      userPicture: (profile as any)?.profile_picture,
+      pursuitId: teammate.pursuit_id,
+      pursuitTitle: (pursuit as any)?.title || 'Unknown Pursuit',
+    });
+  }
+}
 
     setReviewableTeammates(reviewableList);
   } catch (error) {

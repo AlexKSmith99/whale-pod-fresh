@@ -12,24 +12,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { messageService } from '../services/messageService';
 import { supabase } from '../config/supabase';
 
-interface ConversationWithProfile {
-  id: string;
-  sender_id: string;
-  recipient_id: string;
-  content: string;
-  created_at: string;
-  is_read: boolean;
-  partnerId?: string;
-  partnerProfile?: {
-    name?: string;
-    profile_picture?: string;
-    email?: string;
-  };
-}
-
 export default function MessagesListScreen({ navigation }: any) {
   const { user } = useAuth();
-  const [conversations, setConversations] = useState<ConversationWithProfile[]>([]);
+  const [conversations, setConversations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -41,29 +26,54 @@ export default function MessagesListScreen({ navigation }: any) {
   const loadConversations = async () => {
     try {
       if (user) {
+        console.log('Loading conversations for user:', user.id);
         const data = await messageService.getConversations(user.id);
+        console.log('Raw conversations data:', JSON.stringify(data, null, 2));
 
-        // Fetch profile data for each conversation partner
         const conversationsWithProfiles = await Promise.all(
           data.map(async (conversation: any) => {
-            const partnerId = conversation.sender_id === user.id
-              ? conversation.recipient_id
-              : conversation.sender_id;
+            let partnerId = conversation.partnerId || conversation.partner_id;
+            
+            if (!partnerId && conversation.partnerEmail) {
+              const { data: profileByEmail } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('email', conversation.partnerEmail)
+                .single();
+              
+              partnerId = profileByEmail?.id;
+            }
 
-            const { data: profileData } = await supabase
+            console.log('Partner ID:', partnerId);
+
+            if (!partnerId) {
+              console.error('Could not determine partnerId for conversation:', conversation);
+              return {
+                ...conversation,
+                partnerProfile: null,
+                partnerId: null,
+              };
+            }
+
+            const { data: profileData, error } = await supabase
               .from('profiles')
               .select('name, profile_picture, email')
               .eq('id', partnerId)
               .single();
 
+            if (error) {
+              console.error('Error fetching profile:', error);
+            }
+
             return {
               ...conversation,
-              partnerProfile: profileData,
-              partnerId,
+              partnerProfile: profileData || { email: conversation.partnerEmail },
+              partnerId: partnerId,
             };
           })
         );
 
+        console.log('Conversations with profiles:', conversationsWithProfiles);
         setConversations(conversationsWithProfiles);
       }
     } catch (error) {
@@ -73,18 +83,21 @@ export default function MessagesListScreen({ navigation }: any) {
     }
   };
 
-  const renderConversation = ({ item }: { item: ConversationWithProfile }) => {
-    const partnerId = item.partnerId || (item.sender_id === user?.id ? item.recipient_id : item.sender_id);
+  const renderConversation = ({ item }: any) => {
+    if (!item.partnerId) {
+      return null;
+    }
 
     return (
       <TouchableOpacity
         style={styles.conversationCard}
-        onPress={() =>
+        onPress={() => {
+          console.log('Navigating to chat with:', item.partnerId);
           navigation.navigate('Chat', {
-            partnerId: partnerId,
-            partnerEmail: item.partnerProfile?.email || 'User',
-          })
-        }
+            partnerId: item.partnerId,
+            partnerEmail: item.partnerProfile?.email || item.partnerEmail || 'User',
+          });
+        }}
       >
         {item.partnerProfile?.profile_picture ? (
           <Image
@@ -95,23 +108,28 @@ export default function MessagesListScreen({ navigation }: any) {
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>
               {item.partnerProfile?.name?.charAt(0).toUpperCase() ||
-               item.partnerProfile?.email?.charAt(0).toUpperCase() || '?'}
+               item.partnerProfile?.email?.charAt(0).toUpperCase() ||
+               item.partnerEmail?.charAt(0).toUpperCase() || '?'}
             </Text>
           </View>
         )}
         <View style={styles.conversationInfo}>
           <Text style={styles.userName}>
-            {item.partnerProfile?.name || item.partnerProfile?.email?.split('@')[0] || 'User'}
+            {item.partnerProfile?.name || 
+             item.partnerProfile?.email?.split('@')[0] ||
+             item.partnerEmail?.split('@')[0] || 'User'}
           </Text>
           <Text style={styles.lastMessage} numberOfLines={1}>
-            {item.content}
+            {item.lastMessage || item.content || 'No message'}
           </Text>
         </View>
         <View style={styles.metaInfo}>
           <Text style={styles.timestamp}>
-            {new Date(item.created_at).toLocaleDateString()}
+            {item.lastMessageTime || item.created_at 
+              ? new Date(item.lastMessageTime || item.created_at).toLocaleDateString()
+              : ''}
           </Text>
-          {!item.is_read && <View style={styles.unreadBadge} />}
+          {!item.isRead && <View style={styles.unreadBadge} />}
         </View>
       </TouchableOpacity>
     );
@@ -124,14 +142,16 @@ export default function MessagesListScreen({ navigation }: any) {
       </View>
 
       <FlatList
-        data={conversations}
-        keyExtractor={(item) => item.id}
+        data={conversations.filter(c => c.partnerId)}
+        keyExtractor={(item, index) => item.partnerId || `conversation-${index}`}
         renderItem={renderConversation}
         contentContainerStyle={styles.list}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="chatbubbles-outline" size={64} color="#ccc" />
-            <Text style={styles.emptyText}>No messages yet</Text>
+            <Text style={styles.emptyText}>
+              {loading ? 'Loading...' : 'No messages yet'}
+            </Text>
             <Text style={styles.emptySubtext}>
               Start a conversation with your team members
             </Text>

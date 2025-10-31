@@ -28,9 +28,11 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [otherUserProfile, setOtherUserProfile] = useState<any>(null);
+  const [myProfile, setMyProfile] = useState<any>(null);
 
   useEffect(() => {
     loadUserProfile();
+    loadMyProfile();
     loadMessages();
     const interval = setInterval(loadMessages, 3000);
     return () => clearInterval(interval);
@@ -49,6 +51,24 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
       }
     } catch (error) {
       console.error('Error loading user profile:', error);
+    }
+  };
+
+  const loadMyProfile = async () => {
+    try {
+      if (user) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('name, profile_picture, email')
+          .eq('id', user.id)
+          .single();
+
+        if (!error && data) {
+          setMyProfile(data);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading my profile:', error);
     }
   };
 
@@ -89,36 +109,67 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
           isMyMessage ? styles.myMessageContainer : styles.theirMessageContainer,
         ]}
       >
-        {!isMyMessage && (
-          <TouchableOpacity 
-            onPress={() => navigation?.navigate('UserProfile', { userId: partnerId })}
-          >
-            {otherUserProfile?.profile_picture ? (
-              <Image
-                source={{ uri: otherUserProfile.profile_picture }}
-                style={styles.messageAvatar}
-              />
-            ) : (
-              <View style={styles.messageAvatar}>
-                <Text style={styles.messageAvatarText}>
-                  {otherUserProfile?.name?.charAt(0).toUpperCase() ||
-                   otherUserProfile?.email?.charAt(0).toUpperCase() || '?'}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
+        {isMyMessage ? (
+          <>
+            <View
+              style={[
+                styles.messageBubble,
+                styles.myMessageBubble,
+              ]}
+            >
+              <Text style={styles.messageText}>{item.content}</Text>
+              <Text style={styles.timestamp}>
+                {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </Text>
+            </View>
+            <View>
+              {myProfile?.profile_picture ? (
+                <Image
+                  source={{ uri: myProfile.profile_picture }}
+                  style={styles.messageAvatar}
+                />
+              ) : (
+                <View style={styles.messageAvatar}>
+                  <Text style={styles.messageAvatarText}>
+                    {myProfile?.name?.charAt(0).toUpperCase() ||
+                     myProfile?.email?.charAt(0).toUpperCase() || '?'}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </>
+        ) : (
+          <>
+            <TouchableOpacity
+              onPress={() => navigation?.navigate('UserProfile', { userId: partnerId })}
+            >
+              {otherUserProfile?.profile_picture ? (
+                <Image
+                  source={{ uri: otherUserProfile.profile_picture }}
+                  style={styles.messageAvatar}
+                />
+              ) : (
+                <View style={styles.messageAvatar}>
+                  <Text style={styles.messageAvatarText}>
+                    {otherUserProfile?.name?.charAt(0).toUpperCase() ||
+                     otherUserProfile?.email?.charAt(0).toUpperCase() || '?'}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            <View
+              style={[
+                styles.messageBubble,
+                styles.theirMessageBubble,
+              ]}
+            >
+              <Text style={styles.messageText}>{item.content}</Text>
+              <Text style={styles.timestamp}>
+                {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </Text>
+            </View>
+          </>
         )}
-        <View
-          style={[
-            styles.messageBubble,
-            isMyMessage ? styles.myMessageBubble : styles.theirMessageBubble,
-          ]}
-        >
-          <Text style={styles.messageText}>{item.content}</Text>
-          <Text style={styles.timestamp}>
-            {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </Text>
-        </View>
       </View>
     );
   };
@@ -247,13 +298,13 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   myMessageContainer: {
-  alignSelf: 'flex-end',
-  alignItems: 'flex-end',
-},
-theirMessageContainer: {
-  alignSelf: 'flex-start',
-  alignItems: 'flex-start',
-},
+    alignSelf: 'flex-end',
+    alignItems: 'flex-end',
+  },
+  theirMessageContainer: {
+    alignSelf: 'flex-start',
+    alignItems: 'flex-start',
+  },
   messageBubble: {
     maxWidth: '75%',
     padding: 12,
