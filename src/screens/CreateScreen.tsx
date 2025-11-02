@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Switch } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Switch, StatusBar } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { pursuitService } from '../services/pursuitService';
+import { colors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
 
 const PURSUIT_TYPES = ['Education', 'Friends', 'Problem', 'Business', 'Lifestyle', 'Hobby', 'Side Hustle', 'Travel', 'Discussion', 'New Endeavor', 'Accountability'];
 const DECISION_SYSTEMS = ['Standard Vote', 'Admin Has Ultimate Say', 'Delegated', 'Weighted Voting'];
@@ -148,12 +149,18 @@ export default function CreateScreen() {
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
+
+      {/* Modern Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Create a Pursuit</Text>
-        <Text style={styles.subtitle}>* = Required fields</Text>
+        <View>
+          <Text style={styles.headerGreeting}>Create a</Text>
+          <Text style={styles.headerTitle}>Pursuit</Text>
+        </View>
+        <Text style={styles.subtitle}>* = Required</Text>
       </View>
 
-      <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.form}>
           
           {/* BASIC INFORMATION */}
@@ -437,81 +444,184 @@ export default function CreateScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  header: { 
-    backgroundColor: '#fff', 
-    padding: 20, 
-    paddingTop: 60, 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#eee',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
   },
-  title: { fontSize: 28, fontWeight: 'bold', color: '#333' },
-  subtitle: { fontSize: 12, color: '#999', marginTop: 5 },
-  scrollView: { flex: 1 },
-  form: { padding: 20, paddingBottom: 120 },
-  section: { 
-    backgroundColor: '#fff', 
-    borderRadius: 12, 
-    padding: 16, 
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
+
+  // Header Styles
+  header: {
+    backgroundColor: colors.white,
+    paddingHorizontal: spacing.lg,
+    paddingTop: 50,
+    paddingBottom: spacing.base,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    ...shadows.sm,
   },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 16 },
-  label: { fontSize: 14, fontWeight: '600', color: '#333', marginBottom: 8, marginTop: 8 },
-  miniLabel: { fontSize: 12, fontWeight: '600', color: '#666', marginBottom: 4 },
-  input: { 
-    backgroundColor: '#fafafa', 
-    borderWidth: 1, 
-    borderColor: '#e5e5e5', 
-    borderRadius: 8, 
-    padding: 12, 
-    fontSize: 14,
-    marginBottom: 12,
+
+  headerGreeting: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textSecondary,
+    fontWeight: typography.fontWeight.medium,
+    marginBottom: spacing.xs,
   },
-  textArea: { height: 100, textAlignVertical: 'top' },
-  row: { flexDirection: 'row', gap: 10 },
-  halfInput: { flex: 1 },
-  hint: { fontSize: 12, color: '#999', marginBottom: 8, fontStyle: 'italic' },
-  charCount: { fontSize: 12, color: '#666', marginBottom: 4, textAlign: 'right' },
-  switchRow: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center',
-    paddingVertical: 8,
+
+  headerTitle: {
+    fontSize: typography.fontSize['3xl'],
+    fontWeight: typography.fontWeight.bold,
+    color: colors.textPrimary,
   },
-  chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
-  chip: { 
-    paddingHorizontal: 14, 
-    paddingVertical: 8, 
-    borderRadius: 20, 
-    backgroundColor: '#f0f0f0',
+
+  title: {
+    fontSize: typography.fontSize['2xl'],
+    fontWeight: typography.fontWeight.bold,
+    color: colors.textPrimary,
+  },
+
+  subtitle: {
+    fontSize: typography.fontSize.xs,
+    color: colors.textTertiary,
+    marginTop: spacing.xs,
+    fontStyle: 'italic',
+  },
+
+  scrollView: {
+    flex: 1,
+  },
+
+  form: {
+    padding: spacing.lg,
+    paddingBottom: spacing['5xl'],
+  },
+
+  section: {
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+    ...shadows.base,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: colors.borderLight,
   },
-  chipSelected: { backgroundColor: '#0ea5e9', borderColor: '#0ea5e9' },
-  chipText: { fontSize: 13, color: '#666' },
-  chipTextSelected: { color: '#fff', fontWeight: 'bold' },
-  button: { 
-    backgroundColor: '#0ea5e9', 
-    borderRadius: 12, 
-    padding: 18, 
-    marginTop: 10, 
+
+  sectionTitle: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.textPrimary,
+    marginBottom: spacing.base,
+  },
+
+  label: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
+    marginTop: spacing.sm,
+  },
+
+  miniLabel: {
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+
+  input: {
+    backgroundColor: colors.backgroundSecondary,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    borderRadius: borderRadius.base,
+    padding: spacing.md,
+    fontSize: typography.fontSize.sm,
+    marginBottom: spacing.md,
+    color: colors.textPrimary,
+  },
+
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top',
+  },
+
+  row: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+
+  halfInput: {
+    flex: 1,
+  },
+
+  hint: {
+    fontSize: typography.fontSize.xs,
+    color: colors.textTertiary,
+    marginBottom: spacing.sm,
+    fontStyle: 'italic',
+  },
+
+  charCount: {
+    fontSize: typography.fontSize.xs,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+    textAlign: 'right',
+  },
+
+  switchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    shadowColor: '#0ea5e9',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
+    paddingVertical: spacing.sm,
   },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#fff', fontSize: 17, fontWeight: 'bold' },
+
+  chipContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+
+  chip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.backgroundSecondary,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+
+  chipSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+
+  chipText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textSecondary,
+    fontWeight: typography.fontWeight.medium,
+  },
+
+  chipTextSelected: {
+    color: colors.white,
+    fontWeight: typography.fontWeight.bold,
+  },
+
+  button: {
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginTop: spacing.sm,
+    alignItems: 'center',
+    ...shadows.lg,
+  },
+
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+
+  buttonText: {
+    color: colors.white,
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.bold,
+  },
 });

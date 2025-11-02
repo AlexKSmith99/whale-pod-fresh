@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Switch } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Switch, StatusBar } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { pursuitService } from '../services/pursuitService';
+import { colors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
 
 const PURSUIT_TYPES = ['Education', 'Friends', 'Problem', 'Business', 'Lifestyle', 'Hobby', 'Side Hustle', 'Travel', 'Discussion', 'New Endeavor', 'Accountability'];
 const DECISION_SYSTEMS = ['Standard Vote', 'Admin Has Ultimate Say', 'Delegated', 'Weighted Voting'];
@@ -164,15 +166,21 @@ export default function EditPursuitScreen({ pursuit, onBack, onUpdated }: Props)
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
+
+      {/* Modern Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backText}>← Back</Text>
+          <Ionicons name="arrow-back" size={24} color={colors.primary} />
         </TouchableOpacity>
-        <Text style={styles.title}>Edit Pursuit</Text>
-        <Text style={styles.subtitle}>* = Required fields</Text>
+        <View style={styles.headerContent}>
+          <Text style={styles.headerGreeting}>Edit</Text>
+          <Text style={styles.headerTitle}>Pursuit</Text>
+        </View>
+        <Text style={styles.subtitle}>* Required</Text>
       </View>
 
-      <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.form}>
 
           {/* BASIC INFORMATION */}
@@ -456,83 +464,201 @@ export default function EditPursuitScreen({ pursuit, onBack, onUpdated }: Props)
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+
+  // Header Styles
   header: {
-    backgroundColor: '#fff',
-    padding: 20,
-    paddingTop: 60,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: colors.white,
+    paddingHorizontal: spacing.lg,
+    paddingTop: 50,
+    paddingBottom: spacing.base,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+    ...shadows.sm,
   },
-  backButton: { marginBottom: 10 },
-  backText: { fontSize: 16, color: '#0ea5e9', fontWeight: '600' },
-  title: { fontSize: 28, fontWeight: 'bold', color: '#333' },
-  subtitle: { fontSize: 12, color: '#999', marginTop: 5 },
-  scrollView: { flex: 1 },
-  form: { padding: 20, paddingBottom: 120 },
+
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  backText: {
+    fontSize: typography.fontSize.base,
+    color: colors.primary,
+    fontWeight: typography.fontWeight.semibold,
+  },
+
+  headerContent: {
+    flex: 1,
+  },
+
+  headerGreeting: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textSecondary,
+    fontWeight: typography.fontWeight.medium,
+    marginBottom: spacing.xs,
+  },
+
+  headerTitle: {
+    fontSize: typography.fontSize['3xl'],
+    fontWeight: typography.fontWeight.bold,
+    color: colors.textPrimary,
+  },
+
+  title: {
+    fontSize: typography.fontSize['2xl'],
+    fontWeight: typography.fontWeight.bold,
+    color: colors.textPrimary,
+  },
+
+  subtitle: {
+    fontSize: typography.fontSize.xs,
+    color: colors.textTertiary,
+    marginTop: spacing.xs,
+    fontStyle: 'italic',
+  },
+
+  scrollView: {
+    flex: 1,
+  },
+
+  form: {
+    padding: spacing.lg,
+    paddingBottom: spacing['5xl'],
+  },
+
   section: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 16 },
-  label: { fontSize: 14, fontWeight: '600', color: '#333', marginBottom: 8, marginTop: 8 },
-  miniLabel: { fontSize: 12, fontWeight: '600', color: '#666', marginBottom: 4 },
-  input: {
-    backgroundColor: '#fafafa',
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+    ...shadows.base,
     borderWidth: 1,
-    borderColor: '#e5e5e5',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    marginBottom: 12,
+    borderColor: colors.borderLight,
   },
-  textArea: { height: 100, textAlignVertical: 'top' },
-  row: { flexDirection: 'row', gap: 10 },
-  halfInput: { flex: 1 },
-  hint: { fontSize: 12, color: '#999', marginBottom: 8, fontStyle: 'italic' },
-  charCount: { fontSize: 12, color: '#666', marginBottom: 4, textAlign: 'right' },
+
+  sectionTitle: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.textPrimary,
+    marginBottom: spacing.base,
+  },
+
+  label: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
+    marginTop: spacing.sm,
+  },
+
+  miniLabel: {
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+
+  input: {
+    backgroundColor: colors.backgroundSecondary,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    borderRadius: borderRadius.base,
+    padding: spacing.md,
+    fontSize: typography.fontSize.sm,
+    marginBottom: spacing.md,
+    color: colors.textPrimary,
+  },
+
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top',
+  },
+
+  row: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+
+  halfInput: {
+    flex: 1,
+  },
+
+  hint: {
+    fontSize: typography.fontSize.xs,
+    color: colors.textTertiary,
+    marginBottom: spacing.sm,
+    fontStyle: 'italic',
+  },
+
+  charCount: {
+    fontSize: typography.fontSize.xs,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+    textAlign: 'right',
+  },
+
   switchRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: spacing.sm,
   },
-  chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+
+  chipContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+
   chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#f0f0f0',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.backgroundSecondary,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: colors.borderLight,
   },
-  chipSelected: { backgroundColor: '#0ea5e9', borderColor: '#0ea5e9' },
-  chipText: { fontSize: 13, color: '#666' },
-  chipTextSelected: { color: '#fff', fontWeight: 'bold' },
+
+  chipSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+
+  chipText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textSecondary,
+    fontWeight: typography.fontWeight.medium,
+  },
+
+  chipTextSelected: {
+    color: colors.white,
+    fontWeight: typography.fontWeight.bold,
+  },
+
   button: {
-    backgroundColor: '#0ea5e9',
-    borderRadius: 12,
-    padding: 18,
-    marginTop: 10,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginTop: spacing.sm,
     alignItems: 'center',
-    shadowColor: '#0ea5e9',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
+    ...shadows.lg,
   },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#fff', fontSize: 17, fontWeight: 'bold' },
+
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+
+  buttonText: {
+    color: colors.white,
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.bold,
+  },
 });
