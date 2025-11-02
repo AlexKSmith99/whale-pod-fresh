@@ -6,11 +6,14 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
+  StatusBar,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { messageService } from '../services/messageService';
 import { supabase } from '../config/supabase';
+import { colors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
 
 export default function MessagesListScreen({ navigation }: any) {
   const { user } = useAuth();
@@ -137,8 +140,16 @@ export default function MessagesListScreen({ navigation }: any) {
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
+
+      {/* Modern Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Messages</Text>
+        <View style={styles.headerTop}>
+          <View>
+            <Text style={styles.headerGreeting}>Your</Text>
+            <Text style={styles.headerTitle}>Messages</Text>
+          </View>
+        </View>
       </View>
 
       <FlatList
@@ -146,9 +157,19 @@ export default function MessagesListScreen({ navigation }: any) {
         keyExtractor={(item, index) => item.partnerId || `conversation-${index}`}
         renderItem={renderConversation}
         contentContainerStyle={styles.list}
+        refreshControl={
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={loadConversations}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="chatbubbles-outline" size={64} color="#ccc" />
+            <View style={styles.emptyIconContainer}>
+              <Ionicons name="chatbubbles-outline" size={48} color={colors.textTertiary} />
+            </View>
             <Text style={styles.emptyText}>
               {loading ? 'Loading...' : 'No messages yet'}
             </Text>
@@ -165,87 +186,135 @@ export default function MessagesListScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
+
+  // Header Styles
   header: {
-    padding: 20,
+    backgroundColor: colors.white,
     paddingTop: 50,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    paddingBottom: spacing.base,
+    ...shadows.sm,
   },
+
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+
+  headerGreeting: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textSecondary,
+    fontWeight: typography.fontWeight.medium,
+    marginBottom: spacing.xs,
+  },
+
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: typography.fontSize['3xl'],
+    fontWeight: typography.fontWeight.bold,
+    color: colors.textPrimary,
   },
+
+  // List Styles
   list: {
-    padding: 10,
+    padding: spacing.lg,
+    paddingBottom: spacing['4xl'],
   },
+
+  // Conversation Card
   conversationCard: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 10,
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.base,
     alignItems: 'center',
+    ...shadows.base,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
   },
+
   avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#0ea5e9',
+    width: 56,
+    height: 56,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: spacing.md,
   },
+
   avatarText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontSize: typography.fontSize.xl,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.white,
   },
+
   conversationInfo: {
     flex: 1,
   },
+
   userName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
   },
+
   lastMessage: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: typography.fontSize.sm,
+    color: colors.textSecondary,
+    lineHeight: typography.fontSize.sm * typography.lineHeight.normal,
   },
+
   metaInfo: {
     alignItems: 'flex-end',
   },
+
   timestamp: {
-    fontSize: 12,
-    color: '#999',
-    marginBottom: 4,
+    fontSize: typography.fontSize.xs,
+    color: colors.textTertiary,
+    marginBottom: spacing.xs,
   },
+
   unreadBadge: {
     width: 10,
     height: 10,
-    borderRadius: 5,
-    backgroundColor: '#0ea5e9',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primary,
   },
+
+  // Empty State
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 60,
+    paddingVertical: spacing['5xl'],
+    paddingHorizontal: spacing.lg,
   },
+
+  emptyIconContainer: {
+    width: 96,
+    height: 96,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.backgroundSecondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+
   emptyText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#999',
-    marginTop: 20,
+    fontSize: typography.fontSize.xl,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
   },
+
   emptySubtext: {
-    fontSize: 14,
-    color: '#ccc',
-    marginTop: 5,
+    fontSize: typography.fontSize.base,
+    color: colors.textSecondary,
     textAlign: 'center',
   },
 });

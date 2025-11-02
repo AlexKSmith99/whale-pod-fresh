@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator, StatusBar } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
+import { colors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
 
 interface Pod {
   id: string;
@@ -107,14 +109,29 @@ export default function PodsScreen({ onOpenTeamBoard }: PodsScreenProps) {
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
+
+      {/* Modern Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>🐋 My Pods</Text>
-        <Text style={styles.subtitle}>Your teams & applications</Text>
+        <View style={styles.headerTop}>
+          <View>
+            <Text style={styles.headerGreeting}>Your</Text>
+            <Text style={styles.headerTitle}>Pods</Text>
+          </View>
+        </View>
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} />}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={loadData}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
       >
         {applications.length > 0 && (
           <View style={styles.applicationsSection}>
@@ -137,7 +154,9 @@ export default function PodsScreen({ onOpenTeamBoard }: PodsScreenProps) {
 
         {pods.length === 0 && applications.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyEmoji}>🌊</Text>
+            <View style={styles.emptyIconContainer}>
+              <Ionicons name="fish-outline" size={48} color={colors.textTertiary} />
+            </View>
             <Text style={styles.emptyText}>No pods or applications yet!</Text>
             <Text style={styles.emptyHint}>Create a pursuit or apply to join a team</Text>
           </View>
@@ -178,13 +197,17 @@ export default function PodsScreen({ onOpenTeamBoard }: PodsScreenProps) {
 
                     <View style={styles.podInfo}>
                       <View style={styles.infoItem}>
-                        <Text style={styles.infoIcon}>👥</Text>
+                        <View style={styles.iconContainer}>
+                          <Ionicons name="people" size={14} color={colors.textSecondary} />
+                        </View>
                         <Text style={styles.infoText}>
-                          {pod.current_members_count}/{pod.team_size_max} members
+                          {pod.current_members_count}/{pod.team_size_max}
                         </Text>
                       </View>
                       <View style={styles.infoItem}>
-                        <Text style={styles.infoIcon}>📅</Text>
+                        <View style={styles.iconContainer}>
+                          <Ionicons name="calendar" size={14} color={colors.textSecondary} />
+                        </View>
                         <Text style={styles.infoText} numberOfLines={1}>
                           {pod.meeting_cadence}
                         </Text>
@@ -206,41 +229,267 @@ export default function PodsScreen({ onOpenTeamBoard }: PodsScreenProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { backgroundColor: '#fff', padding: 20, paddingTop: 60, borderBottomWidth: 1, borderBottomColor: '#eee', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
-  title: { fontSize: 28, fontWeight: 'bold', color: '#8b5cf6' },
-  subtitle: { fontSize: 16, color: '#666', marginTop: 5 },
-  scrollView: { flex: 1 },
-  applicationsSection: { backgroundColor: '#fef3c7', padding: 15, borderBottomWidth: 1, borderBottomColor: '#f59e0b' },
-  applicationsTitle: { fontSize: 16, fontWeight: 'bold', color: '#92400e', marginBottom: 12 },
-  applicationCard: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: '#f59e0b' },
-  applicationHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  applicationTitle: { fontSize: 16, fontWeight: 'bold', color: '#1f2937', flex: 1, marginRight: 8 },
-  applicationDescription: { fontSize: 13, color: '#6b7280', lineHeight: 18 },
-  pendingBadge: { backgroundColor: '#fbbf24', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  pendingText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
-  content: { padding: 15, paddingBottom: 100 },
-  podsTitle: { fontSize: 16, fontWeight: 'bold', color: '#6b7280', marginBottom: 12 },
-  emptyState: { alignItems: 'center', paddingVertical: 80 },
-  emptyEmoji: { fontSize: 64, marginBottom: 20 },
-  emptyText: { fontSize: 20, fontWeight: 'bold', color: '#999', marginBottom: 8 },
-  emptyHint: { fontSize: 14, color: '#ccc', textAlign: 'center', paddingHorizontal: 40 },
-  podCard: { backgroundColor: '#fff', borderRadius: 16, padding: 18, marginBottom: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 4, borderWidth: 1, borderColor: '#f0f0f0' },
-  podHeader: { marginBottom: 12 },
-  podTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  podTitle: { fontSize: 19, fontWeight: 'bold', color: '#1a1a1a', flex: 1, marginRight: 8 },
-  creatorBadge: { backgroundColor: '#8b5cf6', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  creatorBadgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
-  statusBadge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12 },
-  statusPending: { backgroundColor: '#fef3c7' },
-  statusActive: { backgroundColor: '#d1fae5' },
-  statusText: { fontSize: 11, fontWeight: '600', color: '#333' },
-  podDescription: { fontSize: 14, color: '#666', marginBottom: 14, lineHeight: 20 },
-  podInfo: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#f5f5f5' },
-  infoItem: { flexDirection: 'row', alignItems: 'center', marginRight: 12 },
-  infoIcon: { fontSize: 14, marginRight: 6 },
-  infoText: { fontSize: 13, color: '#666', maxWidth: 150 },
-  podFooter: { alignItems: 'flex-end' },
-  tapHint: { fontSize: 12, color: '#8b5cf6', fontWeight: '600' },
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // Header Styles
+  header: {
+    backgroundColor: colors.white,
+    paddingTop: 50,
+    paddingBottom: spacing.base,
+    ...shadows.sm,
+  },
+
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+
+  headerGreeting: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textSecondary,
+    fontWeight: typography.fontWeight.medium,
+    marginBottom: spacing.xs,
+  },
+
+  headerTitle: {
+    fontSize: typography.fontSize['3xl'],
+    fontWeight: typography.fontWeight.bold,
+    color: colors.textPrimary,
+  },
+
+  scrollView: {
+    flex: 1,
+  },
+
+  // Applications Section
+  applicationsSection: {
+    backgroundColor: colors.warningLight,
+    padding: spacing.lg,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.warning,
+  },
+
+  applicationsTitle: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.textPrimary,
+    marginBottom: spacing.md,
+  },
+
+  applicationCard: {
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.base,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.warning,
+  },
+
+  applicationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+
+  applicationTitle: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.textPrimary,
+    flex: 1,
+    marginRight: spacing.sm,
+  },
+
+  applicationDescription: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textSecondary,
+    lineHeight: typography.fontSize.sm * typography.lineHeight.normal,
+  },
+
+  pendingBadge: {
+    backgroundColor: colors.warning,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.full,
+  },
+
+  pendingText: {
+    color: colors.white,
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.bold,
+  },
+
+  // Content
+  content: {
+    padding: spacing.lg,
+    paddingBottom: spacing['5xl'],
+  },
+
+  podsTitle: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
+  },
+
+  // Empty State
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing['5xl'],
+    paddingHorizontal: spacing.lg,
+  },
+
+  emptyIconContainer: {
+    width: 96,
+    height: 96,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.backgroundSecondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+
+  emptyText: {
+    fontSize: typography.fontSize.xl,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
+  },
+
+  emptyHint: {
+    fontSize: typography.fontSize.base,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+
+  // Pod Card
+  podCard: {
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.base,
+    ...shadows.base,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+
+  podHeader: {
+    marginBottom: spacing.md,
+  },
+
+  podTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+
+  podTitle: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.textPrimary,
+    flex: 1,
+    marginRight: spacing.sm,
+  },
+
+  creatorBadge: {
+    backgroundColor: colors.success,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.full,
+  },
+
+  creatorBadgeText: {
+    color: colors.white,
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.bold,
+  },
+
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.full,
+    gap: 4,
+  },
+
+  statusPending: {
+    backgroundColor: colors.warningLight,
+  },
+
+  statusActive: {
+    backgroundColor: colors.successLight,
+  },
+
+  statusText: {
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.textPrimary,
+  },
+
+  podDescription: {
+    fontSize: typography.fontSize.base,
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
+    lineHeight: typography.fontSize.base * typography.lineHeight.normal,
+  },
+
+  podInfo: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.base,
+    marginBottom: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderLight,
+  },
+
+  infoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+
+  iconContainer: {
+    width: 20,
+    height: 20,
+    borderRadius: borderRadius.sm,
+    backgroundColor: colors.backgroundSecondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  infoText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textSecondary,
+    fontWeight: typography.fontWeight.medium,
+  },
+
+  podFooter: {
+    alignItems: 'flex-end',
+  },
+
+  tapHint: {
+    fontSize: typography.fontSize.sm,
+    color: colors.primary,
+    fontWeight: typography.fontWeight.semibold,
+  },
 });
