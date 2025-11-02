@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Linking, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Linking, Image, Alert, StatusBar } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
 import { connectionService } from '../services/connectionService';
 import { reviewService } from '../services/reviewService';
 import EditProfileScreen from './EditProfileScreen';
 import ReviewScreen from './ReviewScreen';
+import { colors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
 
 export default function ProfileScreen({ navigation }: any) {
   const { user, signOut } = useAuth();
@@ -240,10 +242,16 @@ const handleRejectConnection = async (connectionId: string) => {
 
   return (
     <ScrollView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
+
+      {/* Modern Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>My Profile</Text>
+        <View>
+          <Text style={styles.headerGreeting}>Your</Text>
+          <Text style={styles.headerTitle}>Profile</Text>
+        </View>
         <TouchableOpacity onPress={() => setShowEdit(true)} style={styles.editButton}>
-          <Text style={styles.editButtonText}>Edit</Text>
+          <Ionicons name="create-outline" size={24} color={colors.white} />
         </TouchableOpacity>
       </View>
 
@@ -368,37 +376,47 @@ const handleRejectConnection = async (connectionId: string) => {
             <Text style={styles.sectionTitle}>Social Links</Text>
             {profile?.instagram && (
               <TouchableOpacity style={styles.linkRow} onPress={() => handleOpenLink(profile.instagram)}>
-                <Text style={styles.linkIcon}>📷</Text>
+                <View style={styles.linkIconContainer}>
+                  <Ionicons name="logo-instagram" size={18} color={colors.primary} />
+                </View>
                 <Text style={styles.linkText}>Instagram</Text>
-                <Text style={styles.linkArrow}>→</Text>
+                <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
               </TouchableOpacity>
             )}
             {profile?.linkedin && (
               <TouchableOpacity style={styles.linkRow} onPress={() => handleOpenLink(profile.linkedin)}>
-                <Text style={styles.linkIcon}>💼</Text>
+                <View style={styles.linkIconContainer}>
+                  <Ionicons name="logo-linkedin" size={18} color={colors.primary} />
+                </View>
                 <Text style={styles.linkText}>LinkedIn</Text>
-                <Text style={styles.linkArrow}>→</Text>
+                <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
               </TouchableOpacity>
             )}
             {profile?.facebook && (
               <TouchableOpacity style={styles.linkRow} onPress={() => handleOpenLink(profile.facebook)}>
-                <Text style={styles.linkIcon}>👤</Text>
+                <View style={styles.linkIconContainer}>
+                  <Ionicons name="logo-facebook" size={18} color={colors.primary} />
+                </View>
                 <Text style={styles.linkText}>Facebook</Text>
-                <Text style={styles.linkArrow}>→</Text>
+                <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
               </TouchableOpacity>
             )}
             {profile?.github && (
               <TouchableOpacity style={styles.linkRow} onPress={() => handleOpenLink(profile.github)}>
-                <Text style={styles.linkIcon}>💻</Text>
+                <View style={styles.linkIconContainer}>
+                  <Ionicons name="logo-github" size={18} color={colors.primary} />
+                </View>
                 <Text style={styles.linkText}>GitHub</Text>
-                <Text style={styles.linkArrow}>→</Text>
+                <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
               </TouchableOpacity>
             )}
             {profile?.portfolio_website && (
               <TouchableOpacity style={styles.linkRow} onPress={() => handleOpenLink(profile.portfolio_website)}>
-                <Text style={styles.linkIcon}>🌐</Text>
+                <View style={styles.linkIconContainer}>
+                  <Ionicons name="globe-outline" size={18} color={colors.primary} />
+                </View>
                 <Text style={styles.linkText}>Portfolio</Text>
-                <Text style={styles.linkArrow}>→</Text>
+                <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
               </TouchableOpacity>
             )}
           </View>
@@ -489,7 +507,9 @@ const handleRejectConnection = async (connectionId: string) => {
 
             {connections.length === 0 && pendingRequests.length === 0 ? (
               <View style={styles.emptyReviews}>
-                <Text style={styles.emptyReviewsEmoji}>🤝</Text>
+                <View style={styles.emptyIconContainer}>
+                  <Ionicons name="people-outline" size={48} color={colors.textTertiary} />
+                </View>
                 <Text style={styles.emptyReviewsText}>No connections yet</Text>
                 <Text style={styles.emptyReviewsHint}>
                   Connect with teammates to build your network
@@ -528,53 +548,119 @@ const handleRejectConnection = async (connectionId: string) => {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { 
-    backgroundColor: '#fff', 
-    padding: 20, 
-    paddingTop: 60, 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#eee',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  title: { fontSize: 28, fontWeight: 'bold', color: '#0ea5e9' },
-  editButton: { backgroundColor: '#0ea5e9', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
-  editButtonText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
-  content: { padding: 20, paddingBottom: 100 },
-  avatarContainer: { alignItems: 'center', marginBottom: 20 },
+
+  // Header Styles
+  header: {
+    backgroundColor: colors.white,
+    paddingHorizontal: spacing.lg,
+    paddingTop: 50,
+    paddingBottom: spacing.base,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    ...shadows.sm,
+  },
+
+  headerGreeting: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textSecondary,
+    fontWeight: typography.fontWeight.medium,
+    marginBottom: spacing.xs,
+  },
+
+  headerTitle: {
+    fontSize: typography.fontSize['3xl'],
+    fontWeight: typography.fontWeight.bold,
+    color: colors.textPrimary,
+  },
+
+  editButton: {
+    backgroundColor: colors.primary,
+    width: 44,
+    height: 44,
+    borderRadius: borderRadius.full,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...shadows.base,
+  },
+
+  editButtonText: {
+    color: colors.white,
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.bold,
+  },
+
+  content: {
+    padding: spacing.lg,
+    paddingBottom: spacing['5xl'],
+  },
+  avatarContainer: {
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+
   avatar: {
     width: 100,
     height: 100,
-    borderRadius: 50,
-    backgroundColor: '#0ea5e9',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
+
   avatarImage: {
     width: 100,
     height: 100,
-    borderRadius: 50,
-    marginBottom: 12,
+    borderRadius: borderRadius.full,
+    marginBottom: spacing.md,
   },
-  avatarText: { fontSize: 40, color: '#fff', fontWeight: 'bold' },
-  name: { fontSize: 20, color: '#1f2937', fontWeight: 'bold', marginBottom: 4 },
-  email: { fontSize: 14, color: '#9ca3af', fontWeight: '500' },
-  section: { 
-    backgroundColor: '#fff', 
-    borderRadius: 12, 
-    padding: 16, 
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
+
+  avatarText: {
+    fontSize: 40,
+    color: colors.white,
+    fontWeight: typography.fontWeight.bold,
   },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#1f2937', marginBottom: 12 },
+
+  name: {
+    fontSize: typography.fontSize.xl,
+    color: colors.textPrimary,
+    fontWeight: typography.fontWeight.bold,
+    marginBottom: spacing.xs,
+  },
+
+  email: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textSecondary,
+    fontWeight: typography.fontWeight.medium,
+  },
+
+  section: {
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.base,
+    ...shadows.base,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+
+  sectionTitle: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.textPrimary,
+    marginBottom: spacing.md,
+  },
   teamRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -602,59 +688,107 @@ const styles = StyleSheet.create({
   infoRow: { flexDirection: 'row', marginBottom: 8 },
   infoLabel: { fontSize: 14, fontWeight: '600', color: '#6b7280', width: 100 },
   infoValue: { fontSize: 14, color: '#1f2937', flex: 1 },
-  bioText: { fontSize: 15, color: '#4b5563', lineHeight: 22 },
+  bioText: {
+    fontSize: typography.fontSize.base,
+    color: colors.textSecondary,
+    lineHeight: typography.fontSize.base * typography.lineHeight.normal,
+  },
+
   linkRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: colors.borderLight,
   },
-  linkIcon: { fontSize: 20, marginRight: 12 },
-  linkText: { flex: 1, fontSize: 15, color: '#1f2937', fontWeight: '500' },
-  linkArrow: { fontSize: 16, color: '#9ca3af' },
-  warningBox: {
-    backgroundColor: '#fef3c7',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#f59e0b',
-  },
-  warningText: { fontSize: 14, color: '#92400e', fontWeight: '600', textAlign: 'center' },
-  signOutButton: {
-    backgroundColor: '#ef4444',
-    borderRadius: 12,
-    padding: 16,
+
+  linkIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: borderRadius.base,
+    backgroundColor: colors.backgroundSecondary,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20,
+    marginRight: spacing.md,
   },
-  signOutText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },tabsContainer: {
-  flexDirection: 'row',
-  backgroundColor: '#fff',
-  borderBottomWidth: 1,
-  borderBottomColor: '#e5e7eb',
-  marginTop: 16,
-},
-profileTab: {
-  flex: 1,
-  paddingVertical: 12,
-  alignItems: 'center',
-  borderBottomWidth: 2,
-  borderBottomColor: 'transparent',
-},
-profileTabActive: {
-  borderBottomColor: '#0ea5e9',
-},
-profileTabText: {
-  fontSize: 14,
-  color: '#6b7280',
-  fontWeight: '500',
-},
-profileTabTextActive: {
-  color: '#0ea5e9',
-  fontWeight: 'bold',
-},
+
+  linkIcon: {
+    fontSize: 20,
+    marginRight: spacing.md,
+  },
+
+  linkText: {
+    flex: 1,
+    fontSize: typography.fontSize.base,
+    color: colors.textPrimary,
+    fontWeight: typography.fontWeight.medium,
+  },
+
+  linkArrow: {
+    fontSize: 16,
+    color: colors.textTertiary,
+  },
+  warningBox: {
+    backgroundColor: colors.warningLight,
+    padding: spacing.lg,
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing.base,
+    borderWidth: 1,
+    borderColor: colors.warning,
+  },
+
+  warningText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textPrimary,
+    fontWeight: typography.fontWeight.semibold,
+    textAlign: 'center',
+  },
+
+  signOutButton: {
+    backgroundColor: colors.error,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    alignItems: 'center',
+    marginTop: spacing.lg,
+    ...shadows.base,
+  },
+
+  signOutText: {
+    color: colors.white,
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.bold,
+  },
+
+  tabsContainer: {
+    flexDirection: 'row',
+    backgroundColor: colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+    marginTop: spacing.base,
+  },
+
+  profileTab: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+
+  profileTabActive: {
+    borderBottomColor: colors.primary,
+  },
+
+  profileTabText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textSecondary,
+    fontWeight: typography.fontWeight.medium,
+  },
+
+  profileTabTextActive: {
+    color: colors.primary,
+    fontWeight: typography.fontWeight.bold,
+  },
 tabContent: {
   flex: 1,
   padding: 16,
@@ -680,23 +814,36 @@ ratingsCount: {
 },
 emptyReviews: {
   alignItems: 'center',
-  paddingVertical: 60,
+  paddingVertical: spacing['5xl'],
 },
+
+emptyIconContainer: {
+  width: 96,
+  height: 96,
+  borderRadius: borderRadius.full,
+  backgroundColor: colors.backgroundSecondary,
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginBottom: spacing.lg,
+},
+
 emptyReviewsEmoji: {
   fontSize: 64,
-  marginBottom: 16,
+  marginBottom: spacing.base,
 },
+
 emptyReviewsText: {
-  fontSize: 18,
-  fontWeight: 'bold',
-  color: '#6b7280',
-  marginBottom: 8,
+  fontSize: typography.fontSize.xl,
+  fontWeight: typography.fontWeight.semibold,
+  color: colors.textPrimary,
+  marginBottom: spacing.sm,
 },
+
 emptyReviewsHint: {
-  fontSize: 14,
-  color: '#9ca3af',
+  fontSize: typography.fontSize.base,
+  color: colors.textSecondary,
   textAlign: 'center',
-  paddingHorizontal: 40,
+  paddingHorizontal: spacing['2xl'],
 },
 reviewCard: {
   backgroundColor: '#fff',
