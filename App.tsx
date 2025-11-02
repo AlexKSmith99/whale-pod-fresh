@@ -14,6 +14,7 @@ import PodsScreen from './src/screens/PodsScreen';
 import ConnectionsScreen from './src/screens/connections/ConnectionsScreen';
 import TimeSlotProposalScreen from './src/screens/TimeSlotProposalScreen';
 import CreatorTimeSelectionScreen from './src/screens/CreatorTimeSelectionScreen';
+import EditPursuitScreen from './src/screens/EditPursuitScreen';
 import NotificationBadge from './src/components/NotificationBadge';
 import { notificationService } from './src/services/notificationService';
 
@@ -31,6 +32,10 @@ function AppContent() {
   const [showTimeSlotProposal, setShowTimeSlotProposal] = useState(false);
   const [showCreatorTimeSelection, setShowCreatorTimeSelection] = useState(false);
   const [selectedPursuitForKickoff, setSelectedPursuitForKickoff] = useState<any>(null);
+
+  // Edit pursuit screen
+  const [showEditPursuit, setShowEditPursuit] = useState(false);
+  const [selectedPursuitForEdit, setSelectedPursuitForEdit] = useState<any>(null);
 
   // Notification badge counts
   const [feedNotifications, setFeedNotifications] = useState(0);
@@ -182,6 +187,11 @@ if (viewingUserId) {
     setShowCreatorTimeSelection(true);
   };
 
+  const openEditPursuit = (pursuit: any) => {
+    setSelectedPursuitForEdit(pursuit);
+    setShowEditPursuit(true);
+  };
+
   // Show Time Slot Proposal Screen
   if (showTimeSlotProposal && selectedPursuitForKickoff) {
     return (
@@ -225,6 +235,24 @@ if (viewingUserId) {
     );
   }
 
+  // Show Edit Pursuit Screen
+  if (showEditPursuit && selectedPursuitForEdit) {
+    return (
+      <EditPursuitScreen
+        pursuit={selectedPursuitForEdit}
+        onBack={() => {
+          setShowEditPursuit(false);
+          setSelectedPursuitForEdit(null);
+        }}
+        onUpdated={() => {
+          setShowEditPursuit(false);
+          setSelectedPursuitForEdit(null);
+          loadNotificationCounts();
+        }}
+      />
+    );
+  }
+
   return (
     <View style={{ flex: 1 }}>
       {currentScreen === 'Feed' && (
@@ -233,6 +261,7 @@ if (viewingUserId) {
           onOpenTeamBoard={openTeamBoard}
           onOpenCreate={() => setShowCreate(true)}
           onOpenCreatorTimeSelection={openCreatorTimeSelection}
+          onEditPursuit={openEditPursuit}
         />
       )}
       {currentScreen === 'Messages' && (

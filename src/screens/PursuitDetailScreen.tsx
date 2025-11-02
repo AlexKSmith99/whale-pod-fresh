@@ -14,6 +14,7 @@ interface Props {
   pursuit: any;
   onBack: () => void;
   onDelete?: () => void;
+  onEdit?: (pursuit: any) => void;
   isOwner: boolean;
   onViewProfile?: (userId: string, userEmail: string) => void;
   onSendMessage?: (userId: string, userEmail: string) => void;
@@ -22,7 +23,7 @@ interface Props {
   onOpenCreatorTimeSelection?: (pursuit: any) => void;
 }
 
-export default function PursuitDetailScreen({ pursuit, onBack, onDelete, isOwner, onViewProfile, onSendMessage, onOpenTeamBoard, onOpenCreatorTimeSelection }: Props) {
+export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit, isOwner, onViewProfile, onSendMessage, onOpenTeamBoard, onOpenCreatorTimeSelection }: Props) {
   const { user } = useAuth();
   const [showApplicationForm, setShowApplicationForm] = useState(false);
   const [showApplicationsReview, setShowApplicationsReview] = useState(false);
@@ -246,6 +247,12 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, isOwner
               </TouchableOpacity>
             )}
             <TouchableOpacity
+              style={styles.editButton}
+              onPress={() => onEdit && onEdit(pursuit)}
+            >
+              <Text style={styles.editButtonText}>✏️ Edit Pursuit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
               style={styles.teamBoardButton}
               onPress={() => onOpenTeamBoard(pursuit.id)}
             >
@@ -356,6 +363,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
     opacity: 0.9,
   },
+  editButton: { backgroundColor: '#f59e0b', borderRadius: 8, padding: 16, alignItems: 'center' },
+  editButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   teamBoardButton: { backgroundColor: '#8b5cf6', borderRadius: 8, padding: 16, alignItems: 'center' },
   teamBoardButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   reviewButton: { backgroundColor: '#0ea5e9', borderRadius: 8, padding: 16, alignItems: 'center' },

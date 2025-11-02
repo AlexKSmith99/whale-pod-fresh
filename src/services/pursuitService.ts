@@ -8,7 +8,20 @@ export const pursuitService = {
       .insert([data])
       .select()
       .single();
-    
+
+    if (error) throw error;
+    return pursuit;
+  },
+
+  // Update a pursuit
+  async updatePursuit(pursuitId: string, data: any) {
+    const { data: pursuit, error } = await supabase
+      .from('pursuits')
+      .update(data)
+      .eq('id', pursuitId)
+      .select()
+      .single();
+
     if (error) throw error;
     return pursuit;
   },
