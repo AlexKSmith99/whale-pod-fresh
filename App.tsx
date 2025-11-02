@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, ActivityIndicator, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import LoginScreen from './src/screens/LoginScreen';
@@ -12,6 +12,8 @@ import ChatScreen from './src/screens/ChatScreen';
 import TeamBoardScreen from './src/screens/team/TeamBoardScreen';
 import PodsScreen from './src/screens/PodsScreen';
 import ConnectionsScreen from './src/screens/connections/ConnectionsScreen';
+import TimeSlotProposalScreen from './src/screens/TimeSlotProposalScreen';
+import CreatorTimeSelectionScreen from './src/screens/CreatorTimeSelectionScreen';
 import NotificationBadge from './src/components/NotificationBadge';
 import { notificationService } from './src/services/notificationService';
 
@@ -24,6 +26,11 @@ function AppContent() {
   const [showCreate, setShowCreate] = useState(false);
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   const [showConnections, setShowConnections] = useState(false);
+
+  // Kickoff scheduling screens
+  const [showTimeSlotProposal, setShowTimeSlotProposal] = useState(false);
+  const [showCreatorTimeSelection, setShowCreatorTimeSelection] = useState(false);
+  const [selectedPursuitForKickoff, setSelectedPursuitForKickoff] = useState<any>(null);
 
   // Notification badge counts
   const [feedNotifications, setFeedNotifications] = useState(0);
@@ -165,13 +172,67 @@ if (viewingUserId) {
     setTeamBoardPursuitId(pursuitId);
   };
 
+  const openTimeSlotProposal = (pursuit: any) => {
+    setSelectedPursuitForKickoff(pursuit);
+    setShowTimeSlotProposal(true);
+  };
+
+  const openCreatorTimeSelection = (pursuit: any) => {
+    setSelectedPursuitForKickoff(pursuit);
+    setShowCreatorTimeSelection(true);
+  };
+
+  // Show Time Slot Proposal Screen
+  if (showTimeSlotProposal && selectedPursuitForKickoff) {
+    return (
+      <TimeSlotProposalScreen
+        pursuit={selectedPursuitForKickoff}
+        onBack={() => {
+          setShowTimeSlotProposal(false);
+          setSelectedPursuitForKickoff(null);
+          loadNotificationCounts(); // Refresh badges after submission
+        }}
+        onSubmitted={() => {
+          setShowTimeSlotProposal(false);
+          setSelectedPursuitForKickoff(null);
+          loadNotificationCounts();
+          Alert.alert(
+            '✅ Success!',
+            'Your time slot proposals have been submitted. The pursuit creator will select the best time and notify you.'
+          );
+        }}
+      />
+    );
+  }
+
+  // Show Creator Time Selection Screen
+  if (showCreatorTimeSelection && selectedPursuitForKickoff) {
+    return (
+      <CreatorTimeSelectionScreen
+        pursuit={selectedPursuitForKickoff}
+        onBack={() => {
+          setShowCreatorTimeSelection(false);
+          setSelectedPursuitForKickoff(null);
+        }}
+        onScheduled={() => {
+          setShowCreatorTimeSelection(false);
+          setSelectedPursuitForKickoff(null);
+          loadNotificationCounts();
+          // Navigate to Pods tab to see the now-active pursuit
+          setCurrentScreen('Pods');
+        }}
+      />
+    );
+  }
+
   return (
     <View style={{ flex: 1 }}>
       {currentScreen === 'Feed' && (
-        <FeedScreen 
-          onStartMessage={startMessage} 
+        <FeedScreen
+          onStartMessage={startMessage}
           onOpenTeamBoard={openTeamBoard}
           onOpenCreate={() => setShowCreate(true)}
+          onOpenCreatorTimeSelection={openCreatorTimeSelection}
         />
       )}
       {currentScreen === 'Messages' && (
@@ -184,7 +245,11 @@ if (viewingUserId) {
   />
 )}
       {currentScreen === 'Pods' && (
-        <PodsScreen onOpenTeamBoard={openTeamBoard} />
+        <PodsScreen
+          onOpenTeamBoard={openTeamBoard}
+          onOpenTimeSlotProposal={openTimeSlotProposal}
+          onOpenCreatorTimeSelection={openCreatorTimeSelection}
+        />
       )}
       {currentScreen === 'Profile' && <ProfileScreen navigation={navigation} />}
       

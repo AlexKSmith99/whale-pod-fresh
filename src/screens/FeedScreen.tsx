@@ -11,9 +11,10 @@ interface Props {
   onOpenTeamBoard?: (pursuitId: string) => void;
   onOpenMeetingNotes?: (pursuitId: string) => void;
   onOpenCreate?: () => void;
+  onOpenCreatorTimeSelection?: (pursuit: any) => void;
 }
 
-export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeetingNotes, onOpenCreate }: Props) {
+export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeetingNotes, onOpenCreate, onOpenCreatorTimeSelection }: Props) {
   const { user } = useAuth();
   const [pursuits, setPursuits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,6 +98,12 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
           setSelectedPursuit(null);
           if (onOpenTeamBoard) {
             onOpenTeamBoard(pursuitId);
+          }
+        }}
+        onOpenCreatorTimeSelection={(pursuit) => {
+          setSelectedPursuit(null);
+          if (onOpenCreatorTimeSelection) {
+            onOpenCreatorTimeSelection(pursuit);
           }
         }}
       />

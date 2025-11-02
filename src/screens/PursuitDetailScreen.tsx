@@ -19,9 +19,10 @@ interface Props {
   onSendMessage?: (userId: string, userEmail: string) => void;
   onOpenTeamBoard?: (pursuitId: string) => void;
   onOpenMeetingNotes?: (pursuitId: string) => void;
+  onOpenCreatorTimeSelection?: (pursuit: any) => void;
 }
 
-export default function PursuitDetailScreen({ pursuit, onBack, onDelete, isOwner, onViewProfile, onSendMessage, onOpenTeamBoard }: Props) {
+export default function PursuitDetailScreen({ pursuit, onBack, onDelete, isOwner, onViewProfile, onSendMessage, onOpenTeamBoard, onOpenCreatorTimeSelection }: Props) {
   const { user } = useAuth();
   const [showApplicationForm, setShowApplicationForm] = useState(false);
   const [showApplicationsReview, setShowApplicationsReview] = useState(false);
@@ -91,14 +92,19 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, isOwner
 
       Alert.alert(
         '✅ Time Slot Request Sent!',
-        `All ${memberIds.length} team members have been notified to propose their available time slots. You'll be able to select the best time once everyone has submitted their proposals.`,
+        `All ${memberIds.length} team members have been notified to propose their available time slots. You can now view proposals as they come in and select the best time.`,
         [
           {
-            text: 'OK',
+            text: 'View Proposals',
             onPress: () => {
-              // TODO: Navigate to time slot collection screen
-              Alert.alert('Coming Soon', 'Time slot collection screen will open here');
+              if (onOpenCreatorTimeSelection) {
+                onOpenCreatorTimeSelection(pursuit);
+              }
             },
+          },
+          {
+            text: 'Later',
+            style: 'cancel',
           },
         ]
       );
