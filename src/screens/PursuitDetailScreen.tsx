@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { applicationService } from '../services/applicationService';
+import { pursuitService } from '../services/pursuitService';
+import { kickoffService } from '../services/kickoffService';
+import { notificationService } from '../services/notificationService';
 import { supabase } from '../config/supabase';
 import ApplicationScreen from './ApplicationScreen';
 import ApplicationsReviewScreen from './ApplicationsReviewScreen';
@@ -25,16 +28,34 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, isOwner
   const [hasApplied, setHasApplied] = useState(false);
   const [showUserProfile, setShowUserProfile] = useState(false);
   const [creatorProfile, setCreatorProfile] = useState<any>(null);
+  const [acceptedMembersCount, setAcceptedMembersCount] = useState(0);
+  const [minTeammatesReached, setMinTeammatesReached] = useState(false);
 
   useEffect(() => {
     checkIfApplied();
     loadCreatorProfile();
+    if (isOwner) {
+      checkMinimumTeammates();
+    }
   }, []);
 
   const checkIfApplied = async () => {
     if (user && !isOwner) {
       const applied = await applicationService.hasUserApplied(pursuit.id, user.id);
       setHasApplied(applied);
+    }
+  };
+
+  const checkMinimumTeammates = async () => {
+    try {
+      const count = await pursuitService.getAcceptedMembersCount(pursuit.id);
+      setAcceptedMembersCount(count);
+
+      // +1 to include the creator
+      const totalMembers = count + 1;
+      setMinTeammatesReached(totalMembers >= pursuit.team_size_min);
+    } catch (error) {
+      console.error('Error checking team members:', error);
     }
   };
 
@@ -50,6 +71,39 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, isOwner
       setCreatorProfile(data);
     } catch (error) {
       console.error('Error loading creator profile:', error);
+    }
+  };
+
+  const handleScheduleKickoff = async () => {
+    try {
+      // Get all accepted team members
+      const members = await kickoffService.requestTimeSlots(pursuit.id, user!.id);
+
+      // Get member IDs
+      const memberIds = members.map(m => m.user_id);
+
+      // Notify all team members to propose time slots
+      await notificationService.notifyTimeSlotRequest(
+        pursuit.id,
+        memberIds,
+        pursuit.title
+      );
+
+      Alert.alert(
+        '✅ Time Slot Request Sent!',
+        `All ${memberIds.length} team members have been notified to propose their available time slots. You'll be able to select the best time once everyone has submitted their proposals.`,
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // TODO: Navigate to time slot collection screen
+              Alert.alert('Coming Soon', 'Time slot collection screen will open here');
+            },
+          },
+        ]
+      );
+    } catch (error: any) {
+      Alert.alert('Error', error.message);
     }
   };
 
@@ -172,13 +226,26 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, isOwner
 
         {isOwner && onOpenTeamBoard && (
           <View style={styles.ownerActions}>
-            <TouchableOpacity 
+            {pursuit.status === 'awaiting_kickoff' && minTeammatesReached && (
+              <TouchableOpacity
+                style={styles.scheduleKickoffButton}
+                onPress={handleScheduleKickoff}
+              >
+                <Text style={styles.scheduleKickoffButtonText}>
+                  🎉 Schedule Kick-Off Meeting
+                </Text>
+                <Text style={styles.scheduleKickoffSubtext}>
+                  {acceptedMembersCount + 1}/{pursuit.team_size_min} minimum teammates ready!
+                </Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
               style={styles.teamBoardButton}
               onPress={() => onOpenTeamBoard(pursuit.id)}
             >
               <Text style={styles.teamBoardButtonText}>📋 Team Board</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.reviewButton}
               onPress={() => setShowApplicationsReview(true)}
             >
@@ -260,6 +327,29 @@ const styles = StyleSheet.create({
   tag: { backgroundColor: '#e0f2fe', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },
   tagText: { color: '#0369a1', fontSize: 13, fontWeight: '500' },
   ownerActions: { marginTop: 20, gap: 12 },
+  scheduleKickoffButton: {
+    backgroundColor: '#10b981',
+    borderRadius: 12,
+    padding: 18,
+    alignItems: 'center',
+    marginBottom: 12,
+    shadowColor: '#10b981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  scheduleKickoffButtonText: {
+    color: '#fff',
+    fontSize: 17,
+    fontWeight: 'bold',
+  },
+  scheduleKickoffSubtext: {
+    color: '#fff',
+    fontSize: 13,
+    marginTop: 4,
+    opacity: 0.9,
+  },
   teamBoardButton: { backgroundColor: '#8b5cf6', borderRadius: 8, padding: 16, alignItems: 'center' },
   teamBoardButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   reviewButton: { backgroundColor: '#0ea5e9', borderRadius: 8, padding: 16, alignItems: 'center' },
