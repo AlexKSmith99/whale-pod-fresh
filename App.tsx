@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, ActivityIndicator, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
@@ -12,6 +12,8 @@ import ChatScreen from './src/screens/ChatScreen';
 import TeamBoardScreen from './src/screens/team/TeamBoardScreen';
 import PodsScreen from './src/screens/PodsScreen';
 import ConnectionsScreen from './src/screens/connections/ConnectionsScreen';
+import NotificationBadge from './src/components/NotificationBadge';
+import { notificationService } from './src/services/notificationService';
 
 function AppContent() {
   const auth = useAuth();
@@ -22,6 +24,40 @@ function AppContent() {
   const [showCreate, setShowCreate] = useState(false);
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   const [showConnections, setShowConnections] = useState(false);
+
+  // Notification badge counts
+  const [feedNotifications, setFeedNotifications] = useState(0);
+  const [messagesNotifications, setMessagesNotifications] = useState(0);
+  const [podsNotifications, setPodsNotifications] = useState(0);
+  const [profileNotifications, setProfileNotifications] = useState(0);
+
+  // Load notification counts
+  const loadNotificationCounts = async () => {
+    if (!auth.user?.id) return;
+
+    try {
+      const [feed, messages, pods, profile] = await Promise.all([
+        notificationService.getFeedUnreadCount(auth.user.id),
+        notificationService.getMessagesUnreadCount(auth.user.id),
+        notificationService.getPodsUnreadCount(auth.user.id),
+        notificationService.getProfileUnreadCount(auth.user.id),
+      ]);
+
+      setFeedNotifications(feed);
+      setMessagesNotifications(messages);
+      setPodsNotifications(pods);
+      setProfileNotifications(profile);
+    } catch (error) {
+      console.error('Error loading notification counts:', error);
+    }
+  };
+
+  // Load notifications on mount and refresh every 30 seconds
+  useEffect(() => {
+    loadNotificationCounts();
+    const interval = setInterval(loadNotificationCounts, 30000);
+    return () => clearInterval(interval);
+  }, [auth.user?.id]);
 
   if (auth.loading) {
     return (
@@ -154,24 +190,36 @@ if (viewingUserId) {
       
       <View style={styles.tabBar}>
         <TouchableOpacity style={styles.tab} onPress={() => setCurrentScreen('Feed')}>
-          <Text style={[styles.tabText, currentScreen === 'Feed' && styles.tabTextActive]}>
-            🏠 Feed
-          </Text>
+          <View>
+            <Text style={[styles.tabText, currentScreen === 'Feed' && styles.tabTextActive]}>
+              🏠 Feed
+            </Text>
+            <NotificationBadge show={feedNotifications > 0} />
+          </View>
         </TouchableOpacity>
         <TouchableOpacity style={styles.tab} onPress={() => setCurrentScreen('Messages')}>
-          <Text style={[styles.tabText, currentScreen === 'Messages' && styles.tabTextActive]}>
-            💬 Messages
-          </Text>
+          <View>
+            <Text style={[styles.tabText, currentScreen === 'Messages' && styles.tabTextActive]}>
+              💬 Messages
+            </Text>
+            <NotificationBadge show={messagesNotifications > 0} />
+          </View>
         </TouchableOpacity>
         <TouchableOpacity style={styles.tab} onPress={() => setCurrentScreen('Pods')}>
-          <Text style={[styles.tabText, currentScreen === 'Pods' && styles.tabTextActive]}>
-            🐋 Pods
-          </Text>
+          <View>
+            <Text style={[styles.tabText, currentScreen === 'Pods' && styles.tabTextActive]}>
+              🐋 Pods
+            </Text>
+            <NotificationBadge show={podsNotifications > 0} />
+          </View>
         </TouchableOpacity>
         <TouchableOpacity style={styles.tab} onPress={() => setCurrentScreen('Profile')}>
-          <Text style={[styles.tabText, currentScreen === 'Profile' && styles.tabTextActive]}>
-            👤 Profile
-          </Text>
+          <View>
+            <Text style={[styles.tabText, currentScreen === 'Profile' && styles.tabTextActive]}>
+              👤 Profile
+            </Text>
+            <NotificationBadge show={profileNotifications > 0} />
+          </View>
         </TouchableOpacity>
       </View>
     </View>
