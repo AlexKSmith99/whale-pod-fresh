@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, StatusBar, TextInput } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { pursuitService } from '../services/pursuitService';
 import { useAuth } from '../contexts/AuthContext';
 import PursuitDetailScreen from './PursuitDetailScreen';
+import { colors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
 
 interface Props {
   onStartMessage?: (userId: string, userEmail: string) => void;
@@ -16,20 +18,39 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
   const [pursuits, setPursuits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPursuit, setSelectedPursuit] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filter, setFilter] = useState<'all' | 'awaiting_kickoff' | 'active'>('all');
 
   useEffect(() => {
     loadPursuits();
-  }, []);
+  }, [filter]);
 
   const loadPursuits = async () => {
     try {
-      const data = await pursuitService.getPursuits();
+      const filters: any = {};
+      if (filter !== 'all') {
+        filters.status = filter;
+      }
+      if (searchQuery) {
+        filters.search = searchQuery;
+      }
+      const data = await pursuitService.getPursuits(filters);
       setPursuits(data);
     } catch (error) {
       console.error('Error loading pursuits:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearch = () => {
+    setLoading(true);
+    loadPursuits();
+  };
+
+  const onRefresh = () => {
+    setLoading(true);
+    loadPursuits();
   };
 
   const handleDelete = async () => {
@@ -82,42 +103,107 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
     );
   }
 
+  const FilterChip = ({
+    label,
+    value,
+    isActive
+  }: {
+    label: string;
+    value: 'all' | 'awaiting_kickoff' | 'active';
+    isActive: boolean
+  }) => (
+    <TouchableOpacity
+      style={[styles.filterChip, isActive && styles.filterChipActive]}
+      onPress={() => setFilter(value)}
+      activeOpacity={0.7}
+    >
+      <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]}>
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
+
+      {/* Modern Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>🐋 Whale Pod</Text>
-          <Text style={styles.subtitle}>Discover Pursuits</Text>
+        <View style={styles.headerTop}>
+          <View>
+            <Text style={styles.headerGreeting}>Discover</Text>
+            <Text style={styles.headerTitle}>Whale Pods</Text>
+          </View>
+          <TouchableOpacity
+            onPress={onOpenCreate}
+            style={styles.createButton}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="add-circle" size={32} color={colors.primary} />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.createButton} onPress={onOpenCreate}>
-          <Text style={styles.createButtonText}>+ Create</Text>
-        </TouchableOpacity>
+
+        {/* Modern Search Bar */}
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={18} color={colors.textTertiary} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search pursuits..."
+            placeholderTextColor={colors.textTertiary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onSubmitEditing={handleSearch}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={18} color={colors.textTertiary} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Modern Filter Chips */}
+        <View style={styles.filterContainer}>
+          <FilterChip label="All" value="all" isActive={filter === 'all'} />
+          <FilterChip label="Awaiting Kickoff" value="awaiting_kickoff" isActive={filter === 'awaiting_kickoff'} />
+          <FilterChip label="Active" value="active" isActive={filter === 'active'} />
+        </View>
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={loadPursuits} />
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
         }
       >
         <View style={styles.content}>
           {pursuits.length === 0 ? (
-            <View style={styles.empty}>
-              <Text style={styles.emptyEmoji}>🌊</Text>
-              <Text style={styles.emptyText}>No pursuits yet!</Text>
-              <Text style={styles.emptyHint}>Tap "+ Create" to start your first pursuit</Text>
+            <View style={styles.emptyContainer}>
+              <View style={styles.emptyIconContainer}>
+                <Ionicons name="search-outline" size={48} color={colors.textTertiary} />
+              </View>
+              <Text style={styles.emptyText}>No pursuits found</Text>
+              <Text style={styles.emptySubtext}>Be the first to create one!</Text>
             </View>
           ) : (
             pursuits.map((pursuit) => (
-              <TouchableOpacity 
-                key={pursuit.id} 
+              <TouchableOpacity
+                key={pursuit.id}
                 style={styles.card}
                 onPress={() => setSelectedPursuit(pursuit)}
                 activeOpacity={0.7}
               >
+                {/* Header with Title and Status */}
                 <View style={styles.cardHeader}>
-                  <View style={styles.cardTitleRow}>
-                    <Text style={styles.cardTitle} numberOfLines={1}>{pursuit.title}</Text>
+                  <View style={styles.cardTitleContainer}>
+                    <Text style={styles.cardTitle} numberOfLines={2}>
+                      {pursuit.title}
+                    </Text>
                     {pursuit.creator_id === user?.id && (
                       <View style={styles.ownerBadge}>
                         <Text style={styles.ownerBadgeText}>YOURS</Text>
@@ -125,40 +211,80 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
                     )}
                   </View>
                   <View style={[
-                    styles.statusBadge, 
+                    styles.statusBadge,
                     pursuit.status === 'active' ? styles.statusActive : styles.statusPending
                   ]}>
-                    <Text style={styles.statusText}>
+                    <View style={[
+                      styles.statusDot,
+                      { backgroundColor: pursuit.status === 'active' ? colors.success : colors.warning }
+                    ]} />
+                    <Text style={[
+                      styles.statusText,
+                      { color: pursuit.status === 'active' ? colors.success : colors.warning }
+                    ]}>
                       {pursuit.status === 'awaiting_kickoff' ? 'Awaiting Kickoff' : 'Active'}
                     </Text>
                   </View>
                 </View>
 
-                <Text style={styles.cardDescription} numberOfLines={2}>
+                {/* Description */}
+                <Text style={styles.cardDescription} numberOfLines={3}>
                   {pursuit.description}
                 </Text>
 
-                <View style={styles.cardInfo}>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoIcon}>📍</Text>
-                    <Text style={styles.infoText}>{pursuit.location}</Text>
+                {/* Tags */}
+                {pursuit.pursuit_types && pursuit.pursuit_types.length > 0 && (
+                  <View style={styles.tags}>
+                    {pursuit.pursuit_types.slice(0, 3).map((type: string, index: number) => (
+                      <View key={index} style={styles.tag}>
+                        <Text style={styles.tagText}>{type}</Text>
+                      </View>
+                    ))}
+                    {pursuit.pursuit_types.length > 3 && (
+                      <View style={styles.tag}>
+                        <Text style={styles.tagText}>+{pursuit.pursuit_types.length - 3}</Text>
+                      </View>
+                    )}
                   </View>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoIcon}>👥</Text>
-                    <Text style={styles.infoText}>
-                      {pursuit.current_members_count}/{pursuit.team_size_max}
-                    </Text>
-                  </View>
-                  <View style={styles.infoItem}>
-                    <Text style={styles.infoIcon}>📅</Text>
-                    <Text style={styles.infoText} numberOfLines={1}>
-                      {pursuit.meeting_cadence}
-                    </Text>
-                  </View>
-                </View>
+                )}
 
+                {/* Divider */}
+                <View style={styles.divider} />
+
+                {/* Footer */}
                 <View style={styles.cardFooter}>
-                  <Text style={styles.tapHint}>Tap for details →</Text>
+                  <View style={styles.infoRow}>
+                    <View style={styles.infoItem}>
+                      <View style={styles.iconContainer}>
+                        <Ionicons name="people" size={14} color={colors.textSecondary} />
+                      </View>
+                      <Text style={styles.infoText}>
+                        {pursuit.current_members_count}/{pursuit.team_size_max}
+                      </Text>
+                    </View>
+
+                    {pursuit.location && (
+                      <View style={styles.infoItem}>
+                        <View style={styles.iconContainer}>
+                          <Ionicons name="location" size={14} color={colors.textSecondary} />
+                        </View>
+                        <Text style={styles.infoText} numberOfLines={1}>
+                          {pursuit.location}
+                        </Text>
+                      </View>
+                    )}
+
+                    {pursuit.meeting_cadence && (
+                      <View style={styles.infoItem}>
+                        <View style={styles.iconContainer}>
+                          <Ionicons name="calendar" size={14} color={colors.textSecondary} />
+                        </View>
+                        <Text style={styles.infoText} numberOfLines={1}>
+                          {pursuit.meeting_cadence}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
               </TouchableOpacity>
             ))
@@ -170,33 +296,274 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  header: { backgroundColor: '#fff', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: '#eee', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  title: { fontSize: 28, fontWeight: 'bold', color: '#0ea5e9' },
-  subtitle: { fontSize: 16, color: '#666', marginTop: 5 },
-  createButton: { backgroundColor: '#0ea5e9', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, marginTop: 5 },
-  createButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  scrollView: { flex: 1 },
-  content: { padding: 15, paddingBottom: 100 },
-  empty: { alignItems: 'center', paddingVertical: 80 },
-  emptyEmoji: { fontSize: 64, marginBottom: 20 },
-  emptyText: { fontSize: 20, fontWeight: 'bold', color: '#999', marginBottom: 8 },
-  emptyHint: { fontSize: 14, color: '#ccc', textAlign: 'center', paddingHorizontal: 40 },
-  card: { backgroundColor: '#fff', borderRadius: 16, padding: 18, marginBottom: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 4, borderWidth: 1, borderColor: '#f0f0f0' },
-  cardHeader: { marginBottom: 12 },
-  cardTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  cardTitle: { fontSize: 19, fontWeight: 'bold', color: '#1a1a1a', flex: 1, marginRight: 8 },
-  ownerBadge: { backgroundColor: '#10b981', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  ownerBadgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
-  statusBadge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12 },
-  statusPending: { backgroundColor: '#fef3c7' },
-  statusActive: { backgroundColor: '#d1fae5' },
-  statusText: { fontSize: 11, fontWeight: '600', color: '#333' },
-  cardDescription: { fontSize: 14, color: '#666', marginBottom: 14, lineHeight: 20 },
-  cardInfo: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#f5f5f5' },
-  infoItem: { flexDirection: 'row', alignItems: 'center', marginRight: 12 },
-  infoIcon: { fontSize: 14, marginRight: 6 },
-  infoText: { fontSize: 13, color: '#666', maxWidth: 100 },
-  cardFooter: { alignItems: 'flex-end' },
-  tapHint: { fontSize: 12, color: '#0ea5e9', fontWeight: '600' },
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+
+  // Header Styles
+  header: {
+    backgroundColor: colors.white,
+    paddingTop: 50,
+    paddingBottom: spacing.base,
+    ...shadows.sm,
+  },
+
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+
+  headerGreeting: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textSecondary,
+    fontWeight: typography.fontWeight.medium,
+    marginBottom: spacing.xs,
+  },
+
+  headerTitle: {
+    fontSize: typography.fontSize['3xl'],
+    fontWeight: typography.fontWeight.bold,
+    color: colors.textPrimary,
+  },
+
+  createButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // Search Styles
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.backgroundSecondary,
+    marginHorizontal: spacing.lg,
+    paddingHorizontal: spacing.base,
+    borderRadius: borderRadius.base,
+    height: 44,
+    marginBottom: spacing.base,
+  },
+
+  searchInput: {
+    flex: 1,
+    marginLeft: spacing.sm,
+    fontSize: typography.fontSize.base,
+    color: colors.textPrimary,
+  },
+
+  // Filter Styles
+  filterContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: spacing.lg,
+    gap: spacing.sm,
+  },
+
+  filterChip: {
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.backgroundSecondary,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+
+  filterChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+
+  filterChipText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.medium,
+    color: colors.textSecondary,
+  },
+
+  filterChipTextActive: {
+    color: colors.white,
+  },
+
+  // Scroll and Content
+  scrollView: {
+    flex: 1,
+  },
+
+  content: {
+    padding: spacing.lg,
+    paddingBottom: spacing['4xl'],
+  },
+
+  // Empty State
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing['5xl'],
+    paddingHorizontal: spacing.lg,
+  },
+
+  emptyIconContainer: {
+    width: 96,
+    height: 96,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.backgroundSecondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+
+  emptyText: {
+    fontSize: typography.fontSize.xl,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
+  },
+
+  emptySubtext: {
+    fontSize: typography.fontSize.base,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+
+  // Card Styles
+  card: {
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.base,
+    ...shadows.base,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+
+  cardHeader: {
+    marginBottom: spacing.md,
+  },
+
+  cardTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+
+  cardTitle: {
+    flex: 1,
+    fontSize: typography.fontSize.lg,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.textPrimary,
+    lineHeight: typography.fontSize.lg * typography.lineHeight.tight,
+  },
+
+  ownerBadge: {
+    backgroundColor: colors.success,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.full,
+  },
+
+  ownerBadgeText: {
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.white,
+  },
+
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.full,
+    gap: 4,
+    alignSelf: 'flex-start',
+  },
+
+  statusPending: {
+    backgroundColor: colors.warningLight,
+  },
+
+  statusActive: {
+    backgroundColor: colors.successLight,
+  },
+
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+
+  statusText: {
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.semibold,
+  },
+
+  cardDescription: {
+    fontSize: typography.fontSize.base,
+    color: colors.textSecondary,
+    lineHeight: typography.fontSize.base * typography.lineHeight.normal,
+    marginBottom: spacing.md,
+  },
+
+  // Tags
+  tags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginBottom: spacing.base,
+  },
+
+  tag: {
+    backgroundColor: colors.primaryLight,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.full,
+  },
+
+  tagText: {
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.medium,
+    color: colors.primary,
+  },
+
+  // Divider
+  divider: {
+    height: 1,
+    backgroundColor: colors.borderLight,
+    marginBottom: spacing.md,
+  },
+
+  // Footer
+  cardFooter: {
+    gap: spacing.md,
+  },
+
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.base,
+  },
+
+  infoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+
+  iconContainer: {
+    width: 20,
+    height: 20,
+    borderRadius: borderRadius.sm,
+    backgroundColor: colors.backgroundSecondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  infoText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textSecondary,
+    fontWeight: typography.fontWeight.medium,
+  },
 });
