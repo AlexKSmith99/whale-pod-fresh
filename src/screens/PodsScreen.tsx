@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
 import { colors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+import PursuitDetailScreen from './PursuitDetailScreen';
 
 interface Pod {
   id: string;
@@ -28,13 +29,16 @@ interface Application {
 
 interface PodsScreenProps {
   onOpenTeamBoard: (pursuitId: string) => void;
+  onOpenTimeSlotProposal?: (pursuit: any) => void;
+  onOpenCreatorTimeSelection?: (pursuit: any) => void;
 }
 
-export default function PodsScreen({ onOpenTeamBoard }: PodsScreenProps) {
+export default function PodsScreen({ onOpenTeamBoard, onOpenTimeSlotProposal, onOpenCreatorTimeSelection }: PodsScreenProps) {
   const { user } = useAuth();
   const [pods, setPods] = useState<Pod[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedPod, setSelectedPod] = useState<any>(null);
 
   useEffect(() => {
     loadData();
@@ -107,6 +111,30 @@ export default function PodsScreen({ onOpenTeamBoard }: PodsScreenProps) {
     );
   }
 
+  // Show PursuitDetailScreen when a pod is selected
+  if (selectedPod) {
+    return (
+      <PursuitDetailScreen
+        pursuit={selectedPod}
+        onBack={() => {
+          setSelectedPod(null);
+          loadData(); // Refresh the list
+        }}
+        isOwner={selectedPod.creator_id === user?.id}
+        onOpenTeamBoard={(pursuitId) => {
+          setSelectedPod(null);
+          onOpenTeamBoard(pursuitId);
+        }}
+        onOpenCreatorTimeSelection={(pursuit) => {
+          setSelectedPod(null);
+          if (onOpenCreatorTimeSelection) {
+            onOpenCreatorTimeSelection(pursuit);
+          }
+        }}
+      />
+    );
+  }
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
@@ -169,7 +197,18 @@ export default function PodsScreen({ onOpenTeamBoard }: PodsScreenProps) {
                   <TouchableOpacity
                     key={pod.id}
                     style={styles.podCard}
-                    onPress={() => onOpenTeamBoard(pod.id)}
+                    onPress={async () => {
+                      // Fetch full pursuit details
+                      const { data, error } = await supabase
+                        .from('pursuits')
+                        .select('*')
+                        .eq('id', pod.id)
+                        .single();
+
+                      if (!error && data) {
+                        setSelectedPod(data);
+                      }
+                    }}
                     activeOpacity={0.7}
                   >
                     <View style={styles.podHeader}>
@@ -215,7 +254,7 @@ export default function PodsScreen({ onOpenTeamBoard }: PodsScreenProps) {
                     </View>
 
                     <View style={styles.podFooter}>
-                      <Text style={styles.tapHint}>Tap to open Team Board →</Text>
+                      <Text style={styles.tapHint}>Tap to view details →</Text>
                     </View>
                   </TouchableOpacity>
                 ))}

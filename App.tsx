@@ -49,18 +49,23 @@ function AppContent() {
 
     try {
       const [feed, messages, pods, profile] = await Promise.all([
-        notificationService.getFeedUnreadCount(auth.user.id),
-        notificationService.getMessagesUnreadCount(auth.user.id),
-        notificationService.getPodsUnreadCount(auth.user.id),
-        notificationService.getProfileUnreadCount(auth.user.id),
+        notificationService.getFeedUnreadCount(auth.user.id).catch(() => 0),
+        notificationService.getMessagesUnreadCount(auth.user.id).catch(() => 0),
+        notificationService.getPodsUnreadCount(auth.user.id).catch(() => 0),
+        notificationService.getProfileUnreadCount(auth.user.id).catch(() => 0),
       ]);
 
       setFeedNotifications(feed);
       setMessagesNotifications(messages);
       setPodsNotifications(pods);
       setProfileNotifications(profile);
-    } catch (error) {
-      console.error('Error loading notification counts:', error);
+    } catch (error: any) {
+      // Silently fail - notifications table may not exist yet
+      console.log('Notifications not available:', error?.message || 'Unknown error');
+      setFeedNotifications(0);
+      setMessagesNotifications(0);
+      setPodsNotifications(0);
+      setProfileNotifications(0);
     }
   };
 
