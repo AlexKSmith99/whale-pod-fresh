@@ -13,16 +13,33 @@ import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { connectionService } from '../services/connectionService';
 
-export default function UserProfileScreen({ route, navigation }: any) {
-  const { userId } = route.params;
+interface Props {
+  // React Navigation pattern
+  route?: { params: { userId: string } };
+  navigation?: any;
+  // Direct props pattern (from PursuitDetailScreen)
+  userId?: string;
+  userEmail?: string;
+  onBack?: () => void;
+  onSendMessage?: (userId: string, userEmail: string) => void;
+}
+
+export default function UserProfileScreen({ route, navigation, userId: propUserId, userEmail, onBack, onSendMessage }: Props) {
+  // Support both patterns: route.params.userId OR direct userId prop
+  const userId = route?.params?.userId || propUserId;
   const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Redirect to own profile if viewing yourself
-    if (user && userId === user.id) {
+    if (!userId) {
+      console.error('No userId provided to UserProfileScreen');
+      return;
+    }
+
+    // Redirect to own profile if viewing yourself (only when using navigation)
+    if (user && userId === user.id && navigation) {
       navigation.replace('Profile');
       return;
     }
@@ -67,10 +84,26 @@ export default function UserProfileScreen({ route, navigation }: any) {
   };
 
   const handleMessage = () => {
-    navigation.navigate('Chat', {
-      partnerId: userId,
-      partnerEmail: profile?.email || 'User',
-    });
+    if (onSendMessage && userId) {
+      // Direct props pattern - call the provided callback
+      onSendMessage(userId, profile?.email || userEmail || 'User');
+    } else if (navigation) {
+      // Navigation pattern - navigate to Chat screen
+      navigation.navigate('Chat', {
+        partnerId: userId,
+        partnerEmail: profile?.email || 'User',
+      });
+    }
+  };
+
+  const handleBack = () => {
+    if (onBack) {
+      // Direct props pattern
+      onBack();
+    } else if (navigation) {
+      // Navigation pattern
+      navigation.goBack();
+    }
   };
 
   if (loading) {
@@ -84,7 +117,7 @@ export default function UserProfileScreen({ route, navigation }: any) {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
       </View>
