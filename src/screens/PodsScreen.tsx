@@ -24,16 +24,17 @@ interface Application {
   pursuits: {
     title: string;
     description: string;
-  };
+  } | null;
 }
 
 interface PodsScreenProps {
   onOpenTeamBoard: (pursuitId: string) => void;
   onOpenTimeSlotProposal?: (pursuit: any) => void;
   onOpenCreatorTimeSelection?: (pursuit: any) => void;
+  onEditPursuit?: (pursuit: any) => void;
 }
 
-export default function PodsScreen({ onOpenTeamBoard, onOpenTimeSlotProposal, onOpenCreatorTimeSelection }: PodsScreenProps) {
+export default function PodsScreen({ onOpenTeamBoard, onOpenTimeSlotProposal, onOpenCreatorTimeSelection, onEditPursuit }: PodsScreenProps) {
   const { user } = useAuth();
   const [pods, setPods] = useState<Pod[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
@@ -67,7 +68,7 @@ export default function PodsScreen({ onOpenTeamBoard, onOpenTimeSlotProposal, on
 
       const memberPursuitIds = memberships?.map(m => m.pursuit_id) || [];
 
-      let memberPursuits = [];
+      let memberPursuits: any[] = [];
       if (memberPursuitIds.length > 0) {
         const { data, error } = await supabase
           .from('pursuits')
@@ -94,7 +95,14 @@ export default function PodsScreen({ onOpenTeamBoard, onOpenTimeSlotProposal, on
         .eq('status', 'pending');
 
       if (appsError) throw appsError;
-      setApplications(apps || []);
+
+      // Transform apps to match Application interface (pursuits comes as array from Supabase)
+      const transformedApps = (apps || []).map((app: any) => ({
+        ...app,
+        pursuits: Array.isArray(app.pursuits) ? app.pursuits[0] : app.pursuits
+      }));
+
+      setApplications(transformedApps);
 
     } catch (error) {
       console.error('Error loading data:', error);
@@ -121,6 +129,12 @@ export default function PodsScreen({ onOpenTeamBoard, onOpenTimeSlotProposal, on
           loadData(); // Refresh the list
         }}
         isOwner={selectedPod.creator_id === user?.id}
+        onEdit={(pursuit) => {
+          setSelectedPod(null);
+          if (onEditPursuit) {
+            onEditPursuit(pursuit);
+          }
+        }}
         onOpenTeamBoard={(pursuitId) => {
           setSelectedPod(null);
           onOpenTeamBoard(pursuitId);

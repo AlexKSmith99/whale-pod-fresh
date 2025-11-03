@@ -283,6 +283,7 @@ if (viewingUserId) {
           onOpenTeamBoard={openTeamBoard}
           onOpenTimeSlotProposal={openTimeSlotProposal}
           onOpenCreatorTimeSelection={openCreatorTimeSelection}
+          onEditPursuit={openEditPursuit}
         />
       )}
       {currentScreen === 'Profile' && <ProfileScreen navigation={navigation} />}

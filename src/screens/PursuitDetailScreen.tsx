@@ -56,8 +56,11 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
       // +1 to include the creator
       const totalMembers = count + 1;
       setMinTeammatesReached(totalMembers >= pursuit.team_size_min);
-    } catch (error) {
-      console.error('Error checking team members:', error);
+    } catch (error: any) {
+      // Silently handle - team_members table may not exist or have status column yet
+      console.log('Team members check not available:', error?.message || 'Unknown error');
+      setAcceptedMembersCount(0);
+      setMinTeammatesReached(false);
     }
   };
 
