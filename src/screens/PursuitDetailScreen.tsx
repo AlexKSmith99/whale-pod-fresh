@@ -55,10 +55,24 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
 
       // +1 to include the creator
       const totalMembers = count + 1;
-      setMinTeammatesReached(totalMembers >= pursuit.team_size_min);
+      const meetsMinimum = totalMembers >= pursuit.team_size_min;
+      setMinTeammatesReached(meetsMinimum);
+
+      // Debug logging
+      console.log('=== KICKOFF BUTTON DEBUG ===');
+      console.log('Pursuit ID:', pursuit.id);
+      console.log('Pursuit Status:', pursuit.status);
+      console.log('Team members in team_members table:', count);
+      console.log('Total members (including creator):', totalMembers);
+      console.log('Minimum required:', pursuit.team_size_min);
+      console.log('Meets minimum?', meetsMinimum);
+      console.log('Is Owner?', isOwner);
+      console.log('Button should show?', pursuit.status === 'awaiting_kickoff' && meetsMinimum && isOwner);
+      console.log('============================');
     } catch (error: any) {
       // Silently handle - team_members table may not exist or have status column yet
-      console.log('Team members check not available:', error?.message || 'Unknown error');
+      console.log('❌ Team members check failed:', error?.message || 'Unknown error');
+      console.log('This means team_members table might not exist or have no records');
       setAcceptedMembersCount(0);
       setMinTeammatesReached(false);
     }
