@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator, StatusBar, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
 import { colors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
 import PursuitDetailScreen from './PursuitDetailScreen';
+import { notificationService } from '../services/notificationService';
 
 interface Pod {
   id: string;
@@ -40,9 +41,11 @@ export default function PodsScreen({ onOpenTeamBoard, onOpenTimeSlotProposal, on
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPod, setSelectedPod] = useState<any>(null);
+  const [notifications, setNotifications] = useState<any[]>([]);
 
   useEffect(() => {
     loadData();
+    loadNotifications();
   }, []);
 
   const loadData = async () => {
@@ -111,6 +114,87 @@ export default function PodsScreen({ onOpenTeamBoard, onOpenTimeSlotProposal, on
     }
   };
 
+  const loadNotifications = async () => {
+    if (!user) return;
+
+    try {
+      const allNotifs = await notificationService.getNotifications(user.id);
+      const unreadPods = allNotifs.filter(n =>
+        !n.read &&
+        ['time_slot_request', 'kickoff_scheduled', 'pod_ready_for_kickoff'].includes(n.type)
+      );
+
+      setNotifications(unreadPods);
+
+      // Auto-show alert for time slot requests
+      const timeSlotRequests = unreadPods.filter(n => n.type === 'time_slot_request');
+      if (timeSlotRequests.length > 0) {
+        const notif = timeSlotRequests[0];
+        Alert.alert(
+          notif.title,
+          notif.message,
+          [
+            {
+              text: 'Propose Times',
+              onPress: async () => {
+                await notificationService.markAsRead(notif.id);
+                setNotifications(prev => prev.filter(n => n.id !== notif.id));
+
+                // Get pursuit details
+                const { data: pursuit } = await supabase
+                  .from('pursuits')
+                  .select('*')
+                  .eq('id', notif.related_id)
+                  .single();
+
+                if (pursuit && onOpenTimeSlotProposal) {
+                  onOpenTimeSlotProposal(pursuit);
+                }
+              }
+            },
+            {
+              text: 'Later',
+              style: 'cancel'
+            }
+          ]
+        );
+      }
+    } catch (error) {
+      console.error('Error loading notifications:', error);
+    }
+  };
+
+  const handleNotificationClick = async (notif: any) => {
+    // Mark as read
+    await notificationService.markAsRead(notif.id);
+    setNotifications(prev => prev.filter(n => n.id !== notif.id));
+
+    // Handle different notification types
+    if (notif.type === 'time_slot_request') {
+      const { data: pursuit } = await supabase
+        .from('pursuits')
+        .select('*')
+        .eq('id', notif.related_id)
+        .single();
+
+      if (pursuit && onOpenTimeSlotProposal) {
+        onOpenTimeSlotProposal(pursuit);
+      }
+    }
+
+    if (notif.type === 'kickoff_scheduled') {
+      const { data: pursuit } = await supabase
+        .from('pursuits')
+        .select('*')
+        .eq('id', notif.related_id)
+        .single();
+
+      if (pursuit) {
+        setSelectedPod(pursuit);
+      }
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -169,12 +253,37 @@ export default function PodsScreen({ onOpenTeamBoard, onOpenTimeSlotProposal, on
         refreshControl={
           <RefreshControl
             refreshing={loading}
-            onRefresh={loadData}
+            onRefresh={() => {
+              loadData();
+              loadNotifications();
+            }}
             tintColor={colors.primary}
             colors={[colors.primary]}
           />
         }
       >
+        {/* Notifications Section */}
+        {notifications.length > 0 && (
+          <View style={styles.notificationsSection}>
+            <Text style={styles.notificationsSectionTitle}>
+              📬 Notifications ({notifications.length})
+            </Text>
+            {notifications.map(notif => (
+              <TouchableOpacity
+                key={notif.id}
+                style={styles.notificationCard}
+                onPress={() => handleNotificationClick(notif)}
+              >
+                <View style={styles.notificationContent}>
+                  <Text style={styles.notificationTitle}>{notif.title}</Text>
+                  <Text style={styles.notificationMessage}>{notif.message}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
         {applications.length > 0 && (
           <View style={styles.applicationsSection}>
             <Text style={styles.applicationsTitle}>Pending Applications ({applications.length})</Text>
@@ -324,6 +433,52 @@ const styles = StyleSheet.create({
 
   scrollView: {
     flex: 1,
+  },
+
+  // Notifications Section
+  notificationsSection: {
+    backgroundColor: colors.primaryLight,
+    padding: spacing.lg,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing.base,
+  },
+
+  notificationsSectionTitle: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.primary,
+    marginBottom: spacing.base,
+  },
+
+  notificationCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.md,
+    padding: spacing.base,
+    marginBottom: spacing.sm,
+    ...shadows.sm,
+  },
+
+  notificationContent: {
+    flex: 1,
+    marginRight: spacing.sm,
+  },
+
+  notificationTitle: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
+  },
+
+  notificationMessage: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textSecondary,
+    lineHeight: 20,
   },
 
   // Applications Section
