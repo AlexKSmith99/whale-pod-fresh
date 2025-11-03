@@ -176,6 +176,23 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
         <Text style={styles.title}>{pursuit.title}</Text>
       </View>
 
+      {/* Schedule Kick-Off Button - Top Priority */}
+      {isOwner && pursuit.status === 'awaiting_kickoff' && minTeammatesReached && (
+        <View style={styles.topKickoffSection}>
+          <TouchableOpacity
+            style={styles.scheduleKickoffButton}
+            onPress={handleScheduleKickoff}
+          >
+            <Text style={styles.scheduleKickoffButtonText}>
+              🎉 Schedule Kick-Off Meeting
+            </Text>
+            <Text style={styles.scheduleKickoffSubtext}>
+              {acceptedMembersCount + 1}/{pursuit.team_size_min} minimum teammates ready!
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <View style={styles.content}>
         <View style={styles.creatorSection}>
           <Text style={styles.sectionTitle}>Created By</Text>
@@ -250,19 +267,6 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
 
         {isOwner && onOpenTeamBoard && (
           <View style={styles.ownerActions}>
-            {pursuit.status === 'awaiting_kickoff' && minTeammatesReached && (
-              <TouchableOpacity
-                style={styles.scheduleKickoffButton}
-                onPress={handleScheduleKickoff}
-              >
-                <Text style={styles.scheduleKickoffButtonText}>
-                  🎉 Schedule Kick-Off Meeting
-                </Text>
-                <Text style={styles.scheduleKickoffSubtext}>
-                  {acceptedMembersCount + 1}/{pursuit.team_size_min} minimum teammates ready!
-                </Text>
-              </TouchableOpacity>
-            )}
             <TouchableOpacity
               style={styles.editButton}
               onPress={() => onEdit && onEdit(pursuit)}
@@ -314,6 +318,14 @@ const styles = StyleSheet.create({
   backButton: { marginBottom: 10 },
   backText: { fontSize: 16, color: '#0ea5e9', fontWeight: '600' },
   title: { fontSize: 24, fontWeight: 'bold', color: '#333' },
+  topKickoffSection: {
+    backgroundColor: '#fff',
+    padding: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee'
+  },
   content: { padding: 20, paddingBottom: 100 },
   creatorSection: { marginBottom: 15 },
   creatorCard: {
