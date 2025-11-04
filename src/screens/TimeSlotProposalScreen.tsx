@@ -239,7 +239,9 @@ export default function TimeSlotProposalScreen({ pursuit, onBack, onSubmitted }:
                   style={styles.changeTimeButton}
                   onPress={() => togglePicker(slot.id)}
                 >
-                  <Text style={styles.changeTimeText}>Change Time</Text>
+                  <Text style={styles.changeTimeText}>
+                    {slot.showPicker ? 'Select Time' : 'Change Time'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             ) : (
@@ -269,11 +271,12 @@ export default function TimeSlotProposalScreen({ pursuit, onBack, onSubmitted }:
         <View style={styles.buttonContainer}>
           <Button
             variant="primary"
+            title={loading ? 'Submitting...' : 'Ready to Send?'}
             onPress={handleSubmit}
             disabled={filledSlotsCount === 0 || loading}
-          >
-            {loading ? 'Submitting...' : `Submit ${filledSlotsCount} Time Slot${filledSlotsCount !== 1 ? 's' : ''}`}
-          </Button>
+            loading={loading}
+            fullWidth
+          />
         </View>
       </ScrollView>
     </View>
