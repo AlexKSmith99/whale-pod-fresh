@@ -25,18 +25,18 @@ interface Props {
 interface TimeSlot {
   id: string;
   datetime: Date | null;
-  location_type: 'video' | 'in_person';
+  location_types: ('video' | 'in_person')[]; // Can select both
   showPicker: boolean;
 }
 
 export default function TimeSlotProposalScreen({ pursuit, onBack, onSubmitted }: Props) {
   const { user } = useAuth();
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([
-    { id: '1', datetime: null, location_type: 'video', showPicker: false },
-    { id: '2', datetime: null, location_type: 'video', showPicker: false },
-    { id: '3', datetime: null, location_type: 'video', showPicker: false },
-    { id: '4', datetime: null, location_type: 'video', showPicker: false },
-    { id: '5', datetime: null, location_type: 'video', showPicker: false },
+    { id: '1', datetime: null, location_types: ['video'], showPicker: false },
+    { id: '2', datetime: null, location_types: ['video'], showPicker: false },
+    { id: '3', datetime: null, location_types: ['video'], showPicker: false },
+    { id: '4', datetime: null, location_types: ['video'], showPicker: false },
+    { id: '5', datetime: null, location_types: ['video'], showPicker: false },
   ]);
   const [loading, setLoading] = useState(false);
 
@@ -71,16 +71,28 @@ export default function TimeSlotProposalScreen({ pursuit, onBack, onSubmitted }:
     );
   };
 
-  const toggleLocationType = (slotId: string) => {
+  const toggleLocationType = (slotId: string, type: 'video' | 'in_person') => {
     setTimeSlots((prev) =>
-      prev.map((slot) =>
-        slot.id === slotId
-          ? {
+      prev.map((slot) => {
+        if (slot.id === slotId) {
+          const isSelected = slot.location_types.includes(type);
+          if (isSelected) {
+            // Remove if already selected (but keep at least one)
+            const newTypes = slot.location_types.filter(t => t !== type);
+            return {
               ...slot,
-              location_type: slot.location_type === 'video' ? 'in_person' : 'video',
-            }
-          : slot
-      )
+              location_types: newTypes.length > 0 ? newTypes : [type], // Keep at least one
+            };
+          } else {
+            // Add if not selected
+            return {
+              ...slot,
+              location_types: [...slot.location_types, type],
+            };
+          }
+        }
+        return slot;
+      })
     );
   };
 
@@ -101,11 +113,13 @@ export default function TimeSlotProposalScreen({ pursuit, onBack, onSubmitted }:
       return;
     }
 
-    // Prepare proposals
-    const proposals = filledSlots.map((slot) => ({
-      datetime: slot.datetime!.toISOString(),
-      location_type: slot.location_type,
-    }));
+    // Prepare proposals - if both location types selected, create separate proposals for each
+    const proposals = filledSlots.flatMap((slot) =>
+      slot.location_types.map((locationType) => ({
+        datetime: slot.datetime!.toISOString(),
+        location_type: locationType,
+      }))
+    );
 
     setLoading(true);
     try {
@@ -145,7 +159,7 @@ export default function TimeSlotProposalScreen({ pursuit, onBack, onSubmitted }:
           <Ionicons name="information-circle" size={24} color={colors.primary} />
           <Text style={styles.infoText}>
             Select up to 5 time slots when you're available for the kickoff meeting in the next 7
-            days. The creator will choose the best time that works for everyone.
+            days. You can choose both Video and In-Person for any slot if you're flexible. The creator will choose the best time that works for everyone.
           </Text>
         </View>
 
@@ -195,19 +209,19 @@ export default function TimeSlotProposalScreen({ pursuit, onBack, onSubmitted }:
                   <TouchableOpacity
                     style={[
                       styles.locationTypeButton,
-                      slot.location_type === 'video' && styles.locationTypeButtonActive,
+                      slot.location_types.includes('video') && styles.locationTypeButtonActive,
                     ]}
-                    onPress={() => toggleLocationType(slot.id)}
+                    onPress={() => toggleLocationType(slot.id, 'video')}
                   >
                     <Ionicons
                       name="videocam"
                       size={18}
-                      color={slot.location_type === 'video' ? colors.white : colors.textSecondary}
+                      color={slot.location_types.includes('video') ? colors.white : colors.textSecondary}
                     />
                     <Text
                       style={[
                         styles.locationTypeText,
-                        slot.location_type === 'video' && styles.locationTypeTextActive,
+                        slot.location_types.includes('video') && styles.locationTypeTextActive,
                       ]}
                     >
                       Video
@@ -216,19 +230,19 @@ export default function TimeSlotProposalScreen({ pursuit, onBack, onSubmitted }:
                   <TouchableOpacity
                     style={[
                       styles.locationTypeButton,
-                      slot.location_type === 'in_person' && styles.locationTypeButtonActive,
+                      slot.location_types.includes('in_person') && styles.locationTypeButtonActive,
                     ]}
-                    onPress={() => toggleLocationType(slot.id)}
+                    onPress={() => toggleLocationType(slot.id, 'in_person')}
                   >
                     <Ionicons
                       name="people"
                       size={18}
-                      color={slot.location_type === 'in_person' ? colors.white : colors.textSecondary}
+                      color={slot.location_types.includes('in_person') ? colors.white : colors.textSecondary}
                     />
                     <Text
                       style={[
                         styles.locationTypeText,
-                        slot.location_type === 'in_person' && styles.locationTypeTextActive,
+                        slot.location_types.includes('in_person') && styles.locationTypeTextActive,
                       ]}
                     >
                       In-Person
