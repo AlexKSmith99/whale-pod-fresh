@@ -32,6 +32,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
   const [creatorProfile, setCreatorProfile] = useState<any>(null);
   const [acceptedMembersCount, setAcceptedMembersCount] = useState(0);
   const [minTeammatesReached, setMinTeammatesReached] = useState(false);
+  const [pursuitStatus, setPursuitStatus] = useState(pursuit.status);
 
   useEffect(() => {
     checkIfApplied();
@@ -50,7 +51,67 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
 
   const checkMinimumTeammates = async () => {
     try {
-      const count = await pursuitService.getAcceptedMembersCount(pursuit.id);
+      // First check team_members table
+      let count = await pursuitService.getAcceptedMembersCount(pursuit.id);
+
+      // Also check for accepted applications (in case team_members weren't created yet)
+      const { data: acceptedApps } = await supabase
+        .from('pursuit_applications')
+        .select('id, applicant_id')
+        .eq('pursuit_id', pursuit.id)
+        .eq('status', 'accepted');
+
+      const acceptedAppCount = acceptedApps?.length || 0;
+
+      // If we have accepted applications but no team_members, sync them
+      if (acceptedAppCount > count) {
+        console.log('⚠️ Found', acceptedAppCount, 'accepted applications but only', count, 'team members. Syncing...');
+
+        // Create team_member records for accepted applications that don't have them
+        for (const app of acceptedApps || []) {
+          // Check if team_member already exists
+          const { data: existingMember } = await supabase
+            .from('team_members')
+            .select('id')
+            .eq('pursuit_id', pursuit.id)
+            .eq('user_id', app.applicant_id)
+            .single();
+
+          if (!existingMember) {
+            // Create the team_member record
+            await supabase
+              .from('team_members')
+              .insert([{
+                pursuit_id: pursuit.id,
+                user_id: app.applicant_id,
+                status: 'accepted',
+                role: 'member',
+              }]);
+          }
+        }
+
+        // Update count after sync
+        count = acceptedAppCount;
+
+        // Update pursuit's current_members_count and status
+        const totalMembers = count + 1; // +1 for creator
+        const shouldBeAwaitingKickoff = totalMembers >= pursuit.team_size_min && pursuit.status !== 'active';
+        const newStatus = shouldBeAwaitingKickoff ? 'awaiting_kickoff' : pursuit.status;
+
+        await supabase
+          .from('pursuits')
+          .update({
+            current_members_count: count,
+            status: newStatus,
+          })
+          .eq('id', pursuit.id);
+
+        // Update local state
+        setPursuitStatus(newStatus);
+
+        console.log('✅ Synced team members and updated pursuit status to:', newStatus);
+      }
+
       setAcceptedMembersCount(count);
 
       // +1 to include the creator
@@ -183,7 +244,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
       </View>
 
       {/* Schedule Kick-Off Button - Top Priority */}
-      {isOwner && pursuit.status === 'awaiting_kickoff' && minTeammatesReached && (
+      {isOwner && pursuitStatus === 'awaiting_kickoff' && minTeammatesReached && (
         <View style={styles.topKickoffSection}>
           <TouchableOpacity
             style={styles.scheduleKickoffButton}
@@ -240,13 +301,13 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>👥 Team Size:</Text>
             <Text style={styles.detailValue}>
-              {(pursuit.current_members_count || 0) + 1}/{pursuit.team_size_max} members
+              {acceptedMembersCount + 1}/{pursuit.team_size_max} members
             </Text>
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Status:</Text>
             <Text style={styles.detailValue}>
-              {pursuit.status === 'awaiting_kickoff' ? '🟡 Awaiting Kickoff' : '🟢 Active'}
+              {pursuitStatus === 'awaiting_kickoff' ? '🟡 Awaiting Kickoff' : '🟢 Active'}
             </Text>
           </View>
         </View>
