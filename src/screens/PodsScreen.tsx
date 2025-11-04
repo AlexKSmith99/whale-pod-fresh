@@ -368,7 +368,7 @@ export default function PodsScreen({ onOpenTeamBoard, onOpenTimeSlotProposal, on
                           <Ionicons name="people" size={14} color={colors.textSecondary} />
                         </View>
                         <Text style={styles.infoText}>
-                          {pod.current_members_count}/{pod.team_size_max}
+                          {(pod.current_members_count || 0) + 1}/{pod.team_size_max}
                         </Text>
                       </View>
                       <View style={styles.infoItem}>

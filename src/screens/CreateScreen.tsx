@@ -209,6 +209,9 @@ export default function CreateScreen() {
                 />
               </View>
             </View>
+            <Text style={styles.helperText}>
+              💡 Once the minimum is reached (including you as creator), members will be prompted to provide their availability for kick-off.
+            </Text>
 
             <View style={styles.switchRow}>
               <Text style={styles.label}>Team size flexible?</Text>
@@ -557,6 +560,15 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.xs,
     color: colors.textTertiary,
     marginBottom: spacing.sm,
+    fontStyle: 'italic',
+  },
+
+  helperText: {
+    fontSize: typography.fontSize.xs,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
+    marginBottom: spacing.sm,
+    lineHeight: typography.fontSize.xs * typography.lineHeight.relaxed,
     fontStyle: 'italic',
   },
 

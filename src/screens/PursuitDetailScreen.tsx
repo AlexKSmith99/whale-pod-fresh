@@ -240,7 +240,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>👥 Team Size:</Text>
             <Text style={styles.detailValue}>
-              {pursuit.current_members_count}/{pursuit.team_size_max} members
+              {(pursuit.current_members_count || 0) + 1}/{pursuit.team_size_max} members
             </Text>
           </View>
           <View style={styles.detailRow}>
