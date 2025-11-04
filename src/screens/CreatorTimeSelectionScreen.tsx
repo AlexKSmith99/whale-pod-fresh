@@ -29,6 +29,12 @@ interface AnalyzedSlot {
   location_type: 'video' | 'in_person';
   formattedDate: string;
   formattedTime: string;
+  members?: { name: string; color: string }[];
+}
+
+interface ProposalWithUser extends any {
+  user_name: string;
+  user_color: string;
 }
 
 export default function CreatorTimeSelectionScreen({ pursuit, onBack, onScheduled }: Props) {
@@ -40,6 +46,8 @@ export default function CreatorTimeSelectionScreen({ pursuit, onBack, onSchedule
   const [selectedSlot, setSelectedSlot] = useState<AnalyzedSlot | null>(null);
   const [proposalCount, setProposalCount] = useState(0);
   const [totalMembers, setTotalMembers] = useState(0);
+  const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
+  const [userColors, setUserColors] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     loadProposals();
@@ -53,14 +61,51 @@ export default function CreatorTimeSelectionScreen({ pursuit, onBack, onSchedule
         pursuitService.getAcceptedMembersCount(pursuit.id),
       ]);
 
-      setProposals(proposalData);
-      setProposalCount(count);
-      setTotalMembers(acceptedCount + 1); // +1 for creator
+      // Fetch user profiles for all proposals
+      const userIds = [...new Set(proposalData.map((p: any) => p.user_id))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .in('id', userIds);
 
-      // Analyze time slots
-      const analyzed = kickoffService.analyzeBestTimeSlots(proposalData);
+      // Assign colors to users
+      const colors = [
+        '#ef4444', '#f59e0b', '#10b981', '#3b82f6',
+        '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'
+      ];
+      const colorMap = new Map<string, string>();
+      const profileMap = new Map(profiles?.map(p => [p.id, p.name]) || []);
+
+      userIds.forEach((userId, index) => {
+        colorMap.set(userId, colors[index % colors.length]);
+      });
+      setUserColors(colorMap);
+
+      // Enhance proposals with user info
+      const enhancedProposals = proposalData.map((p: any) => ({
+        ...p,
+        user_name: profileMap.get(p.user_id) || 'Unknown',
+        user_color: colorMap.get(p.user_id) || '#6b7280'
+      }));
+
+      setProposals(enhancedProposals);
+      setProposalCount(count);
+      const teamMembersOnly = acceptedCount; // Don't include creator
+      setTotalMembers(teamMembersOnly);
+
+      // Analyze time slots with member information
+      const analyzed = kickoffService.analyzeBestTimeSlots(enhancedProposals);
       const formatted = analyzed.map((slot) => {
         const date = new Date(slot.datetime);
+
+        // Find all members who proposed this time slot
+        const members = enhancedProposals
+          .filter((p: any) => p.proposed_slots.some((s: any) => s.datetime === slot.datetime))
+          .map((p: any) => ({
+            name: p.user_name,
+            color: p.user_color
+          }));
+
         return {
           ...slot,
           formattedDate: date.toLocaleDateString('en-US', {
@@ -72,6 +117,7 @@ export default function CreatorTimeSelectionScreen({ pursuit, onBack, onSchedule
             hour: 'numeric',
             minute: '2-digit',
           }),
+          members
         };
       });
 
@@ -82,6 +128,26 @@ export default function CreatorTimeSelectionScreen({ pursuit, onBack, onSchedule
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper to group slots by date for calendar view
+  const getCalendarData = () => {
+    const grouped = new Map<string, AnalyzedSlot[]>();
+
+    analyzedSlots.forEach(slot => {
+      const date = new Date(slot.datetime).toDateString();
+      if (!grouped.has(date)) {
+        grouped.set(date, []);
+      }
+      grouped.get(date)!.push(slot);
+    });
+
+    // Sort by date
+    const sorted = Array.from(grouped.entries()).sort((a, b) =>
+      new Date(a[0]).getTime() - new Date(b[0]).getTime()
+    );
+
+    return sorted;
   };
 
   const handleSelectTime = async () => {
@@ -191,17 +257,67 @@ export default function CreatorTimeSelectionScreen({ pursuit, onBack, onSchedule
           <View style={styles.warningCard}>
             <Ionicons name="warning" size={24} color={colors.warning} />
             <Text style={styles.warningText}>
-              Only {proposalCount} out of {totalMembers} members have submitted their time
+              Only {proposalCount} out of {totalMembers} team members have submitted their time
               preferences. You can wait for more responses or proceed with the current proposals.
             </Text>
           </View>
         )}
 
+        {/* Team Member Legend */}
+        {proposals.length > 0 && (
+          <View style={styles.legendCard}>
+            <Text style={styles.legendTitle}>Team Members</Text>
+            <View style={styles.legendItems}>
+              {Array.from(userColors.entries()).map(([userId, color]) => {
+                const proposal = proposals.find((p: any) => p.user_id === userId);
+                return (
+                  <View key={userId} style={styles.legendItem}>
+                    <View style={[styles.legendDot, { backgroundColor: color }]} />
+                    <Text style={styles.legendText}>{proposal?.user_name}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
+        {/* View Toggle */}
+        <View style={styles.viewToggle}>
+          <TouchableOpacity
+            style={[styles.toggleButton, viewMode === 'calendar' && styles.toggleButtonActive]}
+            onPress={() => setViewMode('calendar')}
+          >
+            <Ionicons
+              name="calendar"
+              size={20}
+              color={viewMode === 'calendar' ? colors.white : colors.textSecondary}
+            />
+            <Text style={[styles.toggleText, viewMode === 'calendar' && styles.toggleTextActive]}>
+              Calendar
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.toggleButton, viewMode === 'list' && styles.toggleButtonActive]}
+            onPress={() => setViewMode('list')}
+          >
+            <Ionicons
+              name="list"
+              size={20}
+              color={viewMode === 'list' ? colors.white : colors.textSecondary}
+            />
+            <Text style={[styles.toggleText, viewMode === 'list' && styles.toggleTextActive]}>
+              List
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         <Text style={styles.sectionTitle}>
           Select the Best Time
         </Text>
         <Text style={styles.sectionSubtitle}>
-          Time slots are ranked by popularity (how many members chose each time)
+          {viewMode === 'calendar'
+            ? 'Colored blocks show each member\'s availability. Darker colors indicate more overlaps.'
+            : 'Time slots are ranked by popularity (how many members chose each time)'}
         </Text>
 
         {analyzedSlots.length === 0 ? (
@@ -212,7 +328,61 @@ export default function CreatorTimeSelectionScreen({ pursuit, onBack, onSchedule
               Waiting for team members to submit their availability...
             </Text>
           </View>
+        ) : viewMode === 'calendar' ? (
+          // Calendar View
+          getCalendarData().map(([date, slots]) => (
+            <View key={date} style={styles.calendarDay}>
+              <Text style={styles.calendarDate}>
+                {new Date(date).toLocaleDateString('en-US', {
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric'
+                })}
+              </Text>
+              <View style={styles.calendarSlots}>
+                {slots
+                  .sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime())
+                  .map((slot) => (
+                    <TouchableOpacity
+                      key={slot.datetime}
+                      style={[
+                        styles.calendarSlotCard,
+                        selectedSlot?.datetime === slot.datetime && styles.calendarSlotCardSelected,
+                      ]}
+                      onPress={() => setSelectedSlot(slot)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.calendarSlotTime}>{slot.formattedTime}</Text>
+                      <View style={styles.calendarSlotMembers}>
+                        {slot.members?.map((member, idx) => (
+                          <View
+                            key={idx}
+                            style={[
+                              styles.memberDot,
+                              { backgroundColor: member.color }
+                            ]}
+                          />
+                        ))}
+                      </View>
+                      <View style={styles.calendarSlotLocation}>
+                        <Ionicons
+                          name={slot.location_type === 'video' ? 'videocam' : 'people'}
+                          size={14}
+                          color={colors.textSecondary}
+                        />
+                      </View>
+                      {selectedSlot?.datetime === slot.datetime && (
+                        <View style={styles.calendarSlotCheck}>
+                          <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  ))}
+              </View>
+            </View>
+          ))
         ) : (
+          // List View
           analyzedSlots.map((slot, index) => (
             <TouchableOpacity
               key={slot.datetime}
@@ -254,6 +424,20 @@ export default function CreatorTimeSelectionScreen({ pursuit, onBack, onSchedule
                     {slot.location_type === 'video' ? 'Video Call' : 'In-Person Meeting'}
                   </Text>
                 </View>
+                {/* Member indicators */}
+                {slot.members && slot.members.length > 0 && (
+                  <View style={styles.membersRow}>
+                    <Ionicons name="people" size={16} color={colors.textSecondary} />
+                    <View style={styles.memberBadges}>
+                      {slot.members.map((member, idx) => (
+                        <View key={idx} style={styles.memberBadge}>
+                          <View style={[styles.memberBadgeDot, { backgroundColor: member.color }]} />
+                          <Text style={styles.memberBadgeName}>{member.name}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                )}
               </View>
 
               {selectedSlot?.datetime === slot.datetime && (
@@ -270,11 +454,12 @@ export default function CreatorTimeSelectionScreen({ pursuit, onBack, onSchedule
           <View style={styles.buttonContainer}>
             <Button
               variant="primary"
+              title={submitting ? 'Scheduling...' : 'Send Kick-Off Invites'}
               onPress={handleSelectTime}
               disabled={submitting}
-            >
-              {submitting ? 'Scheduling...' : 'Confirm & Schedule Kickoff'}
-            </Button>
+              loading={submitting}
+              fullWidth
+            />
           </View>
         )}
       </ScrollView>
@@ -478,5 +663,166 @@ const styles = StyleSheet.create({
   buttonContainer: {
     marginTop: spacing.lg,
     marginBottom: spacing.xl,
+  },
+
+  // Legend
+  legendCard: {
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    ...shadows.sm,
+  },
+  legendTitle: {
+    ...typography.label,
+    color: colors.textPrimary,
+    fontWeight: '600',
+    marginBottom: spacing.sm,
+  },
+  legendItems: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs / 2,
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: borderRadius.base,
+  },
+  legendDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  legendText: {
+    ...typography.caption,
+    color: colors.textPrimary,
+  },
+
+  // View Toggle
+  viewToggle: {
+    flexDirection: 'row',
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.lg,
+    padding: spacing.xs / 2,
+    marginBottom: spacing.lg,
+    ...shadows.sm,
+  },
+  toggleButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.base,
+  },
+  toggleButtonActive: {
+    backgroundColor: colors.primary,
+  },
+  toggleText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  toggleTextActive: {
+    color: colors.white,
+    fontWeight: '600',
+  },
+
+  // Calendar View
+  calendarDay: {
+    marginBottom: spacing.lg,
+  },
+  calendarDate: {
+    ...typography.h3,
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
+  },
+  calendarSlots: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  calendarSlotCard: {
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.base,
+    padding: spacing.sm,
+    minWidth: 100,
+    borderWidth: 2,
+    borderColor: colors.border,
+    ...shadows.sm,
+  },
+  calendarSlotCardSelected: {
+    borderColor: colors.success,
+    ...shadows.md,
+  },
+  calendarSlotTime: {
+    ...typography.label,
+    color: colors.textPrimary,
+    fontWeight: '600',
+    marginBottom: spacing.xs,
+  },
+  calendarSlotMembers: {
+    flexDirection: 'row',
+    gap: 4,
+    marginVertical: spacing.xs,
+    flexWrap: 'wrap',
+  },
+  memberDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.white,
+  },
+  calendarSlotLocation: {
+    marginTop: spacing.xs / 2,
+  },
+  calendarSlotCheck: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+  },
+
+  // Member Badges (for list view)
+  membersRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    paddingVertical: spacing.xs,
+    marginTop: spacing.xs,
+    paddingTop: spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderLight,
+  },
+  memberBadges: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+  },
+  memberBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs / 2,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.xs / 2,
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: borderRadius.base,
+  },
+  memberBadgeDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  memberBadgeName: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontSize: 11,
   },
 });
