@@ -154,6 +154,31 @@ export default function UserProfileScreen({ route, navigation, userId: propUserI
         </TouchableOpacity>
       </View>
 
+      {/* Basic Info */}
+      {(profile?.age || profile?.gender || profile?.hometown) && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Basic Info</Text>
+          {profile?.age && (
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Age:</Text>
+              <Text style={styles.infoValue}>{profile.age}</Text>
+            </View>
+          )}
+          {profile?.gender && (
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Gender:</Text>
+              <Text style={styles.infoValue}>{profile.gender}</Text>
+            </View>
+          )}
+          {profile?.hometown && (
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Hometown:</Text>
+              <Text style={styles.infoValue}>{profile.hometown}</Text>
+            </View>
+          )}
+        </View>
+      )}
+
       {/* Social Links */}
       {(profile?.linkedin || profile?.instagram || profile?.github || profile?.portfolio_website) && (
         <View style={styles.section}>
@@ -294,6 +319,21 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 16,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+  infoLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6b7280',
+    width: 100,
+  },
+  infoValue: {
+    fontSize: 14,
+    color: '#1f2937',
+    flex: 1,
   },
   linkItem: {
     flexDirection: 'row',
