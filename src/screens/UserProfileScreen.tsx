@@ -30,6 +30,7 @@ export default function UserProfileScreen({ route, navigation, userId: propUserI
   const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [pendingRequest, setPendingRequest] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -68,6 +69,19 @@ export default function UserProfileScreen({ route, navigation, userId: propUserI
     if (user) {
       const connected = await connectionService.areConnected(user.id, userId);
       setIsConnected(connected);
+
+      // Check for pending connection request from current user to this user
+      if (!connected) {
+        const { data } = await supabase
+          .from('connections')
+          .select('*')
+          .eq('user_id_1', user.id)
+          .eq('user_id_2', userId)
+          .eq('status', 'pending')
+          .maybeSingle();
+
+        setPendingRequest(!!data);
+      }
     }
   };
 
@@ -75,6 +89,7 @@ export default function UserProfileScreen({ route, navigation, userId: propUserI
     try {
       if (user) {
         await connectionService.sendConnectionRequest(user.id, userId);
+        setPendingRequest(true);
         Alert.alert('Success', 'Connection request sent!');
       }
     } catch (error) {
@@ -142,11 +157,17 @@ export default function UserProfileScreen({ route, navigation, userId: propUserI
       </View>
 
       <View style={styles.actionButtons}>
-        {!isConnected && (
+        {!isConnected && !pendingRequest && (
           <TouchableOpacity style={styles.connectButton} onPress={handleConnect}>
             <Ionicons name="person-add" size={20} color="#fff" />
             <Text style={styles.connectButtonText}>Connect</Text>
           </TouchableOpacity>
+        )}
+        {!isConnected && pendingRequest && (
+          <View style={styles.connectButtonPending}>
+            <Ionicons name="checkmark-circle" size={20} color="#6b7280" />
+            <Text style={styles.connectButtonPendingText}>Request Sent</Text>
+          </View>
         )}
         <TouchableOpacity style={styles.messageButton} onPress={handleMessage}>
           <Ionicons name="chatbubble" size={20} color="#0ea5e9" />
@@ -289,6 +310,23 @@ const styles = StyleSheet.create({
   },
   connectButtonText: {
     color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  connectButtonPending: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: '#f3f4f6',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+  },
+  connectButtonPendingText: {
+    color: '#6b7280',
     fontSize: 16,
     fontWeight: '600',
   },
