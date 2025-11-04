@@ -178,6 +178,10 @@ if (viewingUserId) {
     setCurrentScreen('Messages');
   };
 
+  const openUserProfile = (userId: string) => {
+    setViewingUserId(userId);
+  };
+
   const openTeamBoard = (pursuitId: string) => {
     setTeamBoardPursuitId(pursuitId);
   };
@@ -267,6 +271,7 @@ if (viewingUserId) {
           onOpenCreate={() => setShowCreate(true)}
           onOpenCreatorTimeSelection={openCreatorTimeSelection}
           onEditPursuit={openEditPursuit}
+          onViewProfile={openUserProfile}
         />
       )}
       {currentScreen === 'Messages' && (
@@ -284,6 +289,8 @@ if (viewingUserId) {
           onOpenTimeSlotProposal={openTimeSlotProposal}
           onOpenCreatorTimeSelection={openCreatorTimeSelection}
           onEditPursuit={openEditPursuit}
+          onViewProfile={openUserProfile}
+          onSendMessage={startMessage}
         />
       )}
       {currentScreen === 'Profile' && <ProfileScreen navigation={navigation} />}
@@ -308,7 +315,7 @@ if (viewingUserId) {
         <TouchableOpacity style={styles.tab} onPress={() => setCurrentScreen('Pods')}>
           <View>
             <Text style={[styles.tabText, currentScreen === 'Pods' && styles.tabTextActive]}>
-              🐋 Pods
+              🐋 My Pods
             </Text>
             <NotificationBadge show={podsNotifications > 0} />
           </View>

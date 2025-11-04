@@ -33,9 +33,11 @@ interface PodsScreenProps {
   onOpenTimeSlotProposal?: (pursuit: any) => void;
   onOpenCreatorTimeSelection?: (pursuit: any) => void;
   onEditPursuit?: (pursuit: any) => void;
+  onViewProfile?: (userId: string) => void;
+  onSendMessage?: (userId: string, userEmail: string) => void;
 }
 
-export default function PodsScreen({ onOpenTeamBoard, onOpenTimeSlotProposal, onOpenCreatorTimeSelection, onEditPursuit }: PodsScreenProps) {
+export default function PodsScreen({ onOpenTeamBoard, onOpenTimeSlotProposal, onOpenCreatorTimeSelection, onEditPursuit, onViewProfile, onSendMessage }: PodsScreenProps) {
   const { user } = useAuth();
   const [pods, setPods] = useState<Pod[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
@@ -211,6 +213,7 @@ export default function PodsScreen({ onOpenTeamBoard, onOpenTimeSlotProposal, on
         onBack={() => {
           setSelectedPod(null);
           loadData(); // Refresh the list
+          loadNotifications(); // Refresh notifications
         }}
         isOwner={selectedPod.creator_id === user?.id}
         onEdit={(pursuit) => {
@@ -229,6 +232,8 @@ export default function PodsScreen({ onOpenTeamBoard, onOpenTimeSlotProposal, on
             onOpenCreatorTimeSelection(pursuit);
           }
         }}
+        onViewProfile={onViewProfile}
+        onSendMessage={onSendMessage}
       />
     );
   }

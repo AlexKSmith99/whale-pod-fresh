@@ -13,9 +13,10 @@ interface Props {
   onOpenCreate?: () => void;
   onOpenCreatorTimeSelection?: (pursuit: any) => void;
   onEditPursuit?: (pursuit: any) => void;
+  onViewProfile?: (userId: string) => void;
 }
 
-export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeetingNotes, onOpenCreate, onOpenCreatorTimeSelection, onEditPursuit }: Props) {
+export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeetingNotes, onOpenCreate, onOpenCreatorTimeSelection, onEditPursuit, onViewProfile }: Props) {
   const { user } = useAuth();
   const [pursuits, setPursuits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,7 +94,10 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
         }}
         isOwner={selectedPursuit.creator_id === user?.id}
         onViewProfile={(userId, userEmail) => {
-          // Profile viewing is handled within PursuitDetailScreen now
+          setSelectedPursuit(null);
+          if (onViewProfile) {
+            onViewProfile(userId);
+          }
         }}
         onSendMessage={(userId, userEmail) => {
           setSelectedPursuit(null);
