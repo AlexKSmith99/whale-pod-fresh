@@ -102,20 +102,27 @@ export default function MessagesListScreen({ navigation }: any) {
           });
         }}
       >
-        {item.partnerProfile?.profile_picture ? (
-          <Image
-            source={{ uri: item.partnerProfile.profile_picture }}
-            style={styles.avatar}
-          />
-        ) : (
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {item.partnerProfile?.name?.charAt(0).toUpperCase() ||
-               item.partnerProfile?.email?.charAt(0).toUpperCase() ||
-               item.partnerEmail?.charAt(0).toUpperCase() || '?'}
-            </Text>
-          </View>
-        )}
+        <TouchableOpacity
+          onPress={(e) => {
+            e.stopPropagation();
+            navigation.navigate('UserProfile', { userId: item.partnerId });
+          }}
+        >
+          {item.partnerProfile?.profile_picture ? (
+            <Image
+              source={{ uri: item.partnerProfile.profile_picture }}
+              style={styles.avatar}
+            />
+          ) : (
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>
+                {item.partnerProfile?.name?.charAt(0).toUpperCase() ||
+                 item.partnerProfile?.email?.charAt(0).toUpperCase() ||
+                 item.partnerEmail?.charAt(0).toUpperCase() || '?'}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
         <View style={styles.conversationInfo}>
           <Text style={styles.userName}>
             {item.partnerProfile?.name || 

@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import { applicationService } from '../services/applicationService';
 
 interface Props {
   pursuitId: string;
   onBack: () => void;
+  onViewProfile?: (userId: string) => void;
 }
 
-export default function ApplicationsReviewScreen({ pursuitId, onBack }: Props) {
+export default function ApplicationsReviewScreen({ pursuitId, onBack, onViewProfile }: Props) {
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -99,11 +100,27 @@ export default function ApplicationsReviewScreen({ pursuitId, onBack }: Props) {
                   {pendingApps.map((app) => (
                     <View key={app.id} style={styles.appCard}>
                       <View style={styles.appHeader}>
-                        <View style={styles.avatar}>
-                          <Text style={styles.avatarText}>👤</Text>
-                        </View>
+                        <TouchableOpacity
+                          onPress={() => onViewProfile?.(app.applicant?.id)}
+                          style={styles.avatarContainer}
+                        >
+                          {app.applicant?.profile_picture ? (
+                            <Image
+                              source={{ uri: app.applicant.profile_picture }}
+                              style={styles.avatar}
+                            />
+                          ) : (
+                            <View style={styles.avatarPlaceholder}>
+                              <Text style={styles.avatarPlaceholderText}>
+                                {app.applicant?.name?.charAt(0).toUpperCase() || '?'}
+                              </Text>
+                            </View>
+                          )}
+                        </TouchableOpacity>
                         <View style={styles.appInfo}>
-                          <Text style={styles.appName}>{app.applicant?.email}</Text>
+                          <TouchableOpacity onPress={() => onViewProfile?.(app.applicant?.id)}>
+                            <Text style={styles.appName}>{app.applicant?.name || 'Unknown'}</Text>
+                          </TouchableOpacity>
                           <Text style={styles.appDate}>
                             Applied {new Date(app.created_at).toLocaleDateString()}
                           </Text>
@@ -144,11 +161,27 @@ export default function ApplicationsReviewScreen({ pursuitId, onBack }: Props) {
                   {reviewedApps.map((app) => (
                     <View key={app.id} style={styles.appCard}>
                       <View style={styles.appHeader}>
-                        <View style={styles.avatar}>
-                          <Text style={styles.avatarText}>👤</Text>
-                        </View>
+                        <TouchableOpacity
+                          onPress={() => onViewProfile?.(app.applicant?.id)}
+                          style={styles.avatarContainer}
+                        >
+                          {app.applicant?.profile_picture ? (
+                            <Image
+                              source={{ uri: app.applicant.profile_picture }}
+                              style={styles.avatar}
+                            />
+                          ) : (
+                            <View style={styles.avatarPlaceholder}>
+                              <Text style={styles.avatarPlaceholderText}>
+                                {app.applicant?.name?.charAt(0).toUpperCase() || '?'}
+                              </Text>
+                            </View>
+                          )}
+                        </TouchableOpacity>
                         <View style={styles.appInfo}>
-                          <Text style={styles.appName}>{app.applicant?.email}</Text>
+                          <TouchableOpacity onPress={() => onViewProfile?.(app.applicant?.id)}>
+                            <Text style={styles.appName}>{app.applicant?.name || 'Unknown'}</Text>
+                          </TouchableOpacity>
                           <View style={[
                             styles.statusBadge,
                             app.status === 'accepted' ? styles.statusAccepted : styles.statusDeclined
@@ -190,10 +223,10 @@ const styles = StyleSheet.create({
   emptyEmoji: { fontSize: 64, marginBottom: 20 },
   emptyText: { fontSize: 18, color: '#999', fontWeight: '600' },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 16, marginTop: 8 },
-  appCard: { 
-    backgroundColor: '#fff', 
-    borderRadius: 12, 
-    padding: 16, 
+  appCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
     marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -202,16 +235,27 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   appHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  avatar: { 
-    width: 50, 
-    height: 50, 
-    borderRadius: 25, 
-    backgroundColor: '#0ea5e9', 
-    justifyContent: 'center', 
-    alignItems: 'center',
+  avatarContainer: {
     marginRight: 12,
   },
-  avatarText: { fontSize: 24 },
+  avatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+  },
+  avatarPlaceholder: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#0ea5e9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarPlaceholderText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
   appInfo: { flex: 1 },
   appName: { fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 4 },
   appDate: { fontSize: 12, color: '#999' },

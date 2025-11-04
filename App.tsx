@@ -153,6 +153,7 @@ if (teamBoardPursuitId) {
       onBack={() => {
         setTeamBoardPursuitId(null);
       }}
+      onViewProfile={openUserProfile}
     />
   );
 }

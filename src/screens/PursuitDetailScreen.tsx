@@ -163,6 +163,12 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
       <ApplicationsReviewScreen
         pursuitId={pursuit.id}
         onBack={() => setShowApplicationsReview(false)}
+        onViewProfile={(userId) => {
+          if (onViewProfile) {
+            // Get the applicant's email for the callback
+            onViewProfile(userId, '');
+          }
+        }}
       />
     );
   }

@@ -18,9 +18,10 @@ import { teamBoardService } from '../../services/teamBoardService';
 interface Props {
   pursuitId: string;
   onBack: () => void;
+  onViewProfile?: (userId: string) => void;
 }
 
-export default function TeamBoardScreen({ pursuitId, onBack }: Props) {
+export default function TeamBoardScreen({ pursuitId, onBack, onViewProfile }: Props) {
   const [tasks, setTasks] = useState<any[]>([]);
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -203,7 +204,10 @@ export default function TeamBoardScreen({ pursuitId, onBack }: Props) {
         )}
 
         {task.assigned_to && task.assigned_to_profile && (
-          <View style={styles.assignedToContainer}>
+          <TouchableOpacity
+            style={styles.assignedToContainer}
+            onPress={() => onViewProfile?.(task.assigned_to)}
+          >
             {task.assigned_to_profile.profile_picture ? (
               <Image
                 source={{ uri: task.assigned_to_profile.profile_picture }}
@@ -219,7 +223,7 @@ export default function TeamBoardScreen({ pursuitId, onBack }: Props) {
             <Text style={styles.assignedName}>
               {task.assigned_to_profile.name || 'Unknown'}
             </Text>
-          </View>
+          </TouchableOpacity>
         )}
 
         <View style={styles.taskActions}>
