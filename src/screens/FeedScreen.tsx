@@ -1,10 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, StatusBar, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, StatusBar, TextInput, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { pursuitService } from '../services/pursuitService';
 import { useAuth } from '../contexts/AuthContext';
 import PursuitDetailScreen from './PursuitDetailScreen';
 import { colors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+
+const PURSUIT_TYPES = ['Education', 'Friends', 'Problem', 'Business', 'Lifestyle', 'Hobby', 'Side Hustle', 'Travel', 'Discussion', 'New Endeavor', 'Accountability'];
+const DECISION_SYSTEMS = ['Standard Vote', 'Admin Has Ultimate Say', 'Delegated', 'Weighted Voting'];
+const STATUS_OPTIONS = ['awaiting_kickoff', 'active', 'completed', 'discontinued'];
+const ROLE_OPTIONS = ['Scheduler', 'Individual Contributor', 'Moderator', 'Note Taker', 'Facilitator', 'Coordinator'];
+
+interface Filters {
+  status?: string[];
+  pursuit_types?: string[];
+  categories?: string[];
+  location?: string;
+  decision_system?: string[];
+  roles?: string[];
+}
 
 interface Props {
   onStartMessage?: (userId: string, userEmail: string) => void;
@@ -22,22 +36,32 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
   const [loading, setLoading] = useState(true);
   const [selectedPursuit, setSelectedPursuit] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filter, setFilter] = useState<'all' | 'awaiting_kickoff' | 'active'>('all');
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState<Filters>({});
+  const [activeFilterCount, setActiveFilterCount] = useState(0);
 
   useEffect(() => {
     loadPursuits();
-  }, [filter]);
+  }, [filters]);
+
+  useEffect(() => {
+    // Count active filters
+    let count = 0;
+    if (filters.status && filters.status.length > 0) count++;
+    if (filters.pursuit_types && filters.pursuit_types.length > 0) count++;
+    if (filters.decision_system && filters.decision_system.length > 0) count++;
+    if (filters.roles && filters.roles.length > 0) count++;
+    if (filters.location) count++;
+    setActiveFilterCount(count);
+  }, [filters]);
 
   const loadPursuits = async () => {
     try {
-      const filters: any = {};
-      if (filter !== 'all') {
-        filters.status = filter;
-      }
+      const queryFilters: any = { ...filters };
       if (searchQuery) {
-        filters.search = searchQuery;
+        queryFilters.search = searchQuery;
       }
-      const data = await pursuitService.getPursuits(filters);
+      const data = await pursuitService.getPursuits(queryFilters);
       setPursuits(data);
     } catch (error) {
       console.error('Error loading pursuits:', error);
@@ -52,6 +76,34 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
   };
 
   const onRefresh = () => {
+    setLoading(true);
+    loadPursuits();
+  };
+
+  const toggleFilter = (filterKey: keyof Filters, value: string) => {
+    setFilters(prev => {
+      const currentValues = prev[filterKey] as string[] | undefined;
+      if (!currentValues) {
+        return { ...prev, [filterKey]: [value] };
+      }
+      if (currentValues.includes(value)) {
+        const newValues = currentValues.filter(v => v !== value);
+        if (newValues.length === 0) {
+          const { [filterKey]: removed, ...rest } = prev;
+          return rest;
+        }
+        return { ...prev, [filterKey]: newValues };
+      }
+      return { ...prev, [filterKey]: [...currentValues, value] };
+    });
+  };
+
+  const clearAllFilters = () => {
+    setFilters({});
+  };
+
+  const applyFilters = () => {
+    setShowFilters(false);
     setLoading(true);
     loadPursuits();
   };
@@ -121,24 +173,141 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
     );
   }
 
-  const FilterChip = ({
-    label,
-    value,
-    isActive
-  }: {
-    label: string;
-    value: 'all' | 'awaiting_kickoff' | 'active';
-    isActive: boolean
-  }) => (
-    <TouchableOpacity
-      style={[styles.filterChip, isActive && styles.filterChipActive]}
-      onPress={() => setFilter(value)}
-      activeOpacity={0.7}
+  const FilterModal = () => (
+    <Modal
+      visible={showFilters}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={() => setShowFilters(false)}
     >
-      <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]}>
-        {label}
-      </Text>
-    </TouchableOpacity>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Filters</Text>
+            <TouchableOpacity onPress={() => setShowFilters(false)}>
+              <Ionicons name="close" size={24} color={colors.textPrimary} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+            {/* Status Filter */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterLabel}>Status</Text>
+              <View style={styles.filterOptions}>
+                {STATUS_OPTIONS.map((status) => {
+                  const isSelected = filters.status?.includes(status);
+                  return (
+                    <TouchableOpacity
+                      key={status}
+                      style={[styles.filterOption, isSelected && styles.filterOptionActive]}
+                      onPress={() => toggleFilter('status', status)}
+                    >
+                      <Text style={[styles.filterOptionText, isSelected && styles.filterOptionTextActive]}>
+                        {status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </Text>
+                      {isSelected && <Ionicons name="checkmark" size={16} color={colors.white} />}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Pursuit Type Filter */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterLabel}>Pursuit Type</Text>
+              <View style={styles.filterOptions}>
+                {PURSUIT_TYPES.map((type) => {
+                  const isSelected = filters.pursuit_types?.includes(type);
+                  return (
+                    <TouchableOpacity
+                      key={type}
+                      style={[styles.filterOption, isSelected && styles.filterOptionActive]}
+                      onPress={() => toggleFilter('pursuit_types', type)}
+                    >
+                      <Text style={[styles.filterOptionText, isSelected && styles.filterOptionTextActive]}>
+                        {type}
+                      </Text>
+                      {isSelected && <Ionicons name="checkmark" size={16} color={colors.white} />}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Decision System Filter */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterLabel}>Decision System</Text>
+              <View style={styles.filterOptions}>
+                {DECISION_SYSTEMS.map((system) => {
+                  const value = system.toLowerCase().replace(/ /g, '_');
+                  const isSelected = filters.decision_system?.includes(value);
+                  return (
+                    <TouchableOpacity
+                      key={system}
+                      style={[styles.filterOption, isSelected && styles.filterOptionActive]}
+                      onPress={() => toggleFilter('decision_system', value)}
+                    >
+                      <Text style={[styles.filterOptionText, isSelected && styles.filterOptionTextActive]}>
+                        {system}
+                      </Text>
+                      {isSelected && <Ionicons name="checkmark" size={16} color={colors.white} />}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Roles Filter */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterLabel}>Looking For Roles</Text>
+              <View style={styles.filterOptions}>
+                {ROLE_OPTIONS.map((role) => {
+                  const isSelected = filters.roles?.includes(role);
+                  return (
+                    <TouchableOpacity
+                      key={role}
+                      style={[styles.filterOption, isSelected && styles.filterOptionActive]}
+                      onPress={() => toggleFilter('roles', role)}
+                    >
+                      <Text style={[styles.filterOptionText, isSelected && styles.filterOptionTextActive]}>
+                        {role}
+                      </Text>
+                      {isSelected && <Ionicons name="checkmark" size={16} color={colors.white} />}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Location Filter */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterLabel}>Location</Text>
+              <TextInput
+                style={styles.locationInput}
+                placeholder="e.g., Remote, New York"
+                value={filters.location || ''}
+                onChangeText={(text) => setFilters(prev => ({ ...prev, location: text }))}
+              />
+            </View>
+          </ScrollView>
+
+          <View style={styles.modalFooter}>
+            <TouchableOpacity
+              style={styles.clearButton}
+              onPress={clearAllFilters}
+            >
+              <Text style={styles.clearButtonText}>Clear All</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.applyButton}
+              onPress={applyFilters}
+            >
+              <Text style={styles.applyButtonText}>Apply Filters</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
   );
 
   return (
@@ -179,13 +348,22 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
           )}
         </View>
 
-        {/* Modern Filter Chips */}
-        <View style={styles.filterContainer}>
-          <FilterChip label="All" value="all" isActive={filter === 'all'} />
-          <FilterChip label="Awaiting Kickoff" value="awaiting_kickoff" isActive={filter === 'awaiting_kickoff'} />
-          <FilterChip label="Active" value="active" isActive={filter === 'active'} />
-        </View>
+        {/* Filter Button */}
+        <TouchableOpacity
+          style={styles.filterButton}
+          onPress={() => setShowFilters(true)}
+        >
+          <Ionicons name="filter" size={18} color={colors.primary} />
+          <Text style={styles.filterButtonText}>Filters</Text>
+          {activeFilterCount > 0 && (
+            <View style={styles.filterBadge}>
+              <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
       </View>
+
+      <FilterModal />
 
       <ScrollView
         style={styles.scrollView}
@@ -277,7 +455,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
                         <Ionicons name="people" size={14} color={colors.textSecondary} />
                       </View>
                       <Text style={styles.infoText}>
-                        {pursuit.current_members_count}/{pursuit.team_size_max}
+                        {(pursuit.current_members_count || 0) + 1}/{pursuit.team_size_max}
                       </Text>
                     </View>
 
@@ -374,34 +552,164 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
 
-  // Filter Styles
-  filterContainer: {
+  // Filter Button Styles
+  filterButton: {
     flexDirection: 'row',
-    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    marginHorizontal: spacing.lg,
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    gap: spacing.sm,
+    alignSelf: 'flex-start',
+  },
+
+  filterButtonText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.primary,
+  },
+
+  filterBadge: {
+    backgroundColor: colors.error,
+    borderRadius: borderRadius.full,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.xs / 2,
+  },
+
+  filterBadgeText: {
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.white,
+  },
+
+  // Filter Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+
+  modalContent: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
+    maxHeight: '80%',
+    ...shadows.lg,
+  },
+
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+
+  modalTitle: {
+    fontSize: typography.fontSize.xl,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.textPrimary,
+  },
+
+  modalScroll: {
+    padding: spacing.lg,
+  },
+
+  filterSection: {
+    marginBottom: spacing.xl,
+  },
+
+  filterLabel: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.textPrimary,
+    marginBottom: spacing.md,
+  },
+
+  filterOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.sm,
   },
 
-  filterChip: {
-    paddingHorizontal: spacing.base,
+  filterOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.full,
     backgroundColor: colors.backgroundSecondary,
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: colors.borderLight,
+    gap: spacing.xs,
   },
 
-  filterChipActive: {
+  filterOptionActive: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
 
-  filterChipText: {
+  filterOptionText: {
     fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.medium,
     color: colors.textSecondary,
   },
 
-  filterChipTextActive: {
+  filterOptionTextActive: {
+    color: colors.white,
+  },
+
+  locationInput: {
+    backgroundColor: colors.backgroundSecondary,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    borderRadius: borderRadius.base,
+    padding: spacing.md,
+    fontSize: typography.fontSize.base,
+    color: colors.textPrimary,
+  },
+
+  modalFooter: {
+    flexDirection: 'row',
+    padding: spacing.lg,
+    gap: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderLight,
+  },
+
+  clearButton: {
+    flex: 1,
+    backgroundColor: colors.backgroundSecondary,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.base,
+    alignItems: 'center',
+  },
+
+  clearButtonText: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.textSecondary,
+  },
+
+  applyButton: {
+    flex: 1,
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.base,
+    alignItems: 'center',
+  },
+
+  applyButtonText: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semibold,
     color: colors.white,
   },
 

@@ -32,9 +32,30 @@ export const pursuitService = {
       .from('pursuits')
       .select('*');
 
-    // Apply status filter if provided
-    if (filters?.status) {
-      query = query.eq('status', filters.status);
+    // Apply status filter (multiple)
+    if (filters?.status && filters.status.length > 0) {
+      query = query.in('status', filters.status);
+    }
+
+    // Apply pursuit type filter (multiple)
+    if (filters?.pursuit_types && filters.pursuit_types.length > 0) {
+      // Use contains operator for array field
+      query = query.contains('pursuit_types', filters.pursuit_types);
+    }
+
+    // Apply decision system filter (multiple)
+    if (filters?.decision_system && filters.decision_system.length > 0) {
+      query = query.in('decision_system', filters.decision_system);
+    }
+
+    // Apply roles filter (multiple) - check if pursuit has any of the selected roles
+    if (filters?.roles && filters.roles.length > 0) {
+      query = query.overlaps('roles', filters.roles);
+    }
+
+    // Apply location filter (contains text)
+    if (filters?.location) {
+      query = query.ilike('location', `%${filters.location}%`);
     }
 
     // Apply search filter if provided
@@ -44,7 +65,7 @@ export const pursuitService = {
 
     query = query.order('created_at', { ascending: false });
 
-    const { data, error } = await query;
+    const { data, error} = await query;
 
     if (error) throw error;
     return data || [];
