@@ -157,22 +157,24 @@ export default function UserProfileScreen({ route, navigation, userId: propUserI
       </View>
 
       <View style={styles.actionButtons}>
-        {!isConnected && !pendingRequest && (
+        {!isConnected && !pendingRequest && userId !== user?.id && (
           <TouchableOpacity style={styles.connectButton} onPress={handleConnect}>
             <Ionicons name="person-add" size={20} color="#fff" />
             <Text style={styles.connectButtonText}>Connect</Text>
           </TouchableOpacity>
         )}
-        {!isConnected && pendingRequest && (
+        {!isConnected && pendingRequest && userId !== user?.id && (
           <View style={styles.connectButtonPending}>
             <Ionicons name="checkmark-circle" size={20} color="#6b7280" />
             <Text style={styles.connectButtonPendingText}>Request Sent</Text>
           </View>
         )}
-        <TouchableOpacity style={styles.messageButton} onPress={handleMessage}>
-          <Ionicons name="chatbubble" size={20} color="#0ea5e9" />
-          <Text style={styles.messageButtonText}>Message</Text>
-        </TouchableOpacity>
+        {userId !== user?.id && (
+          <TouchableOpacity style={styles.messageButton} onPress={handleMessage}>
+            <Ionicons name="chatbubble" size={20} color="#0ea5e9" />
+            <Text style={styles.messageButtonText}>Message</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Basic Info */}
