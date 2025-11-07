@@ -15,8 +15,10 @@ import ConnectionsScreen from './src/screens/connections/ConnectionsScreen';
 import TimeSlotProposalScreen from './src/screens/TimeSlotProposalScreen';
 import CreatorTimeSelectionScreen from './src/screens/CreatorTimeSelectionScreen';
 import EditPursuitScreen from './src/screens/EditPursuitScreen';
+import NotificationsScreen from './src/screens/NotificationsScreen';
 import NotificationBadge from './src/components/NotificationBadge';
 import { notificationService } from './src/services/notificationService';
+import { supabase } from './src/config/supabase';
 
 function AppContent() {
   const auth = useAuth();
@@ -42,23 +44,26 @@ function AppContent() {
   const [messagesNotifications, setMessagesNotifications] = useState(0);
   const [podsNotifications, setPodsNotifications] = useState(0);
   const [profileNotifications, setProfileNotifications] = useState(0);
+  const [totalNotifications, setTotalNotifications] = useState(0);
 
   // Load notification counts
   const loadNotificationCounts = async () => {
     if (!auth.user?.id) return;
 
     try {
-      const [feed, messages, pods, profile] = await Promise.all([
+      const [feed, messages, pods, profile, total] = await Promise.all([
         notificationService.getFeedUnreadCount(auth.user.id).catch(() => 0),
         notificationService.getMessagesUnreadCount(auth.user.id).catch(() => 0),
         notificationService.getPodsUnreadCount(auth.user.id).catch(() => 0),
         notificationService.getProfileUnreadCount(auth.user.id).catch(() => 0),
+        notificationService.getTotalUnreadCount(auth.user.id).catch(() => 0),
       ]);
 
       setFeedNotifications(feed);
       setMessagesNotifications(messages);
       setPodsNotifications(pods);
       setProfileNotifications(profile);
+      setTotalNotifications(total);
     } catch (error: any) {
       // Silently fail - notifications table may not exist yet
       console.log('Notifications not available:', error?.message || 'Unknown error');
@@ -66,6 +71,7 @@ function AppContent() {
       setMessagesNotifications(0);
       setPodsNotifications(0);
       setProfileNotifications(0);
+      setTotalNotifications(0);
     }
   };
 
@@ -74,6 +80,32 @@ function AppContent() {
     loadNotificationCounts();
     const interval = setInterval(loadNotificationCounts, 30000);
     return () => clearInterval(interval);
+  }, [auth.user?.id]);
+
+  // Real-time notification updates
+  useEffect(() => {
+    if (!auth.user?.id) return;
+
+    const channel = supabase
+      .channel('notifications-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${auth.user.id}`,
+        },
+        (payload) => {
+          console.log('Notification change detected:', payload);
+          loadNotificationCounts();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [auth.user?.id]);
 
   if (auth.loading) {
@@ -284,6 +316,14 @@ if (viewingUserId) {
     }}
   />
 )}
+      {currentScreen === 'Notifications' && (
+        <NotificationsScreen
+          onNavigate={(screen, params) => {
+            setCurrentScreen(screen);
+            loadNotificationCounts(); // Refresh counts when navigating
+          }}
+        />
+      )}
       {currentScreen === 'Pods' && (
         <PodsScreen
           onOpenTeamBoard={openTeamBoard}
@@ -311,6 +351,17 @@ if (viewingUserId) {
               💬 Messages
             </Text>
             <NotificationBadge show={messagesNotifications > 0} />
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.tab} onPress={() => {
+          setCurrentScreen('Notifications');
+          loadNotificationCounts();
+        }}>
+          <View>
+            <Text style={[styles.tabText, currentScreen === 'Notifications' && styles.tabTextActive]}>
+              🔔 Notifications
+            </Text>
+            <NotificationBadge show={totalNotifications > 0} />
           </View>
         </TouchableOpacity>
         <TouchableOpacity style={styles.tab} onPress={() => setCurrentScreen('Pods')}>

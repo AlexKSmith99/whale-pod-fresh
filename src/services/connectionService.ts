@@ -1,4 +1,5 @@
 import { supabase } from '../config/supabase';
+import { notificationService } from './notificationService';
 
 export const connectionService = {
   // Send connection request
@@ -16,11 +17,39 @@ export const connectionService = {
       .single();
 
     if (error) throw error;
+
+    // Get sender's profile for notification
+    const { data: senderProfile } = await supabase
+      .from('profiles')
+      .select('name')
+      .eq('id', userId1)
+      .single();
+
+    // Notify the receiver about the connection request
+    if (senderProfile) {
+      await notificationService.createNotification({
+        user_id: userId2,
+        type: 'connection_request',
+        title: '🤝 New Connection Request',
+        message: `${senderProfile.name || 'Someone'} wants to connect with you`,
+        related_id: userId1,
+      }).catch(err => console.error('Failed to send notification:', err));
+    }
+
     return data;
   },
 
   // Accept connection request
   acceptConnection: async (connectionId: string) => {
+    // Get connection data before updating
+    const { data: connection, error: getError } = await supabase
+      .from('connections')
+      .select('user_id_1, user_id_2')
+      .eq('id', connectionId)
+      .single();
+
+    if (getError) throw getError;
+
     const { data, error } = await supabase
       .from('connections')
       .update({ status: 'accepted' })
@@ -29,6 +58,23 @@ export const connectionService = {
       .single();
 
     if (error) throw error;
+
+    // Get acceptor's profile for notification
+    const { data: acceptorProfile } = await supabase
+      .from('profiles')
+      .select('name')
+      .eq('id', connection.user_id_2)
+      .single();
+
+    // Notify the person who sent the request (user_id_1) that it was accepted
+    if (acceptorProfile) {
+      await notificationService.notifyConnectionAccepted(
+        connection.user_id_1,
+        acceptorProfile.name || 'Someone',
+        connection.user_id_2
+      ).catch(err => console.error('Failed to send notification:', err));
+    }
+
     return data;
   },
 

@@ -4,9 +4,13 @@ export type NotificationType =
   | 'pod_ready_for_kickoff' // When min teammates quota hit
   | 'new_message' // New message in conversations
   | 'connection_request' // New connection request
+  | 'connection_accepted' // Connection request accepted
   | 'pod_available' // Favorite pod becomes available
   | 'kickoff_scheduled' // Kickoff meeting scheduled
-  | 'time_slot_request'; // Creator requesting time slots
+  | 'time_slot_request' // Creator requesting time slots
+  | 'application_received' // Pursuit owner receives new application
+  | 'application_accepted' // Applicant's application accepted
+  | 'application_rejected'; // Applicant's application rejected
 
 export interface Notification {
   id: string;
@@ -79,7 +83,19 @@ export const notificationService = {
 
   // Get unread count for Profile tab
   async getProfileUnreadCount(userId: string) {
-    return this.getUnreadCountByType(userId, ['connection_request']);
+    return this.getUnreadCountByType(userId, ['connection_request', 'connection_accepted']);
+  },
+
+  // Get total unread count for Notifications tab
+  async getTotalUnreadCount(userId: string) {
+    const { count, error } = await supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('read', false);
+
+    if (error) throw error;
+    return count || 0;
   },
 
   // Get unread count for Feed tab
@@ -153,5 +169,49 @@ export const notificationService = {
       .insert(notifications);
 
     if (error) throw error;
+  },
+
+  // Notify pursuit creator of new application
+  async notifyApplicationReceived(pursuitId: string, creatorId: string, applicantName: string, pursuitTitle: string) {
+    return this.createNotification({
+      user_id: creatorId,
+      type: 'application_received',
+      title: '📬 New Application',
+      message: `${applicantName} applied to join "${pursuitTitle}"`,
+      related_id: pursuitId,
+    });
+  },
+
+  // Notify applicant that their application was accepted
+  async notifyApplicationAccepted(pursuitId: string, applicantId: string, pursuitTitle: string) {
+    return this.createNotification({
+      user_id: applicantId,
+      type: 'application_accepted',
+      title: '✅ Application Accepted!',
+      message: `Your application to "${pursuitTitle}" has been accepted! Welcome to the team.`,
+      related_id: pursuitId,
+    });
+  },
+
+  // Notify applicant that their application was rejected
+  async notifyApplicationRejected(pursuitId: string, applicantId: string, pursuitTitle: string) {
+    return this.createNotification({
+      user_id: applicantId,
+      type: 'application_rejected',
+      title: '❌ Application Update',
+      message: `Your application to "${pursuitTitle}" was not accepted this time.`,
+      related_id: pursuitId,
+    });
+  },
+
+  // Notify user that their connection request was accepted
+  async notifyConnectionAccepted(userId: string, acceptorName: string, acceptorId: string) {
+    return this.createNotification({
+      user_id: userId,
+      type: 'connection_accepted',
+      title: '🤝 Connection Accepted!',
+      message: `${acceptorName} accepted your connection request`,
+      related_id: acceptorId,
+    });
   },
 };

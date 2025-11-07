@@ -1,4 +1,5 @@
 import { supabase } from '../config/supabase';
+import { notificationService } from './notificationService';
 
 export const applicationService = {
   // Submit an application
@@ -8,8 +9,32 @@ export const applicationService = {
       .insert([data])
       .select()
       .single();
-    
+
     if (error) throw error;
+
+    // Get pursuit and applicant details for notification
+    const { data: pursuit } = await supabase
+      .from('pursuits')
+      .select('title, creator_id')
+      .eq('id', data.pursuit_id)
+      .single();
+
+    const { data: applicant } = await supabase
+      .from('profiles')
+      .select('name')
+      .eq('id', data.applicant_id)
+      .single();
+
+    // Notify pursuit creator
+    if (pursuit && applicant) {
+      await notificationService.notifyApplicationReceived(
+        data.pursuit_id,
+        pursuit.creator_id,
+        applicant.name || 'Someone',
+        pursuit.title
+      ).catch(err => console.error('Failed to send notification:', err));
+    }
+
     return application;
   },
 
@@ -72,11 +97,18 @@ export const applicationService = {
     // Get current pursuit to check team size and update count
     const { data: pursuit, error: pursuitError } = await supabase
       .from('pursuits')
-      .select('current_members_count, team_size_min, status')
+      .select('current_members_count, team_size_min, status, title')
       .eq('id', application.pursuit_id)
       .single();
 
     if (pursuitError) throw pursuitError;
+
+    // Notify applicant that their application was accepted
+    await notificationService.notifyApplicationAccepted(
+      application.pursuit_id,
+      application.applicant_id,
+      pursuit.title
+    ).catch(err => console.error('Failed to send notification:', err));
 
     // Increment current_members_count
     const newCount = (pursuit.current_members_count || 0) + 1;
@@ -105,11 +137,36 @@ export const applicationService = {
 
   // Reject application
   async rejectApplication(applicationId: string) {
+    // Get application details
+    const { data: application, error: appError } = await supabase
+      .from('pursuit_applications')
+      .select('pursuit_id, applicant_id')
+      .eq('id', applicationId)
+      .single();
+
+    if (appError) throw appError;
+
     const { error } = await supabase
       .from('pursuit_applications')
       .update({ status: 'declined' })
       .eq('id', applicationId);
-    
+
     if (error) throw error;
+
+    // Get pursuit title for notification
+    const { data: pursuit } = await supabase
+      .from('pursuits')
+      .select('title')
+      .eq('id', application.pursuit_id)
+      .single();
+
+    // Notify applicant that their application was rejected
+    if (pursuit) {
+      await notificationService.notifyApplicationRejected(
+        application.pursuit_id,
+        application.applicant_id,
+        pursuit.title
+      ).catch(err => console.error('Failed to send notification:', err));
+    }
   },
 };

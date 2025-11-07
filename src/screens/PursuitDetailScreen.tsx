@@ -36,12 +36,14 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
   const [minTeammatesReached, setMinTeammatesReached] = useState(false);
   const [pursuitStatus, setPursuitStatus] = useState(pursuit.status);
   const [kickoffDate, setKickoffDate] = useState(pursuit.kickoff_date);
+  const [pendingApplicationsCount, setPendingApplicationsCount] = useState(0);
 
   useEffect(() => {
     checkIfApplied();
     loadCreatorProfile();
     if (isOwner) {
       checkMinimumTeammates();
+      loadPendingApplicationsCount();
     }
     loadKickoffDate();
   }, []);
@@ -50,6 +52,22 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
     if (user && !isOwner) {
       const applied = await applicationService.hasUserApplied(pursuit.id, user.id);
       setHasApplied(applied);
+    }
+  };
+
+  const loadPendingApplicationsCount = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('pursuit_applications')
+        .select('id', { count: 'exact', head: true })
+        .eq('pursuit_id', pursuit.id)
+        .eq('status', 'pending');
+
+      if (error) throw error;
+
+      setPendingApplicationsCount(data?.length || 0);
+    } catch (error) {
+      console.error('Error loading pending applications:', error);
     }
   };
 
@@ -431,6 +449,11 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
               onPress={() => setShowApplicationsReview(true)}
             >
               <Text style={styles.reviewButtonText}>📋 Review Applications</Text>
+              {pendingApplicationsCount > 0 && (
+                <View style={styles.applicationBadge}>
+                  <Text style={styles.applicationBadgeText}>{pendingApplicationsCount}</Text>
+                </View>
+              )}
             </TouchableOpacity>
             <TouchableOpacity style={styles.deleteButton} onPress={onDelete}>
               <Text style={styles.deleteButtonText}>🗑️ Delete Pursuit</Text>
@@ -608,8 +631,27 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.bold,
   },
-  reviewButton: { backgroundColor: '#0ea5e9', borderRadius: 8, padding: 16, alignItems: 'center' },
+  reviewButton: { backgroundColor: '#0ea5e9', borderRadius: 8, padding: 16, alignItems: 'center', position: 'relative' },
   reviewButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  applicationBadge: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: colors.error,
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    borderWidth: 2,
+    borderColor: colors.white,
+  },
+  applicationBadgeText: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
   deleteButton: { backgroundColor: '#ef4444', borderRadius: 8, padding: 16, alignItems: 'center' },
   deleteButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   applyButton: { backgroundColor: '#10b981', borderRadius: 12, padding: 18, alignItems: 'center', marginTop: 20, shadowColor: '#10b981', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
