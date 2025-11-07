@@ -7,6 +7,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "scheme": "com.googleusercontent.apps.23113498288-o26pmlehlod99tps91a0brd590a50qm8",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",

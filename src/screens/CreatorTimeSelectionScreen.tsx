@@ -13,6 +13,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { kickoffService } from '../services/kickoffService';
 import { notificationService } from '../services/notificationService';
 import { pursuitService } from '../services/pursuitService';
+import { googleCalendarService } from '../services/googleCalendarService';
 import { supabase } from '../config/supabase';
 import { colors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
 import Button from '../components/Button';
@@ -150,6 +151,73 @@ export default function CreatorTimeSelectionScreen({ pursuit, onBack, onSchedule
     return sorted;
   };
 
+  const createGoogleCalendarEvent = async (slot: AnalyzedSlot, memberIds: string[]) => {
+    try {
+      // Check if user is authenticated with Google
+      const isAuthenticated = await googleCalendarService.isAuthenticated();
+
+      if (!isAuthenticated) {
+        // Ask user if they want to connect Google Calendar
+        Alert.alert(
+          'Connect Google Calendar?',
+          'Would you like to add this event to Google Calendar? This will help you and your team members keep track of the meeting.',
+          [
+            { text: 'Skip', style: 'cancel' },
+            {
+              text: 'Connect',
+              onPress: async () => {
+                const success = await googleCalendarService.authenticate();
+                if (success) {
+                  // Retry creating the event after authentication
+                  await createCalendarEventWithAuth(slot, memberIds);
+                }
+              },
+            },
+          ]
+        );
+        return;
+      }
+
+      await createCalendarEventWithAuth(slot, memberIds);
+    } catch (error) {
+      console.error('Error with Google Calendar:', error);
+      // Don't block the main flow if calendar fails
+    }
+  };
+
+  const createCalendarEventWithAuth = async (slot: AnalyzedSlot, memberIds: string[]) => {
+    try {
+      // Get team member emails
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('email')
+        .in('id', memberIds);
+
+      const attendeeEmails = profiles?.map((p) => p.email).filter(Boolean) || [];
+
+      // Calculate end time (1 hour meeting by default)
+      const startTime = new Date(slot.datetime);
+      const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // +1 hour
+
+      const result = await googleCalendarService.createCalendarEvent({
+        summary: `${pursuit.title} - Kick-Off Meeting`,
+        description: `Kick-off meeting for the ${pursuit.title} pursuit.\n\n${pursuit.description}`,
+        location: slot.location_type === 'video' ? 'Video Call' : 'In-Person',
+        start: startTime.toISOString(),
+        end: endTime.toISOString(),
+        attendees: attendeeEmails,
+      });
+
+      if (result.success) {
+        console.log('✅ Google Calendar event created:', result.eventId);
+      } else {
+        console.error('❌ Failed to create calendar event:', result.error);
+      }
+    } catch (error) {
+      console.error('Error creating calendar event:', error);
+    }
+  };
+
   const handleSelectTime = async () => {
     if (!selectedSlot) {
       Alert.alert('No Time Selected', 'Please select a time slot first.');
@@ -189,6 +257,9 @@ export default function CreatorTimeSelectionScreen({ pursuit, onBack, onSchedule
                 `${selectedSlot.formattedDate} at ${selectedSlot.formattedTime}`
               );
 
+              // Create Google Calendar event
+              await createGoogleCalendarEvent(selectedSlot, memberIds);
+
               Alert.alert(
                 '✅ Kickoff Scheduled!',
                 `The kickoff meeting has been scheduled for ${selectedSlot.formattedDate} at ${selectedSlot.formattedTime}. All team members have been notified.\n\nYour pursuit is now Active!`,
@@ -196,7 +267,6 @@ export default function CreatorTimeSelectionScreen({ pursuit, onBack, onSchedule
                   {
                     text: 'OK',
                     onPress: () => {
-                      // TODO: Integrate Google Calendar here
                       onScheduled();
                     },
                   },
