@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { applicationService } from '../services/applicationService';
 import { pursuitService } from '../services/pursuitService';
 import { kickoffService } from '../services/kickoffService';
 import { notificationService } from '../services/notificationService';
 import { supabase } from '../config/supabase';
+import { colors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
 import ApplicationScreen from './ApplicationScreen';
 import ApplicationsReviewScreen from './ApplicationsReviewScreen';
 import UserProfileScreen from './UserProfileScreen';
