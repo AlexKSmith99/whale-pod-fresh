@@ -399,8 +399,8 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
           </Text>
         </View>
 
-        {/* Team Board Access for Active Pursuits */}
-        {pursuit.status === 'active' && onOpenTeamBoard && (
+        {/* Team Board Access for Active Pursuits - Non-Owners Only */}
+        {!isOwner && pursuit.status === 'active' && onOpenTeamBoard && (
           <View style={styles.section}>
             <TouchableOpacity
               style={styles.teamBoardAccessButton}
