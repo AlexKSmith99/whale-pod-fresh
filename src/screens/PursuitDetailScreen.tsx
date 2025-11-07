@@ -286,7 +286,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
             onPress={handleScheduleKickoff}
           >
             <Text style={styles.scheduleKickoffButtonText}>
-              🎉 Schedule Kick-Off Meeting
+              🎉 Activate Kick-Off
             </Text>
             <Text style={styles.scheduleKickoffSubtext}>
               {acceptedMembersCount + 1}/{pursuit.team_size_min} minimum teammates ready!
