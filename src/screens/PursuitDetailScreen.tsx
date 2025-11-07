@@ -33,6 +33,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
   const [acceptedMembersCount, setAcceptedMembersCount] = useState(0);
   const [minTeammatesReached, setMinTeammatesReached] = useState(false);
   const [pursuitStatus, setPursuitStatus] = useState(pursuit.status);
+  const [kickoffDate, setKickoffDate] = useState(pursuit.kickoff_date);
 
   useEffect(() => {
     checkIfApplied();
@@ -40,6 +41,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
     if (isOwner) {
       checkMinimumTeammates();
     }
+    loadKickoffDate();
   }, []);
 
   const checkIfApplied = async () => {
@@ -154,6 +156,37 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
     }
   };
 
+  const loadKickoffDate = async () => {
+    // If pursuit already has kickoff_date, we're good
+    if (pursuit.kickoff_date) {
+      setKickoffDate(pursuit.kickoff_date);
+      return;
+    }
+
+    // For older pursuits, check kickoff_meetings table
+    try {
+      const { data, error } = await supabase
+        .from('kickoff_meetings')
+        .select('scheduled_date')
+        .eq('pursuit_id', pursuit.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
+
+      if (data?.scheduled_date) {
+        setKickoffDate(data.scheduled_date);
+
+        // Update the pursuit record with the date for future loads
+        await supabase
+          .from('pursuits')
+          .update({ kickoff_date: data.scheduled_date })
+          .eq('id', pursuit.id);
+      }
+    } catch (error) {
+      console.error('Error loading kickoff date:', error);
+    }
+  };
+
   const handleScheduleKickoff = async () => {
     try {
       // Get all accepted team members
@@ -261,14 +294,14 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
       )}
 
       {/* Next Meeting Section - Show when kick-off is scheduled */}
-      {pursuit.kickoff_scheduled && pursuit.kickoff_date && (
+      {(pursuit.kickoff_scheduled || pursuit.status === 'active') && kickoffDate && (
         <View style={styles.nextMeetingSection}>
           <View style={styles.nextMeetingHeader}>
             <Ionicons name="calendar" size={24} color={colors.primary} />
             <Text style={styles.nextMeetingTitle}>Next Meeting</Text>
           </View>
           <Text style={styles.nextMeetingDate}>
-            {new Date(pursuit.kickoff_date).toLocaleDateString('en-US', {
+            {new Date(kickoffDate).toLocaleDateString('en-US', {
               weekday: 'long',
               year: 'numeric',
               month: 'long',
@@ -276,7 +309,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
             })}
           </Text>
           <Text style={styles.nextMeetingTime}>
-            {new Date(pursuit.kickoff_date).toLocaleTimeString('en-US', {
+            {new Date(kickoffDate).toLocaleTimeString('en-US', {
               hour: 'numeric',
               minute: '2-digit',
               hour12: true,
