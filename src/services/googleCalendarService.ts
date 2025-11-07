@@ -19,19 +19,12 @@ const GOOGLE_REFRESH_TOKEN_KEY = 'google_refresh_token';
 const GOOGLE_TOKEN_EXPIRY_KEY = 'google_token_expiry';
 
 export const googleCalendarService = {
-  // Create OAuth redirect URI
-  getRedirectUri() {
-    // Use Expo's auth proxy for OAuth
-    return AuthSession.makeRedirectUri({
-      useProxy: true,
-    });
-  },
-
   // Authenticate with Google
   async authenticate(): Promise<boolean> {
     try {
-      const redirectUri = this.getRedirectUri();
-      console.log('Redirect URI:', redirectUri);
+      // Explicitly use Expo auth proxy URL
+      const redirectUri = 'https://auth.expo.io/@alexksmith99/whale-pod-fresh';
+      console.log('Using redirect URI:', redirectUri);
 
       const request = new AuthSession.AuthRequest({
         clientId: GOOGLE_CLIENT_ID!,
@@ -45,7 +38,7 @@ export const googleCalendarService = {
         const { code } = result.params;
 
         // Exchange authorization code for tokens
-        const tokenResponse = await this.exchangeCodeForToken(code, redirectUri);
+        const tokenResponse = await this.exchangeCodeForToken(code);
 
         if (tokenResponse) {
           await this.storeTokens(
@@ -65,7 +58,8 @@ export const googleCalendarService = {
   },
 
   // Exchange authorization code for access token
-  async exchangeCodeForToken(code: string, redirectUri: string) {
+  async exchangeCodeForToken(code: string) {
+    const redirectUri = 'https://auth.expo.io/@alexksmith99/whale-pod-fresh';
     try {
       const response = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
