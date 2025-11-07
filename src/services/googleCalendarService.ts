@@ -21,9 +21,9 @@ const GOOGLE_TOKEN_EXPIRY_KEY = 'google_token_expiry';
 export const googleCalendarService = {
   // Create OAuth redirect URI
   getRedirectUri() {
+    // Use Expo's auth proxy for OAuth
     return AuthSession.makeRedirectUri({
-      scheme: `com.googleusercontent.apps.${GOOGLE_CLIENT_ID?.split('.')[0]}`,
-      path: 'oauth2redirect',
+      useProxy: true,
     });
   },
 
