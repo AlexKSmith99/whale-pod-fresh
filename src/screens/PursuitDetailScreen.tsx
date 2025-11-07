@@ -282,7 +282,10 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
               hour12: true,
             })}
           </Text>
-          <TouchableOpacity style={styles.agendaButton}>
+          <TouchableOpacity
+            style={styles.agendaButton}
+            onPress={() => onOpenTeamBoard && onOpenTeamBoard(pursuit.id)}
+          >
             <Ionicons name="document-text" size={16} color={colors.primary} />
             <Text style={styles.agendaButtonText}>View Pre-Meeting Agenda</Text>
           </TouchableOpacity>

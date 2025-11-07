@@ -31,6 +31,11 @@ export default function TeamBoardScreen({ pursuitId, onBack, onViewProfile }: Pr
   const [newTaskPriority, setNewTaskPriority] = useState<'low' | 'medium' | 'high'>('medium');
   const [selectedParticipant, setSelectedParticipant] = useState<string | null>(null);
 
+  // Meeting agenda state
+  const [meetingAgenda, setMeetingAgenda] = useState('');
+  const [editingAgenda, setEditingAgenda] = useState(false);
+  const [kickoffMeetingId, setKickoffMeetingId] = useState<string | null>(null);
+
   useEffect(() => {
     loadData();
   }, []);
@@ -41,6 +46,7 @@ export default function TeamBoardScreen({ pursuitId, onBack, onViewProfile }: Pr
       await Promise.all([
         loadTasks(),
         loadTeamMembers(),
+        loadMeetingAgenda(),
       ]);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -93,6 +99,47 @@ export default function TeamBoardScreen({ pursuitId, onBack, onViewProfile }: Pr
       setTeamMembers(uniqueMembers);
     } catch (error) {
       console.error('Error loading team members:', error);
+    }
+  };
+
+  const loadMeetingAgenda = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('kickoff_meetings')
+        .select('id, meeting_agenda')
+        .eq('pursuit_id', pursuitId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
+
+      if (data) {
+        setKickoffMeetingId(data.id);
+        setMeetingAgenda(data.meeting_agenda || '');
+      }
+    } catch (error) {
+      console.error('Error loading meeting agenda:', error);
+    }
+  };
+
+  const saveMeetingAgenda = async () => {
+    if (!kickoffMeetingId) {
+      Alert.alert('Error', 'No kick-off meeting found for this pursuit');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('kickoff_meetings')
+        .update({ meeting_agenda: meetingAgenda })
+        .eq('id', kickoffMeetingId);
+
+      if (error) throw error;
+
+      Alert.alert('Success', 'Meeting agenda saved!');
+      setEditingAgenda(false);
+    } catch (error: any) {
+      console.error('Error saving meeting agenda:', error);
+      Alert.alert('Error', error.message || 'Failed to save meeting agenda');
     }
   };
 
@@ -285,6 +332,43 @@ export default function TeamBoardScreen({ pursuitId, onBack, onViewProfile }: Pr
           <Ionicons name="add" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
+
+      {/* Meeting Agenda Section */}
+      {kickoffMeetingId && (
+        <View style={styles.agendaSection}>
+          <View style={styles.agendaSectionHeader}>
+            <View style={styles.agendaTitleRow}>
+              <Ionicons name="document-text" size={20} color="#3b82f6" />
+              <Text style={styles.agendaSectionTitle}>Pre-Meeting Agenda</Text>
+            </View>
+            {!editingAgenda ? (
+              <TouchableOpacity onPress={() => setEditingAgenda(true)} style={styles.editButton}>
+                <Ionicons name="create" size={18} color="#3b82f6" />
+                <Text style={styles.editButtonText}>Edit</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity onPress={saveMeetingAgenda} style={styles.saveButton}>
+                <Ionicons name="checkmark" size={18} color="#fff" />
+                <Text style={styles.saveButtonText}>Save</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          {editingAgenda ? (
+            <TextInput
+              style={styles.agendaInput}
+              placeholder="Add topics, goals, and discussion points for the kick-off meeting..."
+              value={meetingAgenda}
+              onChangeText={setMeetingAgenda}
+              multiline
+              numberOfLines={6}
+            />
+          ) : (
+            <Text style={styles.agendaText}>
+              {meetingAgenda || 'No agenda set yet. Click Edit to add topics for the upcoming kick-off meeting.'}
+            </Text>
+          )}
+        </View>
+      )}
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.boardContainer}>
         {/* To Do Column */}
@@ -480,6 +564,76 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  agendaSection: {
+    backgroundColor: '#fff',
+    marginHorizontal: 16,
+    marginVertical: 12,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  agendaSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  agendaTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  agendaSectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#3b82f6',
+  },
+  editButtonText: {
+    color: '#3b82f6',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  saveButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: '#10b981',
+  },
+  saveButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  agendaInput: {
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    color: '#1f2937',
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  agendaText: {
+    fontSize: 14,
+    color: '#4b5563',
+    lineHeight: 20,
   },
   boardContainer: {
     flex: 1,

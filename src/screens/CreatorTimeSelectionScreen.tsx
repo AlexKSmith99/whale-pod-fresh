@@ -265,7 +265,25 @@ export default function CreatorTimeSelectionScreen({ pursuit, onBack, onSchedule
                 `The kickoff meeting has been scheduled for ${selectedSlot.formattedDate} at ${selectedSlot.formattedTime}. All team members have been notified.\n\nYour pursuit is now Active!`,
                 [
                   {
-                    text: 'OK',
+                    text: 'Create Pre-Meeting Agenda',
+                    onPress: () => {
+                      onScheduled();
+                      // Prompt user to create agenda
+                      setTimeout(() => {
+                        Alert.alert(
+                          '📝 Create Pre-Meeting Agenda',
+                          'Help your team prepare by creating a pre-meeting agenda. Add topics, goals, and discussion points for the kick-off meeting.\n\nYou can access this from the Team Board.',
+                          [
+                            { text: 'Later', style: 'cancel' },
+                            { text: 'OK', style: 'default' },
+                          ]
+                        );
+                      }, 500);
+                    },
+                  },
+                  {
+                    text: 'Done',
+                    style: 'cancel',
                     onPress: () => {
                       onScheduled();
                     },
