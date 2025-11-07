@@ -2,6 +2,7 @@
   "expo": {
     "name": "whale-pod-fresh",
     "slug": "whale-pod-fresh",
+    "owner": "alexksmith99",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
