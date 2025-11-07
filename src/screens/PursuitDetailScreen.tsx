@@ -260,6 +260,35 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
         </View>
       )}
 
+      {/* Next Meeting Section - Show when kick-off is scheduled */}
+      {pursuit.kickoff_scheduled && pursuit.kickoff_date && (
+        <View style={styles.nextMeetingSection}>
+          <View style={styles.nextMeetingHeader}>
+            <Ionicons name="calendar" size={24} color={colors.primary} />
+            <Text style={styles.nextMeetingTitle}>Next Meeting</Text>
+          </View>
+          <Text style={styles.nextMeetingDate}>
+            {new Date(pursuit.kickoff_date).toLocaleDateString('en-US', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            })}
+          </Text>
+          <Text style={styles.nextMeetingTime}>
+            {new Date(pursuit.kickoff_date).toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true,
+            })}
+          </Text>
+          <TouchableOpacity style={styles.agendaButton}>
+            <Ionicons name="document-text" size={16} color={colors.primary} />
+            <Text style={styles.agendaButtonText}>View Pre-Meeting Agenda</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <View style={styles.content}>
         <View style={styles.creatorSection}>
           <Text style={styles.sectionTitle}>Created By</Text>
@@ -392,6 +421,55 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#eee'
+  },
+  nextMeetingSection: {
+    backgroundColor: colors.successLight,
+    padding: 16,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+    borderRadius: borderRadius.lg,
+    borderWidth: 2,
+    borderColor: colors.success,
+    ...shadows.md,
+  },
+  nextMeetingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  nextMeetingTitle: {
+    fontSize: typography.fontSize.xl,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.success,
+  },
+  nextMeetingDate: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
+  },
+  nextMeetingTime: {
+    fontSize: typography.fontSize.base,
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
+  },
+  agendaButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.white,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.base,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  agendaButtonText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.primary,
   },
   content: { padding: 20, paddingBottom: 100 },
   creatorSection: { marginBottom: 15 },

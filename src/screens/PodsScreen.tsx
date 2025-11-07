@@ -132,34 +132,49 @@ export default function PodsScreen({ onOpenTeamBoard, onOpenTimeSlotProposal, on
       const timeSlotRequests = unreadPods.filter(n => n.type === 'time_slot_request');
       if (timeSlotRequests.length > 0) {
         const notif = timeSlotRequests[0];
-        Alert.alert(
-          notif.title,
-          notif.message,
-          [
-            {
-              text: 'Propose Times',
-              onPress: async () => {
-                await notificationService.markAsRead(notif.id);
-                setNotifications(prev => prev.filter(n => n.id !== notif.id));
 
-                // Get pursuit details
-                const { data: pursuit } = await supabase
-                  .from('pursuits')
-                  .select('*')
-                  .eq('id', notif.related_id)
-                  .single();
+        // Check if kick-off is already scheduled for this pursuit
+        const { data: pursuit } = await supabase
+          .from('pursuits')
+          .select('kickoff_scheduled')
+          .eq('id', notif.related_id)
+          .single();
 
-                if (pursuit && onOpenTimeSlotProposal) {
-                  onOpenTimeSlotProposal(pursuit);
+        // Only show alert if kick-off hasn't been scheduled yet
+        if (pursuit && !pursuit.kickoff_scheduled) {
+          Alert.alert(
+            notif.title,
+            notif.message,
+            [
+              {
+                text: 'Propose Times',
+                onPress: async () => {
+                  await notificationService.markAsRead(notif.id);
+                  setNotifications(prev => prev.filter(n => n.id !== notif.id));
+
+                  // Get pursuit details
+                  const { data: pursuit } = await supabase
+                    .from('pursuits')
+                    .select('*')
+                    .eq('id', notif.related_id)
+                    .single();
+
+                  if (pursuit && onOpenTimeSlotProposal) {
+                    onOpenTimeSlotProposal(pursuit);
+                  }
                 }
+              },
+              {
+                text: 'Later',
+                style: 'cancel'
               }
-            },
-            {
-              text: 'Later',
-              style: 'cancel'
-            }
-          ]
-        );
+            ]
+          );
+        } else {
+          // Kick-off already scheduled, just mark notification as read
+          await notificationService.markAsRead(notif.id);
+          setNotifications(prev => prev.filter(n => n.id !== notif.id));
+        }
       }
     } catch (error) {
       console.error('Error loading notifications:', error);
@@ -179,8 +194,11 @@ export default function PodsScreen({ onOpenTeamBoard, onOpenTimeSlotProposal, on
         .eq('id', notif.related_id)
         .single();
 
-      if (pursuit && onOpenTimeSlotProposal) {
+      // Only show time slot proposal if kickoff isn't already scheduled
+      if (pursuit && !pursuit.kickoff_scheduled && onOpenTimeSlotProposal) {
         onOpenTimeSlotProposal(pursuit);
+      } else if (pursuit && pursuit.kickoff_scheduled) {
+        Alert.alert('Kick-Off Already Scheduled', 'The kick-off meeting has already been scheduled for this pursuit.');
       }
     }
 
