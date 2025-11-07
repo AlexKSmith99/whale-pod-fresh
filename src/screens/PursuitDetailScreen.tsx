@@ -397,6 +397,19 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
           </Text>
         </View>
 
+        {/* Team Board Access for Active Pursuits */}
+        {pursuit.status === 'active' && onOpenTeamBoard && (
+          <View style={styles.section}>
+            <TouchableOpacity
+              style={styles.teamBoardAccessButton}
+              onPress={() => onOpenTeamBoard(pursuit.id)}
+            >
+              <Ionicons name="grid" size={20} color="#fff" />
+              <Text style={styles.teamBoardAccessButtonText}>Open Team Board</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {isOwner && onOpenTeamBoard && (
           <View style={styles.ownerActions}>
             <TouchableOpacity
@@ -577,6 +590,22 @@ const styles = StyleSheet.create({
   editButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   teamBoardButton: { backgroundColor: '#8b5cf6', borderRadius: 8, padding: 16, alignItems: 'center' },
   teamBoardButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  teamBoardAccessButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacing.base,
+    paddingHorizontal: spacing.lg,
+    ...shadows.md,
+  },
+  teamBoardAccessButtonText: {
+    color: colors.white,
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.bold,
+  },
   reviewButton: { backgroundColor: '#0ea5e9', borderRadius: 8, padding: 16, alignItems: 'center' },
   reviewButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   deleteButton: { backgroundColor: '#ef4444', borderRadius: 8, padding: 16, alignItems: 'center' },
