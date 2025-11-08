@@ -18,9 +18,10 @@ import { teamBoardService } from '../../services/teamBoardService';
 interface Props {
   pursuitId: string;
   onBack: () => void;
+  onStartVideoCall?: (channelName: string, podTitle: string) => void;
 }
 
-export default function TeamBoardScreen({ pursuitId, onBack }: Props) {
+export default function TeamBoardScreen({ pursuitId, onBack, onStartVideoCall }: Props) {
   const [tasks, setTasks] = useState<any[]>([]);
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,6 +30,7 @@ export default function TeamBoardScreen({ pursuitId, onBack }: Props) {
   const [newTaskDescription, setNewTaskDescription] = useState('');
   const [newTaskPriority, setNewTaskPriority] = useState<'low' | 'medium' | 'high'>('medium');
   const [selectedParticipant, setSelectedParticipant] = useState<string | null>(null);
+  const [podTitle, setPodTitle] = useState<string>('');
 
   useEffect(() => {
     loadData();
@@ -72,12 +74,16 @@ export default function TeamBoardScreen({ pursuitId, onBack }: Props) {
 
       if (error) throw error;
 
-      // Get creator too
+      // Get creator and pursuit info
       const { data: pursuit } = await supabase
         .from('pursuits')
-        .select('creator_id, profiles!creator_id(id, name, profile_picture, email)')
+        .select('title, creator_id, profiles!creator_id(id, name, profile_picture, email)')
         .eq('id', pursuitId)
         .single();
+
+      if (pursuit?.title) {
+        setPodTitle(pursuit.title);
+      }
 
       const members = data?.map((m: any) => m.profiles) || [];
       if (pursuit?.profiles) {
@@ -277,9 +283,19 @@ export default function TeamBoardScreen({ pursuitId, onBack }: Props) {
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Team Board</Text>
-        <TouchableOpacity onPress={() => setShowCreateModal(true)} style={styles.addButton}>
-          <Ionicons name="add" size={24} color="#fff" />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          {onStartVideoCall && (
+            <TouchableOpacity
+              onPress={() => onStartVideoCall(pursuitId, podTitle)}
+              style={styles.videoButton}
+            >
+              <Ionicons name="videocam" size={20} color="#fff" />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity onPress={() => setShowCreateModal(true)} style={styles.addButton}>
+            <Ionicons name="add" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.boardContainer}>
@@ -468,6 +484,19 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#1f2937',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  videoButton: {
+    backgroundColor: '#8b5cf6',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   addButton: {
     backgroundColor: '#3b82f6',

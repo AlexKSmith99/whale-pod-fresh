@@ -13,6 +13,7 @@ import TeamBoardScreen from './src/screens/team/TeamBoardScreen';
 import PodsScreen from './src/screens/PodsScreen';
 import ConnectionsScreen from './src/screens/connections/ConnectionsScreen';
 import PursuitDetailScreen from './src/screens/PursuitDetailScreen';
+import VideoCallScreen from './src/screens/VideoCallScreen';
 
 function AppContent() {
   const auth = useAuth();
@@ -24,6 +25,8 @@ function AppContent() {
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   const [showConnections, setShowConnections] = useState(false);
   const [viewingPodDetail, setViewingPodDetail] = useState<any | null>(null);
+  const [videoCallChannel, setVideoCallChannel] = useState<string | null>(null);
+  const [videoCallPodTitle, setVideoCallPodTitle] = useState<string>('');
 
   if (auth.loading) {
     return (
@@ -79,6 +82,41 @@ if (showCreate) {
   );
 }
 
+// Show video call if active
+if (videoCallChannel) {
+  const agoraAppId = process.env.EXPO_PUBLIC_AGORA_APP_ID || '';
+  if (!agoraAppId || agoraAppId === 'your_agora_app_id_here') {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+        <Text style={{ fontSize: 18, textAlign: 'center', marginBottom: 20 }}>
+          ⚠️ Agora App ID not configured
+        </Text>
+        <Text style={{ textAlign: 'center', color: '#666', marginBottom: 20 }}>
+          Please add your Agora App ID to the .env file
+        </Text>
+        <TouchableOpacity
+          style={{ backgroundColor: '#8b5cf6', padding: 15, borderRadius: 8 }}
+          onPress={() => setVideoCallChannel(null)}
+        >
+          <Text style={{ color: '#fff', fontWeight: 'bold' }}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  return (
+    <VideoCallScreen
+      channelName={videoCallChannel}
+      podTitle={videoCallPodTitle}
+      agoraAppId={agoraAppId}
+      onEndCall={() => {
+        setVideoCallChannel(null);
+        setVideoCallPodTitle('');
+      }}
+    />
+  );
+}
+
 // Show chat screen if a conversation is selected (MOVED UP!)
 if (chatPartnerId && chatPartnerEmail) {
   return (
@@ -124,6 +162,10 @@ if (teamBoardPursuitId) {
       pursuitId={teamBoardPursuitId}
       onBack={() => {
         setTeamBoardPursuitId(null);
+      }}
+      onStartVideoCall={(channelName, podTitle) => {
+        setVideoCallChannel(channelName);
+        setVideoCallPodTitle(podTitle);
       }}
     />
   );

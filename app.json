@@ -7,24 +7,47 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "scheme": "whalepod",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.whalepod.fresh",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Whale Pod needs access to your camera for video calls with your pod team.",
+        "NSMicrophoneUsageDescription": "Whale Pod needs access to your microphone for video calls with your pod team."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "package": "com.whalepod.fresh",
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS"
+      ],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-dev-client",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Whale Pod to access your camera for video calls.",
+          "microphonePermission": "Allow Whale Pod to access your microphone for video calls.",
+          "recordAudioAndroid": true
+        }
+      ]
+    ]
   }
 }
