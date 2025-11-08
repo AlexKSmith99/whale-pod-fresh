@@ -1,55 +1,90 @@
 # Whale Pod App - Project Status
 
-**Last Updated**: 2025-11-02
+**Last Updated**: 2025-01-08
 **Current Branch**: `claude/add-project-status-docs-011CUjRgyPY68nGDRUv3Hv8o`
-**Branch Purpose**: Documentation - Adding project status tracking document for team context
+**Branch Purpose**: Major feature addition - Comprehensive notification system with LinkedIn-style Notifications tab
 
 ---
 
 ## 🎯 What We Just Built/Changed
 
-### Recent Commits Summary
+### Latest Feature: Comprehensive Notification System (Jan 2025)
 
-#### 1. **Modern Design System & Feed Screen Redesign** (Commit: 2c74e96)
+**🔔 New Notifications Tab** - Added a 5th tab to bottom navigation
+- LinkedIn/Reddit-style notification feed with modern UI
+- Shows all user interactions in one place
+- Real-time updates via Supabase subscriptions
+- Badge indicators showing unread counts
+- Pull-to-refresh and tap-to-navigate functionality
 
-**Created a Complete Design System** (`src/theme/designSystem.ts`):
-- Professional Kalshi-inspired color palette (Indigo primary, Sky Blue secondary)
-- Typography system with 7 sizes and 4 weights
-- Standardized spacing scale (4px to 64px)
-- Border radius tokens for modern rounded corners
-- Shadow system for subtle elevation
-- Animation timing constants
+**New Notification Types Added**:
+1. **Application Received** (📬) - Pursuit creator notified when someone applies
+2. **Application Accepted** (✅) - Applicant notified when accepted to team
+3. **Application Rejected** (❌) - Applicant notified of rejection
+4. **Connection Request** (🤝) - Notified when someone wants to connect
+5. **Connection Accepted** (🤝) - Notified when connection request accepted
 
-**Built 3 Reusable Components**:
-1. **Button** (`src/components/Button.tsx`) - 4 variants (Primary, Secondary, Ghost, Outline) with loading states
-2. **Card** (`src/components/Card.tsx`) - 3 variants (Elevated, Flat, Outlined) for consistent containers
-3. **Input** (`src/components/Input.tsx`) - Form input with focus/error states
+**Visual Indicators Throughout App**:
+- Red badge on Notifications tab (total unread count)
+- Red badge on My Pods tab (pursuit-related notifications)
+- Numbered badge on "Review Applications" button (pending applications count)
+- Unread dot indicators on individual notifications
+- Color-coded notification icons (green=success, blue=info, red=error)
 
-**Completely Redesigned FeedScreen** (507 lines):
-- Modern header with "Discover Whale Pods" branding
-- Smart search bar with clear button
-- Filter chips (All/Awaiting Kickoff/Active)
-- Card-based pursuit layout with:
-  - Owner badges ("YOURS" indicator)
-  - Status badges with colored dots
-  - Tag system for pursuit types
-  - Metadata footer (team size, location, meeting cadence)
-- Pull-to-refresh functionality
-- Empty state handling
+**Files Modified/Created**:
+- `src/screens/NotificationsScreen.tsx` - NEW: Full notification feed UI
+- `App.tsx` - Added Notifications tab and real-time subscription
+- `src/services/notificationService.ts` - Added new notification types and helper functions
+- `src/services/applicationService.ts` - Triggers notifications on apply/accept/reject
+- `src/services/connectionService.ts` - Triggers notifications on connection actions
+- `src/screens/PursuitDetailScreen.tsx` - Added pending applications badge
+- `.claude/add-notification-types.sql` - Database migration script
 
-**Visual Impact**: Transformed from basic list to a polished, modern discovery interface
+**Real-Time Features**:
+- Supabase subscriptions for instant notification updates
+- Badge counts auto-refresh when new notifications arrive
+- No manual refresh needed - everything updates live
+
+**Database Changes Required**:
+```sql
+-- Run this in Supabase SQL Editor
+ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
+ALTER TABLE notifications ADD CONSTRAINT notifications_type_check
+CHECK (type IN (
+  'pod_ready_for_kickoff', 'new_message', 'connection_request',
+  'connection_accepted', 'pod_available', 'kickoff_scheduled',
+  'time_slot_request', 'application_received', 'application_accepted',
+  'application_rejected'
+));
+```
 
 ---
 
-#### 2. **MessagesListScreen Fix** (Commit: 6af9694)
+### Previous Work Summary
 
-**Fixed Critical Data Issues**:
-- Added fallback logic for partner ID resolution (handles `partnerId` vs `partner_id`)
-- Improved profile fetching with error handling (prevents crashes on missing data)
-- Added defensive programming patterns (null checks, graceful degradation)
-- Enhanced logging for debugging data flow
+#### Button Text Clarity Update
+- Changed "Schedule Kick-Off Meeting" → "Activate Kick-Off" for clarity
+- Distinguishes two-step process: Activate (request time slots) vs Schedule (select final time)
 
-**Impact**: Messaging system now handles inconsistent data structures without crashing
+#### Team Size & Application Tracking Fixes
+- Fixed team member counting to include pursuit creator
+- Added auto-sync for accepted applications → team_members records
+- Proper pursuit status updates when minimum team size reached
+
+#### Profile Links Instead of Emails
+- Updated Applications page to show names/pictures as clickable profile links
+- Made avatars clickable across Messages, Team Board, and Chat screens
+- Consistent `onViewProfile` callback pattern
+
+#### Connection Request Duplicate Key Fix
+- Added "Request Sent" state to prevent duplicate connection requests
+- Shows gray button after sending request
+- Three-state button: Connect → Request Sent → Hidden (if connected)
+
+#### Comprehensive Feed Filters
+- Multi-select filters for pursuit type, categories, location, decision system, roles, status
+- Filter badge showing active filter count
+- Enhanced Supabase queries with `in()`, `contains()`, `overlaps()`, `ilike()`
 
 ---
 
@@ -58,76 +93,110 @@
 ### Primary Command
 ```bash
 npm start
+# OR
+npx expo start
 ```
-This launches the Expo dev server with options to:
+
+### Clear Cache (if having issues)
+```bash
+npx expo start --clear
+```
+
+### Platform Options
+After starting:
 - Press `a` for Android emulator
 - Press `i` for iOS simulator
-- Press `w` for web browser
-- Scan QR code for physical device
-
-### Platform-Specific Commands
-```bash
-npm run android  # Android device/emulator
-npm run ios      # iOS simulator (macOS only)
-npm run web      # Web browser
-```
+- Scan QR code with Expo Go app on physical device
 
 ### Prerequisites
-- Node.js and npm installed
-- Expo CLI installed globally (`npm install -g expo-cli`)
-- For Android: Android Studio with emulator configured
-- For iOS: Xcode with simulator (macOS only)
-- Supabase project configured (environment variables set)
+- Node.js 18+ and npm
+- Expo Go app on your phone (for testing)
+- Supabase project with environment variables set in `.env`
+- For emulators: Android Studio or Xcode
 
 ---
 
 ## ⚠️ Gotchas & Important Decisions
 
-### Architecture Decisions
+### 1. **Google Calendar OAuth Issues** ⚠️ UNRESOLVED
 
-1. **Custom Tab Navigation Instead of React Navigation Tabs**
-   - **Why**: Full control over tab bar styling and behavior
-   - **Location**: `App.tsx` manages screen state manually
-   - **Trade-off**: More code to maintain but complete flexibility
+**Problem**: Google Calendar integration doesn't work with Expo Go
 
-2. **Service Layer Pattern**
-   - **Why**: Separate data logic from UI components
-   - **Location**: `src/services/` directory
-   - **Benefit**: Easier testing and data layer changes
+**What We Tried**:
+1. ❌ Expo auth proxy (`https://auth.expo.io/@alexksmith99/whale-pod-fresh`)
+   - Error: "expo.io has not completed the Google verification process"
+   - Would require Google to verify Expo's domain for Calendar API access
 
-3. **Design System Tokens**
-   - **Why**: Consistent styling across entire app
-   - **Location**: `src/theme/designSystem.ts`
-   - **Usage**: Import tokens instead of hardcoded values
-   - **Example**: Use `colors.primary` not `'#6366F1'`
+2. ❌ Custom scheme (`com.googleusercontent.apps.23113498288-...:/oauth2redirect`)
+   - Error: "must use either http or https as the scheme"
+   - Requires iOS/Android OAuth client (not Web client)
 
-### Technical Gotchas
+3. ❌ Localhost (`http://localhost:8081`)
+   - Won't work on physical mobile devices
 
-1. **Message Partner ID Inconsistency**
-   - **Issue**: Database returns either `partnerId` or `partner_id`
-   - **Solution**: Fallback logic in MessagesListScreen
-   - **Location**: `src/screens/MessagesListScreen.tsx:89-96`
+**Current State**:
+- Google Calendar code is in place but non-functional
+- Kickoff scheduling works fine without it
+- Users can skip Google Calendar prompts
 
-2. **Real-time Polling (Not WebSockets)**
-   - Messages refresh every 3 seconds
-   - Conversations list refreshes every 5 seconds
-   - **Future Improvement**: Migrate to Supabase Realtime subscriptions
+**Solutions**:
+- **Short-term**: Remove/skip Google Calendar integration, users add to calendar manually
+- **Long-term**: Set up iOS/Android OAuth clients when building production app (not Expo Go)
 
-3. **Authentication Flow**
-   - Uses Supabase Auth wrapped in AuthContext
-   - User state managed globally via context
-   - **Location**: `src/contexts/AuthContext.tsx`
+**Decision**: Leave as-is for now since kickoff scheduling works. Add proper OAuth when deploying production builds.
 
-4. **TypeScript Flexibility**
-   - Some arrays use `any[]` for flexibility with inconsistent API data
-   - **Decision**: Prioritized resilience over strict typing in data fetching
+---
 
-### Known Issues
+### 2. **Real-Time Subscriptions**
 
-1. **Profile Picture Upload** - Uses `expo-image-picker`, requires permissions
-2. **Web Platform** - Limited testing, primarily focused on mobile
-3. **No Offline Support** - Requires active internet connection
-4. **Search Performance** - Client-side filtering (could move to backend for large datasets)
+**Decision**: Using Supabase real-time subscriptions for notifications
+
+**Why**: Instant updates without polling, better UX, less server load
+
+**Implementation**:
+- App.tsx subscribes to notifications table changes
+- NotificationsScreen has its own subscription for the feed
+- Badge counts refresh automatically
+
+**Gotcha**: Subscriptions auto-reconnect but may have ~1-2 second delay on connection loss
+
+---
+
+### 3. **Notification Badge Logic**
+
+**Different Tabs Track Different Notification Types**:
+- **Feed Tab**: `pod_available` notifications
+- **Messages Tab**: `new_message` notifications
+- **Notifications Tab**: ALL notification types (total count)
+- **My Pods Tab**: `pod_ready_for_kickoff`, `kickoff_scheduled`, `time_slot_request`
+- **Profile Tab**: `connection_request`, `connection_accepted`
+
+**Why**: Users can see at a glance where attention is needed
+
+---
+
+### 4. **Application Status Tracking**
+
+**Three States**:
+1. `pending` - Awaiting creator review
+2. `accepted` - Accepted to team (creates team_member record)
+3. `declined` - Rejected by creator
+
+**Side Effects of Acceptance**:
+- Creates `team_members` record
+- Increments `pursuit.current_members_count`
+- Updates pursuit status to `awaiting_kickoff` when minimum reached
+- Sends notification to applicant
+
+---
+
+### 5. **Custom Tab Navigation**
+
+**Why Not React Navigation Tabs**: Full control over styling and badge positioning
+
+**Trade-off**: More manual state management but complete flexibility
+
+**Location**: `App.tsx` - manages all screen state and tab bar rendering
 
 ---
 
@@ -135,59 +204,59 @@ npm run web      # Web browser
 
 ### High Priority
 
-1. **Migrate to Supabase Realtime**
-   - Replace polling intervals with WebSocket subscriptions
-   - Improve performance and reduce server load
-   - Target: `messageService.ts` and `MessagesListScreen.tsx`
+1. **Run Database Migration** ⚠️
+   - Execute `.claude/add-notification-types.sql` in Supabase SQL Editor
+   - Required for new notification types to work
 
-2. **Add Loading Skeletons**
-   - Create skeleton components using design system
-   - Add to FeedScreen, MessagesListScreen, ProfileScreen
-   - Improves perceived performance
+2. **Test Notification System**
+   - Create test accounts
+   - Test all notification triggers:
+     - Apply to pursuit → Creator receives notification
+     - Accept/reject application → Applicant receives notification
+     - Send connection request → Recipient receives notification
+     - Accept connection → Sender receives notification
+   - Verify badge counts update correctly
+   - Test real-time updates (open on two devices)
 
-3. **Implement Error Boundaries**
-   - Add React error boundaries to catch crashes
-   - Display user-friendly error messages
-   - Log errors to monitoring service
+3. **Google Calendar Decision**
+   - **Option A**: Remove Google Calendar integration entirely
+   - **Option B**: Make it easily skippable (current state is okay)
+   - **Option C**: Set up iOS/Android OAuth clients (complex, for later)
+   - **Recommendation**: Go with Option B for now
 
 ### Medium Priority
 
-4. **Dark Mode Support**
-   - Extend design system with dark color palette
-   - Add theme context and toggle
-   - Update all screens and components
+4. **Notification Settings Screen**
+   - Allow users to control which notifications they receive
+   - Push notification preferences
+   - Email notification preferences
 
-5. **Notification System**
-   - Push notifications for new messages
-   - In-app notifications for team updates
-   - Use Expo's push notification service
+5. **Mark Multiple Notifications as Read**
+   - Add "Select" mode to NotificationsScreen
+   - Allow bulk actions (mark multiple as read, delete)
 
-6. **Search Backend Implementation**
-   - Move pursuit search to Supabase full-text search
-   - Add debouncing and caching
-   - Improve performance for large datasets
+6. **Notification Grouping**
+   - Group similar notifications (e.g., "3 people applied to your pursuit")
+   - Reduces clutter for active pursuits
 
-7. **Unit & Integration Tests**
-   - Test service layer functions
-   - Test component rendering and interactions
-   - Set up Jest + React Native Testing Library
+7. **Push Notifications**
+   - Integrate Expo push notifications
+   - Send push when app is closed
+   - Requires Expo push notification setup
 
 ### Nice to Have
 
-8. **Onboarding Flow**
-   - Create welcome tutorial for new users
-   - Explain key features (pursuits, pods, messaging)
-   - Build with new design system components
+8. **Notification Sounds/Haptics**
+   - Add subtle sound when receiving notification
+   - Haptic feedback on interactions
 
-9. **Analytics Integration**
-   - Track user engagement metrics
-   - Monitor feature usage
-   - Identify bottlenecks and pain points
+9. **Email Notifications**
+   - Send email for important notifications
+   - Daily digest option
 
-10. **Accessibility Improvements**
-    - Add proper ARIA labels
-    - Test with screen readers
-    - Improve keyboard navigation (web)
+10. **Notification Analytics**
+    - Track which notification types drive engagement
+    - A/B test notification copy
 
 ---
 
@@ -195,27 +264,35 @@ npm run web      # Web browser
 
 ```
 whale-pod-fresh/
-├── App.tsx                      # Main router and tab navigation
+├── App.tsx                          # Main router, tab navigation, notification subscriptions
 ├── src/
-│   ├── components/              # Reusable UI components
-│   │   ├── Button.tsx          # Design system button
-│   │   ├── Card.tsx            # Design system card
-│   │   └── Input.tsx           # Design system input
+│   ├── components/
+│   │   ├── Button.tsx              # Design system button
+│   │   ├── Card.tsx                # Design system card
+│   │   ├── Input.tsx               # Design system input
+│   │   └── NotificationBadge.tsx   # Red dot badge for tabs
 │   ├── contexts/
-│   │   └── AuthContext.tsx     # Global auth state
-│   ├── screens/                # Main app screens
-│   │   ├── FeedScreen.tsx      # ✨ Recently redesigned
-│   │   ├── MessagesListScreen.tsx  # 🔧 Recently fixed
-│   │   ├── ChatScreen.tsx
+│   │   └── AuthContext.tsx         # Global auth state
+│   ├── screens/
+│   │   ├── FeedScreen.tsx
+│   │   ├── MessagesListScreen.tsx
+│   │   ├── NotificationsScreen.tsx # ✨ NEW: Notification feed
 │   │   ├── PodsScreen.tsx
 │   │   ├── ProfileScreen.tsx
+│   │   ├── PursuitDetailScreen.tsx # Updated with application badge
+│   │   ├── ApplicationsReviewScreen.tsx
 │   │   └── ...
-│   ├── services/               # Data layer (Supabase)
-│   │   ├── messageService.ts
-│   │   ├── pursuitService.ts
+│   ├── services/
+│   │   ├── applicationService.ts   # ✨ Updated: notification triggers
+│   │   ├── connectionService.ts    # ✨ Updated: notification triggers
+│   │   ├── notificationService.ts  # ✨ Updated: new types and functions
+│   │   ├── googleCalendarService.ts # ⚠️ Non-functional in Expo Go
 │   │   └── ...
 │   └── theme/
-│       └── designSystem.ts     # ✨ New design tokens
+│       └── designSystem.ts         # Design tokens
+├── .claude/
+│   ├── add-notification-types.sql  # ✨ NEW: Database migration
+│   └── project-status.md           # This file
 ├── package.json
 └── app.json
 ```
@@ -226,10 +303,11 @@ whale-pod-fresh/
 
 - **Framework**: React Native 0.81.5 with Expo ~54.0.20
 - **Language**: TypeScript 5.9
-- **Backend**: Supabase (PostgreSQL + Auth)
-- **Navigation**: React Navigation (stack navigator) + Custom tabs
-- **Storage**: Async Storage
+- **Backend**: Supabase (PostgreSQL + Auth + Realtime)
+- **Navigation**: Custom tab navigation (App.tsx manages state)
+- **Storage**: AsyncStorage
 - **UI**: Custom design system with Expo Vector Icons
+- **Real-time**: Supabase subscriptions for notifications
 
 ---
 
@@ -237,38 +315,74 @@ whale-pod-fresh/
 
 ```bash
 # Development
-npm start              # Start Expo dev server
-npm run android        # Run on Android
-npm run ios            # Run on iOS
-npm run web            # Run in browser
+npm start                    # Start Expo dev server
+npx expo start --clear       # Start with cleared cache
+npm run android              # Run on Android
+npm run ios                  # Run on iOS
 
 # Dependency Management
-npm install           # Install dependencies
-npm update            # Update dependencies
+npm install                  # Install dependencies
+
+# Git
+git status                   # Check status
+git pull origin <branch>     # Pull latest changes
+git add -A                   # Stage all changes
+git commit -m "message"      # Commit with message
+git push -u origin <branch>  # Push to remote
 
 # Expo
-expo doctor           # Check for issues
-expo start --clear    # Clear cache and start
+expo doctor                  # Check for issues
 ```
 
 ---
 
 ## 🔗 Important Links
 
-- **Supabase Dashboard**: [Check your project URL in code]
+- **Supabase Dashboard**: https://supabase.com/dashboard
+- **Google Cloud Console**: https://console.cloud.google.com/apis/credentials
 - **Expo Documentation**: https://docs.expo.dev/
-- **React Navigation Docs**: https://reactnavigation.org/
+- **React Native Docs**: https://reactnavigation.org/
 
 ---
 
 ## 💡 Development Tips
 
-1. **Use Design System Tokens**: Always import from `designSystem.ts` for colors, spacing, etc.
-2. **Test on Multiple Platforms**: Changes can behave differently on iOS vs Android
-3. **Check Supabase Logs**: When data issues occur, check Supabase dashboard for query logs
-4. **Clear Expo Cache**: If experiencing weird issues, try `expo start --clear`
-5. **Hot Reload**: Save files to see changes instantly, shake device for dev menu
+1. **Use Design System Tokens**: Always import from `designSystem.ts` for consistency
+2. **Test Notifications with Multiple Accounts**: Best way to verify real-time updates
+3. **Check Supabase Logs**: When data issues occur, check dashboard for query logs
+4. **Clear Expo Cache**: If experiencing weird issues, use `npx expo start --clear`
+5. **Restart Fully**: When pulling code changes, fully stop and restart Expo
+6. **Real-time Debugging**: Check console logs for "Notification change detected" messages
 
 ---
 
-**Status**: ✅ Design system implemented, Feed redesigned, Messaging fixed, App stable
+## 🐛 Known Issues
+
+1. **Google Calendar OAuth** - Doesn't work in Expo Go (see Gotchas section)
+2. **Notification Sound** - No sound/haptic feedback yet (planned feature)
+3. **Push Notifications** - Not implemented yet (only in-app notifications)
+4. **Web Platform** - Limited testing, primarily focused on mobile
+
+---
+
+## ✅ Recent Test Checklist
+
+When testing the notification system:
+- [ ] Apply to a pursuit → Creator receives notification
+- [ ] Accept application → Applicant receives notification
+- [ ] Reject application → Applicant receives notification
+- [ ] Send connection request → Recipient receives notification
+- [ ] Accept connection → Sender receives notification
+- [ ] Badge appears on Notifications tab
+- [ ] Badge appears on My Pods tab (pursuit notifications)
+- [ ] Badge appears on Review Applications button
+- [ ] Tap notification → Navigate to correct screen
+- [ ] Mark as read → Badge count decreases
+- [ ] Mark all read → All badges clear
+- [ ] Real-time updates (test with 2 devices)
+
+---
+
+**Status**: ✅ Notification system fully implemented, ready for database migration and testing
+
+**Next Action**: Run SQL migration in Supabase, then test with multiple accounts
