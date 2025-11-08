@@ -25,10 +25,11 @@ interface Application {
 }
 
 interface PodsScreenProps {
+  onOpenPodDetails: (pod: Pod) => void;
   onOpenTeamBoard: (pursuitId: string) => void;
 }
 
-export default function PodsScreen({ onOpenTeamBoard }: PodsScreenProps) {
+export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard }: PodsScreenProps) {
   const { user } = useAuth();
   const [pods, setPods] = useState<Pod[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
@@ -46,7 +47,7 @@ export default function PodsScreen({ onOpenTeamBoard }: PodsScreenProps) {
       // Get pursuits where user is the creator
       const { data: createdPursuits, error: createdError } = await supabase
         .from('pursuits')
-        .select('id, title, description, current_members_count, team_size_max, status, meeting_cadence')
+        .select('id, title, description, current_members_count, team_size_max, status, meeting_cadence, creator_id, location, decision_system, pursuit_types')
         .eq('creator_id', user.id);
 
       if (createdError) throw createdError;
@@ -65,7 +66,7 @@ export default function PodsScreen({ onOpenTeamBoard }: PodsScreenProps) {
       if (memberPursuitIds.length > 0) {
         const { data, error } = await supabase
           .from('pursuits')
-          .select('id, title, description, current_members_count, team_size_max, status, meeting_cadence')
+          .select('id, title, description, current_members_count, team_size_max, status, meeting_cadence, creator_id, location, decision_system, pursuit_types')
           .in('id', memberPursuitIds);
 
         if (error) throw error;
@@ -150,7 +151,7 @@ export default function PodsScreen({ onOpenTeamBoard }: PodsScreenProps) {
                   <TouchableOpacity
                     key={pod.id}
                     style={styles.podCard}
-                    onPress={() => onOpenTeamBoard(pod.id)}
+                    onPress={() => onOpenPodDetails(pod)}
                     activeOpacity={0.7}
                   >
                     <View style={styles.podHeader}>
@@ -192,7 +193,7 @@ export default function PodsScreen({ onOpenTeamBoard }: PodsScreenProps) {
                     </View>
 
                     <View style={styles.podFooter}>
-                      <Text style={styles.tapHint}>Tap to open Team Board →</Text>
+                      <Text style={styles.tapHint}>Tap to view details →</Text>
                     </View>
                   </TouchableOpacity>
                 ))}

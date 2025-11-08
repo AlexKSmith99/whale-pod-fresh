@@ -12,6 +12,7 @@ import ChatScreen from './src/screens/ChatScreen';
 import TeamBoardScreen from './src/screens/team/TeamBoardScreen';
 import PodsScreen from './src/screens/PodsScreen';
 import ConnectionsScreen from './src/screens/connections/ConnectionsScreen';
+import PursuitDetailScreen from './src/screens/PursuitDetailScreen';
 
 function AppContent() {
   const auth = useAuth();
@@ -22,6 +23,7 @@ function AppContent() {
   const [showCreate, setShowCreate] = useState(false);
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   const [showConnections, setShowConnections] = useState(false);
+  const [viewingPodDetail, setViewingPodDetail] = useState<any | null>(null);
 
   if (auth.loading) {
     return (
@@ -92,6 +94,29 @@ if (chatPartnerId && chatPartnerEmail) {
   );
 }
 
+// Show Pod Detail Screen if viewing from Pods tab
+if (viewingPodDetail) {
+  return (
+    <PursuitDetailScreen
+      pursuit={viewingPodDetail}
+      onBack={() => {
+        setViewingPodDetail(null);
+      }}
+      isOwner={viewingPodDetail.creator_id === auth.user?.id || viewingPodDetail.is_creator}
+      onOpenTeamBoard={(pursuitId) => {
+        setViewingPodDetail(null);
+        setTeamBoardPursuitId(pursuitId);
+      }}
+      onSendMessage={(userId, userEmail) => {
+        setViewingPodDetail(null);
+        setChatPartnerId(userId);
+        setChatPartnerEmail(userEmail);
+        setCurrentScreen('Messages');
+      }}
+    />
+  );
+}
+
 // Show Team Board if a pursuit board is selected
 if (teamBoardPursuitId) {
   return (
@@ -148,7 +173,10 @@ if (viewingUserId) {
   />
 )}
       {currentScreen === 'Pods' && (
-        <PodsScreen onOpenTeamBoard={openTeamBoard} />
+        <PodsScreen
+          onOpenPodDetails={(pod) => setViewingPodDetail(pod)}
+          onOpenTeamBoard={openTeamBoard}
+        />
       )}
       {currentScreen === 'Profile' && <ProfileScreen navigation={navigation} />}
       
