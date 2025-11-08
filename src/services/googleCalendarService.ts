@@ -22,15 +22,14 @@ export const googleCalendarService = {
   // Authenticate with Google
   async authenticate(): Promise<boolean> {
     try {
-      // Use custom scheme for mobile app (no proxy needed)
-      const redirectUri = 'com.googleusercontent.apps.23113498288-o26pmlehlod99tps91a0brd590a50qm8:/oauth2redirect';
+      // Use localhost redirect for web OAuth client
+      const redirectUri = 'http://localhost:8081';
       console.log('Using redirect URI:', redirectUri);
 
       const request = new AuthSession.AuthRequest({
         clientId: GOOGLE_CLIENT_ID!,
         scopes: ['https://www.googleapis.com/auth/calendar.events'],
         redirectUri,
-        usePKCE: false, // Disable PKCE for native apps
       });
 
       const result = await request.promptAsync(discovery);
@@ -60,7 +59,7 @@ export const googleCalendarService = {
 
   // Exchange authorization code for access token
   async exchangeCodeForToken(code: string) {
-    const redirectUri = 'com.googleusercontent.apps.23113498288-o26pmlehlod99tps91a0brd590a50qm8:/oauth2redirect';
+    const redirectUri = 'http://localhost:8081';
     try {
       const response = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
