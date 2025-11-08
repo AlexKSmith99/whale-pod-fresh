@@ -22,14 +22,15 @@ export const googleCalendarService = {
   // Authenticate with Google
   async authenticate(): Promise<boolean> {
     try {
-      // Explicitly use Expo auth proxy URL
-      const redirectUri = 'https://auth.expo.io/@alexksmith99/whale-pod-fresh';
+      // Use custom scheme for mobile app (no proxy needed)
+      const redirectUri = 'com.googleusercontent.apps.23113498288-o26pmlehlod99tps91a0brd590a50qm8:/oauth2redirect';
       console.log('Using redirect URI:', redirectUri);
 
       const request = new AuthSession.AuthRequest({
         clientId: GOOGLE_CLIENT_ID!,
         scopes: ['https://www.googleapis.com/auth/calendar.events'],
         redirectUri,
+        usePKCE: false, // Disable PKCE for native apps
       });
 
       const result = await request.promptAsync(discovery);
@@ -59,7 +60,7 @@ export const googleCalendarService = {
 
   // Exchange authorization code for access token
   async exchangeCodeForToken(code: string) {
-    const redirectUri = 'https://auth.expo.io/@alexksmith99/whale-pod-fresh';
+    const redirectUri = 'com.googleusercontent.apps.23113498288-o26pmlehlod99tps91a0brd590a50qm8:/oauth2redirect';
     try {
       const response = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
