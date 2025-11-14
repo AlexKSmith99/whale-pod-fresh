@@ -37,17 +37,6 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    },
-    "plugins": [
-      "expo-dev-client",
-      [
-        "expo-camera",
-        {
-          "cameraPermission": "Allow Whale Pod to access your camera for video calls.",
-          "microphonePermission": "Allow Whale Pod to access your microphone for video calls.",
-          "recordAudioAndroid": true
-        }
-      ]
-    ]
+    }
   }
 }
