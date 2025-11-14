@@ -1,4 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../config/supabase';
 
 interface AuthContextType {
@@ -41,6 +42,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
+
+    // Clear saved credentials when logging out
+    await AsyncStorage.removeItem('saved_email');
+    await AsyncStorage.removeItem('saved_password');
   };
 
   return (
