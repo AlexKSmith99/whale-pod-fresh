@@ -54,15 +54,26 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, isOwner
   };
 
   if (showUserProfile && onViewProfile && onSendMessage) {
+    // Create navigation object to match UserProfileScreen expectations
+    const navigation = {
+      navigate: (screen: string, params?: any) => {
+        if (screen === 'Chat' && params?.partnerId) {
+          setShowUserProfile(false);
+          onSendMessage(params.partnerId, params.partnerEmail || 'User');
+        }
+      },
+      goBack: () => setShowUserProfile(false),
+      replace: (screen: string) => {
+        if (screen === 'Profile') {
+          setShowUserProfile(false);
+        }
+      },
+    };
+
     return (
       <UserProfileScreen
-        userId={pursuit.creator_id}
-        userEmail={creatorProfile?.email || "Creator"}
-        onBack={() => setShowUserProfile(false)}
-        onSendMessage={(userId, userEmail) => {
-          setShowUserProfile(false);
-          onSendMessage(userId, userEmail);
-        }}
+        route={{ params: { userId: pursuit.creator_id } }}
+        navigation={navigation}
       />
     );
   }
