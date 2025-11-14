@@ -1,9 +1,30 @@
 import { Client } from '@notionhq/client';
+import { supabase } from '../config/supabase';
 
-// Initialize Notion client
-const notion = new Client({
-  auth: process.env.NOTION_API_KEY,
-});
+/**
+ * Get Notion client for a specific user using their OAuth token
+ */
+async function getNotionClient(userId: string): Promise<Client | null> {
+  try {
+    const { data, error } = await supabase
+      .from('user_notion_connections')
+      .select('access_token')
+      .eq('user_id', userId)
+      .single();
+
+    if (error || !data) {
+      console.error('No Notion connection found for user:', error);
+      return null;
+    }
+
+    return new Client({
+      auth: data.access_token,
+    });
+  } catch (error) {
+    console.error('Error getting Notion client:', error);
+    return null;
+  }
+}
 
 interface NotionDatabase {
   id: string;
@@ -17,43 +38,133 @@ interface NotionPage {
   title: string;
   status: string;
   priority: string;
+  pod: string;
   assignedTo?: string;
   description?: string;
 }
 
 class NotionService {
   /**
-   * Create a new Notion database for a pod/pursuit
+   * Exchange OAuth code for access token and save to database
    */
-  async createPodDatabase(podTitle: string, podId: string): Promise<NotionDatabase> {
+  async exchangeCodeForToken(code: string, userId: string): Promise<any> {
     try {
-      // Note: To create a database, we need a parent page
-      // For now, we'll create it in the integration's workspace
-      // You'll need to share a parent page with the integration first
+      const clientId = process.env.EXPO_PUBLIC_NOTION_CLIENT_ID;
+      const clientSecret = process.env.NOTION_CLIENT_SECRET;
+      const redirectUri = process.env.EXPO_PUBLIC_NOTION_REDIRECT_URI;
 
-      // This is a placeholder - you'll need to provide a parent page ID
-      const parentPageId = process.env.NOTION_PARENT_PAGE_ID || '';
+      const encoded = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
 
-      if (!parentPageId) {
-        throw new Error('NOTION_PARENT_PAGE_ID not set in .env file');
+      const response = await fetch('https://api.notion.com/v1/oauth/token', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${encoded}`,
+        },
+        body: JSON.stringify({
+          grant_type: 'authorization_code',
+          code: code,
+          redirect_uri: redirectUri,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to exchange code for token');
       }
+
+      // Save to database
+      const { error } = await supabase
+        .from('user_notion_connections')
+        .upsert({
+          user_id: userId,
+          access_token: data.access_token,
+          workspace_id: data.workspace_id,
+          workspace_name: data.workspace_name,
+          bot_id: data.bot_id,
+        });
+
+      if (error) throw error;
+
+      return data;
+    } catch (error) {
+      console.error('Error exchanging code for token:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check if user has connected Notion
+   */
+  async isConnected(userId: string): Promise<boolean> {
+    try {
+      const { data, error } = await supabase
+        .from('user_notion_connections')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
+
+      return !error && !!data;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Get user's Notion database ID
+   */
+  async getUserDatabaseId(userId: string): Promise<string | null> {
+    try {
+      const { data, error } = await supabase
+        .from('user_notion_connections')
+        .select('database_id')
+        .eq('user_id', userId)
+        .single();
+
+      if (error || !data) return null;
+      return data.database_id;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  /**
+   * Create a Notion database for the user (one database for all their pods)
+   */
+  async createUserDatabase(userId: string): Promise<NotionDatabase> {
+    try {
+      const notion = await getNotionClient(userId);
+      if (!notion) {
+        throw new Error('User not connected to Notion');
+      }
+
+      // With OAuth, we need to search for pages we have access to first
+      // Then create database as child of an existing page
+      // For simplicity, we'll create a standalone page first
 
       const response = await notion.databases.create({
         parent: {
           type: 'page_id',
-          page_id: parentPageId,
+          page_id: 'workspace', // Special value for workspace root with OAuth
         },
         title: [
           {
             type: 'text',
             text: {
-              content: `${podTitle} - Team Board`,
+              content: 'Whale Pod - Team Tasks',
             },
           },
         ],
         properties: {
           Name: {
             title: {},
+          },
+          Pod: {
+            select: {
+              options: [],
+            },
           },
           Status: {
             select: {
@@ -82,39 +193,47 @@ class NotionService {
         },
       });
 
+      // Save database ID to user's connection
+      await supabase
+        .from('user_notion_connections')
+        .update({ database_id: response.id })
+        .eq('user_id', userId);
+
       return {
         id: response.id,
         url: response.url,
-        title: podTitle,
+        title: 'Whale Pod - Team Tasks',
       };
     } catch (error) {
-      console.error('Error creating Notion database:', error);
+      console.error('Error creating user database:', error);
       throw error;
     }
   }
 
   /**
-   * Get database by ID
+   * Query all tasks from user's database
    */
-  async getDatabase(databaseId: string) {
+  async getTasks(userId: string, podId?: string): Promise<NotionPage[]> {
     try {
-      const response = await notion.databases.retrieve({
-        database_id: databaseId,
-      });
-      return response;
-    } catch (error) {
-      console.error('Error retrieving database:', error);
-      throw error;
-    }
-  }
+      const databaseId = await this.getUserDatabaseId(userId);
+      if (!databaseId) {
+        throw new Error('No Notion database found for user');
+      }
 
-  /**
-   * Query all pages/tasks in a database
-   */
-  async getTasks(databaseId: string): Promise<NotionPage[]> {
-    try {
+      const notion = await getNotionClient(userId);
+      if (!notion) {
+        throw new Error('User not connected to Notion');
+      }
+
+      const filter: any = {};
+      if (podId) {
+        filter.property = 'Pod';
+        filter.select = { equals: podId };
+      }
+
       const response = await notion.databases.query({
         database_id: databaseId,
+        filter: podId ? filter : undefined,
       });
 
       return response.results.map((page: any) => {
@@ -124,6 +243,7 @@ class NotionService {
           id: page.id,
           url: page.url,
           title: properties.Name?.title?.[0]?.text?.content || 'Untitled',
+          pod: properties.Pod?.select?.name || '',
           status: properties.Status?.select?.name || 'To Do',
           priority: properties.Priority?.select?.name || 'Medium',
           assignedTo: properties['Assigned To']?.rich_text?.[0]?.text?.content || undefined,
@@ -137,11 +257,12 @@ class NotionService {
   }
 
   /**
-   * Create a new task/page in a database
+   * Create a new task in user's database
    */
   async createTask(
-    databaseId: string,
+    userId: string,
     title: string,
+    podName: string,
     options?: {
       status?: 'To Do' | 'In Progress' | 'Done';
       priority?: 'Low' | 'Medium' | 'High';
@@ -150,6 +271,16 @@ class NotionService {
     }
   ) {
     try {
+      const databaseId = await this.getUserDatabaseId(userId);
+      if (!databaseId) {
+        throw new Error('No Notion database found for user');
+      }
+
+      const notion = await getNotionClient(userId);
+      if (!notion) {
+        throw new Error('User not connected to Notion');
+      }
+
       const response = await notion.pages.create({
         parent: {
           type: 'database_id',
@@ -164,6 +295,11 @@ class NotionService {
                 },
               },
             ],
+          },
+          Pod: {
+            select: {
+              name: podName,
+            },
           },
           Status: {
             select: {
@@ -208,12 +344,14 @@ class NotionService {
   }
 
   /**
-   * Update a task/page
+   * Update a task
    */
   async updateTask(
+    userId: string,
     pageId: string,
     updates: {
       title?: string;
+      pod?: string;
       status?: 'To Do' | 'In Progress' | 'Done';
       priority?: 'Low' | 'Medium' | 'High';
       assignedTo?: string;
@@ -221,11 +359,22 @@ class NotionService {
     }
   ) {
     try {
+      const notion = await getNotionClient(userId);
+      if (!notion) {
+        throw new Error('User not connected to Notion');
+      }
+
       const properties: any = {};
 
       if (updates.title) {
         properties.Name = {
           title: [{ text: { content: updates.title } }],
+        };
+      }
+
+      if (updates.pod) {
+        properties.Pod = {
+          select: { name: updates.pod },
         };
       }
 
@@ -270,10 +419,15 @@ class NotionService {
   }
 
   /**
-   * Delete a task/page (archive it)
+   * Delete a task (archive it)
    */
-  async deleteTask(pageId: string) {
+  async deleteTask(userId: string, pageId: string) {
     try {
+      const notion = await getNotionClient(userId);
+      if (!notion) {
+        throw new Error('User not connected to Notion');
+      }
+
       const response = await notion.pages.update({
         page_id: pageId,
         archived: true,
@@ -287,10 +441,34 @@ class NotionService {
   }
 
   /**
-   * Get the embed URL for a database (to display in iframe)
+   * Disconnect user's Notion account
    */
-  getDatabaseEmbedUrl(databaseId: string): string {
-    return `https://www.notion.so/${databaseId.replace(/-/g, '')}`;
+  async disconnect(userId: string) {
+    try {
+      const { error } = await supabase
+        .from('user_notion_connections')
+        .delete()
+        .eq('user_id', userId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error disconnecting Notion:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get the database URL for opening in browser
+   */
+  async getDatabaseUrl(userId: string): Promise<string | null> {
+    try {
+      const databaseId = await this.getUserDatabaseId(userId);
+      if (!databaseId) return null;
+
+      return `https://www.notion.so/${databaseId.replace(/-/g, '')}`;
+    } catch (error) {
+      return null;
+    }
   }
 }
 
