@@ -45,6 +45,7 @@ function AppContent() {
     navigate: (screen: string, params?: any) => {
       if (screen === 'UserProfile' && params?.userId) {
         setViewingUserId(params.userId);
+        // Don't clear chat state - when going back, user returns to chat
       } else if (screen === 'Connections') {
         setShowConnections(true);
       } else if (screen === 'Chat' && params?.partnerId) {
@@ -58,6 +59,7 @@ function AppContent() {
     goBack: () => {
       setViewingUserId(null);
       setShowConnections(false);
+      // Chat state preserved - if returning from profile, chat will show again
     },
     replace: (screen: string) => {
       if (screen === 'Profile') {
@@ -117,7 +119,22 @@ if (videoCallChannel) {
   );
 }
 
-// Show chat screen if a conversation is selected (MOVED UP!)
+// Show User Profile screen (before chat so it takes priority when clicked from chat)
+if (viewingUserId) {
+  return (
+    <UserProfileScreen
+      route={{ params: { userId: viewingUserId } }}
+      navigation={navigation}
+    />
+  );
+}
+
+// Show Connections screen
+if (showConnections) {
+  return <ConnectionsScreen navigation={navigation} />;
+}
+
+// Show chat screen if a conversation is selected
 if (chatPartnerId && chatPartnerEmail) {
   return (
     <ChatScreen
@@ -167,21 +184,6 @@ if (teamBoardPursuitId) {
         setVideoCallChannel(channelName);
         setVideoCallPodTitle(podTitle);
       }}
-    />
-  );
-}
-
-// Show Connections screen
-if (showConnections) {
-  return <ConnectionsScreen navigation={navigation} />;
-}
-
-// Show User Profile screen
-if (viewingUserId) {
-  return (
-    <UserProfileScreen
-      route={{ params: { userId: viewingUserId } }}
-      navigation={navigation}
     />
   );
 }
