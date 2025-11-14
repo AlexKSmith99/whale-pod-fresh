@@ -13,7 +13,8 @@ import TeamBoardScreen from './src/screens/team/TeamBoardScreen';
 import PodsScreen from './src/screens/PodsScreen';
 import ConnectionsScreen from './src/screens/connections/ConnectionsScreen';
 import PursuitDetailScreen from './src/screens/PursuitDetailScreen';
-import VideoCallScreen from './src/screens/VideoCallScreen';
+// VideoCallScreen temporarily disabled for web - requires native modules
+// import VideoCallScreen from './src/screens/VideoCallScreen';
 
 function AppContent() {
   const auth = useAuth();
@@ -84,7 +85,10 @@ if (showCreate) {
   );
 }
 
-// Show video call if active
+// Video calls temporarily disabled for web development
+// Requires native modules (Agora) that don't work on web
+// Will be re-enabled for iOS/Android builds
+/*
 if (videoCallChannel) {
   const agoraAppId = process.env.EXPO_PUBLIC_AGORA_APP_ID || '';
   if (!agoraAppId || agoraAppId === 'your_agora_app_id_here') {
@@ -118,6 +122,7 @@ if (videoCallChannel) {
     />
   );
 }
+*/
 
 // Show User Profile screen (before chat so it takes priority when clicked from chat)
 if (viewingUserId) {
@@ -180,10 +185,11 @@ if (teamBoardPursuitId) {
       onBack={() => {
         setTeamBoardPursuitId(null);
       }}
-      onStartVideoCall={(channelName, podTitle) => {
-        setVideoCallChannel(channelName);
-        setVideoCallPodTitle(podTitle);
-      }}
+      // onStartVideoCall disabled for web - requires native Agora SDK
+      // onStartVideoCall={(channelName, podTitle) => {
+      //   setVideoCallChannel(channelName);
+      //   setVideoCallPodTitle(podTitle);
+      // }}
     />
   );
 }
