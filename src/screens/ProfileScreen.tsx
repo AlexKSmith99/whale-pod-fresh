@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
 import { connectionService } from '../services/connectionService';
 import { reviewService } from '../services/reviewService';
+import { notionService } from '../services/notionService';
 import EditProfileScreen from './EditProfileScreen';
 import ReviewScreen from './ReviewScreen';
 
@@ -22,6 +23,8 @@ const [averageRatings, setAverageRatings] = useState<any>(null);
 const [reviewableTeammates, setReviewableTeammates] = useState<any[]>([]);
 const [showReviewScreen, setShowReviewScreen] = useState(false);
 const [selectedReviewee, setSelectedReviewee] = useState<any>(null);
+const [notionConnected, setNotionConnected] = useState(false);
+const [checkingNotion, setCheckingNotion] = useState(true);
 
   useEffect(() => {
   loadProfile();
@@ -30,6 +33,7 @@ const [selectedReviewee, setSelectedReviewee] = useState<any>(null);
   loadReviews();
   loadReviewableTeammates();
   loadConnections();
+  checkNotionConnection();
 }, []);
 
   const loadProfile = async () => {
@@ -206,6 +210,92 @@ const handleRejectConnection = async (connectionId: string) => {
   } catch (error: any) {
     Alert.alert('Error', error.message);
   }
+};
+
+const checkNotionConnection = async () => {
+  if (!user) return;
+  try {
+    const connected = await notionService.isConnected(user.id);
+    setNotionConnected(connected);
+  } catch (error) {
+    console.error('Error checking Notion connection:', error);
+  } finally {
+    setCheckingNotion(false);
+  }
+};
+
+const handleConnectNotion = async () => {
+  if (!user) return;
+
+  const clientId = process.env.EXPO_PUBLIC_NOTION_CLIENT_ID;
+  const redirectUri = encodeURIComponent(process.env.EXPO_PUBLIC_NOTION_REDIRECT_URI || '');
+
+  const authUrl = `https://api.notion.com/v1/oauth/authorize?client_id=${clientId}&response_type=code&owner=user&redirect_uri=${redirectUri}`;
+
+  try {
+    // Open Notion OAuth in browser
+    const canOpen = await Linking.canOpenURL(authUrl);
+    if (canOpen) {
+      await Linking.openURL(authUrl);
+
+      // Listen for the OAuth callback
+      const handleUrl = async (event: { url: string }) => {
+        const url = event.url;
+        if (url.includes('code=')) {
+          const code = url.split('code=')[1].split('&')[0];
+
+          try {
+            // Exchange code for token
+            await notionService.exchangeCodeForToken(code, user.id);
+
+            // Create database in user's Notion
+            await notionService.createUserDatabase(user.id);
+
+            setNotionConnected(true);
+            Alert.alert('Success', 'Notion connected! Your tasks will now sync to your Notion workspace.');
+          } catch (error: any) {
+            console.error('Error connecting Notion:', error);
+            Alert.alert('Error', 'Failed to connect Notion. Please try again.');
+          }
+        }
+      };
+
+      Linking.addEventListener('url', handleUrl);
+
+      // Clean up listener after 5 minutes
+      setTimeout(() => {
+        Linking.removeAllListeners('url');
+      }, 300000);
+    }
+  } catch (error) {
+    console.error('Error opening Notion auth:', error);
+    Alert.alert('Error', 'Failed to open Notion authorization.');
+  }
+};
+
+const handleDisconnectNotion = async () => {
+  if (!user) return;
+
+  Alert.alert(
+    'Disconnect Notion',
+    'Are you sure you want to disconnect Notion? Your tasks will no longer sync.',
+    [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Disconnect',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await notionService.disconnect(user.id);
+            setNotionConnected(false);
+            Alert.alert('Success', 'Notion disconnected.');
+          } catch (error: any) {
+            Alert.alert('Error', error.message);
+          }
+        },
+      },
+    ]
+  );
 };
 
   const handleOpenLink = (url: string) => {
@@ -434,6 +524,34 @@ const handleRejectConnection = async (connectionId: string) => {
           </View>
           <Text style={styles.calendarHint}>
             Connect to automatically sync meeting dates to a shared team calendar
+          </Text>
+        </View>
+
+        {/* Notion Integration */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>📝 Notion Integration</Text>
+          <View style={styles.calendarRow}>
+            <View style={styles.calendarInfo}>
+              <Text style={styles.calendarLabel}>Notion Workspace</Text>
+              <Text style={styles.calendarStatus}>
+                {checkingNotion ? 'Checking...' : notionConnected ? '✓ Connected' : 'Not connected'}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={[
+                styles.calendarButton,
+                notionConnected && styles.calendarButtonConnected
+              ]}
+              onPress={notionConnected ? handleDisconnectNotion : handleConnectNotion}
+              disabled={checkingNotion}
+            >
+              <Text style={styles.calendarButtonText}>
+                {notionConnected ? 'Disconnect' : 'Connect'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.calendarHint}>
+            Sync your pod tasks to your personal Notion workspace
           </Text>
         </View>
 
