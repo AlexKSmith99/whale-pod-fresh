@@ -18,7 +18,8 @@
       "bundleIdentifier": "com.whalepod.fresh",
       "infoPlist": {
         "NSCameraUsageDescription": "Whale Pod needs access to your camera for video calls with your pod team.",
-        "NSMicrophoneUsageDescription": "Whale Pod needs access to your microphone for video calls with your pod team."
+        "NSMicrophoneUsageDescription": "Whale Pod needs access to your microphone for video calls with your pod team.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -37,6 +38,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "85d9f8fe-e5eb-4f70-80f6-e3094a1c557d"
+      }
     }
   }
 }
