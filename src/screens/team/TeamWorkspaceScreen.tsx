@@ -40,6 +40,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
   const [contributionTime, setContributionTime] = useState('');
   const [contributionContent, setContributionContent] = useState('');
   const [submittingContribution, setSubmittingContribution] = useState(false);
+  const [editingContribution, setEditingContribution] = useState<any | null>(null);
 
   useEffect(() => {
     loadUserPods();
@@ -232,6 +233,95 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
     }
   };
 
+  const handleEditContribution = (contribution: any) => {
+    setEditingContribution(contribution);
+    setContributionType(contribution.contribution_type);
+    setMeetingDate(contribution.meeting_date);
+    setMeetingTitle(contribution.meeting_title || '');
+    setContributionTime(contribution.time_of_contribution || '');
+    setContributionContent(contribution.content);
+    setShowContributeModal(true);
+  };
+
+  const handleUpdateContribution = async () => {
+    if (!editingContribution || !user) return;
+
+    if (!contributionContent.trim()) {
+      Alert.alert('Error', 'Please enter contribution content');
+      return;
+    }
+
+    setSubmittingContribution(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('meeting_contributions')
+        .update({
+          contribution_type: contributionType,
+          meeting_date: meetingDate,
+          meeting_title: meetingTitle.trim() || null,
+          content: contributionContent.trim(),
+          time_of_contribution: contributionTime || null,
+          is_edited: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', editingContribution.id)
+        .select('*, profiles!user_id(name, email)')
+        .single();
+
+      if (error) throw error;
+
+      // Update contribution in state
+      setContributions(contributions.map(c => c.id === data.id ? data : c));
+
+      // Reset form
+      setContributionContent('');
+      setMeetingTitle('');
+      setContributionTime('');
+      setContributionType('pre-meeting agenda');
+      setMeetingDate(new Date().toISOString().split('T')[0]);
+      setEditingContribution(null);
+      setShowContributeModal(false);
+
+      Alert.alert('Success', 'Contribution updated!');
+    } catch (error: any) {
+      console.error('Error updating contribution:', error);
+      Alert.alert('Error', 'Failed to update contribution');
+    } finally {
+      setSubmittingContribution(false);
+    }
+  };
+
+  const handleDeleteContribution = async (contributionId: string) => {
+    Alert.alert(
+      'Delete Contribution',
+      'Are you sure you want to delete this contribution?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('meeting_contributions')
+                .delete()
+                .eq('id', contributionId);
+
+              if (error) throw error;
+
+              setContributions(contributions.filter(c => c.id !== contributionId));
+              Alert.alert('Success', 'Contribution deleted');
+            } catch (error) {
+              console.error('Error deleting contribution:', error);
+              Alert.alert('Error', 'Failed to delete contribution');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderAgendaTab = () => {
     // Group contributions by meeting date
     const contributionsByDate: { [key: string]: any[] } = {};
@@ -275,25 +365,47 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
                 )}
               </View>
 
-              {contributionsByDate[date].map((contrib) => (
-                <View key={contrib.id} style={styles.contributionCard}>
-                  <View style={styles.contributionHeader}>
-                    <View style={styles.contributionTypeContainer}>
-                      <Text style={styles.contributionType}>{contrib.contribution_type}</Text>
-                      {contrib.time_of_contribution && (
-                        <Text style={styles.contributionTime}>
-                          {contrib.time_of_contribution}
+              {contributionsByDate[date].map((contrib) => {
+                const isOwnContribution = contrib.user_id === user?.id;
+
+                return (
+                  <View key={contrib.id} style={styles.contributionCard}>
+                    <View style={styles.contributionHeader}>
+                      <View style={styles.contributionTypeContainer}>
+                        <Text style={styles.contributionType}>{contrib.contribution_type}</Text>
+                        {contrib.time_of_contribution && (
+                          <Text style={styles.contributionTime}>
+                            {contrib.time_of_contribution}
+                          </Text>
+                        )}
+                      </View>
+                      <View style={styles.contributionMeta}>
+                        <Text style={styles.contributionInitials}>
+                          {getUserInitials(contrib.profiles)}
+                          {contrib.is_edited && <Text style={styles.editedLabel}> (edited)</Text>}
                         </Text>
-                      )}
+                        {isOwnContribution && (
+                          <View style={styles.contributionActions}>
+                            <TouchableOpacity
+                              onPress={() => handleEditContribution(contrib)}
+                              style={styles.actionButton}
+                            >
+                              <Ionicons name="pencil" size={16} color="#ff6b35" />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              onPress={() => handleDeleteContribution(contrib.id)}
+                              style={styles.actionButton}
+                            >
+                              <Ionicons name="trash-outline" size={16} color="#ef4444" />
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                      </View>
                     </View>
-                    <Text style={styles.contributionInitials}>
-                      {getUserInitials(contrib.profiles)}
-                      {contrib.is_edited && <Text style={styles.editedLabel}> (edited)</Text>}
-                    </Text>
+                    <Text style={styles.contributionContent}>{contrib.content}</Text>
                   </View>
-                  <Text style={styles.contributionContent}>{contrib.content}</Text>
-                </View>
-              ))}
+                );
+              })}
             </View>
           ))
         )}
@@ -455,8 +567,13 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Make a Contribution</Text>
-              <TouchableOpacity onPress={() => setShowContributeModal(false)}>
+              <Text style={styles.modalTitle}>
+                {editingContribution ? 'Edit Contribution' : 'Make a Contribution'}
+              </Text>
+              <TouchableOpacity onPress={() => {
+                setShowContributeModal(false);
+                setEditingContribution(null);
+              }}>
                 <Ionicons name="close" size={28} color="#fff" />
               </TouchableOpacity>
             </View>
@@ -544,13 +661,15 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
 
               <TouchableOpacity
                 style={styles.submitButton}
-                onPress={handleCreateContribution}
+                onPress={editingContribution ? handleUpdateContribution : handleCreateContribution}
                 disabled={submittingContribution}
               >
                 {submittingContribution ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.submitButtonText}>Submit</Text>
+                  <Text style={styles.submitButtonText}>
+                    {editingContribution ? 'Update' : 'Submit'}
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -720,13 +839,14 @@ const styles = StyleSheet.create({
   contributionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 8,
   },
   contributionTypeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    flex: 1,
   },
   contributionType: {
     fontSize: 11,
@@ -739,6 +859,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#999',
   },
+  contributionMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   contributionInitials: {
     fontSize: 12,
     color: '#ccc',
@@ -748,6 +873,13 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#999',
     fontStyle: 'italic',
+  },
+  contributionActions: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  actionButton: {
+    padding: 4,
   },
   contributionContent: {
     fontSize: 14,
