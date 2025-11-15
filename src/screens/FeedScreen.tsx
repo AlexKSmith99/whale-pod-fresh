@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, StatusBar, TextInput, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, StatusBar, TextInput, Modal, TouchableWithoutFeedback } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { pursuitService } from '../services/pursuitService';
 import { useAuth } from '../contexts/AuthContext';
@@ -230,30 +230,32 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
         activeOpacity={1}
         onPress={onClose}
       >
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{title}</Text>
-            <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={24} color={colors.textPrimary} />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
-            {options.map((option) => (
-              <TouchableOpacity
-                key={option}
-                style={styles.modalOption}
-                onPress={() => onToggle(option)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.modalOptionText}>{option}</Text>
-                {selectedValues.includes(option) && (
-                  <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
-                )}
+        <TouchableWithoutFeedback>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{title}</Text>
+              <TouchableOpacity onPress={onClose}>
+                <Ionicons name="close" size={24} color={colors.textPrimary} />
               </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
+            </View>
+
+            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+              {options.map((option) => (
+                <TouchableOpacity
+                  key={option}
+                  style={styles.modalOption}
+                  onPress={() => onToggle(option)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.modalOptionText}>{option}</Text>
+                  {selectedValues.includes(option) && (
+                    <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableWithoutFeedback>
       </TouchableOpacity>
     </Modal>
   );
