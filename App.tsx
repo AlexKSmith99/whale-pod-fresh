@@ -9,7 +9,7 @@ import ProfileScreen from './src/screens/ProfileScreen';
 import UserProfileScreen from './src/screens/UserProfileScreen';
 import MessagesListScreen from './src/screens/MessagesListScreen';
 import ChatScreen from './src/screens/ChatScreen';
-import TeamBoardScreen from './src/screens/team/TeamBoardScreen';
+import TeamWorkspaceScreen from './src/screens/team/TeamWorkspaceScreen';
 import PodsScreen from './src/screens/PodsScreen';
 import ConnectionsScreen from './src/screens/connections/ConnectionsScreen';
 import PursuitDetailScreen from './src/screens/PursuitDetailScreen';
@@ -177,19 +177,14 @@ if (viewingPodDetail) {
   );
 }
 
-// Show Team Board if a pursuit board is selected
+// Show Team Workspace if a pursuit board is selected
 if (teamBoardPursuitId) {
   return (
-    <TeamBoardScreen
-      pursuitId={teamBoardPursuitId}
+    <TeamWorkspaceScreen
+      initialPursuitId={teamBoardPursuitId}
       onBack={() => {
         setTeamBoardPursuitId(null);
       }}
-      // onStartVideoCall disabled for web - requires native Agora SDK
-      // onStartVideoCall={(channelName, podTitle) => {
-      //   setVideoCallChannel(channelName);
-      //   setVideoCallPodTitle(podTitle);
-      // }}
     />
   );
 }
