@@ -33,6 +33,14 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
   const [roles, setRoles] = useState<any[]>([]);
   const [showContributeModal, setShowContributeModal] = useState(false);
 
+  // Contribute modal state
+  const [contributionType, setContributionType] = useState<'pre-meeting agenda' | 'question' | 'comment' | 'meeting notes' | 'task'>('pre-meeting agenda');
+  const [meetingDate, setMeetingDate] = useState(new Date().toISOString().split('T')[0]);
+  const [meetingTitle, setMeetingTitle] = useState('');
+  const [contributionTime, setContributionTime] = useState('');
+  const [contributionContent, setContributionContent] = useState('');
+  const [submittingContribution, setSubmittingContribution] = useState(false);
+
   useEffect(() => {
     loadUserPods();
   }, []);
@@ -170,6 +178,58 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
       return `${names[0][0]}.`;
     }
     return profile?.email?.[0].toUpperCase() || '?';
+  };
+
+  const handleCreateContribution = async () => {
+    if (!selectedPodId || !user) return;
+
+    if (!contributionContent.trim()) {
+      Alert.alert('Error', 'Please enter contribution content');
+      return;
+    }
+
+    if (!meetingDate) {
+      Alert.alert('Error', 'Please select a meeting date');
+      return;
+    }
+
+    setSubmittingContribution(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('meeting_contributions')
+        .insert([{
+          pursuit_id: selectedPodId,
+          user_id: user.id,
+          meeting_date: meetingDate,
+          meeting_title: meetingTitle.trim() || null,
+          contribution_type: contributionType,
+          content: contributionContent.trim(),
+          time_of_contribution: contributionTime || null,
+        }])
+        .select('*, profiles!user_id(name, email)')
+        .single();
+
+      if (error) throw error;
+
+      // Add new contribution to state
+      setContributions([data, ...contributions]);
+
+      // Reset form
+      setContributionContent('');
+      setMeetingTitle('');
+      setContributionTime('');
+      setContributionType('pre-meeting agenda');
+      setMeetingDate(new Date().toISOString().split('T')[0]);
+      setShowContributeModal(false);
+
+      Alert.alert('Success', 'Contribution added!');
+    } catch (error: any) {
+      console.error('Error creating contribution:', error);
+      Alert.alert('Error', 'Failed to add contribution');
+    } finally {
+      setSubmittingContribution(false);
+    }
   };
 
   const renderAgendaTab = () => {
@@ -389,6 +449,114 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
           )}
         </View>
       </View>
+
+      {/* Contribute Modal */}
+      <Modal visible={showContributeModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Make a Contribution</Text>
+              <TouchableOpacity onPress={() => setShowContributeModal(false)}>
+                <Ionicons name="close" size={28} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody}>
+              {/* Contribution Type */}
+              <Text style={styles.fieldLabel}>Contribution Type *</Text>
+              <View style={styles.typeButtons}>
+                {(['pre-meeting agenda', 'question', 'comment', 'meeting notes', 'task'] as const).map((type) => (
+                  <TouchableOpacity
+                    key={type}
+                    style={[
+                      styles.typeButton,
+                      contributionType === type && styles.typeButtonActive
+                    ]}
+                    onPress={() => setContributionType(type)}
+                  >
+                    <Text style={[
+                      styles.typeButtonText,
+                      contributionType === type && styles.typeButtonTextActive
+                    ]}>
+                      {type}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Meeting Date */}
+              <Text style={styles.fieldLabel}>Meeting Date *</Text>
+              <TextInput
+                style={styles.input}
+                value={meetingDate}
+                onChangeText={setMeetingDate}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor="#666"
+              />
+
+              {/* Meeting Title */}
+              <Text style={styles.fieldLabel}>Meeting Title (optional)</Text>
+              <TextInput
+                style={styles.input}
+                value={meetingTitle}
+                onChangeText={setMeetingTitle}
+                placeholder="e.g., Weekly Standup"
+                placeholderTextColor="#666"
+              />
+
+              {/* Time */}
+              <Text style={styles.fieldLabel}>Time (optional)</Text>
+              <TextInput
+                style={styles.input}
+                value={contributionTime}
+                onChangeText={setContributionTime}
+                placeholder="e.g., 2:30 PM or 14:30"
+                placeholderTextColor="#666"
+              />
+
+              {/* Content */}
+              <Text style={styles.fieldLabel}>Content *</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                value={contributionContent}
+                onChangeText={setContributionContent}
+                placeholder="Enter your contribution here..."
+                placeholderTextColor="#666"
+                multiline
+                numberOfLines={6}
+              />
+
+              {/* Media Upload - Coming Soon */}
+              <Text style={styles.fieldLabel}>Media (coming soon)</Text>
+              <View style={styles.comingSoon}>
+                <Ionicons name="image-outline" size={24} color="#666" />
+                <Text style={styles.comingSoonText}>Photo/Video upload coming soon</Text>
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setShowContributeModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.submitButton}
+                onPress={handleCreateContribution}
+                disabled={submittingContribution}
+              >
+                {submittingContribution ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.submitButtonText}>Submit</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -648,5 +816,134 @@ const styles = StyleSheet.create({
     color: '#444',
     textAlign: 'center',
     paddingHorizontal: 40,
+  },
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#2a2a2a',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#ff6b35',
+    width: '100%',
+    maxWidth: 600,
+    maxHeight: '90%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 2,
+    borderBottomColor: '#ff6b35',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  modalBody: {
+    padding: 20,
+  },
+  fieldLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#ff6b35',
+    marginBottom: 8,
+    marginTop: 16,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  typeButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  typeButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#444',
+    backgroundColor: '#1a1a1a',
+  },
+  typeButtonActive: {
+    backgroundColor: '#ff6b35',
+    borderColor: '#ff6b35',
+  },
+  typeButtonText: {
+    fontSize: 12,
+    color: '#999',
+    fontWeight: '500',
+  },
+  typeButtonTextActive: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  input: {
+    backgroundColor: '#1a1a1a',
+    borderWidth: 1,
+    borderColor: '#444',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    color: '#fff',
+  },
+  textArea: {
+    height: 120,
+    textAlignVertical: 'top',
+  },
+  comingSoon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: '#1a1a1a',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#444',
+    borderStyle: 'dashed',
+  },
+  comingSoonText: {
+    fontSize: 13,
+    color: '#666',
+    marginLeft: 8,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    padding: 20,
+    gap: 12,
+    borderTopWidth: 2,
+    borderTopColor: '#ff6b35',
+  },
+  cancelButton: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#666',
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#999',
+  },
+  submitButton: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 8,
+    backgroundColor: '#ff6b35',
+    alignItems: 'center',
+  },
+  submitButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
   },
 });
