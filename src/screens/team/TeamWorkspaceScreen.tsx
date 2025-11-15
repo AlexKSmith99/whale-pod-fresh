@@ -42,6 +42,14 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
   const [submittingContribution, setSubmittingContribution] = useState(false);
   const [editingContribution, setEditingContribution] = useState<any | null>(null);
 
+  // Role assignment modal state
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [editingRole, setEditingRole] = useState<any | null>(null);
+  const [roleTitle, setRoleTitle] = useState('');
+  const [roleDescription, setRoleDescription] = useState('');
+  const [submittingRole, setSubmittingRole] = useState(false);
+  const [isCreator, setIsCreator] = useState(false);
+
   useEffect(() => {
     loadUserPods();
   }, []);
@@ -98,7 +106,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
   };
 
   const loadPodData = async () => {
-    if (!selectedPodId) return;
+    if (!selectedPodId || !user) return;
 
     try {
       // Load team members
@@ -112,6 +120,11 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
         .select('creator_id, profiles!creator_id(id, name, email)')
         .eq('id', selectedPodId)
         .single();
+
+      // Check if current user is creator
+      if (pursuit?.creator_id) {
+        setIsCreator(pursuit.creator_id === user.id);
+      }
 
       const allMembers = [...(members?.map((m: any) => m.profiles) || [])];
       if (pursuit?.profiles) {
@@ -322,6 +335,103 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
     );
   };
 
+  const handleOpenRoleModal = (member: any, existingRole?: any) => {
+    setEditingRole(existingRole ? { ...existingRole, memberId: member.id, memberName: member.name || member.email } : { memberId: member.id, memberName: member.name || member.email });
+    setRoleTitle(existingRole?.role_title || '');
+    setRoleDescription(existingRole?.role_description || '');
+    setShowRoleModal(true);
+  };
+
+  const handleSaveRole = async () => {
+    if (!selectedPodId || !editingRole) return;
+
+    if (!roleTitle.trim()) {
+      Alert.alert('Error', 'Please enter a role title');
+      return;
+    }
+
+    setSubmittingRole(true);
+
+    try {
+      if (editingRole.id) {
+        // Update existing role
+        const { data, error } = await supabase
+          .from('member_roles')
+          .update({
+            role_title: roleTitle.trim(),
+            role_description: roleDescription.trim() || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', editingRole.id)
+          .select('*, profiles!user_id(name, email)')
+          .single();
+
+        if (error) throw error;
+
+        setRoles(roles.map(r => r.id === data.id ? data : r));
+      } else {
+        // Create new role
+        const { data, error } = await supabase
+          .from('member_roles')
+          .insert([{
+            pursuit_id: selectedPodId,
+            user_id: editingRole.memberId,
+            role_title: roleTitle.trim(),
+            role_description: roleDescription.trim() || null,
+          }])
+          .select('*, profiles!user_id(name, email)')
+          .single();
+
+        if (error) throw error;
+
+        setRoles([...roles, data]);
+      }
+
+      // Reset form
+      setRoleTitle('');
+      setRoleDescription('');
+      setEditingRole(null);
+      setShowRoleModal(false);
+
+      Alert.alert('Success', 'Role saved!');
+    } catch (error: any) {
+      console.error('Error saving role:', error);
+      Alert.alert('Error', 'Failed to save role');
+    } finally {
+      setSubmittingRole(false);
+    }
+  };
+
+  const handleDeleteRole = async (roleId: string) => {
+    Alert.alert(
+      'Delete Role',
+      'Are you sure you want to delete this role?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('member_roles')
+                .delete()
+                .eq('id', roleId);
+
+              if (error) throw error;
+
+              setRoles(roles.filter(r => r.id !== roleId));
+              Alert.alert('Success', 'Role deleted');
+            } catch (error) {
+              console.error('Error deleting role:', error);
+              Alert.alert('Error', 'Failed to delete role');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderAgendaTab = () => {
     // Group contributions by meeting date
     const contributionsByDate: { [key: string]: any[] } = {};
@@ -420,11 +530,39 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
 
         {teamMembers.map((member) => {
           const memberRole = roles.find((r) => r.user_id === member.id);
+          const canEditRole = isCreator || member.id === user?.id;
 
           return (
             <View key={member.id} style={styles.roleCard}>
-              <View style={styles.roleHeader}>
-                <Text style={styles.memberName}>{member.name || member.email}</Text>
+              <View style={styles.roleHeaderRow}>
+                <View style={styles.roleHeader}>
+                  <Text style={styles.memberName}>{member.name || member.email}</Text>
+                </View>
+                {canEditRole && (
+                  <View style={styles.roleActions}>
+                    <TouchableOpacity
+                      onPress={() => handleOpenRoleModal(member, memberRole)}
+                      style={styles.roleActionButton}
+                    >
+                      <Ionicons
+                        name={memberRole ? "pencil" : "add-circle"}
+                        size={18}
+                        color="#ff6b35"
+                      />
+                      <Text style={styles.roleActionText}>
+                        {memberRole ? 'Edit' : 'Assign'}
+                      </Text>
+                    </TouchableOpacity>
+                    {memberRole && (
+                      <TouchableOpacity
+                        onPress={() => handleDeleteRole(memberRole.id)}
+                        style={styles.roleActionButton}
+                      >
+                        <Ionicons name="trash-outline" size={18} color="#ef4444" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
               </View>
               {memberRole ? (
                 <View style={styles.roleContent}>
@@ -676,6 +814,81 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
           </View>
         </View>
       </Modal>
+
+      {/* Role Assignment Modal */}
+      <Modal visible={showRoleModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {editingRole?.id ? 'Edit Role' : 'Assign Role'}
+              </Text>
+              <TouchableOpacity onPress={() => {
+                setShowRoleModal(false);
+                setEditingRole(null);
+                setRoleTitle('');
+                setRoleDescription('');
+              }}>
+                <Ionicons name="close" size={28} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody}>
+              <Text style={styles.memberNameLabel}>
+                For: {editingRole?.memberName}
+              </Text>
+
+              {/* Role Title */}
+              <Text style={styles.fieldLabel}>Role Title *</Text>
+              <TextInput
+                style={styles.input}
+                value={roleTitle}
+                onChangeText={setRoleTitle}
+                placeholder="e.g., Project Manager, Developer, Designer"
+                placeholderTextColor="#666"
+              />
+
+              {/* Role Description */}
+              <Text style={styles.fieldLabel}>Role Description (optional)</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                value={roleDescription}
+                onChangeText={setRoleDescription}
+                placeholder="Describe the responsibilities and expectations for this role..."
+                placeholderTextColor="#666"
+                multiline
+                numberOfLines={4}
+              />
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => {
+                  setShowRoleModal(false);
+                  setEditingRole(null);
+                  setRoleTitle('');
+                  setRoleDescription('');
+                }}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.submitButton}
+                onPress={handleSaveRole}
+                disabled={submittingRole}
+              >
+                {submittingRole ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.submitButtonText}>Save Role</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -903,13 +1116,35 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#444',
   },
-  roleHeader: {
+  roleHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 8,
+  },
+  roleHeader: {
+    flex: 1,
   },
   memberName: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  roleActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  roleActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  roleActionText: {
+    fontSize: 13,
+    color: '#ff6b35',
+    fontWeight: '600',
   },
   roleContent: {
     paddingTop: 8,
@@ -931,6 +1166,15 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#666',
     fontStyle: 'italic',
+  },
+  memberNameLabel: {
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: 'bold',
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#444',
   },
   // Empty State
   emptyState: {
