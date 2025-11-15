@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, StatusBar, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, StatusBar, TextInput, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { pursuitService } from '../services/pursuitService';
 import { useAuth } from '../contexts/AuthContext';
@@ -19,21 +19,66 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
   const [loading, setLoading] = useState(true);
   const [selectedPursuit, setSelectedPursuit] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filter, setFilter] = useState<'all' | 'awaiting_kickoff' | 'active'>('all');
+
+  // Filter states
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [pursuitTypeFilter, setPursuitTypeFilter] = useState<string[]>([]);
+  const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
+  const [subcategoryFilter, setSubcategoryFilter] = useState<string[]>([]);
+  const [locationFilter, setLocationFilter] = useState<string[]>([]);
+  const [teamSizeFilter, setTeamSizeFilter] = useState<string[]>([]);
+
+  // Modal states
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showPursuitTypeModal, setShowPursuitTypeModal] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showSubcategoryModal, setShowSubcategoryModal] = useState(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [showTeamSizeModal, setShowTeamSizeModal] = useState(false);
 
   useEffect(() => {
     loadPursuits();
-  }, [filter]);
+  }, [statusFilter, pursuitTypeFilter, categoryFilter, subcategoryFilter, locationFilter, teamSizeFilter]);
 
   const loadPursuits = async () => {
     try {
       const filters: any = {};
-      if (filter !== 'all') {
-        filters.status = filter;
+
+      // Apply status filter
+      if (statusFilter.length > 0) {
+        filters.status = statusFilter;
       }
+
+      // Apply pursuit type filter
+      if (pursuitTypeFilter.length > 0) {
+        filters.pursuit_type = pursuitTypeFilter;
+      }
+
+      // Apply category filter
+      if (categoryFilter.length > 0) {
+        filters.category = categoryFilter;
+      }
+
+      // Apply subcategory filter
+      if (subcategoryFilter.length > 0) {
+        filters.subcategory = subcategoryFilter;
+      }
+
+      // Apply location filter
+      if (locationFilter.length > 0) {
+        filters.location = locationFilter;
+      }
+
+      // Apply team size filter
+      if (teamSizeFilter.length > 0) {
+        filters.team_size = teamSizeFilter;
+      }
+
+      // Apply search query
       if (searchQuery) {
         filters.search = searchQuery;
       }
+
       const data = await pursuitService.getPursuits(filters);
       setPursuits(data);
     } catch (error) {
@@ -77,6 +122,30 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
     );
   };
 
+  // Toggle filter selection
+  const toggleFilter = (filterArray: string[], setFilter: React.Dispatch<React.SetStateAction<string[]>>, value: string) => {
+    if (filterArray.includes(value)) {
+      setFilter(filterArray.filter(item => item !== value));
+    } else {
+      setFilter([...filterArray, value]);
+    }
+  };
+
+  // Get active filter count for a category
+  const getFilterCount = (filterArray: string[]) => {
+    return filterArray.length > 0 ? filterArray.length : null;
+  };
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setStatusFilter([]);
+    setPursuitTypeFilter([]);
+    setCategoryFilter([]);
+    setSubcategoryFilter([]);
+    setLocationFilter([]);
+    setTeamSizeFilter([]);
+  };
+
   if (selectedPursuit) {
     return (
       <PursuitDetailScreen
@@ -103,24 +172,90 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
     );
   }
 
-  const FilterChip = ({
+  // Filter Button Component
+  const FilterButton = ({
     label,
-    value,
-    isActive
+    count,
+    onPress
   }: {
     label: string;
-    value: 'all' | 'awaiting_kickoff' | 'active';
-    isActive: boolean
+    count: number | null;
+    onPress: () => void;
   }) => (
     <TouchableOpacity
-      style={[styles.filterChip, isActive && styles.filterChipActive]}
-      onPress={() => setFilter(value)}
+      style={[styles.filterButton, count && count > 0 && styles.filterButtonActive]}
+      onPress={onPress}
       activeOpacity={0.7}
     >
-      <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]}>
+      <Text style={[styles.filterButtonText, count && count > 0 && styles.filterButtonTextActive]}>
         {label}
       </Text>
+      {count && count > 0 && (
+        <View style={styles.filterBadge}>
+          <Text style={styles.filterBadgeText}>{count}</Text>
+        </View>
+      )}
+      <Ionicons
+        name="chevron-down"
+        size={16}
+        color={count && count > 0 ? colors.white : colors.textSecondary}
+      />
     </TouchableOpacity>
+  );
+
+  // Filter Modal Component
+  const FilterModal = ({
+    visible,
+    onClose,
+    title,
+    options,
+    selectedValues,
+    onToggle
+  }: {
+    visible: boolean;
+    onClose: () => void;
+    title: string;
+    options: string[];
+    selectedValues: string[];
+    onToggle: (value: string) => void;
+  }) => (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <TouchableOpacity
+        style={styles.modalOverlay}
+        activeOpacity={1}
+        onPress={onClose}
+      >
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{title}</Text>
+            <TouchableOpacity onPress={onClose}>
+              <Ionicons name="close" size={24} color={colors.textPrimary} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+            {options.map((option) => (
+              <TouchableOpacity
+                key={option}
+                style={styles.modalOption}
+                onPress={() => onToggle(option)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.modalOptionText}>{option}</Text>
+                {selectedValues.includes(option) && (
+                  <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </TouchableOpacity>
+    </Modal>
   );
 
   return (
@@ -161,13 +296,108 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
           )}
         </View>
 
-        {/* Modern Filter Chips */}
-        <View style={styles.filterContainer}>
-          <FilterChip label="All" value="all" isActive={filter === 'all'} />
-          <FilterChip label="Awaiting Kickoff" value="awaiting_kickoff" isActive={filter === 'awaiting_kickoff'} />
-          <FilterChip label="Active" value="active" isActive={filter === 'active'} />
-        </View>
+        {/* Modern Filter Buttons */}
+        <ScrollView
+          horizontal
+          style={styles.filterContainer}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterContentContainer}
+        >
+          <FilterButton
+            label="Status"
+            count={getFilterCount(statusFilter)}
+            onPress={() => setShowStatusModal(true)}
+          />
+          <FilterButton
+            label="Pursuit Type"
+            count={getFilterCount(pursuitTypeFilter)}
+            onPress={() => setShowPursuitTypeModal(true)}
+          />
+          <FilterButton
+            label="Categories"
+            count={getFilterCount(categoryFilter)}
+            onPress={() => setShowCategoryModal(true)}
+          />
+          <FilterButton
+            label="Sub-categories"
+            count={getFilterCount(subcategoryFilter)}
+            onPress={() => setShowSubcategoryModal(true)}
+          />
+          <FilterButton
+            label="Location"
+            count={getFilterCount(locationFilter)}
+            onPress={() => setShowLocationModal(true)}
+          />
+          <FilterButton
+            label="Team Size"
+            count={getFilterCount(teamSizeFilter)}
+            onPress={() => setShowTeamSizeModal(true)}
+          />
+        </ScrollView>
+
+        {/* Clear Filters Button */}
+        {(statusFilter.length > 0 || pursuitTypeFilter.length > 0 || categoryFilter.length > 0 ||
+          subcategoryFilter.length > 0 || locationFilter.length > 0 || teamSizeFilter.length > 0) && (
+          <TouchableOpacity style={styles.clearFiltersButton} onPress={clearAllFilters}>
+            <Text style={styles.clearFiltersText}>Clear All Filters</Text>
+          </TouchableOpacity>
+        )}
       </View>
+
+      {/* Filter Modals */}
+      <FilterModal
+        visible={showStatusModal}
+        onClose={() => setShowStatusModal(false)}
+        title="Filter by Status"
+        options={['Awaiting Kickoff', 'Active']}
+        selectedValues={statusFilter}
+        onToggle={(value) => toggleFilter(statusFilter, setStatusFilter, value)}
+      />
+
+      <FilterModal
+        visible={showPursuitTypeModal}
+        onClose={() => setShowPursuitTypeModal(false)}
+        title="Filter by Pursuit Type"
+        options={['Startup', 'Side Project', 'Research', 'Creative', 'Community', 'Learning', 'Other']}
+        selectedValues={pursuitTypeFilter}
+        onToggle={(value) => toggleFilter(pursuitTypeFilter, setPursuitTypeFilter, value)}
+      />
+
+      <FilterModal
+        visible={showCategoryModal}
+        onClose={() => setShowCategoryModal(false)}
+        title="Filter by Category"
+        options={['Technology', 'Business', 'Creative', 'Social', 'Education', 'Health', 'Other']}
+        selectedValues={categoryFilter}
+        onToggle={(value) => toggleFilter(categoryFilter, setCategoryFilter, value)}
+      />
+
+      <FilterModal
+        visible={showSubcategoryModal}
+        onClose={() => setShowSubcategoryModal(false)}
+        title="Filter by Sub-category"
+        options={['Web Development', 'Mobile Development', 'AI/ML', 'Design', 'Marketing', 'Sales', 'Operations', 'Finance', 'Other']}
+        selectedValues={subcategoryFilter}
+        onToggle={(value) => toggleFilter(subcategoryFilter, setSubcategoryFilter, value)}
+      />
+
+      <FilterModal
+        visible={showLocationModal}
+        onClose={() => setShowLocationModal(false)}
+        title="Filter by Location"
+        options={['Remote', 'New York', 'San Francisco', 'Los Angeles', 'Chicago', 'Boston', 'Austin', 'Seattle', 'Other']}
+        selectedValues={locationFilter}
+        onToggle={(value) => toggleFilter(locationFilter, setLocationFilter, value)}
+      />
+
+      <FilterModal
+        visible={showTeamSizeModal}
+        onClose={() => setShowTeamSizeModal(false)}
+        title="Filter by Team Size"
+        options={['1-2', '3-5', '6-10', '11-20', '20+']}
+        selectedValues={teamSizeFilter}
+        onToggle={(value) => toggleFilter(teamSizeFilter, setTeamSizeFilter, value)}
+      />
 
       <ScrollView
         style={styles.scrollView}
@@ -358,33 +588,118 @@ const styles = StyleSheet.create({
 
   // Filter Styles
   filterContainer: {
-    flexDirection: 'row',
     paddingHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+
+  filterContentContainer: {
     gap: spacing.sm,
   },
 
-  filterChip: {
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: spacing.base,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.full,
     backgroundColor: colors.backgroundSecondary,
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: colors.borderLight,
+    gap: spacing.xs,
   },
 
-  filterChipActive: {
+  filterButtonActive: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
 
-  filterChipText: {
+  filterButtonText: {
     fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.medium,
     color: colors.textSecondary,
   },
 
-  filterChipTextActive: {
+  filterButtonTextActive: {
     color: colors.white,
+  },
+
+  filterBadge: {
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.full,
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: spacing.xs,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  filterBadgeText: {
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.primary,
+  },
+
+  clearFiltersButton: {
+    marginTop: spacing.sm,
+    marginHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    alignItems: 'center',
+  },
+
+  clearFiltersText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.error,
+  },
+
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+
+  modalContent: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
+    maxHeight: '70%',
+    paddingBottom: spacing['2xl'],
+  },
+
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+
+  modalTitle: {
+    fontSize: typography.fontSize.xl,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.textPrimary,
+  },
+
+  modalScroll: {
+    maxHeight: 400,
+  },
+
+  modalOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing.base,
+    paddingHorizontal: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+
+  modalOptionText: {
+    fontSize: typography.fontSize.base,
+    color: colors.textPrimary,
+    fontWeight: typography.fontWeight.medium,
   },
 
   // Scroll and Content
