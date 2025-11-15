@@ -13,7 +13,12 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.whalepod.fresh",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Whale Pod needs access to your camera for video calls with your team.",
+        "NSMicrophoneUsageDescription": "Whale Pod needs access to your microphone for video calls with your team."
+      }
     },
     "android": {
       "adaptiveIcon": {
