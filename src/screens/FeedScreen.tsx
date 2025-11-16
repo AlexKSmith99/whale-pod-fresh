@@ -183,14 +183,14 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
     onPress: () => void;
   }) => (
     <TouchableOpacity
-      style={[styles.filterButton, count && count > 0 && styles.filterButtonActive]}
+      style={[styles.filterButton, count !== null && count > 0 && styles.filterButtonActive]}
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <Text style={[styles.filterButtonText, count && count > 0 && styles.filterButtonTextActive]}>
+      <Text style={[styles.filterButtonText, count !== null && count > 0 && styles.filterButtonTextActive]}>
         {label}
       </Text>
-      {count && count > 0 && (
+      {count !== null && count > 0 && (
         <View style={styles.filterBadge}>
           <Text style={styles.filterBadgeText}>{count}</Text>
         </View>
@@ -198,7 +198,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
       <Ionicons
         name="chevron-down"
         size={16}
-        color={count && count > 0 ? colors.white : colors.textSecondary}
+        color={count !== null && count > 0 ? colors.white : colors.textSecondary}
       />
     </TouchableOpacity>
   );
@@ -225,15 +225,13 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
       animationType="fade"
       onRequestClose={onClose}
     >
-      <TouchableOpacity
-        style={styles.modalOverlay}
-        activeOpacity={1}
-        onPress={onClose}
-      >
-        <View
-          style={styles.modalContent}
-          onStartShouldSetResponder={() => true}
-        >
+      <View style={styles.modalOverlay}>
+        <TouchableOpacity
+          style={StyleSheet.absoluteFill}
+          activeOpacity={1}
+          onPress={onClose}
+        />
+        <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{title}</Text>
             <TouchableOpacity onPress={onClose}>
@@ -257,7 +255,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
             ))}
           </ScrollView>
         </View>
-      </TouchableOpacity>
+      </View>
     </Modal>
   );
 
