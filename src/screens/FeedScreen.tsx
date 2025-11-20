@@ -203,7 +203,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
     </TouchableOpacity>
   );
 
-  // Filter Modal Component
+  // Filter Modal Component - SIMPLIFIED: Only X button closes modal
   const FilterModal = ({
     visible,
     onClose,
@@ -222,19 +222,14 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
     <Modal
       visible={visible}
       transparent
-      animationType="fade"
+      animationType="slide"
       onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
-        <TouchableOpacity
-          style={StyleSheet.absoluteFill}
-          activeOpacity={1}
-          onPress={onClose}
-        />
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{title}</Text>
-            <TouchableOpacity onPress={onClose}>
+            <TouchableOpacity onPress={onClose} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
               <Ionicons name="close" size={24} color={colors.textPrimary} />
             </TouchableOpacity>
           </View>
