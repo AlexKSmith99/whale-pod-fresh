@@ -42,6 +42,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
         !showSubcategoryModal && !showLocationModal && !showTeamSizeModal) {
       loadPursuits();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter, pursuitTypeFilter, categoryFilter, subcategoryFilter, locationFilter, teamSizeFilter]);
   const loadPursuits = async () => {
     try {
@@ -207,7 +208,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
   );
 
   // Filter Modal Component - SIMPLIFIED: Only X button closes modal
-  const FilterModal = ({
+  const FilterModal = React.memo(({
     visible,
     onClose,
     title,
@@ -227,9 +228,18 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
       transparent
       animationType="slide"
       onRequestClose={onClose}
+      statusBarTranslucent
     >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
+      <TouchableOpacity
+        style={styles.modalOverlay}
+        activeOpacity={1}
+        onPress={(e) => e.stopPropagation()}
+      >
+        <TouchableOpacity
+          style={styles.modalContent}
+          activeOpacity={1}
+          onPress={(e) => e.stopPropagation()}
+        >
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{title}</Text>
             <TouchableOpacity onPress={onClose} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
@@ -252,10 +262,10 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
               </TouchableOpacity>
             ))}
           </ScrollView>
-        </View>
-      </View>
+        </TouchableOpacity>
+      </TouchableOpacity>
     </Modal>
-  );
+  ));
 
   return (
     <View style={styles.container}>
