@@ -37,11 +37,8 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
   const [showTeamSizeModal, setShowTeamSizeModal] = useState(false);
 
   useEffect(() => {
-    // Only load pursuits if no modals are open
-    if (!showStatusModal && !showPursuitTypeModal && !showCategoryModal &&
-        !showSubcategoryModal && !showLocationModal && !showTeamSizeModal) {
-      loadPursuits();
-    }
+    // Load pursuits whenever filters change
+    loadPursuits();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter, pursuitTypeFilter, categoryFilter, subcategoryFilter, locationFilter, teamSizeFilter]);
   const loadPursuits = async () => {
@@ -328,11 +325,6 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
             onPress={() => setShowCategoryModal(true)}
           />
           <FilterButton
-            label="Sub-categories"
-            count={getFilterCount(subcategoryFilter)}
-            onPress={() => setShowSubcategoryModal(true)}
-          />
-          <FilterButton
             label="Location"
             count={getFilterCount(locationFilter)}
             onPress={() => setShowLocationModal(true)}
@@ -346,7 +338,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
 
         {/* Clear Filters Button */}
         {(statusFilter.length > 0 || pursuitTypeFilter.length > 0 || categoryFilter.length > 0 ||
-          subcategoryFilter.length > 0 || locationFilter.length > 0 || teamSizeFilter.length > 0) && (
+          locationFilter.length > 0 || teamSizeFilter.length > 0) && (
           <TouchableOpacity style={styles.clearFiltersButton} onPress={clearAllFilters}>
             <Text style={styles.clearFiltersText}>Clear All Filters</Text>
           </TouchableOpacity>
@@ -471,17 +463,28 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
                   {pursuit.description}
                 </Text>
 
-                {/* Tags */}
-                {pursuit.pursuit_types && pursuit.pursuit_types.length > 0 && (
+                {/* Tags - Pursuit Types and Categories */}
+                {((pursuit.pursuit_types && pursuit.pursuit_types.length > 0) ||
+                  (pursuit.pursuit_categories && pursuit.pursuit_categories.length > 0)) && (
                   <View style={styles.tags}>
-                    {pursuit.pursuit_types.slice(0, 3).map((type: string, index: number) => (
-                      <View key={index} style={styles.tag}>
+                    {/* Pursuit Types */}
+                    {pursuit.pursuit_types && pursuit.pursuit_types.slice(0, 2).map((type: string, index: number) => (
+                      <View key={`type-${index}`} style={styles.tag}>
                         <Text style={styles.tagText}>{type}</Text>
                       </View>
                     ))}
-                    {pursuit.pursuit_types.length > 3 && (
+                    {/* Categories */}
+                    {pursuit.pursuit_categories && pursuit.pursuit_categories.slice(0, 2).map((category: string, index: number) => (
+                      <View key={`cat-${index}`} style={[styles.tag, styles.categoryTag]}>
+                        <Text style={[styles.tagText, styles.categoryTagText]}>{category}</Text>
+                      </View>
+                    ))}
+                    {/* Show +N if more items */}
+                    {((pursuit.pursuit_types?.length || 0) + (pursuit.pursuit_categories?.length || 0) > 4) && (
                       <View style={styles.tag}>
-                        <Text style={styles.tagText}>+{pursuit.pursuit_types.length - 3}</Text>
+                        <Text style={styles.tagText}>
+                          +{((pursuit.pursuit_types?.length || 0) + (pursuit.pursuit_categories?.length || 0)) - 4}
+                        </Text>
                       </View>
                     )}
                   </View>
@@ -850,6 +853,14 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.xs,
     fontWeight: typography.fontWeight.medium,
     color: colors.primary,
+  },
+
+  categoryTag: {
+    backgroundColor: colors.secondaryLight,
+  },
+
+  categoryTagText: {
+    color: colors.secondary,
   },
 
   // Divider

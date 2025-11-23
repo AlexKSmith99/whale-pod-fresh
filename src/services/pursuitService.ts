@@ -40,14 +40,12 @@ export const pursuitService = {
     }
 
     if (filters.category && filters.category.length > 0) {
-      // Use PostgreSQL overlap operator (&&) for arrays
+      // Filter by BOTH pursuit_categories array AND subcategory column
       // Convert JS array to PostgreSQL array literal format: {value1,value2}
       const pgArray = `{${filters.category.join(',')}}`;
-      query = query.filter('pursuit_categories', 'ov', pgArray);
-    }
 
-    if (filters.subcategory && filters.subcategory.length > 0) {
-      query = query.in('subcategory', filters.subcategory);
+      // Use OR to check both pursuit_categories (array) and subcategory (single value)
+      query = query.or(`pursuit_categories.ov.${pgArray},subcategory.in.(${filters.category.join(',')})`);
     }
 
     if (filters.location && filters.location.length > 0) {
