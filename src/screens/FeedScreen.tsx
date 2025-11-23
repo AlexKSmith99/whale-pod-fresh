@@ -37,9 +37,12 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
   const [showTeamSizeModal, setShowTeamSizeModal] = useState(false);
 
   useEffect(() => {
-    loadPursuits();
+    // Only load pursuits if no modals are open
+    if (!showStatusModal && !showPursuitTypeModal && !showCategoryModal &&
+        !showSubcategoryModal && !showLocationModal && !showTeamSizeModal) {
+      loadPursuits();
+    }
   }, [statusFilter, pursuitTypeFilter, categoryFilter, subcategoryFilter, locationFilter, teamSizeFilter]);
-
   const loadPursuits = async () => {
     try {
       const filters: any = {};
