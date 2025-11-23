@@ -34,12 +34,16 @@ export const pursuitService = {
 
     if (filters.pursuit_type && filters.pursuit_type.length > 0) {
       // Use PostgreSQL overlap operator (&&) for arrays
-      query = query.filter('pursuit_types', 'ov', filters.pursuit_type);
+      // Convert JS array to PostgreSQL array literal format: {value1,value2}
+      const pgArray = `{${filters.pursuit_type.join(',')}}`;
+      query = query.filter('pursuit_types', 'ov', pgArray);
     }
 
     if (filters.category && filters.category.length > 0) {
       // Use PostgreSQL overlap operator (&&) for arrays
-      query = query.filter('pursuit_categories', 'ov', filters.category);
+      // Convert JS array to PostgreSQL array literal format: {value1,value2}
+      const pgArray = `{${filters.category.join(',')}}`;
+      query = query.filter('pursuit_categories', 'ov', pgArray);
     }
 
     if (filters.subcategory && filters.subcategory.length > 0) {
