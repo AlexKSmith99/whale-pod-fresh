@@ -31,11 +31,13 @@ export const pursuitService = {
     }
 
     if (filters.pursuit_type && filters.pursuit_type.length > 0) {
-      query = query.in('pursuit_type', filters.pursuit_type);
+      // Use overlap operator for array column
+      query = query.overlaps('pursuit_types', filters.pursuit_type);
     }
 
     if (filters.category && filters.category.length > 0) {
-      query = query.in('category', filters.category);
+      // Use overlap operator for array column
+      query = query.overlaps('pursuit_categories', filters.category);
     }
 
     if (filters.subcategory && filters.subcategory.length > 0) {
