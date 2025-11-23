@@ -15,6 +15,8 @@ export const pursuitService = {
 
   // Get all pursuits with optional filters
   async getPursuits(filters: any = {}) {
+    console.log('🔍 getPursuits called with filters:', JSON.stringify(filters, null, 2));
+
     let query = supabase
       .from('pursuits')
       .select('*');
@@ -64,6 +66,16 @@ export const pursuitService = {
       console.error('Database query error:', error);
       throw error;
     }
+
+    console.log(`✅ Query returned ${data?.length || 0} pursuits`);
+    if (data && data.length > 0) {
+      console.log('First pursuit sample:', {
+        title: data[0].title,
+        pursuit_types: data[0].pursuit_types,
+        pursuit_categories: data[0].pursuit_categories,
+      });
+    }
+
     return data || [];
   },
 
