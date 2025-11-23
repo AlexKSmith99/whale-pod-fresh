@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, StatusBar, TextInput, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { pursuitService } from '../services/pursuitService';
@@ -126,14 +126,14 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
     );
   };
 
-  // Toggle filter selection
-  const toggleFilter = (filterArray: string[], setFilter: React.Dispatch<React.SetStateAction<string[]>>, value: string) => {
+  // Toggle filter selection - memoized to prevent modal re-renders
+  const toggleFilter = useCallback((filterArray: string[], setFilter: React.Dispatch<React.SetStateAction<string[]>>, value: string) => {
     if (filterArray.includes(value)) {
       setFilter(filterArray.filter(item => item !== value));
     } else {
       setFilter([...filterArray, value]);
     }
-  };
+  }, []);
 
   // Get active filter count for a category
   const getFilterCount = (filterArray: string[]) => {
