@@ -33,13 +33,13 @@ export const pursuitService = {
     }
 
     if (filters.pursuit_type && filters.pursuit_type.length > 0) {
-      // Use overlap operator for array column
-      query = query.overlaps('pursuit_types', filters.pursuit_type);
+      // Use PostgreSQL overlap operator (&&) for arrays
+      query = query.filter('pursuit_types', 'ov', filters.pursuit_type);
     }
 
     if (filters.category && filters.category.length > 0) {
-      // Use overlap operator for array column
-      query = query.overlaps('pursuit_categories', filters.category);
+      // Use PostgreSQL overlap operator (&&) for arrays
+      query = query.filter('pursuit_categories', 'ov', filters.category);
     }
 
     if (filters.subcategory && filters.subcategory.length > 0) {
