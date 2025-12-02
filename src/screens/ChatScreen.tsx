@@ -34,6 +34,7 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
     loadUserProfile();
     loadMyProfile();
     loadMessages();
+    markMessagesAsRead();
     const interval = setInterval(loadMessages, 3000);
     return () => clearInterval(interval);
   }, []);
@@ -82,6 +83,18 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
       console.error('Error loading messages:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const markMessagesAsRead = async () => {
+    try {
+      if (user) {
+        console.log('📧 Marking messages as read for conversation with:', partnerId);
+        await messageService.markConversationAsRead(user.id, partnerId);
+        console.log('✅ Messages marked as read successfully');
+      }
+    } catch (error) {
+      console.error('❌ Error marking messages as read:', error);
     }
   };
 

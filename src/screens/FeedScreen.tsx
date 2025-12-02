@@ -24,7 +24,6 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [pursuitTypeFilter, setPursuitTypeFilter] = useState<string[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
-  const [subcategoryFilter, setSubcategoryFilter] = useState<string[]>([]);
   const [locationFilter, setLocationFilter] = useState<string[]>([]);
   const [teamSizeFilter, setTeamSizeFilter] = useState<string[]>([]);
 
@@ -32,7 +31,6 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showPursuitTypeModal, setShowPursuitTypeModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [showSubcategoryModal, setShowSubcategoryModal] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [showTeamSizeModal, setShowTeamSizeModal] = useState(false);
 
@@ -40,7 +38,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
     // Load pursuits whenever filters change
     loadPursuits();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, pursuitTypeFilter, categoryFilter, subcategoryFilter, locationFilter, teamSizeFilter]);
+  }, [statusFilter, pursuitTypeFilter, categoryFilter, locationFilter, teamSizeFilter]);
   const loadPursuits = async () => {
     try {
       const filters: any = {};
@@ -55,14 +53,9 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
         filters.pursuit_type = pursuitTypeFilter;
       }
 
-      // Apply category filter
+      // Apply category filter (includes subcategories in backend query)
       if (categoryFilter.length > 0) {
         filters.category = categoryFilter;
-      }
-
-      // Apply subcategory filter
-      if (subcategoryFilter.length > 0) {
-        filters.subcategory = subcategoryFilter;
       }
 
       // Apply location filter
@@ -142,7 +135,6 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
     setStatusFilter([]);
     setPursuitTypeFilter([]);
     setCategoryFilter([]);
-    setSubcategoryFilter([]);
     setLocationFilter([]);
     setTeamSizeFilter([]);
   };
@@ -359,7 +351,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
         visible={showPursuitTypeModal}
         onClose={() => setShowPursuitTypeModal(false)}
         title="Filter by Pursuit Type"
-        options={['Startup', 'Side Project', 'Research', 'Creative', 'Community', 'Learning', 'Other']}
+        options={['Education', 'Friends', 'Problem', 'Business', 'Lifestyle', 'Hobby', 'Fitness', 'Side Hustle', 'Travel', 'Discussion', 'New Endeavor', 'Accountability', 'Networking']}
         selectedValues={pursuitTypeFilter}
         onToggle={(value) => toggleFilter(pursuitTypeFilter, setPursuitTypeFilter, value)}
       />
@@ -374,19 +366,10 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
       />
 
       <FilterModal
-        visible={showSubcategoryModal}
-        onClose={() => setShowSubcategoryModal(false)}
-        title="Filter by Sub-category"
-        options={['Web Development', 'Mobile Development', 'AI/ML', 'Design', 'Marketing', 'Sales', 'Operations', 'Finance', 'Other']}
-        selectedValues={subcategoryFilter}
-        onToggle={(value) => toggleFilter(subcategoryFilter, setSubcategoryFilter, value)}
-      />
-
-      <FilterModal
         visible={showLocationModal}
         onClose={() => setShowLocationModal(false)}
         title="Filter by Location"
-        options={['Remote', 'New York', 'San Francisco', 'Los Angeles', 'Chicago', 'Boston', 'Austin', 'Seattle', 'Other']}
+        options={['Remote', 'Hybrid', 'New York, NY', 'San Francisco, CA', 'Los Angeles, CA', 'Chicago, IL', 'Boston, MA', 'Austin, TX', 'Seattle, WA']}
         selectedValues={locationFilter}
         onToggle={(value) => toggleFilter(locationFilter, setLocationFilter, value)}
       />

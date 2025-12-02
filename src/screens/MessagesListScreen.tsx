@@ -20,8 +20,18 @@ export default function MessagesListScreen({ navigation }: any) {
   useEffect(() => {
     loadConversations();
     const interval = setInterval(loadConversations, 5000);
-    return () => clearInterval(interval);
-  }, []);
+
+    // Add focus listener to refresh when returning from chat
+    const unsubscribe = navigation?.addListener?.('focus', () => {
+      console.log('📧 Messages screen focused - refreshing conversations');
+      loadConversations();
+    });
+
+    return () => {
+      clearInterval(interval);
+      unsubscribe?.();
+    };
+  }, [navigation]);
 
   const loadConversations = async () => {
     try {
@@ -83,6 +93,33 @@ export default function MessagesListScreen({ navigation }: any) {
     }
   };
 
+  const handleConversationPress = async (item: any) => {
+    if (!item.partnerId || !user) return;
+
+    console.log('📧 Conversation tapped, marking as read:', item.partnerId);
+
+    // Optimistically update UI - mark as read immediately
+    setConversations(prevConversations =>
+      prevConversations.map(conv =>
+        conv.partnerId === item.partnerId
+          ? { ...conv, isRead: true }
+          : conv
+      )
+    );
+
+    // Mark as read in database (async, non-blocking)
+    messageService.markConversationAsRead(user.id, item.partnerId).catch(error => {
+      console.error('❌ Error marking conversation as read:', error);
+    });
+
+    // Navigate to chat
+    console.log('Navigating to chat with:', item.partnerId);
+    navigation.navigate('Chat', {
+      partnerId: item.partnerId,
+      partnerEmail: item.partnerProfile?.email || item.partnerEmail || 'User',
+    });
+  };
+
   const renderConversation = ({ item }: any) => {
     if (!item.partnerId) {
       return null;
@@ -91,13 +128,7 @@ export default function MessagesListScreen({ navigation }: any) {
     return (
       <TouchableOpacity
         style={styles.conversationCard}
-        onPress={() => {
-          console.log('Navigating to chat with:', item.partnerId);
-          navigation.navigate('Chat', {
-            partnerId: item.partnerId,
-            partnerEmail: item.partnerProfile?.email || item.partnerEmail || 'User',
-          });
-        }}
+        onPress={() => handleConversationPress(item)}
       >
         {item.partnerProfile?.profile_picture ? (
           <Image

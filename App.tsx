@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
-import { View, ActivityIndicator, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, ActivityIndicator, TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
+import { notificationService } from './src/services/notificationService';
+import { supabase } from './src/config/supabase';
+import NotificationToast from './src/components/NotificationToast';
 import LoginScreen from './src/screens/LoginScreen';
 import FeedScreen from './src/screens/FeedScreen';
 import CreateScreen from './src/screens/CreateScreen';
@@ -11,8 +14,12 @@ import MessagesListScreen from './src/screens/MessagesListScreen';
 import ChatScreen from './src/screens/ChatScreen';
 import TeamWorkspaceScreen from './src/screens/team/TeamWorkspaceScreen';
 import PodsScreen from './src/screens/PodsScreen';
+import CalendarScreen from './src/screens/CalendarScreen';
+import CreateMeetingScreen from './src/screens/CreateMeetingScreen';
 import ConnectionsScreen from './src/screens/connections/ConnectionsScreen';
 import PursuitDetailScreen from './src/screens/PursuitDetailScreen';
+import NotificationsScreen from './src/screens/NotificationsScreen';
+import EditPursuitScreen from './src/screens/EditPursuitScreen';
 // VideoCallScreen temporarily disabled for web - requires native modules
 // import VideoCallScreen from './src/screens/VideoCallScreen';
 
@@ -23,11 +30,112 @@ function AppContent() {
   const [chatPartnerEmail, setChatPartnerEmail] = useState<string | null>(null);
   const [teamBoardPursuitId, setTeamBoardPursuitId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [showCreateMeeting, setShowCreateMeeting] = useState(false);
+  const [editingPursuit, setEditingPursuit] = useState<any | null>(null);
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   const [showConnections, setShowConnections] = useState(false);
   const [viewingPodDetail, setViewingPodDetail] = useState<any | null>(null);
   const [videoCallChannel, setVideoCallChannel] = useState<string | null>(null);
   const [videoCallPodTitle, setVideoCallPodTitle] = useState<string>('');
+  const [badgeCounts, setBadgeCounts] = useState({
+    messages: 0,
+    connections: 0,
+    applications: 0,
+    pods: 0,
+    calendar: 0,
+    notifications: 0,
+  });
+  const [currentToast, setCurrentToast] = useState<any>(null);
+
+  // Load notification badge counts and set up real-time listener
+  useEffect(() => {
+    if (auth.user) {
+      loadBadgeCounts();
+
+      console.log('🔔 Setting up realtime notification listener for user:', auth.user.id);
+
+      // Set up real-time listener for new notifications
+      const channel = supabase
+        .channel('notifications')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${auth.user.id}`,
+          },
+          (payload) => {
+            console.log('🔔 NEW NOTIFICATION RECEIVED VIA REALTIME:', payload);
+            const newNotification = payload.new;
+
+            // Show toast
+            setCurrentToast({
+              title: newNotification.title,
+              body: newNotification.body,
+              type: newNotification.type,
+              id: newNotification.id,
+            });
+
+            // Refresh badge counts
+            loadBadgeCounts();
+          }
+        )
+        .subscribe((status, err) => {
+          console.log('🔔 Realtime subscription status:', status);
+          if (err) {
+            console.error('🔔 Realtime subscription error:', err);
+          }
+          if (status === 'SUBSCRIBED') {
+            console.log('🔔 Successfully subscribed to notifications channel');
+          }
+        });
+
+      // Refresh counts every 30 seconds as backup
+      const interval = setInterval(loadBadgeCounts, 30000);
+
+      return () => {
+        console.log('🔔 Cleaning up realtime subscription');
+        supabase.removeChannel(channel);
+        clearInterval(interval);
+      };
+    }
+  }, [auth.user]);
+
+  const loadBadgeCounts = async () => {
+    if (!auth.user) return;
+
+    try {
+      const counts = await notificationService.getUnreadCountsByType(auth.user.id);
+      const totalUnread = await notificationService.getUnreadCount(auth.user.id);
+      setBadgeCounts({
+        ...counts,
+        notifications: totalUnread,
+      });
+    } catch (error) {
+      console.error('Error loading badge counts:', error);
+    }
+  };
+
+  const clearBadgeForTab = async (tab: string) => {
+    if (!auth.user) return;
+
+    // Map tab to notification types
+    const typeMap: { [key: string]: string[] } = {
+      'Messages': ['message', 'new_message'],
+      'Pods': ['min_team_size_reached', 'kickoff_activated', 'time_proposal', 'team_board_update'],
+      'Calendar': ['kickoff_scheduled', 'kickoff_scheduled_creator', 'kickoff_scheduled_team', 'meeting', 'new_meeting'],
+      'Profile': ['connection_request', 'connection_accepted'],
+    };
+
+    const types = typeMap[tab];
+    if (types) {
+      for (const type of types) {
+        await notificationService.markAllAsReadByType(auth.user.id, type);
+      }
+      loadBadgeCounts();
+    }
+  };
 
   if (auth.loading) {
     return (
@@ -52,9 +160,19 @@ function AppContent() {
       } else if (screen === 'Chat' && params?.partnerId) {
         setChatPartnerId(params.partnerId);
         setChatPartnerEmail(params.partnerEmail || 'User');
+        setCurrentScreen('Messages');
       } else if (screen === 'Profile') {
         setCurrentScreen('Profile');
         setViewingUserId(null);
+      } else if (screen === 'PodDetail' && params?.pod) {
+        setViewingPodDetail(params.pod);
+        setCurrentScreen('Pods');
+      } else if (screen === 'Pods') {
+        setCurrentScreen('Pods');
+      } else if (screen === 'Calendar') {
+        setCurrentScreen('Calendar');
+      } else if (screen === 'Messages') {
+        setCurrentScreen('Messages');
       }
     },
     goBack: () => {
@@ -70,20 +188,54 @@ function AppContent() {
     },
   };
 
-  // Show Create screen as modal
-if (showCreate) {
-  return (
-    <View style={{ flex: 1 }}>
-      <CreateScreen />
-      <TouchableOpacity 
-        style={styles.closeCreateButton}
-        onPress={() => setShowCreate(false)}
-      >
-        <Text style={styles.closeCreateText}>✕ Close</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
+  // Show Create Pursuit screen as modal
+  if (showCreate) {
+    return (
+      <View style={{ flex: 1 }}>
+        <CreateScreen onClose={() => {
+          setShowCreate(false);
+          setCurrentScreen('Feed');
+        }} />
+        <TouchableOpacity
+          style={styles.closeCreateButton}
+          onPress={() => setShowCreate(false)}
+        >
+          <Text style={styles.closeCreateText}>✕ Close</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // Show Create Meeting screen as modal
+  if (showCreateMeeting) {
+    return (
+      <CreateMeetingScreen
+        onClose={() => setShowCreateMeeting(false)}
+        onMeetingCreated={() => {
+          // Refresh calendar if needed
+          setCurrentScreen('Calendar');
+        }}
+      />
+    );
+  }
+
+  // Show Edit Pursuit screen as modal
+  if (editingPursuit) {
+    return (
+      <EditPursuitScreen
+        pursuit={editingPursuit}
+        onClose={() => setEditingPursuit(null)}
+        onSaved={() => {
+          // Refresh pods screen
+          setCurrentScreen('Pods');
+        }}
+        onDeleted={() => {
+          // Go back to pods screen
+          setCurrentScreen('Pods');
+        }}
+      />
+    );
+  }
 
 // Video calls temporarily disabled for web development
 // Requires native modules (Agora) that don't work on web
@@ -163,6 +315,48 @@ if (viewingPodDetail) {
         setViewingPodDetail(null);
       }}
       isOwner={viewingPodDetail.creator_id === auth.user?.id || viewingPodDetail.is_creator}
+      onEdit={() => {
+        setEditingPursuit(viewingPodDetail);
+      }}
+      onDelete={async () => {
+        Alert.alert(
+          'Delete Pursuit',
+          'Are you sure you want to delete this pursuit? This action cannot be undone.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Delete',
+              style: 'destructive',
+              onPress: async () => {
+                try {
+                  const { error } = await supabase
+                    .from('pursuits')
+                    .delete()
+                    .eq('id', viewingPodDetail.id);
+
+                  if (error) throw error;
+
+                  Alert.alert('Success', 'Pursuit deleted successfully');
+                  setViewingPodDetail(null);
+                  setCurrentScreen('Pods');
+                } catch (error: any) {
+                  console.error('Error deleting pursuit:', error);
+                  Alert.alert('Error', error.message || 'Failed to delete pursuit');
+                }
+              },
+            },
+          ]
+        );
+      }}
+      onViewProfile={(userId, userEmail) => {
+        // If viewing own profile, go to Profile tab
+        if (userId === auth.user?.id) {
+          setViewingPodDetail(null);
+          setCurrentScreen('Profile');
+        } else {
+          setViewingUserId(userId);
+        }
+      }}
       onOpenTeamBoard={(pursuitId) => {
         setViewingPodDetail(null);
         setTeamBoardPursuitId(pursuitId);
@@ -201,6 +395,16 @@ if (teamBoardPursuitId) {
 
   return (
     <View style={{ flex: 1 }}>
+      <NotificationToast
+        notification={currentToast}
+        onPress={() => {
+          // Navigate to notifications tab when toast is tapped
+          setCurrentScreen('Notifications');
+          setCurrentToast(null);
+        }}
+        onDismiss={() => setCurrentToast(null)}
+      />
+
       {currentScreen === 'Feed' && (
         <FeedScreen 
           onStartMessage={startMessage} 
@@ -223,28 +427,112 @@ if (teamBoardPursuitId) {
           onOpenTeamBoard={openTeamBoard}
         />
       )}
+      {currentScreen === 'Calendar' && (
+        <CalendarScreen
+          onCreateMeeting={() => setShowCreateMeeting(true)}
+          onOpenMeeting={(meeting) => {
+            // TODO: Open meeting detail screen
+            Alert.alert('Meeting Details', `Opening ${meeting.title}`);
+          }}
+        />
+      )}
+      {currentScreen === 'Notifications' && <NotificationsScreen navigation={navigation} />}
       {currentScreen === 'Profile' && <ProfileScreen navigation={navigation} />}
-      
+
       <View style={styles.tabBar}>
         <TouchableOpacity style={styles.tab} onPress={() => setCurrentScreen('Feed')}>
           <Text style={[styles.tabText, currentScreen === 'Feed' && styles.tabTextActive]}>
             🏠 Feed
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.tab} onPress={() => setCurrentScreen('Messages')}>
-          <Text style={[styles.tabText, currentScreen === 'Messages' && styles.tabTextActive]}>
-            💬 Messages
-          </Text>
+        <TouchableOpacity
+          style={styles.tab}
+          onPress={() => {
+            setCurrentScreen('Messages');
+            clearBadgeForTab('Messages');
+          }}
+        >
+          <View style={styles.tabContent}>
+            <Text style={[styles.tabText, currentScreen === 'Messages' && styles.tabTextActive]}>
+              💬 Messages
+            </Text>
+            {badgeCounts.messages > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{badgeCounts.messages}</Text>
+              </View>
+            )}
+          </View>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.tab} onPress={() => setCurrentScreen('Pods')}>
-          <Text style={[styles.tabText, currentScreen === 'Pods' && styles.tabTextActive]}>
-            🐋 Pods
-          </Text>
+        <TouchableOpacity
+          style={styles.tab}
+          onPress={() => {
+            setCurrentScreen('Pods');
+            clearBadgeForTab('Pods');
+          }}
+        >
+          <View style={styles.tabContent}>
+            <Text style={[styles.tabText, currentScreen === 'Pods' && styles.tabTextActive]}>
+              🐋 Pods
+            </Text>
+            {badgeCounts.pods > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{badgeCounts.pods}</Text>
+              </View>
+            )}
+          </View>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.tab} onPress={() => setCurrentScreen('Profile')}>
-          <Text style={[styles.tabText, currentScreen === 'Profile' && styles.tabTextActive]}>
-            👤 Profile
-          </Text>
+        <TouchableOpacity
+          style={styles.tab}
+          onPress={() => {
+            setCurrentScreen('Calendar');
+            clearBadgeForTab('Calendar');
+          }}
+        >
+          <View style={styles.tabContent}>
+            <Text style={[styles.tabText, currentScreen === 'Calendar' && styles.tabTextActive]}>
+              📅 Calendar
+            </Text>
+            {badgeCounts.calendar > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{badgeCounts.calendar}</Text>
+              </View>
+            )}
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.tab}
+          onPress={() => {
+            setCurrentScreen('Notifications');
+          }}
+        >
+          <View style={styles.tabContent}>
+            <Text style={[styles.tabText, currentScreen === 'Notifications' && styles.tabTextActive]}>
+              🔔 Alerts
+            </Text>
+            {badgeCounts.notifications > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{badgeCounts.notifications}</Text>
+              </View>
+            )}
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.tab}
+          onPress={() => {
+            setCurrentScreen('Profile');
+            clearBadgeForTab('Profile');
+          }}
+        >
+          <View style={styles.tabContent}>
+            <Text style={[styles.tabText, currentScreen === 'Profile' && styles.tabTextActive]}>
+              👤 Profile
+            </Text>
+            {badgeCounts.connections > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{badgeCounts.connections}</Text>
+              </View>
+            )}
+          </View>
         </TouchableOpacity>
       </View>
     </View>
@@ -265,12 +553,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
   },
+  tabContent: {
+    position: 'relative',
+    alignItems: 'center',
+  },
   tabText: {
     fontSize: 14,
     color: '#999',
   },
   tabTextActive: {
     color: '#0ea5e9',
+    fontWeight: 'bold',
+  },
+  badge: {
+    position: 'absolute',
+    top: -8,
+    right: -12,
+    backgroundColor: '#ef4444',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 5,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 11,
     fontWeight: 'bold',
   },
   closeCreateButton: {

@@ -4,10 +4,14 @@ import {
   ChannelProfileType,
   ClientRoleType,
 } from 'react-native-agora';
+import { supabase } from '../config/supabase';
+
+// Your Agora App ID
+export const AGORA_APP_ID = '08f93099f0e34a699ca7b7deda9349a8';
 
 class AgoraService {
   private engine: IRtcEngine | null = null;
-  private appId: string = '';
+  private appId: string = AGORA_APP_ID;
 
   async initialize(appId: string) {
     this.appId = appId;
@@ -116,6 +120,68 @@ class AgoraService {
       this.engine = null;
       console.log('Agora engine destroyed');
     }
+  }
+
+  // Generate channel name from meeting ID
+  generateChannelName(meetingId: string): string {
+    return `meeting_${meetingId}`;
+  }
+
+  // Update meeting with Agora channel info
+  async updateMeetingAgoraInfo(meetingId: string, channelName: string) {
+    const { error } = await supabase
+      .from('meetings')
+      .update({ agora_channel_name: channelName })
+      .eq('id', meetingId);
+
+    if (error) throw error;
+  }
+
+  // Track when user joins meeting
+  async trackUserJoined(meetingId: string, userId: string) {
+    const { error } = await supabase
+      .from('meeting_participants')
+      .update({ joined_at: new Date().toISOString() })
+      .eq('meeting_id', meetingId)
+      .eq('user_id', userId);
+
+    if (error) console.error('Failed to track user joined:', error);
+  }
+
+  // Track when user leaves meeting
+  async trackUserLeft(meetingId: string, userId: string) {
+    const { error } = await supabase
+      .from('meeting_participants')
+      .update({ left_at: new Date().toISOString() })
+      .eq('meeting_id', meetingId)
+      .eq('user_id', userId);
+
+    if (error) console.error('Failed to track user left:', error);
+  }
+
+  // Start recording (placeholder for cloud recording)
+  async startRecording(meetingId: string) {
+    // TODO: Implement Agora Cloud Recording
+    // For now, just mark as enabled in database
+    const { error } = await supabase
+      .from('meetings')
+      .update({ recording_enabled: true })
+      .eq('id', meetingId);
+
+    if (error) console.error('Failed to start recording:', error);
+  }
+
+  // Stop recording
+  async stopRecording(meetingId: string, recordingUrl?: string) {
+    const { error } = await supabase
+      .from('meetings')
+      .update({
+        recording_enabled: false,
+        recording_url: recordingUrl || null,
+      })
+      .eq('id', meetingId);
+
+    if (error) console.error('Failed to stop recording:', error);
   }
 }
 

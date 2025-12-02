@@ -2,15 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { applicationService } from '../services/applicationService';
+import { meetingService } from '../services/meetingService';
+import { notificationService } from '../services/notificationService';
 import { supabase } from '../config/supabase';
 import ApplicationScreen from './ApplicationScreen';
 import ApplicationsReviewScreen from './ApplicationsReviewScreen';
 import UserProfileScreen from './UserProfileScreen';
+import TimeSlotProposalScreen from './TimeSlotProposalScreen';
+import KickoffSchedulingScreen from './KickoffSchedulingScreen';
 
 interface Props {
   pursuit: any;
   onBack: () => void;
   onDelete?: () => void;
+  onEdit?: () => void;
   isOwner: boolean;
   onViewProfile?: (userId: string, userEmail: string) => void;
   onSendMessage?: (userId: string, userEmail: string) => void;
@@ -18,17 +23,27 @@ interface Props {
   onOpenMeetingNotes?: (pursuitId: string) => void;
 }
 
-export default function PursuitDetailScreen({ pursuit, onBack, onDelete, isOwner, onViewProfile, onSendMessage, onOpenTeamBoard }: Props) {
+export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit, isOwner, onViewProfile, onSendMessage, onOpenTeamBoard }: Props) {
   const { user } = useAuth();
   const [showApplicationForm, setShowApplicationForm] = useState(false);
   const [showApplicationsReview, setShowApplicationsReview] = useState(false);
   const [hasApplied, setHasApplied] = useState(false);
   const [showUserProfile, setShowUserProfile] = useState(false);
   const [creatorProfile, setCreatorProfile] = useState<any>(null);
+  const [nextMeeting, setNextMeeting] = useState<any>(null);
+  const [canActivateKickoff, setCanActivateKickoff] = useState(false);
+  const [showTimeSlotProposal, setShowTimeSlotProposal] = useState(false);
+  const [hasSubmittedProposal, setHasSubmittedProposal] = useState(false);
+  const [showKickoffScheduling, setShowKickoffScheduling] = useState(false);
+  const [isTeamMember, setIsTeamMember] = useState(false);
 
   useEffect(() => {
     checkIfApplied();
     loadCreatorProfile();
+    loadNextMeeting();
+    checkKickoffEligibility();
+    checkProposalStatus();
+    checkTeamMembership();
   }, []);
 
   const checkIfApplied = async () => {
@@ -52,6 +67,140 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, isOwner
       console.error('Error loading creator profile:', error);
     }
   };
+
+  const loadNextMeeting = async () => {
+    try {
+      const meeting = await meetingService.getNextPursuitMeeting(pursuit.id);
+      setNextMeeting(meeting);
+    } catch (error) {
+      console.error('Error loading next meeting:', error);
+    }
+  };
+
+  const checkKickoffEligibility = () => {
+    // Can activate kickoff if:
+    // 1. User is the owner
+    // 2. Status is 'awaiting_kickoff'
+    // 3. Current members >= minimum team size
+    const minSize = pursuit.team_size_min || 2;
+    const eligible = isOwner &&
+                     pursuit.status === 'awaiting_kickoff' &&
+                     pursuit.current_members_count >= minSize;
+    setCanActivateKickoff(eligible);
+  };
+
+  const checkProposalStatus = async () => {
+    if (!user || isOwner) return;
+
+    try {
+      const proposals = await meetingService.getKickoffProposals(pursuit.id);
+      const userProposal = proposals?.find((p: any) => p.user_id === user.id);
+      setHasSubmittedProposal(!!userProposal);
+    } catch (error) {
+      console.error('Error checking proposal status:', error);
+    }
+  };
+
+  const checkTeamMembership = async () => {
+    if (!user || isOwner) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('team_members')
+        .select('status')
+        .eq('pursuit_id', pursuit.id)
+        .eq('user_id', user.id)
+        .in('status', ['active', 'accepted'])
+        .single();
+
+      setIsTeamMember(!!data && !error);
+    } catch (error) {
+      console.error('Error checking team membership:', error);
+      setIsTeamMember(false);
+    }
+  };
+
+  const handleActivateKickoff = async () => {
+    Alert.alert(
+      'Activate Kickoff',
+      `Your team has reached the minimum size (${pursuit.current_members_count}/${pursuit.team_size_min}). Activating kickoff will prompt all team members to propose available meeting times.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Activate',
+          onPress: async () => {
+            try {
+              // Update pursuit status to prompt time slot proposals
+              const { error } = await supabase
+                .from('pursuits')
+                .update({ status: 'collecting_proposals' })
+                .eq('id', pursuit.id);
+
+              if (error) throw error;
+
+              // Send notification to all team members (excluding creator)
+              try {
+                const { data: teamMembers } = await supabase
+                  .from('team_members')
+                  .select('user_id')
+                  .eq('pursuit_id', pursuit.id)
+                  .in('status', ['active', 'accepted'])
+                  .neq('user_id', user!.id);
+
+                if (teamMembers && teamMembers.length > 0) {
+                  const teamMemberIds = teamMembers.map(tm => tm.user_id);
+                  const creatorName = user?.name || user?.email || 'The creator';
+                  await notificationService.notifyKickoffActivated(
+                    teamMemberIds,
+                    pursuit.id,
+                    pursuit.title,
+                    creatorName
+                  );
+                }
+              } catch (notifError) {
+                console.error('Error sending kickoff notification:', notifError);
+                // Don't throw - notification failure shouldn't block activation
+              }
+
+              Alert.alert('Success!', 'Kickoff activated! Team members will be prompted to propose meeting times.');
+              onBack(); // Refresh by going back
+            } catch (error: any) {
+              console.error('Error activating kickoff:', error);
+              Alert.alert('Error', error.message || 'Failed to activate kickoff');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  if (showKickoffScheduling) {
+    return (
+      <KickoffSchedulingScreen
+        pursuitId={pursuit.id}
+        pursuitTitle={pursuit.title}
+        onClose={() => setShowKickoffScheduling(false)}
+        onScheduled={() => {
+          setShowKickoffScheduling(false);
+          onBack(); // Refresh the pursuit detail
+        }}
+      />
+    );
+  }
+
+  if (showTimeSlotProposal) {
+    return (
+      <TimeSlotProposalScreen
+        pursuitId={pursuit.id}
+        pursuitTitle={pursuit.title}
+        onClose={() => setShowTimeSlotProposal(false)}
+        onSubmitted={() => {
+          setHasSubmittedProposal(true);
+          setShowTimeSlotProposal(false);
+        }}
+      />
+    );
+  }
 
   if (showUserProfile && onViewProfile && onSendMessage) {
     // Create navigation object to match UserProfileScreen expectations
@@ -174,6 +323,30 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, isOwner
           </View>
         )}
 
+        {pursuit.pursuit_categories && pursuit.pursuit_categories.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Categories</Text>
+            <View style={styles.tagContainer}>
+              {pursuit.pursuit_categories.map((category: string, i: number) => (
+                <View key={i} style={[styles.tag, styles.categoryTag]}>
+                  <Text style={[styles.tagText, styles.categoryTagText]}>{category}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {pursuit.subcategory && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Sub-category</Text>
+            <View style={styles.tagContainer}>
+              <View style={[styles.tag, styles.subcategoryTag]}>
+                <Text style={[styles.tagText, styles.subcategoryTagText]}>{pursuit.subcategory}</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Decision System</Text>
           <Text style={styles.detailValue}>
@@ -181,15 +354,103 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, isOwner
           </Text>
         </View>
 
+        {/* Next Meeting Section */}
+        {nextMeeting && (
+          <View style={[styles.section, styles.nextMeetingSection]}>
+            <Text style={styles.sectionTitle}>📅 Next Meeting</Text>
+            <View style={styles.nextMeetingCard}>
+              <Text style={styles.nextMeetingTitle}>{nextMeeting.title}</Text>
+              <Text style={styles.nextMeetingTime}>
+                {new Date(nextMeeting.scheduled_time).toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  month: 'long',
+                  day: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit'
+                })}
+              </Text>
+              <View style={styles.nextMeetingDetails}>
+                <Text style={styles.nextMeetingDetail}>
+                  ⏱️ {nextMeeting.duration_minutes} min
+                </Text>
+                <Text style={styles.nextMeetingDetail}>
+                  📍 {nextMeeting.meeting_type === 'video' ? 'Video Call' :
+                      nextMeeting.meeting_type === 'in_person' ? 'In Person' : 'Hybrid'}
+                </Text>
+              </View>
+              {nextMeeting.is_kickoff && (
+                <View style={styles.kickoffBadge}>
+                  <Text style={styles.kickoffBadgeText}>🚀 KICKOFF MEETING</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* Activate Kickoff Button */}
+        {canActivateKickoff && (
+          <TouchableOpacity
+            style={styles.activateKickoffButton}
+            onPress={handleActivateKickoff}
+          >
+            <Text style={styles.activateKickoffText}>
+              🚀 Activate Kickoff ({pursuit.current_members_count}/{pursuit.team_size_min} members ready)
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Schedule Kickoff Button (for creator when collecting proposals) */}
+        {isOwner && pursuit.status === 'collecting_proposals' && (
+          <TouchableOpacity
+            style={styles.scheduleKickoffButton}
+            onPress={() => setShowKickoffScheduling(true)}
+          >
+            <Text style={styles.scheduleKickoffText}>
+              📅 Review Proposals & Schedule Kickoff
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Time Slot Proposal Button (for team members) */}
+        {!isOwner && isTeamMember && pursuit.status === 'collecting_proposals' && (
+          <>
+            {hasSubmittedProposal ? (
+              <View style={styles.proposalSubmittedBadge}>
+                <Text style={styles.proposalSubmittedText}>✓ Time Proposals Submitted</Text>
+                <Text style={styles.proposalSubmittedSubtext}>
+                  Waiting for team creator to select final time
+                </Text>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.proposeTimesButton}
+                onPress={() => setShowTimeSlotProposal(true)}
+              >
+                <Text style={styles.proposeTimesText}>
+                  📅 Propose Available Times
+                </Text>
+              </TouchableOpacity>
+            )}
+          </>
+        )}
+
         {isOwner && onOpenTeamBoard && (
           <View style={styles.ownerActions}>
-            <TouchableOpacity 
+            {onEdit && (
+              <TouchableOpacity
+                style={styles.editButton}
+                onPress={onEdit}
+              >
+                <Text style={styles.editButtonText}>✏️ Edit Pursuit</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
               style={styles.teamBoardButton}
               onPress={() => onOpenTeamBoard(pursuit.id)}
             >
               <Text style={styles.teamBoardButtonText}>📋 Team Board</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.reviewButton}
               onPress={() => setShowApplicationsReview(true)}
             >
@@ -270,7 +531,13 @@ const styles = StyleSheet.create({
   tagContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   tag: { backgroundColor: '#e0f2fe', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },
   tagText: { color: '#0369a1', fontSize: 13, fontWeight: '500' },
+  categoryTag: { backgroundColor: '#bae6fd' },
+  categoryTagText: { color: '#0c4a6e' },
+  subcategoryTag: { backgroundColor: '#ddd6fe' },
+  subcategoryTagText: { color: '#5b21b6' },
   ownerActions: { marginTop: 20, gap: 12 },
+  editButton: { backgroundColor: '#f59e0b', borderRadius: 8, padding: 16, alignItems: 'center' },
+  editButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   teamBoardButton: { backgroundColor: '#8b5cf6', borderRadius: 8, padding: 16, alignItems: 'center' },
   teamBoardButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   reviewButton: { backgroundColor: '#0ea5e9', borderRadius: 8, padding: 16, alignItems: 'center' },
@@ -281,4 +548,21 @@ const styles = StyleSheet.create({
   applyButtonText: { color: '#fff', fontSize: 17, fontWeight: 'bold' },
   appliedBadge: { backgroundColor: '#d1fae5', borderRadius: 12, padding: 18, alignItems: 'center', marginTop: 20, borderWidth: 2, borderColor: '#10b981' },
   appliedText: { color: '#10b981', fontSize: 17, fontWeight: 'bold' },
+  nextMeetingSection: { backgroundColor: '#f0f9ff', borderWidth: 2, borderColor: '#0ea5e9' },
+  nextMeetingCard: { paddingTop: 8 },
+  nextMeetingTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 8 },
+  nextMeetingTime: { fontSize: 15, color: '#0ea5e9', fontWeight: '600', marginBottom: 12 },
+  nextMeetingDetails: { flexDirection: 'row', gap: 16, marginBottom: 12 },
+  nextMeetingDetail: { fontSize: 14, color: '#666' },
+  kickoffBadge: { backgroundColor: '#f59e0b', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, alignSelf: 'flex-start' },
+  kickoffBadgeText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
+  activateKickoffButton: { backgroundColor: '#f59e0b', borderRadius: 12, padding: 18, alignItems: 'center', marginTop: 20, shadowColor: '#f59e0b', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
+  activateKickoffText: { color: '#fff', fontSize: 17, fontWeight: 'bold' },
+  scheduleKickoffButton: { backgroundColor: '#10b981', borderRadius: 12, padding: 18, alignItems: 'center', marginTop: 20, shadowColor: '#10b981', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
+  scheduleKickoffText: { color: '#fff', fontSize: 17, fontWeight: 'bold' },
+  proposeTimesButton: { backgroundColor: '#0ea5e9', borderRadius: 12, padding: 18, alignItems: 'center', marginTop: 20, shadowColor: '#0ea5e9', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
+  proposeTimesText: { color: '#fff', fontSize: 17, fontWeight: 'bold' },
+  proposalSubmittedBadge: { backgroundColor: '#e0f2fe', borderRadius: 12, padding: 18, alignItems: 'center', marginTop: 20, borderWidth: 2, borderColor: '#0ea5e9' },
+  proposalSubmittedText: { color: '#0ea5e9', fontSize: 17, fontWeight: 'bold', marginBottom: 4 },
+  proposalSubmittedSubtext: { color: '#0369a1', fontSize: 14 },
 });

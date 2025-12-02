@@ -1,13 +1,68 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Switch } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Switch, Modal, FlatList } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { pursuitService } from '../services/pursuitService';
 
-const PURSUIT_TYPES = ['Education', 'Friends', 'Problem', 'Business', 'Lifestyle', 'Hobby', 'Side Hustle', 'Travel', 'Discussion', 'New Endeavor', 'Accountability'];
+const PURSUIT_TYPES = ['Education', 'Friends', 'Problem', 'Business', 'Lifestyle', 'Hobby', 'Fitness', 'Side Hustle', 'Travel', 'Discussion', 'New Endeavor', 'Accountability', 'Networking'];
 const DECISION_SYSTEMS = ['Standard Vote', 'Admin Has Ultimate Say', 'Delegated', 'Weighted Voting'];
 const ATTENDANCE_STYLES = ['Mandatory', 'Optional', 'Frequent'];
 
-export default function CreateScreen() {
+const US_STATES = [
+  { name: 'Alabama', abbr: 'AL' }, { name: 'Alaska', abbr: 'AK' }, { name: 'Arizona', abbr: 'AZ' }, { name: 'Arkansas', abbr: 'AR' },
+  { name: 'California', abbr: 'CA' }, { name: 'Colorado', abbr: 'CO' }, { name: 'Connecticut', abbr: 'CT' }, { name: 'Delaware', abbr: 'DE' },
+  { name: 'Florida', abbr: 'FL' }, { name: 'Georgia', abbr: 'GA' }, { name: 'Hawaii', abbr: 'HI' }, { name: 'Idaho', abbr: 'ID' },
+  { name: 'Illinois', abbr: 'IL' }, { name: 'Indiana', abbr: 'IN' }, { name: 'Iowa', abbr: 'IA' }, { name: 'Kansas', abbr: 'KS' },
+  { name: 'Kentucky', abbr: 'KY' }, { name: 'Louisiana', abbr: 'LA' }, { name: 'Maine', abbr: 'ME' }, { name: 'Maryland', abbr: 'MD' },
+  { name: 'Massachusetts', abbr: 'MA' }, { name: 'Michigan', abbr: 'MI' }, { name: 'Minnesota', abbr: 'MN' }, { name: 'Mississippi', abbr: 'MS' },
+  { name: 'Missouri', abbr: 'MO' }, { name: 'Montana', abbr: 'MT' }, { name: 'Nebraska', abbr: 'NE' }, { name: 'Nevada', abbr: 'NV' },
+  { name: 'New Hampshire', abbr: 'NH' }, { name: 'New Jersey', abbr: 'NJ' }, { name: 'New Mexico', abbr: 'NM' }, { name: 'New York', abbr: 'NY' },
+  { name: 'North Carolina', abbr: 'NC' }, { name: 'North Dakota', abbr: 'ND' }, { name: 'Ohio', abbr: 'OH' }, { name: 'Oklahoma', abbr: 'OK' },
+  { name: 'Oregon', abbr: 'OR' }, { name: 'Pennsylvania', abbr: 'PA' }, { name: 'Rhode Island', abbr: 'RI' }, { name: 'South Carolina', abbr: 'SC' },
+  { name: 'South Dakota', abbr: 'SD' }, { name: 'Tennessee', abbr: 'TN' }, { name: 'Texas', abbr: 'TX' }, { name: 'Utah', abbr: 'UT' },
+  { name: 'Vermont', abbr: 'VT' }, { name: 'Virginia', abbr: 'VA' }, { name: 'Washington', abbr: 'WA' }, { name: 'West Virginia', abbr: 'WV' },
+  { name: 'Wisconsin', abbr: 'WI' }, { name: 'Wyoming', abbr: 'WY' }
+];
+
+const US_CITIES = [
+  'New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix', 'Philadelphia', 'San Antonio', 'San Diego', 'Dallas', 'San Jose',
+  'Austin', 'Jacksonville', 'Fort Worth', 'Columbus', 'Charlotte', 'San Francisco', 'Indianapolis', 'Seattle', 'Denver', 'Washington',
+  'Boston', 'El Paso', 'Nashville', 'Detroit', 'Oklahoma City', 'Portland', 'Las Vegas', 'Memphis', 'Louisville', 'Baltimore',
+  'Milwaukee', 'Albuquerque', 'Tucson', 'Fresno', 'Mesa', 'Sacramento', 'Atlanta', 'Kansas City', 'Colorado Springs', 'Omaha',
+  'Raleigh', 'Miami', 'Long Beach', 'Virginia Beach', 'Oakland', 'Minneapolis', 'Tulsa', 'Tampa', 'Arlington', 'New Orleans',
+  'Wichita', 'Cleveland', 'Bakersfield', 'Aurora', 'Anaheim', 'Honolulu', 'Santa Ana', 'Riverside', 'Corpus Christi', 'Lexington',
+  'Henderson', 'Stockton', 'Saint Paul', 'Cincinnati', 'St. Louis', 'Pittsburgh', 'Greensboro', 'Lincoln', 'Anchorage', 'Plano',
+  'Orlando', 'Irvine', 'Newark', 'Durham', 'Chula Vista', 'Toledo', 'Fort Wayne', 'St. Petersburg', 'Laredo', 'Jersey City',
+  'Chandler', 'Madison', 'Lubbock', 'Scottsdale', 'Reno', 'Buffalo', 'Gilbert', 'Glendale', 'North Las Vegas', 'Winston-Salem',
+  'Chesapeake', 'Norfolk', 'Fremont', 'Garland', 'Irving', 'Hialeah', 'Richmond', 'Boise', 'Spokane', 'Baton Rouge',
+  'Tacoma', 'San Bernardino', 'Modesto', 'Fontana', 'Des Moines', 'Moreno Valley', 'Santa Clarita', 'Fayetteville', 'Birmingham', 'Oxnard',
+  'Rochester', 'Port St. Lucie', 'Grand Rapids', 'Huntsville', 'Salt Lake City', 'Frisco', 'Yonkers', 'Amarillo', 'Glendale', 'Huntington Beach',
+  'McKinney', 'Montgomery', 'Augusta', 'Aurora', 'Akron', 'Little Rock', 'Tempe', 'Columbus', 'Overland Park', 'Grand Prairie',
+  'Tallahassee', 'Cape Coral', 'Mobile', 'Knoxville', 'Shreveport', 'Worcester', 'Ontario', 'Vancouver', 'Sioux Falls', 'Chattanooga',
+  'Brownsville', 'Fort Lauderdale', 'Providence', 'Newport News', 'Rancho Cucamonga', 'Santa Rosa', 'Peoria', 'Oceanside', 'Elk Grove', 'Salem',
+  'Pembroke Pines', 'Eugene', 'Garden Grove', 'Cary', 'Fort Collins', 'Corona', 'Springfield', 'Jackson', 'Alexandria', 'Hayward',
+  'Clarksville', 'Lakewood', 'Lancaster', 'Salinas', 'Palmdale', 'Hollywood', 'Springfield', 'Macon', 'Kansas City', 'Sunnyvale',
+  'Pomona', 'Killeen', 'Escondido', 'Pasadena', 'Naperville', 'Bellevue', 'Joliet', 'Murfreesboro', 'Midland', 'Rockford',
+  'Paterson', 'Savannah', 'Bridgeport', 'Torrance', 'McAllen', 'Syracuse', 'Surprise', 'Denton', 'Roseville', 'Thornton',
+  'Miramar', 'Pasadena', 'Mesquite', 'Olathe', 'Dayton', 'Carrollton', 'Waco', 'Orange', 'Fullerton', 'Charleston',
+  'West Valley City', 'Visalia', 'Hampton', 'Gainesville', 'Warren', 'Coral Springs', 'Cedar Rapids', 'Round Rock', 'Sterling Heights', 'Kent',
+  'Columbia', 'Santa Clara', 'New Haven', 'Stamford', 'Concord', 'Elizabeth', 'Athens', 'Thousand Oaks', 'Lafayette', 'Simi Valley',
+  'Topeka', 'Norman', 'Fargo', 'Wilmington', 'Abilene', 'Odessa', 'Columbia', 'Pearland', 'Victorville', 'Hartford',
+  'Vallejo', 'Allentown', 'Berkeley', 'Richardson', 'Arvada', 'Ann Arbor', 'Rochester', 'Cambridge', 'Sugar Land', 'Lansing',
+  'Evansville', 'College Station', 'Fairfield', 'Clearwater', 'Beaumont', 'Independence', 'Provo', 'West Jordan', 'Murrieta', 'Palm Bay',
+  'El Monte', 'Carlsbad', 'North Charleston', 'Temecula', 'Clovis', 'Springfield', 'Meridian', 'Westminster', 'Costa Mesa', 'High Point',
+  'Manchester', 'Pueblo', 'Lakeland', 'Pompano Beach', 'West Palm Beach', 'Antioch', 'Everett', 'Downey', 'Lowell', 'Centennial',
+  'Elgin', 'Richmond', 'Peoria', 'Broken Arrow', 'Miami Gardens', 'Billings', 'Jurupa Valley', 'Sandy Springs', 'Gresham', 'Lewisville',
+  'Hillsboro', 'Ventura', 'Greeley', 'Inglewood', 'Waterbury', 'League City', 'Santa Maria', 'Tyler', 'Davie', 'Lakewood',
+  'Daly City', 'Boulder', 'Allen', 'West Covina', 'Sparks', 'Wichita Falls', 'Green Bay', 'San Mateo', 'Norwalk', 'Rialto',
+  'Las Cruces', 'Chico', 'El Cajon', 'Burbank', 'South Bend', 'Renton', 'Vista', 'Davenport', 'Edinburg', 'Tuscaloosa',
+  'Carmel', 'Spokane Valley', 'San Angelo', 'Vacaville', 'Clinton', 'Bend', 'Woodbridge'
+];
+
+interface Props {
+  onClose?: () => void;
+}
+
+export default function CreateScreen({ onClose }: Props = {}) {
   const { user } = useAuth();
   
   // Basic Info
@@ -16,7 +71,12 @@ export default function CreateScreen() {
   const [teamSizeMin, setTeamSizeMin] = useState('2');
   const [teamSizeMax, setTeamSizeMax] = useState('8');
   const [teamSizeFlexible, setTeamSizeFlexible] = useState(false);
-  const [location, setLocation] = useState('');
+  const [locationTypes, setLocationTypes] = useState<string[]>([]);
+  const [locationCity, setLocationCity] = useState('');
+  const [locationState, setLocationState] = useState('');
+  const [citySearchQuery, setCitySearchQuery] = useState('');
+  const [showCitySuggestions, setShowCitySuggestions] = useState(false);
+  const [showStateModal, setShowStateModal] = useState(false);
   const [projectedDuration, setProjectedDuration] = useState('');
   
   // Types & Categories
@@ -59,9 +119,36 @@ export default function CreateScreen() {
     }
   };
 
+  const toggleLocationType = (type: string) => {
+    if (locationTypes.includes(type)) {
+      setLocationTypes(locationTypes.filter(t => t !== type));
+    } else {
+      setLocationTypes([...locationTypes, type]);
+    }
+  };
+
+  const handleCitySearch = (text: string) => {
+    setCitySearchQuery(text);
+    if (text.trim().length > 0) {
+      setShowCitySuggestions(true);
+    } else {
+      setShowCitySuggestions(false);
+    }
+  };
+
+  const selectCity = (city: string) => {
+    setLocationCity(city);
+    setCitySearchQuery(city);
+    setShowCitySuggestions(false);
+  };
+
+  const filteredCities = US_CITIES.filter(city =>
+    city.toLowerCase().startsWith(citySearchQuery.toLowerCase())
+  ).slice(0, 10);
+
   const handleCreate = async () => {
     // Validation
-    if (!title || !description || !location || !meetingCadence) {
+    if (!title || !description || !meetingCadence) {
       Alert.alert('Missing Fields', 'Please fill in all required fields (marked with *)');
       return;
     }
@@ -76,6 +163,42 @@ export default function CreateScreen() {
       return;
     }
 
+    // Location validation
+    if (locationTypes.length === 0) {
+      Alert.alert('Missing Location', 'Please select at least one location type (In-person, Hybrid, or Remote)');
+      return;
+    }
+
+    // Check if city and state are required (in-person or hybrid selected)
+    const requiresLocation = locationTypes.includes('In-person') || locationTypes.includes('Hybrid');
+    if (requiresLocation && !locationCity.trim()) {
+      Alert.alert('Missing City', 'Please select a city');
+      return;
+    }
+    if (requiresLocation && !locationState.trim()) {
+      Alert.alert('Missing State', 'Please select a state');
+      return;
+    }
+
+    // Build location string
+    let locationString = '';
+    const cityStateString = `${locationCity}, ${locationState}`;
+
+    if (locationTypes.includes('Remote') && locationTypes.length === 1) {
+      locationString = 'Remote';
+    } else if (locationTypes.includes('In-person') && !locationTypes.includes('Hybrid') && !locationTypes.includes('Remote')) {
+      locationString = cityStateString;
+    } else if (locationTypes.includes('Hybrid') && !locationTypes.includes('In-person') && !locationTypes.includes('Remote')) {
+      locationString = `Hybrid - ${cityStateString}`;
+    } else {
+      // Multiple types selected
+      const parts: string[] = [];
+      if (locationTypes.includes('Remote')) parts.push('Remote');
+      if (locationTypes.includes('In-person')) parts.push(cityStateString);
+      if (locationTypes.includes('Hybrid')) parts.push(`Hybrid - ${cityStateString}`);
+      locationString = parts.join(', ');
+    }
+
     setLoading(true);
     try {
       await pursuitService.createPursuit({
@@ -85,7 +208,7 @@ export default function CreateScreen() {
         team_size_min: parseInt(teamSizeMin) || 2,
         team_size_max: parseInt(teamSizeMax) || 8,
         team_size_flexible: teamSizeFlexible,
-        location,
+        location: locationString,
         projected_duration: projectedDuration || null,
         pursuit_types: selectedTypes,
         pursuit_categories: categories ? categories.split(',').map(c => c.trim()) : [],
@@ -117,7 +240,11 @@ export default function CreateScreen() {
           setTeamSizeMin('2');
           setTeamSizeMax('8');
           setTeamSizeFlexible(false);
-          setLocation('');
+          setLocationTypes([]);
+          setLocationCity('');
+          setLocationState('');
+          setCitySearchQuery('');
+          setShowCitySuggestions(false);
           setProjectedDuration('');
           setSelectedTypes([]);
           setCategories('');
@@ -137,6 +264,8 @@ export default function CreateScreen() {
           setRequiresInterview(false);
           setRequiresResume(false);
           setApplicationQuestions('');
+          // Close modal and return to feed
+          onClose?.();
         }}
       ]);
     } catch (error: any) {
@@ -208,13 +337,62 @@ export default function CreateScreen() {
               <Switch value={teamSizeFlexible} onValueChange={setTeamSizeFlexible} />
             </View>
 
-            <Text style={styles.label}>Location *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Remote, New York, Hybrid"
-              value={location}
-              onChangeText={setLocation}
-            />
+            <Text style={styles.label}>Location Type * (Select all that apply)</Text>
+            <Text style={styles.hint}>Select In-person, Hybrid, and/or Remote</Text>
+            <View style={styles.chipContainer}>
+              {['In-person', 'Hybrid', 'Remote'].map((type) => (
+                <TouchableOpacity
+                  key={type}
+                  style={[styles.chip, locationTypes.includes(type) && styles.chipSelected]}
+                  onPress={() => toggleLocationType(type)}
+                >
+                  <Text style={[styles.chipText, locationTypes.includes(type) && styles.chipTextSelected]}>
+                    {type}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {(locationTypes.includes('In-person') || locationTypes.includes('Hybrid')) && (
+              <>
+                <Text style={styles.label}>City *</Text>
+                <Text style={styles.hint}>Start typing to search cities</Text>
+                <View>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Search city (e.g., Austin)"
+                    value={citySearchQuery}
+                    onChangeText={handleCitySearch}
+                    autoCapitalize="words"
+                  />
+                  {showCitySuggestions && filteredCities.length > 0 && (
+                    <View style={styles.suggestionsContainer}>
+                      <ScrollView style={styles.suggestionsList} keyboardShouldPersistTaps="handled">
+                        {filteredCities.map((city, index) => (
+                          <TouchableOpacity
+                            key={index}
+                            style={styles.suggestionItem}
+                            onPress={() => selectCity(city)}
+                          >
+                            <Text style={styles.suggestionText}>{city}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  )}
+                </View>
+
+                <Text style={styles.label}>State *</Text>
+                <TouchableOpacity
+                  style={[styles.input, styles.pickerButton]}
+                  onPress={() => setShowStateModal(true)}
+                >
+                  <Text style={locationState ? styles.pickerButtonTextSelected : styles.pickerButtonText}>
+                    {locationState || 'Select state'}
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
 
             <Text style={styles.label}>Projected Duration (optional)</Text>
             <TextInput
@@ -432,6 +610,40 @@ export default function CreateScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* State Picker Modal */}
+      <Modal
+        visible={showStateModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowStateModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select State</Text>
+              <TouchableOpacity onPress={() => setShowStateModal(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={US_STATES}
+              keyExtractor={(item) => item.abbr}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.stateItem}
+                  onPress={() => {
+                    setLocationState(item.abbr);
+                    setShowStateModal(false);
+                  }}
+                >
+                  <Text style={styles.stateText}>{item.name} ({item.abbr})</Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -514,4 +726,83 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: { opacity: 0.6 },
   buttonText: { color: '#fff', fontSize: 17, fontWeight: 'bold' },
+  suggestionsContainer: {
+    position: 'absolute',
+    top: 48,
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
+    borderRadius: 8,
+    maxHeight: 200,
+    zIndex: 1000,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  suggestionsList: {
+    maxHeight: 200,
+  },
+  suggestionItem: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  suggestionText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  pickerButton: {
+    justifyContent: 'center',
+  },
+  pickerButtonText: {
+    fontSize: 14,
+    color: '#999',
+  },
+  pickerButtonTextSelected: {
+    fontSize: 14,
+    color: '#333',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '70%',
+    paddingBottom: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  modalClose: {
+    fontSize: 24,
+    color: '#666',
+    fontWeight: 'bold',
+  },
+  stateItem: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  stateText: {
+    fontSize: 15,
+    color: '#333',
+  },
 });

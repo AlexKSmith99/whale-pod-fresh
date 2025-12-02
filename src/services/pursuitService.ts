@@ -8,7 +8,7 @@ export const pursuitService = {
       .insert([data])
       .select()
       .single();
-    
+
     if (error) throw error;
     return pursuit;
   },
@@ -53,7 +53,18 @@ export const pursuitService = {
     }
 
     if (filters.team_size && filters.team_size.length > 0) {
-      query = query.in('team_size_max', filters.team_size);
+      // Parse team size ranges and build OR conditions
+      // Check BOTH current_members_count AND team_size_max
+      const rangeConditions = filters.team_size.map((range: string) => {
+        if (range === '20+') {
+          return 'or(current_members_count.gte.20,team_size_max.gte.20)';
+        }
+        // Parse ranges like "1-2", "3-5", "6-10", "11-20"
+        const [min, max] = range.split('-').map(Number);
+        return `or(and(current_members_count.gte.${min},current_members_count.lte.${max}),and(team_size_max.gte.${min},team_size_max.lte.${max}))`;
+      }).join(',');
+
+      query = query.or(rangeConditions);
     }
 
     if (filters.search) {
