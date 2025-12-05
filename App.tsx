@@ -16,12 +16,13 @@ import TeamWorkspaceScreen from './src/screens/team/TeamWorkspaceScreen';
 import PodsScreen from './src/screens/PodsScreen';
 import CalendarScreen from './src/screens/CalendarScreen';
 import CreateMeetingScreen from './src/screens/CreateMeetingScreen';
+import MeetingDetailScreen from './src/screens/MeetingDetailScreen';
 import ConnectionsScreen from './src/screens/connections/ConnectionsScreen';
 import PursuitDetailScreen from './src/screens/PursuitDetailScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
 import EditPursuitScreen from './src/screens/EditPursuitScreen';
-// VideoCallScreen temporarily disabled for web - requires native modules
-// import VideoCallScreen from './src/screens/VideoCallScreen';
+import VideoCallScreen from './src/screens/VideoCallScreen';
+import { AGORA_APP_ID } from './src/services/agoraService';
 
 function AppContent() {
   const auth = useAuth();
@@ -31,6 +32,7 @@ function AppContent() {
   const [teamBoardPursuitId, setTeamBoardPursuitId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [showCreateMeeting, setShowCreateMeeting] = useState(false);
+  const [selectedMeeting, setSelectedMeeting] = useState<any | null>(null);
   const [editingPursuit, setEditingPursuit] = useState<any | null>(null);
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   const [showConnections, setShowConnections] = useState(false);
@@ -51,6 +53,9 @@ function AppContent() {
   useEffect(() => {
     if (auth.user) {
       loadBadgeCounts();
+
+      // Check for unread notifications on login and show most recent one
+      checkForUnreadNotifications();
 
       console.log('🔔 Setting up realtime notification listener for user:', auth.user.id);
 
@@ -101,6 +106,31 @@ function AppContent() {
       };
     }
   }, [auth.user]);
+
+  const checkForUnreadNotifications = async () => {
+    if (!auth.user) return;
+
+    try {
+      // Get the most recent unread notification
+      const notifications = await notificationService.getUserNotifications(auth.user.id);
+      const unreadNotifications = notifications.filter((n: any) => !n.read);
+
+      if (unreadNotifications.length > 0) {
+        const mostRecent = unreadNotifications[0];
+        console.log('🔔 Found unread notification on login:', mostRecent);
+
+        // Show toast for most recent unread notification
+        setCurrentToast({
+          title: mostRecent.title,
+          body: mostRecent.body,
+          type: mostRecent.type,
+          id: mostRecent.id,
+        });
+      }
+    } catch (error) {
+      console.error('Error checking for unread notifications:', error);
+    }
+  };
 
   const loadBadgeCounts = async () => {
     if (!auth.user) return;
@@ -237,20 +267,16 @@ function AppContent() {
     );
   }
 
-// Video calls temporarily disabled for web development
-// Requires native modules (Agora) that don't work on web
-// Will be re-enabled for iOS/Android builds
-/*
+// Video call screen - enabled for native builds
 if (videoCallChannel) {
-  const agoraAppId = process.env.EXPO_PUBLIC_AGORA_APP_ID || '';
-  if (!agoraAppId || agoraAppId === 'your_agora_app_id_here') {
+  if (!AGORA_APP_ID) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
         <Text style={{ fontSize: 18, textAlign: 'center', marginBottom: 20 }}>
           ⚠️ Agora App ID not configured
         </Text>
         <Text style={{ textAlign: 'center', color: '#666', marginBottom: 20 }}>
-          Please add your Agora App ID to the .env file
+          Please add your Agora App ID to the agoraService.ts file
         </Text>
         <TouchableOpacity
           style={{ backgroundColor: '#8b5cf6', padding: 15, borderRadius: 8 }}
@@ -266,7 +292,7 @@ if (videoCallChannel) {
     <VideoCallScreen
       channelName={videoCallChannel}
       podTitle={videoCallPodTitle}
-      agoraAppId={agoraAppId}
+      agoraAppId={AGORA_APP_ID}
       onEndCall={() => {
         setVideoCallChannel(null);
         setVideoCallPodTitle('');
@@ -274,7 +300,6 @@ if (videoCallChannel) {
     />
   );
 }
-*/
 
 // Show User Profile screen (before chat so it takes priority when clicked from chat)
 if (viewingUserId) {
@@ -431,8 +456,7 @@ if (teamBoardPursuitId) {
         <CalendarScreen
           onCreateMeeting={() => setShowCreateMeeting(true)}
           onOpenMeeting={(meeting) => {
-            // TODO: Open meeting detail screen
-            Alert.alert('Meeting Details', `Opening ${meeting.title}`);
+            setSelectedMeeting(meeting);
           }}
         />
       )}
@@ -535,6 +559,27 @@ if (teamBoardPursuitId) {
           </View>
         </TouchableOpacity>
       </View>
+
+      {/* Meeting Detail Modal */}
+      {selectedMeeting && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#fff', zIndex: 1000 }}>
+          <MeetingDetailScreen
+            meeting={selectedMeeting}
+            onClose={() => setSelectedMeeting(null)}
+            onJoinCall={(meeting) => {
+              // Join the Agora video call
+              if (meeting.agora_channel_name) {
+                console.log('🎥 Starting video call for meeting:', meeting.title);
+                setVideoCallChannel(meeting.agora_channel_name);
+                setVideoCallPodTitle(meeting.title || 'Meeting');
+                setSelectedMeeting(null);
+              } else {
+                Alert.alert('Error', 'Video channel not available for this meeting');
+              }
+            }}
+          />
+        </View>
+      )}
     </View>
   );
 }

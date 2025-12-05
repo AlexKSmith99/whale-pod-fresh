@@ -20,14 +20,19 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
   }, []);
 
   const loadMeetings = async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('📅 CalendarScreen: No user, skipping meeting load');
+      return;
+    }
 
     try {
+      console.log('📅 CalendarScreen: Loading meetings for user:', user.id);
       setLoading(true);
       const data = await meetingService.getUserMeetings(user.id);
+      console.log('📅 CalendarScreen: Received meeting data:', data?.length || 0, 'meetings');
       setMeetings(data || []);
     } catch (error: any) {
-      console.error('Error loading meetings:', error);
+      console.error('❌ CalendarScreen: Error loading meetings:', error);
       Alert.alert('Error', 'Failed to load meetings');
     } finally {
       setLoading(false);

@@ -144,21 +144,48 @@ export const applicationService = {
 
     // Send notifications
     try {
-      const { data: pursuit } = await supabase
+      console.log('🔔 Fetching pursuit details for acceptance notification...');
+
+      // Get pursuit details
+      const { data: pursuit, error: pursuitError } = await supabase
         .from('pursuits')
-        .select('title, creator_id, current_members_count, min_team_size, profiles:creator_id(name, email)')
+        .select('title, creator_id, current_members_count, min_team_size')
         .eq('id', application.pursuit_id)
         .single();
 
-      if (pursuit) {
-        // Notify applicant that they were accepted
-        const creatorName = pursuit.profiles?.name || pursuit.profiles?.email || 'The creator';
+      if (pursuitError) {
+        console.error('❌ Error fetching pursuit:', pursuitError);
+        throw pursuitError;
+      }
+
+      console.log('✅ Pursuit found:', pursuit);
+
+      // Get creator profile
+      const { data: creator, error: creatorError } = await supabase
+        .from('profiles')
+        .select('name, email')
+        .eq('id', pursuit.creator_id)
+        .single();
+
+      if (creatorError) {
+        console.error('❌ Error fetching creator:', creatorError);
+        throw creatorError;
+      }
+
+      console.log('✅ Creator found:', creator);
+
+      if (pursuit && creator) {
+        const creatorName = creator.name || creator.email || 'The creator';
+        console.log('🔔 Sending acceptance notification to:', application.applicant_id, 'for pursuit:', pursuit.title);
+
         await notificationService.notifyApplicationAccepted(
           application.applicant_id,
           application.pursuit_id,
           pursuit.title,
           creatorName
         );
+
+        console.log('✅ Acceptance notification sent successfully');
 
         // Check if min team size reached and notify creator
         if (pursuit.current_members_count >= pursuit.min_team_size) {
@@ -201,23 +228,51 @@ export const applicationService = {
 
     // Send notification to applicant
     try {
-      const { data: pursuit } = await supabase
+      console.log('🔔 Fetching pursuit details for rejection notification...');
+
+      // Get pursuit details
+      const { data: pursuit, error: pursuitError } = await supabase
         .from('pursuits')
-        .select('title, profiles:creator_id(name, email)')
+        .select('title, creator_id')
         .eq('id', application.pursuit_id)
         .single();
 
-      if (pursuit) {
-        const creatorName = pursuit.profiles?.name || pursuit.profiles?.email || 'The creator';
+      if (pursuitError) {
+        console.error('❌ Error fetching pursuit:', pursuitError);
+        throw pursuitError;
+      }
+
+      console.log('✅ Pursuit found:', pursuit);
+
+      // Get creator profile
+      const { data: creator, error: creatorError } = await supabase
+        .from('profiles')
+        .select('name, email')
+        .eq('id', pursuit.creator_id)
+        .single();
+
+      if (creatorError) {
+        console.error('❌ Error fetching creator:', creatorError);
+        throw creatorError;
+      }
+
+      console.log('✅ Creator found:', creator);
+
+      if (pursuit && creator) {
+        const creatorName = creator.name || creator.email || 'The creator';
+        console.log('🔔 Sending rejection notification to:', application.applicant_id, 'for pursuit:', pursuit.title);
+
         await notificationService.notifyApplicationRejected(
           application.applicant_id,
           application.pursuit_id,
           pursuit.title,
           creatorName
         );
+
+        console.log('✅ Rejection notification sent successfully');
       }
     } catch (notifError) {
-      console.error('Error sending rejection notification:', notifError);
+      console.error('❌ Error sending rejection notification:', notifError);
       // Don't throw - notification failure shouldn't block rejection
     }
   },

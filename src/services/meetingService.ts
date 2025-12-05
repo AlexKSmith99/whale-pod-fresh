@@ -17,6 +17,9 @@ export const meetingService = {
     recording_enabled?: boolean;
     participant_ids: string[];
   }) {
+    console.log('📅 Creating meeting:', data.title);
+    console.log('📅 Participant IDs:', data.participant_ids);
+
     // Create the meeting
     const { data: meeting, error: meetingError } = await supabase
       .from('meetings')
@@ -37,7 +40,12 @@ export const meetingService = {
       .select()
       .single();
 
-    if (meetingError) throw meetingError;
+    if (meetingError) {
+      console.error('❌ Error creating meeting:', meetingError);
+      throw meetingError;
+    }
+
+    console.log('✅ Meeting created:', meeting.id);
 
     // Add participants
     const participants = data.participant_ids.map(user_id => ({
@@ -46,17 +54,26 @@ export const meetingService = {
       status: 'invited',
     }));
 
+    console.log(`📅 Adding ${participants.length} participants to meeting`);
+
     const { error: participantsError } = await supabase
       .from('meeting_participants')
       .insert(participants);
 
-    if (participantsError) throw participantsError;
+    if (participantsError) {
+      console.error('❌ Error adding participants:', participantsError);
+      throw participantsError;
+    }
+
+    console.log('✅ Participants added successfully');
 
     return meeting;
   },
 
   // Get all meetings for a user
   async getUserMeetings(userId: string) {
+    console.log('📅 getUserMeetings called for user:', userId);
+
     const { data, error } = await supabase
       .from('meeting_participants')
       .select(`
@@ -68,7 +85,15 @@ export const meetingService = {
       `)
       .eq('user_id', userId);
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Error fetching user meetings:', error);
+      throw error;
+    }
+
+    console.log(`✅ Found ${data?.length || 0} meeting participations for user`);
+    if (data && data.length > 0) {
+      console.log('First meeting sample:', JSON.stringify(data[0], null, 2));
+    }
 
     // Sort by meeting scheduled_time in JavaScript
     const sorted = data?.sort((a: any, b: any) => {

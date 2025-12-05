@@ -39,6 +39,14 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Whale Pod needs access to your camera for video calls with your pod team."
+        }
+      ]
+    ],
     "extra": {
       "eas": {
         "projectId": "85d9f8fe-e5eb-4f70-80f6-e3094a1c557d"

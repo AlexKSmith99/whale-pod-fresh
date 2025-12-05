@@ -124,7 +124,13 @@ export const notificationService = {
         type,
         related_id: relatedId,
         related_type: relatedType,
+        data: data || null,
       }));
+
+      if (notifications.length === 0) {
+        console.log('No recipients supplied for notification insert');
+        return;
+      }
 
       console.log('💾 Inserting notifications into database:', notifications);
 
@@ -134,9 +140,9 @@ export const notificationService = {
       console.log('🔐 Current user ID:', session?.user?.id || 'NO USER');
 
       const { data: insertedData, error: historyError } = await supabase
-        .from('notifications')
-        .insert(notifications)
-        .select();
+        .rpc('create_notifications', {
+          input_notifications: notifications,
+        });
 
       if (historyError) {
         console.error('❌ Error storing notification history:', historyError);

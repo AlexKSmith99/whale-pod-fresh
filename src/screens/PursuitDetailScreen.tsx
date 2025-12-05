@@ -36,6 +36,8 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
   const [hasSubmittedProposal, setHasSubmittedProposal] = useState(false);
   const [showKickoffScheduling, setShowKickoffScheduling] = useState(false);
   const [isTeamMember, setIsTeamMember] = useState(false);
+  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
 
   useEffect(() => {
     checkIfApplied();
@@ -44,6 +46,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
     checkKickoffEligibility();
     checkProposalStatus();
     checkTeamMembership();
+    loadTeamMembers();
   }, []);
 
   const checkIfApplied = async () => {
@@ -117,6 +120,36 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
     } catch (error) {
       console.error('Error checking team membership:', error);
       setIsTeamMember(false);
+    }
+  };
+
+  const loadTeamMembers = async () => {
+    try {
+      console.log('👥 Loading team members for pursuit:', pursuit.id);
+      const { data, error } = await supabase
+        .from('team_members')
+        .select(`
+          user_id,
+          status,
+          user:profiles!user_id(
+            id,
+            name,
+            email,
+            profile_picture
+          )
+        `)
+        .eq('pursuit_id', pursuit.id)
+        .in('status', ['active', 'accepted']);
+
+      if (error) {
+        console.error('❌ Error loading team members:', error);
+        throw error;
+      }
+
+      console.log(`✅ Loaded ${data?.length || 0} team members`);
+      setTeamMembers(data || []);
+    } catch (error) {
+      console.error('Error loading team members:', error);
     }
   };
 
@@ -208,20 +241,25 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
       navigate: (screen: string, params?: any) => {
         if (screen === 'Chat' && params?.partnerId) {
           setShowUserProfile(false);
+          setSelectedMemberId(null);
           onSendMessage(params.partnerId, params.partnerEmail || 'User');
         }
       },
-      goBack: () => setShowUserProfile(false),
+      goBack: () => {
+        setShowUserProfile(false);
+        setSelectedMemberId(null);
+      },
       replace: (screen: string) => {
         if (screen === 'Profile') {
           setShowUserProfile(false);
+          setSelectedMemberId(null);
         }
       },
     };
 
     return (
       <UserProfileScreen
-        route={{ params: { userId: pursuit.creator_id } }}
+        route={{ params: { userId: selectedMemberId || pursuit.creator_id } }}
         navigation={navigation}
       />
     );
@@ -261,9 +299,12 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
       <View style={styles.content}>
         <View style={styles.creatorSection}>
           <Text style={styles.sectionTitle}>Created By</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.creatorCard}
-            onPress={() => setShowUserProfile(true)}
+            onPress={() => {
+              setSelectedMemberId(pursuit.creator_id);
+              setShowUserProfile(true);
+            }}
           >
             {creatorProfile?.profile_picture ? (
               <Image source={{ uri: creatorProfile.profile_picture }} style={styles.creatorImage} />
@@ -280,6 +321,41 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
             </View>
           </TouchableOpacity>
         </View>
+
+        {/* Team Members Section */}
+        {teamMembers.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Team Members ({teamMembers.length})</Text>
+            <View style={styles.membersGrid}>
+              {teamMembers.map((member: any) => (
+                <TouchableOpacity
+                  key={member.user_id}
+                  style={styles.memberCard}
+                  onPress={() => {
+                    setSelectedMemberId(member.user_id);
+                    setShowUserProfile(true);
+                  }}
+                >
+                  {member.user?.profile_picture ? (
+                    <Image
+                      source={{ uri: member.user.profile_picture }}
+                      style={styles.memberImage}
+                    />
+                  ) : (
+                    <View style={styles.memberAvatar}>
+                      <Text style={styles.memberAvatarText}>
+                        {member.user?.name?.charAt(0).toUpperCase() || '?'}
+                      </Text>
+                    </View>
+                  )}
+                  <Text style={styles.memberName} numberOfLines={2}>
+                    {member.user?.name || member.user?.email || 'Team Member'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Description</Text>
@@ -565,4 +641,51 @@ const styles = StyleSheet.create({
   proposalSubmittedBadge: { backgroundColor: '#e0f2fe', borderRadius: 12, padding: 18, alignItems: 'center', marginTop: 20, borderWidth: 2, borderColor: '#0ea5e9' },
   proposalSubmittedText: { color: '#0ea5e9', fontSize: 17, fontWeight: 'bold', marginBottom: 4 },
   proposalSubmittedSubtext: { color: '#0369a1', fontSize: 14 },
+  membersGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 8,
+  },
+  memberCard: {
+    width: '30%',
+    minWidth: 100,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
+  },
+  memberImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginBottom: 8,
+  },
+  memberAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#10b981',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  memberAvatarText: {
+    fontSize: 24,
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  memberName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#333',
+    textAlign: 'center',
+  },
 });

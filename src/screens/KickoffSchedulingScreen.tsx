@@ -90,16 +90,23 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
           onPress: async () => {
             setLoading(true);
             try {
-              // Get team members
+              // Get team members (both active and accepted)
               const { data: teamMembers, error: teamError } = await supabase
                 .from('team_members')
                 .select('user_id')
                 .eq('pursuit_id', pursuitId)
-                .eq('status', 'active');
+                .in('status', ['active', 'accepted']);
 
               if (teamError) throw teamError;
 
               const participantIds = teamMembers?.map((tm: any) => tm.user_id) || [];
+
+              // Add creator to participants if not already included
+              if (!participantIds.includes(user!.id)) {
+                participantIds.push(user!.id);
+              }
+
+              console.log(`📅 Creating kickoff meeting with ${participantIds.length} participants:`, participantIds);
 
               // Create scheduled time from selected proposal
               const scheduledDateTime = new Date(`${selectedTime.date}T${selectedTime.start_time}`).toISOString();
