@@ -236,6 +236,8 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
           value={newMessage}
           onChangeText={setNewMessage}
           multiline
+          spellCheck={true}
+          autoCorrect={true}
         />
         <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
           <Ionicons name="send" size={24} color="#fff" />

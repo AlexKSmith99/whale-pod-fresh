@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '../contexts/AuthContext';
 import { meetingService } from '../services/meetingService';
 import { colors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
@@ -21,13 +22,17 @@ interface TimeSlot {
 export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClose, onSubmitted }: Props) {
   const { user } = useAuth();
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([
-    { date: null, startTime: null, endTime: null }
+    { date: new Date(), startTime: new Date(), endTime: new Date() }
   ]);
   const [loading, setLoading] = useState(false);
-  const [showPicker, setShowPicker] = useState<{ index: number; type: 'date' | 'startTime' | 'endTime' } | null>(null);
+
+  // For native DateTimePicker
+  const [showDatePicker, setShowDatePicker] = useState<number | null>(null);
+  const [showStartTimePicker, setShowStartTimePicker] = useState<number | null>(null);
+  const [showEndTimePicker, setShowEndTimePicker] = useState<number | null>(null);
 
   const addTimeSlot = () => {
-    setTimeSlots([...timeSlots, { date: null, startTime: null, endTime: null }]);
+    setTimeSlots([...timeSlots, { date: new Date(), startTime: new Date(), endTime: new Date() }]);
   };
 
   const removeTimeSlot = (index: number) => {
@@ -61,43 +66,30 @@ export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClos
     });
   };
 
-  // Generate next 7 days
-  const getAvailableDates = () => {
-    const dates = [];
-    for (let i = 0; i < 7; i++) {
-      const date = new Date();
-      date.setDate(date.getDate() + i);
-      dates.push(date);
+  const handleDateChange = (event: any, selectedDate: Date | undefined, index: number) => {
+    if (Platform.OS === 'android') {
+      setShowDatePicker(null);
     }
-    return dates;
-  };
-
-  // Generate time slots (6 AM to 11 PM in 15-minute intervals)
-  const getAvailableTimes = () => {
-    const times = [];
-    for (let hour = 6; hour < 23; hour++) {
-      for (let minute = 0; minute < 60; minute += 15) {
-        const time = new Date();
-        time.setHours(hour, minute, 0, 0);
-        times.push(time);
-      }
-    }
-    return times;
-  };
-
-  const handleDateSelect = (date: Date) => {
-    if (showPicker) {
-      const selectedDate = new Date(date);
-      updateTimeSlot(showPicker.index, 'date', selectedDate);
-      setShowPicker(null);
+    if (selectedDate) {
+      updateTimeSlot(index, 'date', selectedDate);
     }
   };
 
-  const handleTimeSelect = (time: Date) => {
-    if (showPicker) {
-      const selectedTime = new Date(time);
-      updateTimeSlot(showPicker.index, showPicker.type as 'startTime' | 'endTime', selectedTime);
-      setShowPicker(null);
+  const handleStartTimeChange = (event: any, selectedTime: Date | undefined, index: number) => {
+    if (Platform.OS === 'android') {
+      setShowStartTimePicker(null);
+    }
+    if (selectedTime) {
+      updateTimeSlot(index, 'startTime', selectedTime);
+    }
+  };
+
+  const handleEndTimeChange = (event: any, selectedTime: Date | undefined, index: number) => {
+    if (Platform.OS === 'android') {
+      setShowEndTimePicker(null);
+    }
+    if (selectedTime) {
+      updateTimeSlot(index, 'endTime', selectedTime);
     }
   };
 
@@ -188,41 +180,82 @@ export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClos
                 )}
               </View>
 
+              {/* Date Picker */}
               <Text style={styles.inputLabel}>Date</Text>
               <TouchableOpacity
                 style={styles.pickerButton}
-                onPress={() => setShowPicker({ index, type: 'date' })}
+                onPress={() => setShowDatePicker(showDatePicker === index ? null : index)}
               >
-                <Ionicons name="calendar-outline" size={20} color={slot.date ? colors.primary : colors.textSecondary} />
-                <Text style={[styles.pickerButtonText, slot.date && styles.pickerButtonTextSelected]}>
+                <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+                <Text style={[styles.pickerButtonText, styles.pickerButtonTextSelected]}>
                   {formatDate(slot.date)}
                 </Text>
+                <Ionicons name={showDatePicker === index ? "chevron-up" : "chevron-down"} size={20} color={colors.textSecondary} />
               </TouchableOpacity>
+              {showDatePicker === index && (
+                <View style={styles.dateTimePickerContainer}>
+                  <DateTimePicker
+                    value={slot.date || new Date()}
+                    mode="date"
+                    display="spinner"
+                    onChange={(event, date) => handleDateChange(event, date, index)}
+                    minimumDate={new Date()}
+                    style={styles.datePicker}
+                  />
+                </View>
+              )}
 
+              {/* Time Pickers Row */}
               <View style={styles.timeRow}>
                 <View style={styles.timeInput}>
                   <Text style={styles.inputLabel}>Start Time</Text>
                   <TouchableOpacity
                     style={styles.pickerButton}
-                    onPress={() => setShowPicker({ index, type: 'startTime' })}
+                    onPress={() => setShowStartTimePicker(showStartTimePicker === index ? null : index)}
                   >
-                    <Ionicons name="time-outline" size={20} color={slot.startTime ? colors.primary : colors.textSecondary} />
-                    <Text style={[styles.pickerButtonText, slot.startTime && styles.pickerButtonTextSelected]}>
+                    <Ionicons name="time-outline" size={20} color={colors.primary} />
+                    <Text style={[styles.pickerButtonText, styles.pickerButtonTextSelected]}>
                       {formatTime(slot.startTime)}
                     </Text>
+                    <Ionicons name={showStartTimePicker === index ? "chevron-up" : "chevron-down"} size={16} color={colors.textSecondary} />
                   </TouchableOpacity>
+                  {showStartTimePicker === index && (
+                    <View style={styles.dateTimePickerContainer}>
+                      <DateTimePicker
+                        value={slot.startTime || new Date()}
+                        mode="time"
+                        display="spinner"
+                        onChange={(event, time) => handleStartTimeChange(event, time, index)}
+                        minuteInterval={15}
+                        style={styles.timePicker}
+                      />
+                    </View>
+                  )}
                 </View>
                 <View style={styles.timeInput}>
                   <Text style={styles.inputLabel}>End Time</Text>
                   <TouchableOpacity
                     style={styles.pickerButton}
-                    onPress={() => setShowPicker({ index, type: 'endTime' })}
+                    onPress={() => setShowEndTimePicker(showEndTimePicker === index ? null : index)}
                   >
-                    <Ionicons name="time-outline" size={20} color={slot.endTime ? colors.primary : colors.textSecondary} />
-                    <Text style={[styles.pickerButtonText, slot.endTime && styles.pickerButtonTextSelected]}>
+                    <Ionicons name="time-outline" size={20} color={colors.primary} />
+                    <Text style={[styles.pickerButtonText, styles.pickerButtonTextSelected]}>
                       {formatTime(slot.endTime)}
                     </Text>
+                    <Ionicons name={showEndTimePicker === index ? "chevron-up" : "chevron-down"} size={16} color={colors.textSecondary} />
                   </TouchableOpacity>
+                  {showEndTimePicker === index && (
+                    <View style={styles.dateTimePickerContainer}>
+                      <DateTimePicker
+                        value={slot.endTime || new Date()}
+                        mode="time"
+                        display="spinner"
+                        onChange={(event, time) => handleEndTimeChange(event, time, index)}
+                        minuteInterval={15}
+                        style={styles.timePicker}
+                      />
+                    </View>
+                  )}
                 </View>
               </View>
             </View>
@@ -245,85 +278,6 @@ export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClos
           </TouchableOpacity>
         </View>
       </ScrollView>
-
-      {/* Custom Date Picker Modal */}
-      {showPicker && showPicker.type === 'date' && (
-        <Modal
-          transparent
-          animationType="slide"
-          visible={true}
-          onRequestClose={() => setShowPicker(null)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.pickerModal}>
-              <View style={styles.pickerHeader}>
-                <TouchableOpacity onPress={() => setShowPicker(null)}>
-                  <Text style={styles.pickerCancelButton}>Cancel</Text>
-                </TouchableOpacity>
-                <Text style={styles.pickerTitle}>Select Date</Text>
-                <View style={{ width: 60 }} />
-              </View>
-              <ScrollView style={styles.datePickerContainer}>
-                {getAvailableDates().map((date, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.dateOption}
-                    onPress={() => handleDateSelect(date)}
-                  >
-                    <View style={styles.dateOptionContent}>
-                      <Text style={styles.dateOptionDay}>
-                        {date.toLocaleDateString('en-US', { weekday: 'long' })}
-                      </Text>
-                      <Text style={styles.dateOptionDate}>
-                        {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                      </Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          </View>
-        </Modal>
-      )}
-
-      {/* Custom Time Picker Modal */}
-      {showPicker && (showPicker.type === 'startTime' || showPicker.type === 'endTime') && (
-        <Modal
-          transparent
-          animationType="slide"
-          visible={true}
-          onRequestClose={() => setShowPicker(null)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.pickerModal}>
-              <View style={styles.pickerHeader}>
-                <TouchableOpacity onPress={() => setShowPicker(null)}>
-                  <Text style={styles.pickerCancelButton}>Cancel</Text>
-                </TouchableOpacity>
-                <Text style={styles.pickerTitle}>
-                  {showPicker.type === 'startTime' ? 'Select Start Time' : 'Select End Time'}
-                </Text>
-                <View style={{ width: 60 }} />
-              </View>
-              <ScrollView style={styles.timePickerContainer}>
-                {getAvailableTimes().map((time, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.timeOption}
-                    onPress={() => handleTimeSelect(time)}
-                  >
-                    <Text style={styles.timeOptionText}>
-                      {time.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                    </Text>
-                    <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          </View>
-        </Modal>
-      )}
     </View>
   );
 }
@@ -472,75 +426,19 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.bold,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+  dateTimePickerContainer: {
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: borderRadius.base,
+    marginTop: spacing.xs,
+    overflow: 'hidden',
   },
-  pickerModal: {
-    backgroundColor: colors.white,
-    borderTopLeftRadius: borderRadius.xl,
-    borderTopRightRadius: borderRadius.xl,
-    maxHeight: '70%',
+  datePicker: {
+    height: 150,
   },
-  pickerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.base,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
-  },
-  pickerTitle: {
-    fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.textPrimary,
-  },
-  pickerCancelButton: {
-    fontSize: typography.fontSize.base,
-    color: colors.error,
-    fontWeight: typography.fontWeight.medium,
-  },
-  datePickerContainer: {
-    maxHeight: 400,
-  },
-  dateOption: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.base,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
-  },
-  dateOptionContent: {
-    flex: 1,
-  },
-  dateOptionDay: {
-    fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.textPrimary,
-  },
-  dateOptionDate: {
-    fontSize: typography.fontSize.sm,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  timePickerContainer: {
-    maxHeight: 400,
-  },
-  timeOption: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.base,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
-  },
-  timeOptionText: {
-    fontSize: typography.fontSize.base,
-    color: colors.textPrimary,
+  timePicker: {
+    height: 100,
+    width: 120,
+    alignSelf: 'center',
+    transform: [{ scale: 0.85 }],
   },
 });

@@ -63,22 +63,51 @@ export default function NotificationsScreen({ navigation }: any) {
         break;
 
       case 'application_received':
+        // Navigate to applications review screen
+        if (notification.related_id && notification.related_type === 'pursuit') {
+          await navigateToPod(notification.related_id, 'applications');
+        } else if (notification.data?.pursuitId) {
+          await navigateToPod(notification.data.pursuitId, 'applications');
+        } else {
+          navigation?.navigate?.('Pods');
+        }
+        break;
+
+      case 'time_proposal':
+      case 'kickoff_activated':
+        // Navigate to kickoff scheduling screen
+        if (notification.related_id && notification.related_type === 'pursuit') {
+          await navigateToPod(notification.related_id, 'kickoff');
+        } else if (notification.data?.pursuitId) {
+          await navigateToPod(notification.data.pursuitId, 'kickoff');
+        } else {
+          navigation?.navigate?.('Pods');
+        }
+        break;
+
+      case 'team_board_update':
+        // Navigate directly to team board
+        if (notification.related_id && notification.related_type === 'pursuit') {
+          navigation?.navigate?.('TeamBoard', { pursuitId: notification.related_id });
+        } else if (notification.data?.pursuitId) {
+          navigation?.navigate?.('TeamBoard', { pursuitId: notification.data.pursuitId });
+        } else {
+          navigation?.navigate?.('Pods');
+        }
+        break;
+
       case 'application_accepted':
       case 'application_rejected':
-      case 'kickoff_activated':
       case 'min_team_size_reached':
-      case 'time_proposal':
-      case 'team_board_update':
       case 'kickoff_scheduled':
       case 'kickoff_scheduled_creator':
       case 'kickoff_scheduled_team':
-        // All pod-related notifications - navigate to the specific pod
+        // Other pod-related notifications - navigate to the pod detail
         if (notification.related_id && notification.related_type === 'pursuit') {
           await navigateToPod(notification.related_id);
         } else if (notification.data?.pursuitId) {
           await navigateToPod(notification.data.pursuitId);
         } else {
-          // Fallback to Pods tab
           navigation?.navigate?.('Pods');
         }
         break;
@@ -89,13 +118,22 @@ export default function NotificationsScreen({ navigation }: any) {
         navigation?.navigate?.('Calendar');
         break;
 
+      case 'member_removed':
+        // Navigate to removal reason screen
+        navigation?.navigate?.('RemovalReason', {
+          pursuitTitle: notification.data?.pursuitTitle || 'Unknown Pursuit',
+          reason: notification.data?.removalReason || 'No reason provided',
+          removedAt: notification.data?.removedAt || notification.created_at,
+        });
+        break;
+
       default:
         // Unknown notification type
         console.log('Unknown notification type:', notification.type);
     }
   };
 
-  const navigateToPod = async (pursuitId: string) => {
+  const navigateToPod = async (pursuitId: string, subScreen?: string) => {
     try {
       // Fetch the full pod/pursuit data
       const { data: pursuit, error } = await supabase
@@ -118,8 +156,8 @@ export default function NotificationsScreen({ navigation }: any) {
         return;
       }
 
-      // Navigate to pod detail screen
-      navigation?.navigate?.('PodDetail', { pod: pursuit });
+      // Navigate to pod detail screen with optional sub-screen
+      navigation?.navigate?.('PodDetail', { pod: pursuit, subScreen });
     } catch (error) {
       console.error('Error navigating to pod:', error);
       navigation?.navigate?.('Pods');
@@ -148,6 +186,8 @@ export default function NotificationsScreen({ navigation }: any) {
       case 'meeting':
       case 'new_meeting':
         return 'calendar';
+      case 'member_removed':
+        return 'person-remove';
       default:
         return 'notifications';
     }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,10 +10,20 @@ import {
   Modal,
   ActivityIndicator,
   Platform,
+  Animated,
+  Dimensions,
+  Image,
+  FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import * as MediaLibrary from 'expo-media-library';
+import { Paths, File as ExpoFile } from 'expo-file-system';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { galleryService, GalleryPhoto } from '../../services/galleryService';
+
+const SIDEBAR_WIDTH = 220;
 
 interface Props {
   onBack: () => void;
@@ -31,6 +41,8 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
   const [contributions, setContributions] = useState<any[]>([]);
   const [roles, setRoles] = useState<any[]>([]);
+  const [mediaItems, setMediaItems] = useState<GalleryPhoto[]>([]);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
   const [showContributeModal, setShowContributeModal] = useState(false);
 
   // Contribute modal state
@@ -49,6 +61,37 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
   const [roleDescription, setRoleDescription] = useState('');
   const [submittingRole, setSubmittingRole] = useState(false);
   const [isCreator, setIsCreator] = useState(false);
+
+  // Sidebar state
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const sidebarAnim = useRef(new Animated.Value(0)).current;
+
+  // Image viewer state
+  const [showImageViewer, setShowImageViewer] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [savingImage, setSavingImage] = useState(false);
+  const imageViewerRef = useRef<FlatList>(null);
+
+  const toggleSidebar = () => {
+    const toValue = sidebarOpen ? 0 : 1;
+    Animated.timing(sidebarAnim, {
+      toValue,
+      duration: 250,
+      useNativeDriver: false,
+    }).start();
+    setSidebarOpen(!sidebarOpen);
+  };
+
+  const selectPod = (podId: string) => {
+    setSelectedPodId(podId);
+    // Close sidebar after selection
+    Animated.timing(sidebarAnim, {
+      toValue: 0,
+      duration: 250,
+      useNativeDriver: false,
+    }).start();
+    setSidebarOpen(false);
+  };
 
   useEffect(() => {
     loadUserPods();
@@ -143,6 +186,8 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
         await loadContributions();
       } else if (activeSubTab === 'roles') {
         await loadRoles();
+      } else if (activeSubTab === 'media') {
+        await loadMedia();
       }
     } catch (error) {
       console.error('Error loading pod data:', error);
@@ -180,6 +225,125 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
       setRoles(data || []);
     } catch (error) {
       console.error('Error loading roles:', error);
+    }
+  };
+
+  const loadMedia = async () => {
+    if (!selectedPodId) return;
+
+    try {
+      const photos = await galleryService.getPhotos(selectedPodId);
+      setMediaItems(photos);
+    } catch (error) {
+      console.error('Error loading media:', error);
+    }
+  };
+
+  const pickMedia = async (useCamera: boolean) => {
+    try {
+      // Request permissions
+      const { status } = useCamera
+        ? await ImagePicker.requestCameraPermissionsAsync()
+        : await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (status !== 'granted') {
+        Alert.alert('Permission denied', 'We need permission to access your photos/camera');
+        return;
+      }
+
+      // Launch picker
+      const result = useCamera
+        ? await ImagePicker.launchCameraAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.All,
+            allowsEditing: false,
+            quality: 0.7,
+          })
+        : await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.All,
+            allowsEditing: false,
+            quality: 0.7,
+          });
+
+      if (!result.canceled && result.assets[0]) {
+        await uploadMedia(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error picking media:', error);
+      Alert.alert('Error', 'Failed to pick media');
+    }
+  };
+
+  const uploadMedia = async (uri: string) => {
+    if (!selectedPodId || !user) return;
+
+    setUploadingMedia(true);
+    try {
+      await galleryService.uploadPhoto(selectedPodId, user.id, uri);
+      await loadMedia();
+      Alert.alert('Success', 'Photo uploaded!');
+    } catch (error: any) {
+      console.error('Error uploading media:', error);
+      Alert.alert('Error', error.message || 'Failed to upload photo');
+    } finally {
+      setUploadingMedia(false);
+    }
+  };
+
+  const handleDeleteMedia = async (photoId: string) => {
+    Alert.alert(
+      'Delete Photo',
+      'Are you sure you want to delete this photo?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await galleryService.deletePhoto(photoId);
+              setMediaItems(mediaItems.filter(m => m.id !== photoId));
+              Alert.alert('Success', 'Photo deleted');
+            } catch (error) {
+              console.error('Error deleting photo:', error);
+              Alert.alert('Error', 'Failed to delete photo');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const openImageViewer = (index: number) => {
+    setSelectedImageIndex(index);
+    setShowImageViewer(true);
+  };
+
+  const saveImageToPhone = async (imageUrl: string) => {
+    setSavingImage(true);
+    try {
+      // Request permissions
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission denied', 'We need permission to save photos to your library');
+        return;
+      }
+
+      // Create a file in the cache directory and download to it
+      const filename = `photo_${Date.now()}.jpg`;
+      const localFile = new ExpoFile(Paths.cache, filename);
+
+      // Use the static downloadFileAsync method on File class
+      await (ExpoFile as any).downloadFileAsync(imageUrl, localFile);
+
+      // Save to media library
+      await MediaLibrary.saveToLibraryAsync(localFile.uri);
+
+      Alert.alert('Saved!', 'Photo saved to your photo library');
+    } catch (error: any) {
+      console.error('Error saving image:', error);
+      Alert.alert('Error', 'Failed to save photo to library');
+    } finally {
+      setSavingImage(false);
     }
   };
 
@@ -585,10 +749,77 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
     return (
       <ScrollView style={styles.tabContent}>
         <Text style={styles.sectionTitle}>Shared Media</Text>
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>Coming soon</Text>
-          <Text style={styles.emptyHint}>Upload and organize pictures and videos</Text>
+
+        {/* Upload Buttons */}
+        <View style={styles.uploadButtonsRow}>
+          <TouchableOpacity
+            style={[styles.uploadButton, uploadingMedia && styles.uploadButtonDisabled]}
+            onPress={() => pickMedia(false)}
+            disabled={uploadingMedia}
+          >
+            {uploadingMedia ? (
+              <ActivityIndicator color="#ff6b35" />
+            ) : (
+              <>
+                <Ionicons name="images-outline" size={24} color="#ff6b35" />
+                <Text style={styles.uploadButtonText}>Photo Library</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.uploadButton, uploadingMedia && styles.uploadButtonDisabled]}
+            onPress={() => pickMedia(true)}
+            disabled={uploadingMedia}
+          >
+            {uploadingMedia ? (
+              <ActivityIndicator color="#ff6b35" />
+            ) : (
+              <>
+                <Ionicons name="camera-outline" size={24} color="#ff6b35" />
+                <Text style={styles.uploadButtonText}>Take Photo</Text>
+              </>
+            )}
+          </TouchableOpacity>
         </View>
+
+        {/* Media Grid */}
+        {mediaItems.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="images-outline" size={48} color="#666" />
+            <Text style={styles.emptyText}>No media yet</Text>
+            <Text style={styles.emptyHint}>Upload photos and videos to share with your team</Text>
+          </View>
+        ) : (
+          <View style={styles.mediaGrid}>
+            {mediaItems.map((item, index) => (
+              <TouchableOpacity
+                key={item.id}
+                style={styles.mediaItem}
+                onPress={() => openImageViewer(index)}
+                activeOpacity={0.8}
+              >
+                <Image source={{ uri: item.photo_url }} style={styles.mediaImage} />
+                <View style={styles.mediaOverlay}>
+                  <Text style={styles.mediaUploader} numberOfLines={1}>
+                    {item.uploader_name || 'Unknown'}
+                  </Text>
+                  {item.uploaded_by === user?.id && (
+                    <TouchableOpacity
+                      style={styles.mediaDeleteButton}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleDeleteMedia(item.id);
+                      }}
+                    >
+                      <Ionicons name="trash-outline" size={16} color="#fff" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
       </ScrollView>
     );
   };
@@ -610,36 +841,66 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Team Workspace</Text>
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>Team Workspace</Text>
+          {selectedPod && (
+            <Text style={styles.headerPodName} numberOfLines={1}>{selectedPod.title}</Text>
+          )}
+        </View>
         <View style={{ width: 40 }} />
       </View>
 
       <View style={styles.content}>
-        {/* Left Sidebar - Pod Tabs */}
-        <View style={styles.sidebar}>
-          <Text style={styles.sidebarTitle}>My Pods</Text>
-          <ScrollView style={styles.podList}>
-            {pods.map((pod) => (
-              <TouchableOpacity
-                key={pod.id}
-                style={[
-                  styles.podTab,
-                  selectedPodId === pod.id && styles.podTabActive
-                ]}
-                onPress={() => setSelectedPodId(pod.id)}
-              >
-                <Text style={[
-                  styles.podTabText,
-                  selectedPodId === pod.id && styles.podTabTextActive
-                ]}>
-                  {pod.title}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
+        {/* Toggle Button - Always visible */}
+        <TouchableOpacity
+          style={styles.sidebarToggle}
+          onPress={toggleSidebar}
+        >
+          <Ionicons
+            name={sidebarOpen ? "chevron-back" : "chevron-forward"}
+            size={20}
+            color="#ff6b35"
+          />
+        </TouchableOpacity>
 
-        {/* Main Content Area */}
+        {/* Animated Sidebar */}
+        <Animated.View
+          style={[
+            styles.sidebar,
+            {
+              width: sidebarAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, SIDEBAR_WIDTH],
+              }),
+              opacity: sidebarAnim,
+            }
+          ]}
+        >
+          <View style={styles.sidebarInner}>
+            <Text style={styles.sidebarTitle}>My Pods</Text>
+            <ScrollView style={styles.podList}>
+              {pods.map((pod) => (
+                <TouchableOpacity
+                  key={pod.id}
+                  style={[
+                    styles.podTab,
+                    selectedPodId === pod.id && styles.podTabActive
+                  ]}
+                  onPress={() => selectPod(pod.id)}
+                >
+                  <Text style={[
+                    styles.podTabText,
+                    selectedPodId === pod.id && styles.podTabTextActive
+                  ]} numberOfLines={2}>
+                    {pod.title}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </Animated.View>
+
+        {/* Main Content Area - takes full width */}
         <View style={styles.mainContent}>
           {selectedPod && (
             <>
@@ -757,6 +1018,8 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
                 onChangeText={setMeetingTitle}
                 placeholder="e.g., Weekly Standup"
                 placeholderTextColor="#666"
+                spellCheck={true}
+                autoCorrect={true}
               />
 
               {/* Time */}
@@ -779,6 +1042,8 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
                 placeholderTextColor="#666"
                 multiline
                 numberOfLines={6}
+                spellCheck={true}
+                autoCorrect={true}
               />
 
               {/* Media Upload - Coming Soon */}
@@ -846,6 +1111,8 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
                 onChangeText={setRoleTitle}
                 placeholder="e.g., Project Manager, Developer, Designer"
                 placeholderTextColor="#666"
+                spellCheck={true}
+                autoCorrect={true}
               />
 
               {/* Role Description */}
@@ -858,6 +1125,8 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
                 placeholderTextColor="#666"
                 multiline
                 numberOfLines={4}
+                spellCheck={true}
+                autoCorrect={true}
               />
             </ScrollView>
 
@@ -889,9 +1158,81 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
           </View>
         </View>
       </Modal>
+
+      {/* Image Viewer Modal */}
+      <Modal visible={showImageViewer} animationType="fade" transparent>
+        <View style={styles.imageViewerContainer}>
+          {/* Header */}
+          <View style={styles.imageViewerHeader}>
+            <TouchableOpacity
+              onPress={() => setShowImageViewer(false)}
+              style={styles.imageViewerCloseButton}
+            >
+              <Ionicons name="close" size={28} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.imageViewerCounter}>
+              {selectedImageIndex + 1} / {mediaItems.length}
+            </Text>
+            <TouchableOpacity
+              onPress={() => {
+                const currentItem = mediaItems[selectedImageIndex];
+                if (currentItem) {
+                  saveImageToPhone(currentItem.photo_url);
+                }
+              }}
+              style={styles.imageViewerDownloadButton}
+              disabled={savingImage}
+            >
+              {savingImage ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Ionicons name="download-outline" size={24} color="#fff" />
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {/* Swipeable Image Gallery */}
+          <FlatList
+            ref={imageViewerRef}
+            data={mediaItems}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            initialScrollIndex={selectedImageIndex}
+            getItemLayout={(data, index) => ({
+              length: Dimensions.get('window').width,
+              offset: Dimensions.get('window').width * index,
+              index,
+            })}
+            onMomentumScrollEnd={(e) => {
+              const newIndex = Math.round(
+                e.nativeEvent.contentOffset.x / Dimensions.get('window').width
+              );
+              setSelectedImageIndex(newIndex);
+            }}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <View style={styles.imageViewerSlide}>
+                <Image
+                  source={{ uri: item.photo_url }}
+                  style={styles.imageViewerImage}
+                  resizeMode="contain"
+                />
+                <View style={styles.imageViewerInfo}>
+                  <Text style={styles.imageViewerUploader}>
+                    Uploaded by {item.uploader_name || 'Unknown'}
+                  </Text>
+                </View>
+              </View>
+            )}
+          />
+        </View>
+      </Modal>
     </View>
   );
 }
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
@@ -918,23 +1259,52 @@ const styles = StyleSheet.create({
   backButton: {
     padding: 8,
   },
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
+  },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#fff',
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', // Notebook feel
+  },
+  headerPodName: {
+    fontSize: 12,
+    color: '#ff6b35',
+    marginTop: 2,
   },
   content: {
     flex: 1,
     flexDirection: 'row',
   },
+  // Sidebar Toggle
+  sidebarToggle: {
+    position: 'absolute',
+    left: 0,
+    top: 60,
+    zIndex: 100,
+    backgroundColor: '#2a2a2a',
+    borderTopRightRadius: 8,
+    borderBottomRightRadius: 8,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    borderWidth: 2,
+    borderLeftWidth: 0,
+    borderColor: '#ff6b35',
+  },
   // Sidebar
   sidebar: {
-    width: 200,
     backgroundColor: '#2a2a2a',
     borderRightWidth: 2,
     borderRightColor: '#ff6b35',
+    overflow: 'hidden',
+    zIndex: 50,
+  },
+  sidebarInner: {
+    width: SIDEBAR_WIDTH,
     padding: 16,
+    height: '100%',
   },
   sidebarTitle: {
     fontSize: 14,
@@ -1321,5 +1691,117 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  // Media Tab
+  uploadButtonsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  uploadButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2a2a2a',
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#ff6b35',
+    gap: 8,
+  },
+  uploadButtonDisabled: {
+    opacity: 0.5,
+  },
+  uploadButtonText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#ff6b35',
+  },
+  mediaGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  mediaItem: {
+    width: (Dimensions.get('window').width - 72) / 3,
+    aspectRatio: 1,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#2a2a2a',
+  },
+  mediaImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  mediaOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    padding: 6,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  mediaUploader: {
+    fontSize: 10,
+    color: '#ccc',
+    flex: 1,
+  },
+  mediaDeleteButton: {
+    padding: 4,
+  },
+  // Image Viewer
+  imageViewerContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+  },
+  imageViewerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 50,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+  },
+  imageViewerCloseButton: {
+    padding: 8,
+  },
+  imageViewerCounter: {
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: '600',
+  },
+  imageViewerDownloadButton: {
+    padding: 8,
+  },
+  imageViewerSlide: {
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT - 150,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageViewerImage: {
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT - 200,
+  },
+  imageViewerInfo: {
+    position: 'absolute',
+    bottom: 20,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  imageViewerUploader: {
+    fontSize: 14,
+    color: '#ccc',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
 });

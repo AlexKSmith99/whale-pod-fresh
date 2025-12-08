@@ -85,6 +85,8 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
                   onChangeText={(text) => setAnswers({ ...answers, [index]: text })}
                   multiline
                   numberOfLines={4}
+                  spellCheck={true}
+                  autoCorrect={true}
                 />
               </View>
             ))}

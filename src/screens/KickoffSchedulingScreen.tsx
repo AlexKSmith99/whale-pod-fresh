@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '../contexts/AuthContext';
 import { meetingService } from '../services/meetingService';
 import { agoraService } from '../services/agoraService';
@@ -33,6 +34,11 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
   const [location, setLocation] = useState('');
   const [duration, setDuration] = useState('60');
   const [teamMembersCount, setTeamMembersCount] = useState(0);
+  const [useCustomTime, setUseCustomTime] = useState(false);
+  const [customDate, setCustomDate] = useState(new Date());
+  const [customTime, setCustomTime] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   useEffect(() => {
     loadProposals();
@@ -69,9 +75,47 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
     }
   };
 
+  const getScheduledDateTime = () => {
+    if (useCustomTime) {
+      // Combine custom date and time
+      const combined = new Date(customDate);
+      combined.setHours(customTime.getHours(), customTime.getMinutes(), 0, 0);
+      return combined;
+    } else if (selectedTime) {
+      return new Date(`${selectedTime.date}T${selectedTime.start_time}`);
+    }
+    return null;
+  };
+
+  const getDisplayDateTime = () => {
+    if (useCustomTime) {
+      const dateStr = customDate.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+      });
+      const timeStr = customTime.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+      return { date: dateStr, time: timeStr };
+    } else if (selectedTime) {
+      const dateStr = new Date(selectedTime.date).toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+      });
+      return { date: dateStr, time: formatTime12Hour(selectedTime.start_time) };
+    }
+    return null;
+  };
+
   const handleScheduleKickoff = async () => {
-    if (!selectedTime) {
-      Alert.alert('Missing Selection', 'Please select a meeting time');
+    if (!useCustomTime && !selectedTime) {
+      Alert.alert('Missing Selection', 'Please select a meeting time or choose a custom time');
       return;
     }
 
@@ -80,9 +124,12 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
       return;
     }
 
+    const displayDateTime = getDisplayDateTime();
+    if (!displayDateTime) return;
+
     Alert.alert(
       'Schedule Kickoff',
-      `This will schedule the kickoff meeting for ${selectedTime.date} at ${formatTime12Hour(selectedTime.start_time)}. All team members will be notified.`,
+      `This will schedule the kickoff meeting for ${displayDateTime.date} at ${displayDateTime.time}. All team members will be notified.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -108,8 +155,10 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
 
               console.log(`📅 Creating kickoff meeting with ${participantIds.length} participants:`, participantIds);
 
-              // Create scheduled time from selected proposal
-              const scheduledDateTime = new Date(`${selectedTime.date}T${selectedTime.start_time}`).toISOString();
+              // Create scheduled time from selected proposal or custom time
+              const scheduledDateTimeObj = getScheduledDateTime();
+              if (!scheduledDateTimeObj) throw new Error('No scheduled time selected');
+              const scheduledDateTime = scheduledDateTimeObj.toISOString();
 
               // Create the kickoff meeting
               const meeting = await meetingService.createMeeting({
@@ -121,7 +170,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                 location: meetingType !== 'video' ? location : undefined,
                 scheduled_time: scheduledDateTime,
                 duration_minutes: parseInt(duration) || 60,
-                timezone: selectedTime.timezone || 'America/New_York',
+                timezone: useCustomTime ? Intl.DateTimeFormat().resolvedOptions().timeZone : (selectedTime?.timezone || 'America/New_York'),
                 is_kickoff: true,
                 recording_enabled: meetingType === 'video',
                 participant_ids: participantIds,
@@ -149,7 +198,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                   month: 'long',
                   day: 'numeric'
                 });
-                const meetingTime = formatTime12Hour(selectedTime.start_time);
+                const meetingTime = displayDateTime!.time;
 
                 // Notify team members (excluding creator)
                 if (participantIds.length > 0) {
@@ -309,7 +358,8 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                 {Object.keys(groupedTimeSlots[date]).sort().map((timeKey) => {
                   const slots = groupedTimeSlots[date][timeKey];
                   const firstSlot = slots[0];
-                  const isSelected = selectedTime &&
+                  const isSelected = !useCustomTime &&
+                                    selectedTime &&
                                     selectedTime.date === date &&
                                     selectedTime.start_time === firstSlot.start_time &&
                                     selectedTime.end_time === firstSlot.end_time;
@@ -321,7 +371,10 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                         styles.timeSlotOption,
                         isSelected && styles.timeSlotSelected
                       ]}
-                      onPress={() => setSelectedTime(firstSlot)}
+                      onPress={() => {
+                        setSelectedTime(firstSlot);
+                        setUseCustomTime(false);
+                      }}
                     >
                       <View style={styles.timeSlotInfo}>
                         <Text style={styles.timeSlotTime}>
@@ -351,8 +404,103 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
             ))
           )}
 
+          {/* Custom Time Option */}
+          <TouchableOpacity
+            style={[
+              styles.customTimeButton,
+              useCustomTime && styles.customTimeButtonSelected
+            ]}
+            onPress={() => {
+              setUseCustomTime(true);
+              setSelectedTime(null);
+            }}
+          >
+            <View style={styles.customTimeButtonContent}>
+              <Ionicons
+                name="calendar-outline"
+                size={24}
+                color={useCustomTime ? colors.primary : colors.textSecondary}
+              />
+              <View style={styles.customTimeTextContainer}>
+                <Text style={[
+                  styles.customTimeButtonText,
+                  useCustomTime && styles.customTimeButtonTextSelected
+                ]}>
+                  Schedule for a different time
+                </Text>
+                <Text style={styles.customTimeSubtext}>
+                  Choose your own date and time
+                </Text>
+              </View>
+            </View>
+            {useCustomTime && (
+              <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+            )}
+          </TouchableOpacity>
+
+          {/* Custom Date/Time Picker */}
+          {useCustomTime && (
+            <View style={styles.customTimePickerSection}>
+              <Text style={styles.inputLabel}>Select Date</Text>
+              <TouchableOpacity
+                style={styles.dateTimeButton}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <Ionicons name="calendar" size={20} color={colors.primary} />
+                <Text style={styles.dateTimeButtonText}>
+                  {customDate.toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    month: 'long',
+                    day: 'numeric',
+                    year: 'numeric'
+                  })}
+                </Text>
+              </TouchableOpacity>
+
+              <Text style={styles.inputLabel}>Select Time</Text>
+              <TouchableOpacity
+                style={styles.dateTimeButton}
+                onPress={() => setShowTimePicker(true)}
+              >
+                <Ionicons name="time" size={20} color={colors.primary} />
+                <Text style={styles.dateTimeButtonText}>
+                  {customTime.toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                  })}
+                </Text>
+              </TouchableOpacity>
+
+              {showDatePicker && (
+                <DateTimePicker
+                  value={customDate}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  minimumDate={new Date()}
+                  onChange={(event, date) => {
+                    setShowDatePicker(Platform.OS === 'ios');
+                    if (date) setCustomDate(date);
+                  }}
+                />
+              )}
+
+              {showTimePicker && (
+                <DateTimePicker
+                  value={customTime}
+                  mode="time"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={(event, time) => {
+                    setShowTimePicker(Platform.OS === 'ios');
+                    if (time) setCustomTime(time);
+                  }}
+                />
+              )}
+            </View>
+          )}
+
           {/* Meeting Type Selection */}
-          {selectedTime && (
+          {(selectedTime || useCustomTime) && (
             <>
               <Text style={styles.sectionTitle}>Meeting Type</Text>
               <View style={styles.chipContainer}>
@@ -655,5 +803,66 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.bold,
+  },
+  customTimeButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    padding: spacing.lg,
+    borderRadius: borderRadius.base,
+    marginTop: spacing.lg,
+    ...shadows.sm,
+    borderWidth: 2,
+    borderColor: colors.borderLight,
+    borderStyle: 'dashed',
+  },
+  customTimeButtonSelected: {
+    borderColor: colors.primary,
+    borderStyle: 'solid',
+    backgroundColor: colors.primaryLight,
+  },
+  customTimeButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: spacing.base,
+  },
+  customTimeTextContainer: {
+    flex: 1,
+  },
+  customTimeButtonText: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.textSecondary,
+  },
+  customTimeButtonTextSelected: {
+    color: colors.primary,
+  },
+  customTimeSubtext: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textTertiary,
+    marginTop: 2,
+  },
+  customTimePickerSection: {
+    backgroundColor: colors.white,
+    padding: spacing.lg,
+    borderRadius: borderRadius.base,
+    marginTop: spacing.base,
+    ...shadows.sm,
+  },
+  dateTimeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.backgroundSecondary,
+    padding: spacing.base,
+    borderRadius: borderRadius.base,
+    marginBottom: spacing.base,
+    gap: spacing.sm,
+  },
+  dateTimeButtonText: {
+    fontSize: typography.fontSize.base,
+    color: colors.textPrimary,
+    fontWeight: typography.fontWeight.medium,
   },
 });

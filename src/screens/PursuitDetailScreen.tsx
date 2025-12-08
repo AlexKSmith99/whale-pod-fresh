@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { applicationService } from '../services/applicationService';
 import { meetingService } from '../services/meetingService';
@@ -21,9 +21,10 @@ interface Props {
   onSendMessage?: (userId: string, userEmail: string) => void;
   onOpenTeamBoard?: (pursuitId: string) => void;
   onOpenMeetingNotes?: (pursuitId: string) => void;
+  initialSubScreen?: string | null;
 }
 
-export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit, isOwner, onViewProfile, onSendMessage, onOpenTeamBoard }: Props) {
+export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit, isOwner, onViewProfile, onSendMessage, onOpenTeamBoard, initialSubScreen }: Props) {
   const { user } = useAuth();
   const [showApplicationForm, setShowApplicationForm] = useState(false);
   const [showApplicationsReview, setShowApplicationsReview] = useState(false);
@@ -38,6 +39,24 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
   const [isTeamMember, setIsTeamMember] = useState(false);
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const [initialKickoffDate, setInitialKickoffDate] = useState<Date | null>(null);
+
+  // Edit team members state
+  const [showEditTeamModal, setShowEditTeamModal] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<any>(null);
+  const [showRemovalForm, setShowRemovalForm] = useState(false);
+  const [removalReason, setRemovalReason] = useState('');
+  const [shareWithMember, setShareWithMember] = useState(false);
+  const [removingMember, setRemovingMember] = useState(false);
+
+  // Handle initial sub-screen navigation from notifications
+  useEffect(() => {
+    if (initialSubScreen === 'applications') {
+      setShowApplicationsReview(true);
+    } else if (initialSubScreen === 'kickoff') {
+      setShowKickoffScheduling(true);
+    }
+  }, [initialSubScreen]);
 
   useEffect(() => {
     checkIfApplied();
@@ -47,6 +66,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
     checkProposalStatus();
     checkTeamMembership();
     loadTeamMembers();
+    loadInitialKickoffDate();
   }, []);
 
   const checkIfApplied = async () => {
@@ -153,6 +173,34 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
     }
   };
 
+  const loadInitialKickoffDate = async () => {
+    try {
+      // Get the kickoff meeting for this pursuit to find when it was originally kicked off
+      const { data, error } = await supabase
+        .from('meetings')
+        .select('scheduled_time')
+        .eq('pursuit_id', pursuit.id)
+        .eq('is_kickoff', true)
+        .order('scheduled_time', { ascending: true })
+        .limit(1)
+        .single();
+
+      if (error) {
+        // No kickoff meeting found - that's OK for pursuits not yet kicked off
+        if (error.code !== 'PGRST116') {
+          console.error('Error loading kickoff date:', error);
+        }
+        return;
+      }
+
+      if (data?.scheduled_time) {
+        setInitialKickoffDate(new Date(data.scheduled_time));
+      }
+    } catch (error) {
+      console.error('Error loading initial kickoff date:', error);
+    }
+  };
+
   const handleActivateKickoff = async () => {
     Alert.alert(
       'Activate Kickoff',
@@ -205,6 +253,95 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
         }
       ]
     );
+  };
+
+  const handleRemoveMemberConfirm = (member: any) => {
+    const memberName = member.user?.name || member.user?.email || 'this member';
+    Alert.alert(
+      `Remove ${memberName} from the Pod?`,
+      '',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Yes',
+          onPress: () => {
+            setMemberToRemove(member);
+            setShowRemovalForm(true);
+          }
+        }
+      ]
+    );
+  };
+
+  const handleRemoveMember = async () => {
+    if (!memberToRemove || removalReason.length < 50) {
+      Alert.alert('Error', 'Please provide a reason with at least 50 characters');
+      return;
+    }
+
+    setRemovingMember(true);
+    try {
+      // Update member status to 'removed'
+      const { error: updateError } = await supabase
+        .from('team_members')
+        .update({
+          status: 'removed'
+        })
+        .eq('pursuit_id', pursuit.id)
+        .eq('user_id', memberToRemove.user_id);
+
+      if (updateError) throw updateError;
+
+      // Update pursuit member count
+      const { error: countError } = await supabase
+        .from('pursuits')
+        .update({ current_members_count: (pursuit.current_members_count || 1) - 1 })
+        .eq('id', pursuit.id);
+
+      if (countError) {
+        console.error('Error updating member count:', countError);
+      }
+
+      // Send notification if share with member is checked
+      if (shareWithMember) {
+        try {
+          await notificationService.sendPushNotification(
+            [memberToRemove.user_id],
+            `Removed from ${pursuit.title}`,
+            `You have been removed from this pod by the creator.`,
+            {
+              type: 'member_removed',
+              pursuitId: pursuit.id,
+              pursuitTitle: pursuit.title,
+              removalReason: removalReason,
+              removedAt: new Date().toISOString()
+            },
+            'member_removed',
+            pursuit.id,
+            'pursuit'
+          );
+        } catch (notifError) {
+          console.error('Error sending removal notification:', notifError);
+        }
+      }
+
+      Alert.alert('Member Removed', `${memberToRemove.user?.name || 'Member'} has been removed from the pod.`);
+
+      // Reset state
+      setMemberToRemove(null);
+      setShowRemovalForm(false);
+      setRemovalReason('');
+      setShareWithMember(false);
+      setShowEditTeamModal(false);
+
+      // Reload team members
+      loadTeamMembers();
+    } catch (error: any) {
+      console.error('Error removing member:', error);
+      Alert.alert('Error', error.message || 'Failed to remove member');
+    } finally {
+      setRemovingMember(false);
+    }
   };
 
   if (showKickoffScheduling) {
@@ -325,7 +462,17 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
         {/* Team Members Section */}
         {teamMembers.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Team Members ({teamMembers.length})</Text>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Team Members ({teamMembers.length})</Text>
+              {isOwner && (
+                <TouchableOpacity
+                  style={styles.editTeamButton}
+                  onPress={() => setShowEditTeamModal(true)}
+                >
+                  <Text style={styles.editTeamButtonText}>Edit</Text>
+                </TouchableOpacity>
+              )}
+            </View>
             <View style={styles.membersGrid}>
               {teamMembers.map((member: any) => (
                 <TouchableOpacity
@@ -384,6 +531,19 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
               {pursuit.status === 'awaiting_kickoff' ? '🟡 Awaiting Kickoff' : '🟢 Active'}
             </Text>
           </View>
+          {initialKickoffDate && pursuit.status === 'active' && (
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>🚀 Initial Kick-Off:</Text>
+              <Text style={styles.detailValue}>
+                {initialKickoffDate.toLocaleDateString('en-US', {
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric'
+                })}
+              </Text>
+            </View>
+          )}
         </View>
 
         {pursuit.pursuit_types && pursuit.pursuit_types.length > 0 && (
@@ -426,7 +586,9 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Decision System</Text>
           <Text style={styles.detailValue}>
-            {pursuit.decision_system.replace(/_/g, ' ').toUpperCase()}
+            {pursuit.decision_system === 'admin_has_ultimate_say'
+              ? 'Admin has full control'
+              : pursuit.decision_system.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
           </Text>
         </View>
 
@@ -545,7 +707,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                 <Text style={styles.appliedText}>✓ Application Submitted</Text>
               </View>
             ) : (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.applyButton}
                 onPress={() => setShowApplicationForm(true)}
               >
@@ -555,6 +717,155 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
           </>
         )}
       </View>
+
+      {/* Edit Team Members Modal */}
+      <Modal
+        visible={showEditTeamModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => {
+          setShowEditTeamModal(false);
+          setMemberToRemove(null);
+          setShowRemovalForm(false);
+          setRemovalReason('');
+          setShareWithMember(false);
+        }}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {showRemovalForm ? 'Remove Member' : 'Edit Team Members'}
+              </Text>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => {
+                  setShowEditTeamModal(false);
+                  setMemberToRemove(null);
+                  setShowRemovalForm(false);
+                  setRemovalReason('');
+                  setShareWithMember(false);
+                }}
+              >
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {!showRemovalForm ? (
+              // Team members list with remove buttons
+              <ScrollView style={styles.modalContent}>
+                {teamMembers.map((member: any) => (
+                  <View key={member.user_id} style={styles.editMemberCard}>
+                    <View style={styles.editMemberInfo}>
+                      {member.user?.profile_picture ? (
+                        <Image
+                          source={{ uri: member.user.profile_picture }}
+                          style={styles.editMemberImage}
+                        />
+                      ) : (
+                        <View style={styles.editMemberAvatar}>
+                          <Text style={styles.editMemberAvatarText}>
+                            {member.user?.name?.charAt(0).toUpperCase() || '?'}
+                          </Text>
+                        </View>
+                      )}
+                      <View style={styles.editMemberDetails}>
+                        <Text style={styles.editMemberName}>
+                          {member.user?.name || 'Team Member'}
+                        </Text>
+                        <Text style={styles.editMemberEmail}>
+                          {member.user?.email}
+                        </Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.removeButton}
+                      onPress={() => handleRemoveMemberConfirm(member)}
+                    >
+                      <Text style={styles.removeButtonText}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                {teamMembers.length === 0 && (
+                  <Text style={styles.noMembersText}>No team members yet</Text>
+                )}
+              </ScrollView>
+            ) : (
+              // Removal form
+              <ScrollView style={styles.modalContent}>
+                <View style={styles.removalForm}>
+                  <Text style={styles.removalMemberName}>
+                    Removing: {memberToRemove?.user?.name || memberToRemove?.user?.email}
+                  </Text>
+
+                  <Text style={styles.removalLabel}>Reason for Removal</Text>
+                  <Text style={styles.removalSubLabel}>
+                    Please explain why you are removing this member (50 character minimum)
+                  </Text>
+                  <TextInput
+                    style={styles.removalInput}
+                    value={removalReason}
+                    onChangeText={setRemovalReason}
+                    placeholder="Enter reason for removal..."
+                    multiline
+                    numberOfLines={4}
+                    spellCheck={true}
+                    autoCorrect={true}
+                  />
+                  <Text style={[
+                    styles.characterCount,
+                    removalReason.length < 50 && styles.characterCountError
+                  ]}>
+                    {removalReason.length}/50 characters minimum
+                  </Text>
+
+                  <TouchableOpacity
+                    style={styles.checkboxRow}
+                    onPress={() => setShareWithMember(!shareWithMember)}
+                  >
+                    <View style={[styles.checkbox, shareWithMember && styles.checkboxChecked]}>
+                      {shareWithMember && <Text style={styles.checkboxMark}>✓</Text>}
+                    </View>
+                    <Text style={styles.checkboxLabel}>Share with the member?</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.checkboxHint}>
+                    If checked, the member will receive a notification with your reason
+                  </Text>
+
+                  <View style={styles.removalButtons}>
+                    <TouchableOpacity
+                      style={styles.cancelRemovalButton}
+                      onPress={() => {
+                        setMemberToRemove(null);
+                        setShowRemovalForm(false);
+                        setRemovalReason('');
+                        setShareWithMember(false);
+                      }}
+                    >
+                      <Text style={styles.cancelRemovalText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.confirmRemovalButton,
+                        (removalReason.length < 50 || removingMember) && styles.buttonDisabled
+                      ]}
+                      onPress={handleRemoveMember}
+                      disabled={removalReason.length < 50 || removingMember}
+                    >
+                      <Text style={styles.confirmRemovalText}>
+                        {removingMember ? 'Removing...' : 'Remove Member'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </ScrollView>
+            )}
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </ScrollView>
   );
 }
@@ -687,5 +998,238 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
     textAlign: 'center',
+  },
+  // Section header with Edit button
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  editTeamButton: {
+    backgroundColor: '#0ea5e9',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+  },
+  editTeamButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  modalCloseButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#f5f5f5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCloseText: {
+    fontSize: 18,
+    color: '#666',
+  },
+  modalContent: {
+    padding: 20,
+  },
+  // Edit member card styles
+  editMemberCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f9f9f9',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+  },
+  editMemberInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  editMemberImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 12,
+  },
+  editMemberAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#10b981',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  editMemberAvatarText: {
+    fontSize: 20,
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  editMemberDetails: {
+    flex: 1,
+  },
+  editMemberName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 2,
+  },
+  editMemberEmail: {
+    fontSize: 13,
+    color: '#666',
+  },
+  removeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#ef4444',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  removeButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  noMembersText: {
+    fontSize: 16,
+    color: '#999',
+    textAlign: 'center',
+    paddingVertical: 20,
+  },
+  // Removal form styles
+  removalForm: {
+    paddingBottom: 20,
+  },
+  removalMemberName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ef4444',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  removalLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
+  },
+  removalSubLabel: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 12,
+  },
+  removalInput: {
+    backgroundColor: '#f9f9f9',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 15,
+    minHeight: 120,
+    textAlignVertical: 'top',
+  },
+  characterCount: {
+    fontSize: 12,
+    color: '#10b981',
+    textAlign: 'right',
+    marginTop: 4,
+    marginBottom: 20,
+  },
+  characterCountError: {
+    color: '#ef4444',
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#ddd',
+    marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#0ea5e9',
+    borderColor: '#0ea5e9',
+  },
+  checkboxMark: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  checkboxLabel: {
+    fontSize: 15,
+    color: '#333',
+    fontWeight: '500',
+  },
+  checkboxHint: {
+    fontSize: 12,
+    color: '#666',
+    marginLeft: 36,
+    marginBottom: 24,
+  },
+  removalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  cancelRemovalButton: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  cancelRemovalText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
+  },
+  confirmRemovalButton: {
+    flex: 1,
+    backgroundColor: '#ef4444',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  confirmRemovalText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  buttonDisabled: {
+    opacity: 0.5,
   },
 });

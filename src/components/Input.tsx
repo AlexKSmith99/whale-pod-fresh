@@ -28,6 +28,8 @@ export default function Input({
         placeholderTextColor={colors.textTertiary}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
+        spellCheck={true}
+        autoCorrect={true}
         {...textInputProps}
       />
       {error && <Text style={styles.errorText}>{error}</Text>}

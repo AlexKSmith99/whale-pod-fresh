@@ -59,7 +59,8 @@ class AgoraService {
 
   async leaveChannel() {
     if (!this.engine) {
-      throw new Error('Agora engine not initialized');
+      // Engine already destroyed, nothing to do
+      return;
     }
 
     try {
@@ -116,9 +117,13 @@ class AgoraService {
 
   async destroy() {
     if (this.engine) {
-      await this.engine.release();
+      try {
+        await this.engine.release();
+        console.log('Agora engine destroyed');
+      } catch (error) {
+        // Ignore errors during cleanup
+      }
       this.engine = null;
-      console.log('Agora engine destroyed');
     }
   }
 

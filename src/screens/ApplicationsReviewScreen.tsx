@@ -10,6 +10,7 @@ interface Props {
 export default function ApplicationsReviewScreen({ pursuitId, onBack }: Props) {
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedReviewedId, setExpandedReviewedId] = useState<string | null>(null);
 
   useEffect(() => {
     loadApplications();
@@ -142,9 +143,17 @@ export default function ApplicationsReviewScreen({ pursuitId, onBack }: Props) {
                 <>
                   <Text style={styles.sectionTitle}>Reviewed ({reviewedApps.length})</Text>
                   {reviewedApps.map((app) => (
-                    <View key={app.id} style={styles.appCard}>
+                    <TouchableOpacity
+                      key={app.id}
+                      style={styles.appCard}
+                      onPress={() => setExpandedReviewedId(expandedReviewedId === app.id ? null : app.id)}
+                      activeOpacity={0.7}
+                    >
                       <View style={styles.appHeader}>
-                        <View style={styles.avatar}>
+                        <View style={[
+                          styles.avatar,
+                          app.status === 'accepted' ? styles.avatarAccepted : styles.avatarDeclined
+                        ]}>
                           <Text style={styles.avatarText}>👤</Text>
                         </View>
                         <View style={styles.appInfo}>
@@ -158,8 +167,26 @@ export default function ApplicationsReviewScreen({ pursuitId, onBack }: Props) {
                             </Text>
                           </View>
                         </View>
+                        <Text style={styles.expandIcon}>
+                          {expandedReviewedId === app.id ? '▲' : '▼'}
+                        </Text>
                       </View>
-                    </View>
+
+                      {expandedReviewedId === app.id && (
+                        <View style={styles.answersSection}>
+                          <Text style={styles.viewAnswersLabel}>Application Answers</Text>
+                          {app.answers.map((answer: any, index: number) => (
+                            <View key={index} style={styles.answerBlock}>
+                              <Text style={styles.answerQuestion}>{answer.question}</Text>
+                              <Text style={styles.answerText}>{answer.answer}</Text>
+                            </View>
+                          ))}
+                          <Text style={styles.appDateReviewed}>
+                            Applied {new Date(app.created_at).toLocaleDateString()}
+                          </Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
                   ))}
                 </>
               )}
@@ -238,12 +265,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   acceptButtonText: { color: '#fff', fontSize: 15, fontWeight: 'bold' },
-  rejectButton: { 
-    flex: 1, 
-    backgroundColor: '#ef4444', 
-    borderRadius: 8, 
-    padding: 12, 
+  rejectButton: {
+    flex: 1,
+    backgroundColor: '#ef4444',
+    borderRadius: 8,
+    padding: 12,
     alignItems: 'center',
   },
   rejectButtonText: { color: '#fff', fontSize: 15, fontWeight: 'bold' },
+  avatarAccepted: { backgroundColor: '#10b981' },
+  avatarDeclined: { backgroundColor: '#ef4444' },
+  expandIcon: { fontSize: 12, color: '#999', marginLeft: 8 },
+  viewAnswersLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#0ea5e9',
+    marginBottom: 12,
+    marginTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    paddingTop: 16,
+  },
+  appDateReviewed: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 12,
+    fontStyle: 'italic',
+  },
 });

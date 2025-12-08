@@ -22,6 +22,7 @@ import PursuitDetailScreen from './src/screens/PursuitDetailScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
 import EditPursuitScreen from './src/screens/EditPursuitScreen';
 import VideoCallScreen from './src/screens/VideoCallScreen';
+import RemovalReasonScreen from './src/screens/RemovalReasonScreen';
 import { AGORA_APP_ID } from './src/services/agoraService';
 
 function AppContent() {
@@ -37,8 +38,14 @@ function AppContent() {
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
   const [showConnections, setShowConnections] = useState(false);
   const [viewingPodDetail, setViewingPodDetail] = useState<any | null>(null);
+  const [podDetailSubScreen, setPodDetailSubScreen] = useState<string | null>(null);
   const [videoCallChannel, setVideoCallChannel] = useState<string | null>(null);
   const [videoCallPodTitle, setVideoCallPodTitle] = useState<string>('');
+  const [viewingRemovalReason, setViewingRemovalReason] = useState<{
+    pursuitTitle: string;
+    reason: string;
+    removedAt: string;
+  } | null>(null);
   const [badgeCounts, setBadgeCounts] = useState({
     messages: 0,
     connections: 0,
@@ -196,13 +203,22 @@ function AppContent() {
         setViewingUserId(null);
       } else if (screen === 'PodDetail' && params?.pod) {
         setViewingPodDetail(params.pod);
+        setPodDetailSubScreen(params.subScreen || null);
         setCurrentScreen('Pods');
+      } else if (screen === 'TeamBoard' && params?.pursuitId) {
+        setTeamBoardPursuitId(params.pursuitId);
       } else if (screen === 'Pods') {
         setCurrentScreen('Pods');
       } else if (screen === 'Calendar') {
         setCurrentScreen('Calendar');
       } else if (screen === 'Messages') {
         setCurrentScreen('Messages');
+      } else if (screen === 'RemovalReason' && params) {
+        setViewingRemovalReason({
+          pursuitTitle: params.pursuitTitle,
+          reason: params.reason,
+          removedAt: params.removedAt,
+        });
       }
     },
     goBack: () => {
@@ -301,6 +317,21 @@ if (videoCallChannel) {
   );
 }
 
+// Show Removal Reason screen
+if (viewingRemovalReason) {
+  return (
+    <RemovalReasonScreen
+      pursuitTitle={viewingRemovalReason.pursuitTitle}
+      reason={viewingRemovalReason.reason}
+      removedAt={viewingRemovalReason.removedAt}
+      onBack={() => {
+        setViewingRemovalReason(null);
+        setCurrentScreen('Feed');
+      }}
+    />
+  );
+}
+
 // Show User Profile screen (before chat so it takes priority when clicked from chat)
 if (viewingUserId) {
   return (
@@ -336,8 +367,10 @@ if (viewingPodDetail) {
   return (
     <PursuitDetailScreen
       pursuit={viewingPodDetail}
+      initialSubScreen={podDetailSubScreen}
       onBack={() => {
         setViewingPodDetail(null);
+        setPodDetailSubScreen(null);
       }}
       isOwner={viewingPodDetail.creator_id === auth.user?.id || viewingPodDetail.is_creator}
       onEdit={() => {
@@ -496,7 +529,7 @@ if (teamBoardPursuitId) {
         >
           <View style={styles.tabContent}>
             <Text style={[styles.tabText, currentScreen === 'Pods' && styles.tabTextActive]}>
-              🐋 Pods
+              🐋 My Pods
             </Text>
             {badgeCounts.pods > 0 && (
               <View style={styles.badge}>
