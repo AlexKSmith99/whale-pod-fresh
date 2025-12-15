@@ -625,4 +625,78 @@ export const notificationService = {
       console.error('Error marking notifications as read:', error);
     }
   },
+
+  // Get unread notification counts grouped by pursuit ID
+  async getUnreadCountsByPursuit(userId: string): Promise<Map<string, number>> {
+    // Pod-related notification types
+    const podTypes = [
+      'pursuit_created',
+      'min_team_size_reached',
+      'kickoff_activated',
+      'time_proposal',
+      'team_board_update',
+      'all_proposals_submitted',
+      'kickoff_scheduled',
+      'kickoff_scheduled_creator',
+      'kickoff_scheduled_team',
+      'application_received',
+      'application_accepted',
+      'application_rejected',
+      'member_removed',
+      'member_left',
+    ];
+
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('related_id, type')
+      .eq('user_id', userId)
+      .eq('read', false)
+      .in('type', podTypes);
+
+    if (error) {
+      console.error('Error getting unread counts by pursuit:', error);
+      return new Map();
+    }
+
+    const counts = new Map<string, number>();
+    data?.forEach(notif => {
+      if (notif.related_id) {
+        counts.set(notif.related_id, (counts.get(notif.related_id) || 0) + 1);
+      }
+    });
+
+    return counts;
+  },
+
+  // Mark all notifications as read for a specific pursuit
+  async markAllAsReadByPursuit(userId: string, pursuitId: string) {
+    const podTypes = [
+      'pursuit_created',
+      'min_team_size_reached',
+      'kickoff_activated',
+      'time_proposal',
+      'team_board_update',
+      'all_proposals_submitted',
+      'kickoff_scheduled',
+      'kickoff_scheduled_creator',
+      'kickoff_scheduled_team',
+      'application_received',
+      'application_accepted',
+      'application_rejected',
+      'member_removed',
+      'member_left',
+    ];
+
+    const { error } = await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('user_id', userId)
+      .eq('related_id', pursuitId)
+      .in('type', podTypes)
+      .eq('read', false);
+
+    if (error) {
+      console.error('Error marking pursuit notifications as read:', error);
+    }
+  },
 };

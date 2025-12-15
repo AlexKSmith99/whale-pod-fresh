@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert,
 import { useAuth } from '../contexts/AuthContext';
 import { pursuitService } from '../services/pursuitService';
 
-const PURSUIT_TYPES = ['Education', 'Friends', 'Problem', 'Business', 'Lifestyle', 'Hobby', 'Fitness', 'Side Hustle', 'Travel', 'Discussion', 'New Endeavor', 'Accountability', 'Networking'];
+const PURSUIT_TYPES = ['Education', 'Friends', 'Problem', 'Business', 'Lifestyle', 'Hobby', 'Fitness', 'Side Hustle', 'Travel', 'Discussion', 'New Endeavor', 'Accountability', 'Networking', 'Health', 'Personal Growth', 'Career Growth', 'Hangout', 'Socialize', 'Explore', 'Nature', 'Social Media', 'Spiritual', 'Religion', 'Mental Health', 'Art', 'Music', 'Sport'];
 const DECISION_SYSTEMS = ['Standard Vote', 'Admin Has Ultimate Say', 'Delegated', 'Weighted Voting'];
 const ATTENDANCE_STYLES = ['Mandatory', 'Optional', 'Frequent'];
 

@@ -3,6 +3,7 @@ import { View, ActivityIndicator, TouchableOpacity, Text, StyleSheet, Alert } fr
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { notificationService } from './src/services/notificationService';
+import { messageService } from './src/services/messageService';
 import { supabase } from './src/config/supabase';
 import NotificationToast from './src/components/NotificationToast';
 import LoginScreen from './src/screens/LoginScreen';
@@ -23,6 +24,7 @@ import NotificationsScreen from './src/screens/NotificationsScreen';
 import EditPursuitScreen from './src/screens/EditPursuitScreen';
 import VideoCallScreen from './src/screens/VideoCallScreen';
 import RemovalReasonScreen from './src/screens/RemovalReasonScreen';
+import MemberLeftScreen from './src/screens/MemberLeftScreen';
 import { AGORA_APP_ID } from './src/services/agoraService';
 
 function AppContent() {
@@ -46,6 +48,12 @@ function AppContent() {
     reason: string;
     removedAt: string;
   } | null>(null);
+  const [viewingMemberLeft, setViewingMemberLeft] = useState<{
+    pursuitTitle: string;
+    memberName: string;
+    reason: string;
+    leftAt: string;
+  } | null>(null);
   const [badgeCounts, setBadgeCounts] = useState({
     messages: 0,
     connections: 0,
@@ -55,6 +63,7 @@ function AppContent() {
     notifications: 0,
   });
   const [currentToast, setCurrentToast] = useState<any>(null);
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
 
   // Load notification badge counts and set up real-time listener
   useEffect(() => {
@@ -81,13 +90,16 @@ function AppContent() {
             console.log('🔔 NEW NOTIFICATION RECEIVED VIA REALTIME:', payload);
             const newNotification = payload.new;
 
-            // Show toast
-            setCurrentToast({
-              title: newNotification.title,
-              body: newNotification.body,
-              type: newNotification.type,
-              id: newNotification.id,
-            });
+            // Don't show toast for message notifications (those only show badge)
+            if (newNotification.type !== 'message' && newNotification.type !== 'new_message') {
+              // Show toast
+              setCurrentToast({
+                title: newNotification.title,
+                body: newNotification.body,
+                type: newNotification.type,
+                id: newNotification.id,
+              });
+            }
 
             // Refresh badge counts
             loadBadgeCounts();
@@ -114,13 +126,84 @@ function AppContent() {
     }
   }, [auth.user]);
 
+  // Load unread message count and set up real-time listener for messages
+  useEffect(() => {
+    if (auth.user) {
+      loadUnreadMessageCount();
+
+      console.log('💬 Setting up realtime messages listener for user:', auth.user.id);
+
+      // Set up real-time listener for new messages
+      const messagesChannel = supabase
+        .channel('messages-badge')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'messages',
+            filter: `recipient_id=eq.${auth.user.id}`,
+          },
+          (payload) => {
+            console.log('💬 NEW MESSAGE RECEIVED:', payload);
+            // Refresh unread count when a new message arrives
+            loadUnreadMessageCount();
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'messages',
+            filter: `recipient_id=eq.${auth.user.id}`,
+          },
+          (payload) => {
+            console.log('💬 MESSAGE UPDATED:', payload);
+            // Refresh unread count when messages are marked as read
+            loadUnreadMessageCount();
+          }
+        )
+        .subscribe((status, err) => {
+          console.log('💬 Messages subscription status:', status);
+          if (err) {
+            console.error('💬 Messages subscription error:', err);
+          }
+        });
+
+      // Refresh count every 30 seconds as backup
+      const interval = setInterval(loadUnreadMessageCount, 30000);
+
+      return () => {
+        console.log('💬 Cleaning up messages subscription');
+        supabase.removeChannel(messagesChannel);
+        clearInterval(interval);
+      };
+    }
+  }, [auth.user]);
+
+  const loadUnreadMessageCount = async () => {
+    if (!auth.user) return;
+
+    try {
+      const count = await messageService.getUnreadCount(auth.user.id);
+      console.log('💬 Unread message count:', count);
+      setUnreadMessageCount(count);
+    } catch (error) {
+      console.error('Error loading unread message count:', error);
+    }
+  };
+
   const checkForUnreadNotifications = async () => {
     if (!auth.user) return;
 
     try {
       // Get the most recent unread notification
       const notifications = await notificationService.getUserNotifications(auth.user.id);
-      const unreadNotifications = notifications.filter((n: any) => !n.read);
+      // Filter out message notifications - those only show badges, not toasts
+      const unreadNotifications = notifications.filter((n: any) =>
+        !n.read && n.type !== 'message' && n.type !== 'new_message'
+      );
 
       if (unreadNotifications.length > 0) {
         const mostRecent = unreadNotifications[0];
@@ -218,6 +301,13 @@ function AppContent() {
           pursuitTitle: params.pursuitTitle,
           reason: params.reason,
           removedAt: params.removedAt,
+        });
+      } else if (screen === 'MemberLeft' && params) {
+        setViewingMemberLeft({
+          pursuitTitle: params.pursuitTitle,
+          memberName: params.memberName,
+          reason: params.reason,
+          leftAt: params.leftAt,
         });
       }
     },
@@ -327,6 +417,22 @@ if (viewingRemovalReason) {
       onBack={() => {
         setViewingRemovalReason(null);
         setCurrentScreen('Feed');
+      }}
+    />
+  );
+}
+
+// Show Member Left screen (for creators when a member leaves)
+if (viewingMemberLeft) {
+  return (
+    <MemberLeftScreen
+      pursuitTitle={viewingMemberLeft.pursuitTitle}
+      memberName={viewingMemberLeft.memberName}
+      reason={viewingMemberLeft.reason}
+      leftAt={viewingMemberLeft.leftAt}
+      onBack={() => {
+        setViewingMemberLeft(null);
+        setCurrentScreen('Notifications');
       }}
     />
   );
@@ -506,16 +612,15 @@ if (teamBoardPursuitId) {
           style={styles.tab}
           onPress={() => {
             setCurrentScreen('Messages');
-            clearBadgeForTab('Messages');
           }}
         >
           <View style={styles.tabContent}>
             <Text style={[styles.tabText, currentScreen === 'Messages' && styles.tabTextActive]}>
               💬 Messages
             </Text>
-            {badgeCounts.messages > 0 && (
+            {unreadMessageCount > 0 && currentScreen !== 'Messages' && (
               <View style={styles.badge}>
-                <Text style={styles.badgeText}>{badgeCounts.messages}</Text>
+                <Text style={styles.badgeText}>{unreadMessageCount}</Text>
               </View>
             )}
           </View>

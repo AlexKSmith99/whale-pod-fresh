@@ -127,6 +127,16 @@ export default function NotificationsScreen({ navigation }: any) {
         });
         break;
 
+      case 'member_left':
+        // Navigate to member left screen (reusing RemovalReason with different title)
+        navigation?.navigate?.('MemberLeft', {
+          pursuitTitle: notification.data?.pursuitTitle || 'Unknown Pursuit',
+          memberName: notification.data?.memberName || 'A team member',
+          reason: notification.data?.leaveReason || 'No reason provided',
+          leftAt: notification.data?.leftAt || notification.created_at,
+        });
+        break;
+
       default:
         // Unknown notification type
         console.log('Unknown notification type:', notification.type);
@@ -188,6 +198,8 @@ export default function NotificationsScreen({ navigation }: any) {
         return 'calendar';
       case 'member_removed':
         return 'person-remove';
+      case 'member_left':
+        return 'exit-outline';
       default:
         return 'notifications';
     }

@@ -10,6 +10,7 @@ import ApplicationsReviewScreen from './ApplicationsReviewScreen';
 import UserProfileScreen from './UserProfileScreen';
 import TimeSlotProposalScreen from './TimeSlotProposalScreen';
 import KickoffSchedulingScreen from './KickoffSchedulingScreen';
+import PodChatScreen from './PodChatScreen';
 
 interface Props {
   pursuit: any;
@@ -48,6 +49,15 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
   const [removalReason, setRemovalReason] = useState('');
   const [shareWithMember, setShareWithMember] = useState(false);
   const [removingMember, setRemovingMember] = useState(false);
+
+  // Leave Pod state (for team members)
+  const [showLeavePodModal, setShowLeavePodModal] = useState(false);
+  const [leaveReason, setLeaveReason] = useState('');
+  const [shareWithLeader, setShareWithLeader] = useState(false);
+  const [leavingPod, setLeavingPod] = useState(false);
+
+  // Pod Chat state
+  const [showPodChat, setShowPodChat] = useState(false);
 
   // Handle initial sub-screen navigation from notifications
   useEffect(() => {
@@ -145,7 +155,6 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
 
   const loadTeamMembers = async () => {
     try {
-      console.log('👥 Loading team members for pursuit:', pursuit.id);
       const { data, error } = await supabase
         .from('team_members')
         .select(`
@@ -161,12 +170,8 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
         .eq('pursuit_id', pursuit.id)
         .in('status', ['active', 'accepted']);
 
-      if (error) {
-        console.error('❌ Error loading team members:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log(`✅ Loaded ${data?.length || 0} team members`);
       setTeamMembers(data || []);
     } catch (error) {
       console.error('Error loading team members:', error);
@@ -344,6 +349,85 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
     }
   };
 
+  const handleLeavePod = async () => {
+    if (!user || leaveReason.length < 50) {
+      Alert.alert('Error', 'Please provide a reason with at least 50 characters');
+      return;
+    }
+
+    setLeavingPod(true);
+    try {
+      // Update member status to 'removed' (left)
+      const { data: updateData, error: updateError } = await supabase
+        .from('team_members')
+        .update({
+          status: 'removed'
+        })
+        .eq('pursuit_id', pursuit.id)
+        .eq('user_id', user.id)
+        .select();
+
+      if (updateError) throw updateError;
+
+      if (!updateData || updateData.length === 0) {
+        Alert.alert('Error', 'Failed to leave pod. Please try again.');
+        setLeavingPod(false);
+        return;
+      }
+
+      // Update pursuit member count
+      const { error: countError } = await supabase
+        .from('pursuits')
+        .update({ current_members_count: Math.max((pursuit.current_members_count || 1) - 1, 0) })
+        .eq('id', pursuit.id);
+
+      if (countError) {
+        console.error('Error updating member count:', countError);
+      }
+
+      // Send notification to creator if share with leader is checked
+      if (shareWithLeader) {
+        try {
+          const userName = user.name || user.email || 'A team member';
+          await notificationService.sendPushNotification(
+            [pursuit.creator_id],
+            `${userName} left ${pursuit.title}`,
+            `A team member has left your pod.`,
+            {
+              type: 'member_left',
+              pursuitId: pursuit.id,
+              pursuitTitle: pursuit.title,
+              memberName: userName,
+              leaveReason: leaveReason,
+              leftAt: new Date().toISOString()
+            },
+            'member_left',
+            pursuit.id,
+            'pursuit'
+          );
+        } catch (notifError) {
+          console.error('Error sending leave notification:', notifError);
+        }
+      }
+
+      Alert.alert(
+        'Left Pod',
+        `You have left ${pursuit.title}.`,
+        [{ text: 'OK', onPress: () => onBack() }]
+      );
+
+      // Reset state
+      setShowLeavePodModal(false);
+      setLeaveReason('');
+      setShareWithLeader(false);
+    } catch (error: any) {
+      console.error('Error leaving pod:', error);
+      Alert.alert('Error', error.message || 'Failed to leave pod');
+    } finally {
+      setLeavingPod(false);
+    }
+  };
+
   if (showKickoffScheduling) {
     return (
       <KickoffSchedulingScreen
@@ -424,13 +508,32 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
     );
   }
 
+  if (showPodChat) {
+    return (
+      <PodChatScreen
+        pursuitId={pursuit.id}
+        pursuitTitle={pursuit.title}
+        podPicture={pursuit.default_picture}
+        onBack={() => setShowPodChat(false)}
+      />
+    );
+  }
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>{pursuit.title}</Text>
+        <View style={styles.headerTitleRow}>
+          <Text style={styles.title}>{pursuit.title}</Text>
+          {pursuit.default_picture && (
+            <Image
+              source={{ uri: pursuit.default_picture }}
+              style={styles.headerPodPicture}
+            />
+          )}
+        </View>
       </View>
 
       <View style={styles.content}>
@@ -689,6 +792,12 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
               <Text style={styles.teamBoardButtonText}>📋 Team Board</Text>
             </TouchableOpacity>
             <TouchableOpacity
+              style={styles.podChatButton}
+              onPress={() => setShowPodChat(true)}
+            >
+              <Text style={styles.podChatButtonText}>💬 Pod Chat</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
               style={styles.reviewButton}
               onPress={() => setShowApplicationsReview(true)}
             >
@@ -702,7 +811,31 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
 
         {!isOwner && (
           <>
-            {hasApplied ? (
+            {isTeamMember ? (
+              // Team member actions
+              <View style={styles.teamMemberActions}>
+                {onOpenTeamBoard && (
+                  <TouchableOpacity
+                    style={styles.teamBoardButtonMember}
+                    onPress={() => onOpenTeamBoard(pursuit.id)}
+                  >
+                    <Text style={styles.teamBoardButtonText}>📋 Team Board</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  style={styles.podChatButtonMember}
+                  onPress={() => setShowPodChat(true)}
+                >
+                  <Text style={styles.podChatButtonText}>💬 Pod Chat</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.leavePodButton}
+                  onPress={() => setShowLeavePodModal(true)}
+                >
+                  <Text style={styles.leavePodButtonText}>🚪 Leave Pod</Text>
+                </TouchableOpacity>
+              </View>
+            ) : hasApplied ? (
               <View style={styles.appliedBadge}>
                 <Text style={styles.appliedText}>✓ Application Submitted</Text>
               </View>
@@ -866,6 +999,106 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Leave Pod Modal */}
+      <Modal
+        visible={showLeavePodModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => {
+          setShowLeavePodModal(false);
+          setLeaveReason('');
+          setShareWithLeader(false);
+        }}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Leave Pod</Text>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => {
+                  setShowLeavePodModal(false);
+                  setLeaveReason('');
+                  setShareWithLeader(false);
+                }}
+              >
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalContent}>
+              <View style={styles.removalForm}>
+                <Text style={styles.leavePodTitle}>
+                  Are you sure you want to leave "{pursuit.title}"?
+                </Text>
+
+                <Text style={styles.removalLabel}>Reason for Leaving</Text>
+                <Text style={styles.removalSubLabel}>
+                  Please explain why you are leaving this pod (50 character minimum)
+                </Text>
+                <TextInput
+                  style={styles.removalInput}
+                  value={leaveReason}
+                  onChangeText={setLeaveReason}
+                  placeholder="Enter reason for leaving..."
+                  multiline
+                  numberOfLines={4}
+                  spellCheck={true}
+                  autoCorrect={true}
+                />
+                <Text style={[
+                  styles.characterCount,
+                  leaveReason.length < 50 && styles.characterCountError
+                ]}>
+                  {leaveReason.length}/50 characters minimum
+                </Text>
+
+                <TouchableOpacity
+                  style={styles.checkboxRow}
+                  onPress={() => setShareWithLeader(!shareWithLeader)}
+                >
+                  <View style={[styles.checkbox, shareWithLeader && styles.checkboxChecked]}>
+                    {shareWithLeader && <Text style={styles.checkboxMark}>✓</Text>}
+                  </View>
+                  <Text style={styles.checkboxLabel}>Share with the leader?</Text>
+                </TouchableOpacity>
+                <Text style={styles.checkboxHint}>
+                  If checked, the pod creator will receive a notification with your reason
+                </Text>
+
+                <View style={styles.removalButtons}>
+                  <TouchableOpacity
+                    style={styles.cancelRemovalButton}
+                    onPress={() => {
+                      setShowLeavePodModal(false);
+                      setLeaveReason('');
+                      setShareWithLeader(false);
+                    }}
+                  >
+                    <Text style={styles.cancelRemovalText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.confirmLeaveButton,
+                      (leaveReason.length < 50 || leavingPod) && styles.buttonDisabled
+                    ]}
+                    onPress={handleLeavePod}
+                    disabled={leaveReason.length < 50 || leavingPod}
+                  >
+                    <Text style={styles.confirmLeaveText}>
+                      {leavingPod ? 'Leaving...' : 'Leave Pod'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </ScrollView>
   );
 }
@@ -875,7 +1108,18 @@ const styles = StyleSheet.create({
   header: { backgroundColor: '#fff', padding: 20, paddingTop: 60, borderBottomWidth: 1, borderBottomColor: '#eee' },
   backButton: { marginBottom: 10 },
   backText: { fontSize: 16, color: '#0ea5e9', fontWeight: '600' },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#333' },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  title: { fontSize: 24, fontWeight: 'bold', color: '#333', flex: 1 },
+  headerPodPicture: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginLeft: 12,
+  },
   content: { padding: 20, paddingBottom: 100 },
   creatorSection: { marginBottom: 15 },
   creatorCard: {
@@ -927,6 +1171,8 @@ const styles = StyleSheet.create({
   editButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   teamBoardButton: { backgroundColor: '#8b5cf6', borderRadius: 8, padding: 16, alignItems: 'center' },
   teamBoardButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  podChatButton: { backgroundColor: '#6366f1', borderRadius: 8, padding: 16, alignItems: 'center' },
+  podChatButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   reviewButton: { backgroundColor: '#0ea5e9', borderRadius: 8, padding: 16, alignItems: 'center' },
   reviewButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   deleteButton: { backgroundColor: '#ef4444', borderRadius: 8, padding: 16, alignItems: 'center' },
@@ -1231,5 +1477,67 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.5,
+  },
+  // Team member actions styles
+  teamMemberActions: {
+    marginTop: 20,
+    gap: 12,
+  },
+  teamBoardButtonMember: {
+    backgroundColor: '#8b5cf6',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    shadowColor: '#8b5cf6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  podChatButtonMember: {
+    backgroundColor: '#6366f1',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  leavePodButton: {
+    backgroundColor: '#ef4444',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    shadowColor: '#ef4444',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  leavePodButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  leavePodTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  confirmLeaveButton: {
+    flex: 1,
+    backgroundColor: '#ef4444',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  confirmLeaveText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
   },
 });

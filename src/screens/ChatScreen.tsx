@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
@@ -20,15 +21,37 @@ interface Props {
   partnerEmail: string;
   onBack: () => void;
   navigation?: any;
+  showMenuButton?: boolean;
+  onMenuPress?: () => void;
+  onDelete?: () => void;
 }
 
-export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation }: Props) {
+export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation, showMenuButton, onMenuPress, onDelete }: Props) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [otherUserProfile, setOtherUserProfile] = useState<any>(null);
   const [myProfile, setMyProfile] = useState<any>(null);
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+
+  const handleMenuPress = () => {
+    if (showMenuButton && onMenuPress) {
+      setShowOptionsMenu(true);
+    } else {
+      onBack();
+    }
+  };
+
+  const handleSwitchChats = () => {
+    setShowOptionsMenu(false);
+    onMenuPress?.();
+  };
+
+  const handleDeleteChat = () => {
+    setShowOptionsMenu(false);
+    onDelete?.();
+  };
 
   useEffect(() => {
     loadUserProfile();
@@ -37,7 +60,7 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
     markMessagesAsRead();
     const interval = setInterval(loadMessages, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [partnerId]);
 
   const loadUserProfile = async () => {
     try {
@@ -191,11 +214,11 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={90}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 140 : 0}
     >
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
+        <TouchableOpacity onPress={handleMenuPress} style={styles.backButton}>
+          <Ionicons name={showMenuButton ? "ellipsis-vertical" : "arrow-back"} size={24} color="#333" />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.headerUserInfo}
@@ -243,6 +266,36 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
           <Ionicons name="send" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
+
+      {/* Options Menu Modal */}
+      <Modal
+        visible={showOptionsMenu}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowOptionsMenu(false)}
+      >
+        <TouchableOpacity
+          style={styles.optionsOverlay}
+          activeOpacity={1}
+          onPress={() => setShowOptionsMenu(false)}
+        >
+          <View style={styles.optionsContainer}>
+            <TouchableOpacity style={styles.optionItem} onPress={handleSwitchChats}>
+              <Ionicons name="chatbubbles-outline" size={22} color="#333" />
+              <Text style={styles.optionText}>Switch Chats</Text>
+            </TouchableOpacity>
+            {onDelete && (
+              <TouchableOpacity style={styles.optionItemDanger} onPress={handleDeleteChat}>
+                <Ionicons name="trash-outline" size={22} color="#ef4444" />
+                <Text style={styles.optionTextDanger}>Delete Chat</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={styles.optionCancel} onPress={() => setShowOptionsMenu(false)}>
+              <Text style={styles.optionCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -368,5 +421,51 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  optionsOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  optionsContainer: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 12,
+    paddingBottom: 34,
+  },
+  optionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    gap: 12,
+  },
+  optionText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  optionItemDanger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    gap: 12,
+  },
+  optionTextDanger: {
+    fontSize: 16,
+    color: '#ef4444',
+  },
+  optionCancel: {
+    alignItems: 'center',
+    paddingVertical: 16,
+    marginTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  optionCancelText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
   },
 });

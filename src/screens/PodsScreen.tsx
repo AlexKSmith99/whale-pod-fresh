@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
+import { notificationService } from '../services/notificationService';
 
 interface Pod {
   id: string;
@@ -40,6 +41,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard }: PodsSc
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<FilterType>('active');
+  const [notificationCounts, setNotificationCounts] = useState<Map<string, number>>(new Map());
 
   useEffect(() => {
     loadData();
@@ -127,6 +129,12 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard }: PodsSc
       if (appsError) throw appsError;
       setApplications(apps || []);
 
+      // Load notification counts by pursuit
+      const counts = await notificationService.getUnreadCountsByPursuit(user.id);
+      console.log('📍 Notification counts by pursuit:', Object.fromEntries(counts));
+      console.log('📍 Active pod IDs:', allActivePods.map(p => p.id));
+      setNotificationCounts(counts);
+
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -171,7 +179,10 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard }: PodsSc
     </View>
   );
 
-  const renderPodCard = (pod: Pod, isPast: boolean = false) => (
+  const renderPodCard = (pod: Pod, isPast: boolean = false) => {
+    const hasNotifications = !isPast && notificationCounts.get(pod.id) && notificationCounts.get(pod.id)! > 0;
+
+    return (
     <TouchableOpacity
       key={pod.id}
       style={[styles.podCard, isPast && styles.podCardPast]}
@@ -181,7 +192,10 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard }: PodsSc
     >
       <View style={styles.podHeader}>
         <View style={styles.podTitleRow}>
-          <Text style={[styles.podTitle, isPast && styles.podTitlePast]} numberOfLines={1}>{pod.title}</Text>
+          <View style={styles.titleWithDot}>
+            {hasNotifications && <View style={styles.notificationDot} />}
+            <Text style={[styles.podTitle, isPast && styles.podTitlePast]} numberOfLines={1}>{pod.title}</Text>
+          </View>
           {pod.is_creator && !isPast && (
             <View style={styles.creatorBadge}>
               <Text style={styles.creatorBadgeText}>CREATOR</Text>
@@ -238,6 +252,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard }: PodsSc
       )}
     </TouchableOpacity>
   );
+  };
 
   const renderActiveContent = () => (
     <View style={styles.content}>
@@ -371,6 +386,8 @@ const styles = StyleSheet.create({
   podCardPast: { backgroundColor: '#f9fafb', opacity: 0.8, borderColor: '#e5e7eb' },
   podHeader: { marginBottom: 12 },
   podTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  titleWithDot: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  notificationDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#ef4444', marginRight: 8 },
   podTitle: { fontSize: 19, fontWeight: 'bold', color: '#1a1a1a', flex: 1, marginRight: 8 },
   podTitlePast: { color: '#6b7280' },
   creatorBadge: { backgroundColor: '#8b5cf6', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },

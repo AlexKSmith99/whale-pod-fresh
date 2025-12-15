@@ -71,6 +71,11 @@ export const pursuitService = {
       query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
     }
 
+    if (filters.keyword) {
+      // Search across title, description, and subcategory
+      query = query.or(`title.ilike.%${filters.keyword}%,description.ilike.%${filters.keyword}%,subcategory.ilike.%${filters.keyword}%`);
+    }
+
     query = query.order('created_at', { ascending: false });
 
     const { data, error} = await query;

@@ -89,4 +89,37 @@ export const messageService = {
     console.log(`✅ Marked ${data?.length || 0} messages as read`);
     return data;
   },
+
+  // Get total count of unread messages for a user
+  async getUnreadCount(userId: string): Promise<number> {
+    const { count, error } = await supabase
+      .from('messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('recipient_id', userId)
+      .eq('is_read', false);
+
+    if (error) {
+      console.error('Error getting unread count:', error);
+      return 0;
+    }
+
+    return count || 0;
+  },
+
+  // Get count of unread messages from a specific sender
+  async getUnreadCountFromSender(userId: string, senderId: string): Promise<number> {
+    const { count, error } = await supabase
+      .from('messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('recipient_id', userId)
+      .eq('sender_id', senderId)
+      .eq('is_read', false);
+
+    if (error) {
+      console.error('Error getting unread count from sender:', error);
+      return 0;
+    }
+
+    return count || 0;
+  },
 };

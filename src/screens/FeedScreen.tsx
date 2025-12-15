@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, StatusBar, TextInput, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, StatusBar, TextInput, Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { pursuitService } from '../services/pursuitService';
 import { useAuth } from '../contexts/AuthContext';
@@ -23,14 +23,15 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
   // Filter states
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [pursuitTypeFilter, setPursuitTypeFilter] = useState<string[]>([]);
-  const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
+  const [keywordFilter, setKeywordFilter] = useState('');
   const [locationFilter, setLocationFilter] = useState<string[]>([]);
   const [teamSizeFilter, setTeamSizeFilter] = useState<string[]>([]);
 
   // Modal states
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showPursuitTypeModal, setShowPursuitTypeModal] = useState(false);
-  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showKeywordModal, setShowKeywordModal] = useState(false);
+  const [tempKeyword, setTempKeyword] = useState('');
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [showTeamSizeModal, setShowTeamSizeModal] = useState(false);
 
@@ -38,7 +39,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
     // Load pursuits whenever filters change
     loadPursuits();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, pursuitTypeFilter, categoryFilter, locationFilter, teamSizeFilter]);
+  }, [statusFilter, pursuitTypeFilter, keywordFilter, locationFilter, teamSizeFilter]);
   const loadPursuits = async () => {
     try {
       const filters: any = {};
@@ -53,9 +54,9 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
         filters.pursuit_type = pursuitTypeFilter;
       }
 
-      // Apply category filter (includes subcategories in backend query)
-      if (categoryFilter.length > 0) {
-        filters.category = categoryFilter;
+      // Apply keyword filter (searches title, description, category)
+      if (keywordFilter.trim()) {
+        filters.keyword = keywordFilter.trim();
       }
 
       // Apply location filter
@@ -134,7 +135,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
   const clearAllFilters = () => {
     setStatusFilter([]);
     setPursuitTypeFilter([]);
-    setCategoryFilter([]);
+    setKeywordFilter('');
     setLocationFilter([]);
     setTeamSizeFilter([]);
   };
@@ -312,9 +313,12 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
             onPress={() => setShowPursuitTypeModal(true)}
           />
           <FilterButton
-            label="Categories"
-            count={getFilterCount(categoryFilter)}
-            onPress={() => setShowCategoryModal(true)}
+            label={keywordFilter ? `"${keywordFilter}"` : "Keyword"}
+            count={keywordFilter ? 1 : null}
+            onPress={() => {
+              setTempKeyword(keywordFilter);
+              setShowKeywordModal(true);
+            }}
           />
           <FilterButton
             label="Location"
@@ -329,7 +333,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
         </ScrollView>
 
         {/* Clear Filters Button */}
-        {(statusFilter.length > 0 || pursuitTypeFilter.length > 0 || categoryFilter.length > 0 ||
+        {(statusFilter.length > 0 || pursuitTypeFilter.length > 0 || keywordFilter ||
           locationFilter.length > 0 || teamSizeFilter.length > 0) && (
           <TouchableOpacity style={styles.clearFiltersButton} onPress={clearAllFilters}>
             <Text style={styles.clearFiltersText}>Clear All Filters</Text>
@@ -351,19 +355,61 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
         visible={showPursuitTypeModal}
         onClose={() => setShowPursuitTypeModal(false)}
         title="Filter by Pursuit Type"
-        options={['Education', 'Friends', 'Problem', 'Business', 'Lifestyle', 'Hobby', 'Fitness', 'Side Hustle', 'Travel', 'Discussion', 'New Endeavor', 'Accountability', 'Networking']}
+        options={['Education', 'Friends', 'Problem', 'Business', 'Lifestyle', 'Hobby', 'Fitness', 'Side Hustle', 'Travel', 'Discussion', 'New Endeavor', 'Accountability', 'Networking', 'Health', 'Personal Growth', 'Career Growth', 'Hangout', 'Socialize', 'Explore', 'Nature', 'Social Media', 'Spiritual', 'Religion', 'Mental Health', 'Art', 'Music', 'Sport']}
         selectedValues={pursuitTypeFilter}
         onToggle={(value) => toggleFilter(pursuitTypeFilter, setPursuitTypeFilter, value)}
       />
 
-      <FilterModal
-        visible={showCategoryModal}
-        onClose={() => setShowCategoryModal(false)}
-        title="Filter by Category"
-        options={['Technology', 'Business', 'Creative', 'Social', 'Education', 'Health', 'Other']}
-        selectedValues={categoryFilter}
-        onToggle={(value) => toggleFilter(categoryFilter, setCategoryFilter, value)}
-      />
+      {/* Keyword Search Modal */}
+      <Modal
+        visible={showKeywordModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowKeywordModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Search by Keyword</Text>
+              <TouchableOpacity onPress={() => setShowKeywordModal(false)}>
+                <Ionicons name="close" size={24} color={colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              style={styles.keywordInput}
+              placeholder="Enter keyword to search..."
+              placeholderTextColor={colors.textTertiary}
+              value={tempKeyword}
+              onChangeText={setTempKeyword}
+              autoFocus
+            />
+            <View style={styles.keywordButtonRow}>
+              <TouchableOpacity
+                style={styles.keywordClearButton}
+                onPress={() => {
+                  setTempKeyword('');
+                  setKeywordFilter('');
+                  setShowKeywordModal(false);
+                }}
+              >
+                <Text style={styles.keywordClearButtonText}>Clear</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.keywordApplyButton}
+                onPress={() => {
+                  setKeywordFilter(tempKeyword);
+                  setShowKeywordModal(false);
+                }}
+              >
+                <Text style={styles.keywordApplyButtonText}>Apply</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       <FilterModal
         visible={showLocationModal}
@@ -489,22 +535,22 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
                     </View>
 
                     {pursuit.location && (
-                      <View style={styles.infoItem}>
+                      <View style={styles.infoItemFlex}>
                         <View style={styles.iconContainer}>
                           <Ionicons name="location" size={14} color={colors.textSecondary} />
                         </View>
-                        <Text style={styles.infoText} numberOfLines={1}>
+                        <Text style={styles.infoTextFlex} numberOfLines={1}>
                           {pursuit.location}
                         </Text>
                       </View>
                     )}
 
                     {pursuit.meeting_cadence && (
-                      <View style={styles.infoItem}>
+                      <View style={styles.infoItemFlex}>
                         <View style={styles.iconContainer}>
                           <Ionicons name="calendar" size={14} color={colors.textSecondary} />
                         </View>
-                        <Text style={styles.infoText} numberOfLines={1}>
+                        <Text style={styles.infoTextFlex} numberOfLines={1}>
                           {pursuit.meeting_cadence}
                         </Text>
                       </View>
@@ -870,6 +916,14 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
 
+  infoItemFlex: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    flexShrink: 1,
+    minWidth: 0,
+  },
+
   iconContainer: {
     width: 20,
     height: 20,
@@ -883,5 +937,58 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     color: colors.textSecondary,
     fontWeight: typography.fontWeight.medium,
+  },
+
+  infoTextFlex: {
+    fontSize: typography.fontSize.xs,
+    color: colors.textSecondary,
+    fontWeight: typography.fontWeight.medium,
+    flexShrink: 1,
+  },
+
+  // Keyword Search Modal Styles
+  keywordInput: {
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: borderRadius.base,
+    padding: spacing.base,
+    fontSize: typography.fontSize.base,
+    color: colors.textPrimary,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+
+  keywordButtonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    gap: spacing.base,
+  },
+
+  keywordClearButton: {
+    flex: 1,
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: borderRadius.base,
+    padding: spacing.base,
+    alignItems: 'center',
+  },
+
+  keywordClearButtonText: {
+    fontSize: typography.fontSize.base,
+    color: colors.textSecondary,
+    fontWeight: typography.fontWeight.semibold,
+  },
+
+  keywordApplyButton: {
+    flex: 1,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.base,
+    padding: spacing.base,
+    alignItems: 'center',
+  },
+
+  keywordApplyButtonText: {
+    fontSize: typography.fontSize.base,
+    color: colors.white,
+    fontWeight: typography.fontWeight.semibold,
   },
 });

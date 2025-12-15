@@ -14,6 +14,7 @@ import {
   Dimensions,
   Image,
   FlatList,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -22,8 +23,39 @@ import { Paths, File as ExpoFile } from 'expo-file-system';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { galleryService, GalleryPhoto } from '../../services/galleryService';
+import { notificationService } from '../../services/notificationService';
 
-const SIDEBAR_WIDTH = 220;
+// Modern dark theme colors
+const theme = {
+  // Backgrounds
+  bg: '#0f0f0f',
+  bgCard: '#1a1a1a',
+  bgElevated: '#242424',
+  bgHover: '#2a2a2a',
+  bgDocument: '#1e1e1e',
+
+  // Accent
+  accent: '#ff6b35',
+  accentLight: 'rgba(255, 107, 53, 0.15)',
+  accentDim: 'rgba(255, 107, 53, 0.08)',
+
+  // Text
+  text: '#ffffff',
+  textSecondary: '#a0a0a0',
+  textMuted: '#666666',
+
+  // Borders & Dividers
+  border: '#2a2a2a',
+  divider: '#1f1f1f',
+
+  // Status
+  success: '#10b981',
+  error: '#ef4444',
+  highlight: 'rgba(255, 235, 59, 0.3)',
+  highlightActive: 'rgba(255, 235, 59, 0.6)',
+};
+
+const SIDEBAR_WIDTH = 260;
 
 interface Props {
   onBack: () => void;
@@ -32,6 +64,14 @@ interface Props {
 
 type SubTab = 'agenda' | 'roles' | 'media';
 
+interface DocumentEdit {
+  id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  profiles: { name: string; email: string };
+}
+
 export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props) {
   const { user } = useAuth();
   const [pods, setPods] = useState<any[]>([]);
@@ -39,20 +79,27 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
   const [activeSubTab, setActiveSubTab] = useState<SubTab>('agenda');
   const [loading, setLoading] = useState(true);
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
-  const [contributions, setContributions] = useState<any[]>([]);
+  const [contributions, setContributions] = useState<DocumentEdit[]>([]);
   const [roles, setRoles] = useState<any[]>([]);
   const [mediaItems, setMediaItems] = useState<GalleryPhoto[]>([]);
   const [uploadingMedia, setUploadingMedia] = useState(false);
-  const [showContributeModal, setShowContributeModal] = useState(false);
 
-  // Contribute modal state
-  const [contributionType, setContributionType] = useState<'pre-meeting agenda' | 'question' | 'comment' | 'meeting notes' | 'task'>('pre-meeting agenda');
-  const [meetingDate, setMeetingDate] = useState(new Date().toISOString().split('T')[0]);
-  const [meetingTitle, setMeetingTitle] = useState('');
-  const [contributionTime, setContributionTime] = useState('');
-  const [contributionContent, setContributionContent] = useState('');
-  const [submittingContribution, setSubmittingContribution] = useState(false);
-  const [editingContribution, setEditingContribution] = useState<any | null>(null);
+  // Document state
+  const [isEditingDocument, setIsEditingDocument] = useState(false);
+  const [showDocMenu, setShowDocMenu] = useState(false);
+  const [showEditHistory, setShowEditHistory] = useState(false);
+  const [savingDocument, setSavingDocument] = useState(false);
+  const documentInputRef = useRef<TextInput>(null);
+  const documentScrollRef = useRef<ScrollView>(null);
+
+  // Search state
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchMatches, setSearchMatches] = useState<number[]>([]);
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+
+  // Text editing state
+  const [newContributionText, setNewContributionText] = useState('');
 
   // Role assignment modal state
   const [showRoleModal, setShowRoleModal] = useState(false);
@@ -74,21 +121,22 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
 
   const toggleSidebar = () => {
     const toValue = sidebarOpen ? 0 : 1;
-    Animated.timing(sidebarAnim, {
+    Animated.spring(sidebarAnim, {
       toValue,
-      duration: 250,
       useNativeDriver: false,
+      tension: 65,
+      friction: 11,
     }).start();
     setSidebarOpen(!sidebarOpen);
   };
 
   const selectPod = (podId: string) => {
     setSelectedPodId(podId);
-    // Close sidebar after selection
-    Animated.timing(sidebarAnim, {
+    Animated.spring(sidebarAnim, {
       toValue: 0,
-      duration: 250,
       useNativeDriver: false,
+      tension: 65,
+      friction: 11,
     }).start();
     setSidebarOpen(false);
   };
@@ -103,21 +151,48 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
     }
   }, [selectedPodId, activeSubTab]);
 
+
+  // Get full document text for search
+  const getFullDocumentText = () => {
+    const sortedContribs = [...contributions].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+    return sortedContribs.map(c => c.content).join('\n\n');
+  };
+
+  // Search functionality
+  useEffect(() => {
+    const documentText = getFullDocumentText();
+    if (searchQuery.length > 0 && documentText.length > 0) {
+      const matches: number[] = [];
+      const lowerText = documentText.toLowerCase();
+      const lowerQuery = searchQuery.toLowerCase();
+      let pos = 0;
+      while ((pos = lowerText.indexOf(lowerQuery, pos)) !== -1) {
+        matches.push(pos);
+        pos += 1;
+      }
+      setSearchMatches(matches);
+      setCurrentMatchIndex(matches.length > 0 ? 0 : -1);
+    } else {
+      setSearchMatches([]);
+      setCurrentMatchIndex(-1);
+    }
+  }, [searchQuery, contributions]);
+
   const loadUserPods = async () => {
     if (!user) return;
 
     try {
-      // Get pods where user is creator
       const { data: createdPods } = await supabase
         .from('pursuits')
-        .select('id, title')
+        .select('*')
         .eq('creator_id', user.id)
         .order('title');
 
-      // Get pods where user is member
       const { data: memberships } = await supabase
         .from('team_members')
-        .select('pursuit_id, pursuits(id, title)')
+        .select('pursuit_id, pursuits(*)')
         .eq('user_id', user.id);
 
       const memberPods = memberships?.map((m: any) => m.pursuits).filter(Boolean) || [];
@@ -127,7 +202,6 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
         ...memberPods
       ];
 
-      // Remove duplicates
       const uniquePods = allPods.filter((pod, index, self) =>
         index === self.findIndex((p) => p.id === pod.id)
       );
@@ -135,7 +209,6 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
       setPods(uniquePods);
 
       if (uniquePods.length > 0 && !selectedPodId) {
-        // Use initial pursuit ID if provided, otherwise select first pod
         const podToSelect = initialPursuitId && uniquePods.find(p => p.id === initialPursuitId)
           ? initialPursuitId
           : uniquePods[0].id;
@@ -152,7 +225,6 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
     if (!selectedPodId || !user) return;
 
     try {
-      // Load team members
       const { data: members } = await supabase
         .from('team_members')
         .select('user_id, profiles!user_id(id, name, email)')
@@ -164,7 +236,6 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
         .eq('id', selectedPodId)
         .single();
 
-      // Check if current user is creator
       if (pursuit?.creator_id) {
         setIsCreator(pursuit.creator_id === user.id);
       }
@@ -174,14 +245,12 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
         allMembers.unshift(pursuit.profiles);
       }
 
-      // Remove duplicates
       const uniqueMembers = allMembers.filter((member, index, self) =>
         index === self.findIndex((m) => m.id === member.id)
       );
 
       setTeamMembers(uniqueMembers);
 
-      // Load data based on active tab
       if (activeSubTab === 'agenda') {
         await loadContributions();
       } else if (activeSubTab === 'roles') {
@@ -194,6 +263,12 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
     }
   };
 
+  // Strip any old formatting metadata from content
+  const parseContributionContent = (content: string): string => {
+    // Remove any legacy formatting metadata
+    return content.replace(/<!--FORMAT:.+?-->$/, '');
+  };
+
   const loadContributions = async () => {
     if (!selectedPodId) return;
 
@@ -202,11 +277,17 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
         .from('meeting_contributions')
         .select('*, profiles!user_id(name, email)')
         .eq('pursuit_id', selectedPodId)
-        .order('meeting_date', { ascending: false })
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setContributions(data || []);
+
+      // Parse content (strip any old formatting metadata)
+      const parsedData = (data || []).map(item => ({
+        ...item,
+        content: parseContributionContent(item.content),
+      }));
+
+      setContributions(parsedData);
     } catch (error) {
       console.error('Error loading contributions:', error);
     }
@@ -239,9 +320,202 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
     }
   };
 
+  const handleDocumentBlur = async () => {
+    setIsEditingDocument(false);
+
+    // Save text if there's content
+    if (newContributionText.trim()) {
+      await saveDocumentEdit(newContributionText);
+    }
+
+    // Clear the input
+    setNewContributionText('');
+  };
+
+  const saveDocumentEdit = async (newContent: string) => {
+    if (!selectedPodId || !user || !newContent.trim()) return;
+
+    setSavingDocument(true);
+    try {
+      const { data, error } = await supabase
+        .from('meeting_contributions')
+        .insert([{
+          pursuit_id: selectedPodId,
+          user_id: user.id,
+          meeting_date: new Date().toISOString().split('T')[0],
+          contribution_type: 'meeting notes',
+          content: newContent.trim(),
+        }])
+        .select('*, profiles!user_id(name, email)')
+        .single();
+
+      if (error) throw error;
+
+      setContributions(prev => [...prev, { ...data, content: newContent.trim() }]);
+
+      // Notify other team members
+      const otherMemberIds = teamMembers.filter(m => m.id !== user.id).map(m => m.id);
+      const currentPod = pods.find((p) => p.id === selectedPodId);
+      if (otherMemberIds.length > 0 && currentPod) {
+        const currentUserProfile = teamMembers.find(m => m.id === user.id);
+        const userName = currentUserProfile?.name || currentUserProfile?.email || 'A teammate';
+        await notificationService.notifyTeamBoardUpdate(
+          otherMemberIds,
+          selectedPodId,
+          currentPod.title,
+          userName,
+          'a document update'
+        );
+      }
+    } catch (error: any) {
+      console.error('Error saving document:', error);
+      Alert.alert('Error', 'Failed to save changes');
+    } finally {
+      setSavingDocument(false);
+    }
+  };
+
+  const getUserInitials = (profile: any) => {
+    if (profile?.name) {
+      const names = profile.name.split(' ');
+      if (names.length >= 2) {
+        return `${names[0][0]}${names[1][0]}`.toUpperCase();
+      }
+      return names[0][0].toUpperCase();
+    }
+    return profile?.email?.[0].toUpperCase() || '?';
+  };
+
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  };
+
+  const navigateSearch = (direction: 'prev' | 'next') => {
+    if (searchMatches.length === 0) return;
+
+    let newIndex = currentMatchIndex;
+    if (direction === 'next') {
+      newIndex = (currentMatchIndex + 1) % searchMatches.length;
+    } else {
+      newIndex = currentMatchIndex === 0 ? searchMatches.length - 1 : currentMatchIndex - 1;
+    }
+    setCurrentMatchIndex(newIndex);
+  };
+
+  const renderHighlightedText = () => {
+    const documentText = getFullDocumentText();
+    if (!showSearch || searchQuery.length === 0 || searchMatches.length === 0) {
+      return renderFormattedDocument();
+    }
+
+    const parts: React.ReactElement[] = [];
+    let lastIndex = 0;
+
+    searchMatches.forEach((matchPos, idx) => {
+      // Text before match
+      if (matchPos > lastIndex) {
+        parts.push(
+          <Text key={`text-${lastIndex}`} style={styles.documentText}>
+            {documentText.substring(lastIndex, matchPos)}
+          </Text>
+        );
+      }
+      // Highlighted match
+      parts.push(
+        <Text
+          key={`match-${matchPos}`}
+          style={[
+            styles.documentText,
+            styles.highlightedText,
+            idx === currentMatchIndex && styles.activeHighlight
+          ]}
+        >
+          {documentText.substring(matchPos, matchPos + searchQuery.length)}
+        </Text>
+      );
+      lastIndex = matchPos + searchQuery.length;
+    });
+
+    // Remaining text
+    if (lastIndex < documentText.length) {
+      parts.push(
+        <Text key={`text-${lastIndex}`} style={styles.documentText}>
+          {documentText.substring(lastIndex)}
+        </Text>
+      );
+    }
+
+    return <Text>{parts}</Text>;
+  };
+
+  const renderEditHistoryContent = () => {
+    const sortedContributions = [...contributions].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+
+    return (
+      <View>
+        {sortedContributions.map((contrib) => (
+          <View key={contrib.id} style={styles.editHistoryBlock}>
+            <Text style={styles.documentText}>
+              {contrib.content}
+            </Text>
+            <View style={styles.editHistoryMeta}>
+              <View style={styles.editHistoryAuthor}>
+                <Text style={styles.editHistoryInitials}>
+                  {getUserInitials(contrib.profiles)}
+                </Text>
+              </View>
+              <Text style={styles.editHistoryTime}>
+                {formatDateTime(contrib.created_at)}
+              </Text>
+            </View>
+          </View>
+        ))}
+        {sortedContributions.length === 0 && (
+          <Text style={styles.documentPlaceholder}>No edit history yet</Text>
+        )}
+      </View>
+    );
+  };
+
+  const renderFormattedDocument = () => {
+    const sortedContributions = [...contributions].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+
+    if (sortedContributions.length === 0) {
+      return (
+        <Text style={styles.documentPlaceholder}>
+          Tap anywhere to start writing...{'\n\n'}
+          This is a shared document that all team members can edit.
+        </Text>
+      );
+    }
+
+    return (
+      <View>
+        {sortedContributions.map((contrib, index) => (
+          <Text
+            key={contrib.id}
+            style={styles.documentText}
+          >
+            {contrib.content}
+            {index < sortedContributions.length - 1 ? '\n\n' : ''}
+          </Text>
+        ))}
+      </View>
+    );
+  };
+
   const pickMedia = async (useCamera: boolean) => {
     try {
-      // Request permissions
       const { status } = useCamera
         ? await ImagePicker.requestCameraPermissionsAsync()
         : await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -251,7 +525,6 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
         return;
       }
 
-      // Launch picker
       const result = useCamera
         ? await ImagePicker.launchCameraAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.All,
@@ -280,6 +553,21 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
     try {
       await galleryService.uploadPhoto(selectedPodId, user.id, uri);
       await loadMedia();
+
+      const otherMemberIds = teamMembers.filter(m => m.id !== user.id).map(m => m.id);
+      const currentPod = pods.find((p) => p.id === selectedPodId);
+      if (otherMemberIds.length > 0 && currentPod) {
+        const currentUserProfile = teamMembers.find(m => m.id === user.id);
+        const userName = currentUserProfile?.name || currentUserProfile?.email || 'A teammate';
+        await notificationService.notifyTeamBoardUpdate(
+          otherMemberIds,
+          selectedPodId,
+          currentPod.title,
+          userName,
+          'a photo'
+        );
+      }
+
       Alert.alert('Success', 'Photo uploaded!');
     } catch (error: any) {
       console.error('Error uploading media:', error);
@@ -302,7 +590,6 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
             try {
               await galleryService.deletePhoto(photoId);
               setMediaItems(mediaItems.filter(m => m.id !== photoId));
-              Alert.alert('Success', 'Photo deleted');
             } catch (error) {
               console.error('Error deleting photo:', error);
               Alert.alert('Error', 'Failed to delete photo');
@@ -321,21 +608,17 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
   const saveImageToPhone = async (imageUrl: string) => {
     setSavingImage(true);
     try {
-      // Request permissions
       const { status } = await MediaLibrary.requestPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Permission denied', 'We need permission to save photos to your library');
         return;
       }
 
-      // Create a file in the cache directory and download to it
       const filename = `photo_${Date.now()}.jpg`;
       const localFile = new ExpoFile(Paths.cache, filename);
 
-      // Use the static downloadFileAsync method on File class
       await (ExpoFile as any).downloadFileAsync(imageUrl, localFile);
 
-      // Save to media library
       await MediaLibrary.saveToLibraryAsync(localFile.uri);
 
       Alert.alert('Saved!', 'Photo saved to your photo library');
@@ -345,158 +628,6 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
     } finally {
       setSavingImage(false);
     }
-  };
-
-  const getUserInitials = (profile: any) => {
-    if (profile?.name) {
-      const names = profile.name.split(' ');
-      if (names.length >= 2) {
-        return `${names[0][0]}.${names[1][0]}.`;
-      }
-      return `${names[0][0]}.`;
-    }
-    return profile?.email?.[0].toUpperCase() || '?';
-  };
-
-  const handleCreateContribution = async () => {
-    if (!selectedPodId || !user) return;
-
-    if (!contributionContent.trim()) {
-      Alert.alert('Error', 'Please enter contribution content');
-      return;
-    }
-
-    if (!meetingDate) {
-      Alert.alert('Error', 'Please select a meeting date');
-      return;
-    }
-
-    setSubmittingContribution(true);
-
-    try {
-      const { data, error } = await supabase
-        .from('meeting_contributions')
-        .insert([{
-          pursuit_id: selectedPodId,
-          user_id: user.id,
-          meeting_date: meetingDate,
-          meeting_title: meetingTitle.trim() || null,
-          contribution_type: contributionType,
-          content: contributionContent.trim(),
-          time_of_contribution: contributionTime || null,
-        }])
-        .select('*, profiles!user_id(name, email)')
-        .single();
-
-      if (error) throw error;
-
-      // Add new contribution to state
-      setContributions([data, ...contributions]);
-
-      // Reset form
-      setContributionContent('');
-      setMeetingTitle('');
-      setContributionTime('');
-      setContributionType('pre-meeting agenda');
-      setMeetingDate(new Date().toISOString().split('T')[0]);
-      setShowContributeModal(false);
-
-      Alert.alert('Success', 'Contribution added!');
-    } catch (error: any) {
-      console.error('Error creating contribution:', error);
-      Alert.alert('Error', 'Failed to add contribution');
-    } finally {
-      setSubmittingContribution(false);
-    }
-  };
-
-  const handleEditContribution = (contribution: any) => {
-    setEditingContribution(contribution);
-    setContributionType(contribution.contribution_type);
-    setMeetingDate(contribution.meeting_date);
-    setMeetingTitle(contribution.meeting_title || '');
-    setContributionTime(contribution.time_of_contribution || '');
-    setContributionContent(contribution.content);
-    setShowContributeModal(true);
-  };
-
-  const handleUpdateContribution = async () => {
-    if (!editingContribution || !user) return;
-
-    if (!contributionContent.trim()) {
-      Alert.alert('Error', 'Please enter contribution content');
-      return;
-    }
-
-    setSubmittingContribution(true);
-
-    try {
-      const { data, error } = await supabase
-        .from('meeting_contributions')
-        .update({
-          contribution_type: contributionType,
-          meeting_date: meetingDate,
-          meeting_title: meetingTitle.trim() || null,
-          content: contributionContent.trim(),
-          time_of_contribution: contributionTime || null,
-          is_edited: true,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', editingContribution.id)
-        .select('*, profiles!user_id(name, email)')
-        .single();
-
-      if (error) throw error;
-
-      // Update contribution in state
-      setContributions(contributions.map(c => c.id === data.id ? data : c));
-
-      // Reset form
-      setContributionContent('');
-      setMeetingTitle('');
-      setContributionTime('');
-      setContributionType('pre-meeting agenda');
-      setMeetingDate(new Date().toISOString().split('T')[0]);
-      setEditingContribution(null);
-      setShowContributeModal(false);
-
-      Alert.alert('Success', 'Contribution updated!');
-    } catch (error: any) {
-      console.error('Error updating contribution:', error);
-      Alert.alert('Error', 'Failed to update contribution');
-    } finally {
-      setSubmittingContribution(false);
-    }
-  };
-
-  const handleDeleteContribution = async (contributionId: string) => {
-    Alert.alert(
-      'Delete Contribution',
-      'Are you sure you want to delete this contribution?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const { error } = await supabase
-                .from('meeting_contributions')
-                .delete()
-                .eq('id', contributionId);
-
-              if (error) throw error;
-
-              setContributions(contributions.filter(c => c.id !== contributionId));
-              Alert.alert('Success', 'Contribution deleted');
-            } catch (error) {
-              console.error('Error deleting contribution:', error);
-              Alert.alert('Error', 'Failed to delete contribution');
-            }
-          },
-        },
-      ]
-    );
   };
 
   const handleOpenRoleModal = (member: any, existingRole?: any) => {
@@ -518,7 +649,6 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
 
     try {
       if (editingRole.id) {
-        // Update existing role
         const { data, error } = await supabase
           .from('member_roles')
           .update({
@@ -534,7 +664,6 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
 
         setRoles(roles.map(r => r.id === data.id ? data : r));
       } else {
-        // Create new role
         const { data, error } = await supabase
           .from('member_roles')
           .insert([{
@@ -551,7 +680,20 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
         setRoles([...roles, data]);
       }
 
-      // Reset form
+      const otherMemberIds = teamMembers.filter(m => m.id !== user?.id).map(m => m.id);
+      const currentPod = pods.find((p) => p.id === selectedPodId);
+      if (otherMemberIds.length > 0 && currentPod && user) {
+        const currentUserProfile = teamMembers.find(m => m.id === user.id);
+        const userName = currentUserProfile?.name || currentUserProfile?.email || 'A teammate';
+        await notificationService.notifyTeamBoardUpdate(
+          otherMemberIds,
+          selectedPodId,
+          currentPod.title,
+          userName,
+          'a role update'
+        );
+      }
+
       setRoleTitle('');
       setRoleDescription('');
       setEditingRole(null);
@@ -585,7 +727,6 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
               if (error) throw error;
 
               setRoles(roles.filter(r => r.id !== roleId));
-              Alert.alert('Success', 'Role deleted');
             } catch (error) {
               console.error('Error deleting role:', error);
               Alert.alert('Error', 'Failed to delete role');
@@ -597,198 +738,290 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
   };
 
   const renderAgendaTab = () => {
-    // Group contributions by meeting date
-    const contributionsByDate: { [key: string]: any[] } = {};
-    contributions.forEach((contrib) => {
-      const date = contrib.meeting_date;
-      if (!contributionsByDate[date]) {
-        contributionsByDate[date] = [];
-      }
-      contributionsByDate[date].push(contrib);
-    });
-
     return (
-      <ScrollView style={styles.tabContent}>
-        <TouchableOpacity
-          style={styles.contributeButton}
-          onPress={() => setShowContributeModal(true)}
-        >
-          <Ionicons name="add-circle" size={20} color="#ff6b35" />
-          <Text style={styles.contributeButtonText}>+ Contribute</Text>
-        </TouchableOpacity>
-
-        {Object.keys(contributionsByDate).length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No contributions yet</Text>
-            <Text style={styles.emptyHint}>Click "+ Contribute" to add agenda items, notes, or questions</Text>
+      <View style={styles.documentContainer}>
+        {/* Document Header with Menu */}
+        <View style={styles.documentHeader}>
+          <View style={styles.documentHeaderLeft}>
+            {savingDocument && (
+              <View style={styles.savingIndicator}>
+                <ActivityIndicator size="small" color={theme.accent} />
+                <Text style={styles.savingText}>Saving...</Text>
+              </View>
+            )}
+            {showEditHistory && (
+              <View style={styles.modeBadge}>
+                <Text style={styles.modeBadgeText}>Edit History</Text>
+              </View>
+            )}
           </View>
-        ) : (
-          Object.keys(contributionsByDate).sort((a, b) => new Date(b).getTime() - new Date(a).getTime()).map((date) => (
-            <View key={date} style={styles.meetingSection}>
-              <View style={styles.meetingSectionHeader}>
-                <Text style={styles.meetingDate}>
-                  {new Date(date).toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
+          <TouchableOpacity
+            style={styles.docMenuButton}
+            onPress={() => setShowDocMenu(true)}
+          >
+            <Ionicons name="ellipsis-vertical" size={20} color={theme.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Search Bar */}
+        {showSearch && (
+          <View style={styles.searchBar}>
+            <View style={styles.searchInputContainer}>
+              <Ionicons name="search" size={18} color={theme.textMuted} />
+              <TextInput
+                style={styles.searchInput}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="Search document..."
+                placeholderTextColor={theme.textMuted}
+                autoFocus
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <Ionicons name="close-circle" size={18} color={theme.textMuted} />
+                </TouchableOpacity>
+              )}
+            </View>
+            {searchMatches.length > 0 && (
+              <View style={styles.searchNav}>
+                <Text style={styles.searchCount}>
+                  {currentMatchIndex + 1} of {searchMatches.length}
                 </Text>
-                {contributionsByDate[date][0].meeting_title && (
-                  <Text style={styles.meetingTitle}>{contributionsByDate[date][0].meeting_title}</Text>
+                <TouchableOpacity
+                  style={styles.searchNavBtn}
+                  onPress={() => navigateSearch('prev')}
+                >
+                  <Ionicons name="chevron-up" size={20} color={theme.text} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.searchNavBtn}
+                  onPress={() => navigateSearch('next')}
+                >
+                  <Ionicons name="chevron-down" size={20} color={theme.text} />
+                </TouchableOpacity>
+              </View>
+            )}
+            <TouchableOpacity
+              style={styles.searchCloseBtn}
+              onPress={() => {
+                setShowSearch(false);
+                setSearchQuery('');
+              }}
+            >
+              <Ionicons name="close" size={22} color={theme.text} />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Document Content */}
+        <ScrollView
+          ref={documentScrollRef}
+          style={styles.documentScroll}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="always"
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={() => {
+              if (!showEditHistory && !showSearch) {
+                setIsEditingDocument(true);
+                setTimeout(() => documentInputRef.current?.focus(), 100);
+              }
+            }}
+            style={styles.documentPage}
+          >
+            {showEditHistory ? (
+              // Edit History Mode
+              renderEditHistoryContent()
+            ) : isEditingDocument ? (
+              // Editing Mode - Show existing contributions + seamless editing area
+              <View>
+                {/* Existing saved contributions (read-only) */}
+                {contributions.length > 0 && (
+                  <View style={{ marginBottom: contributions.length > 0 ? 8 : 0 }}>
+                    {renderFormattedDocument()}
+                  </View>
+                )}
+
+                {/* Simple text input */}
+                <TextInput
+                  ref={documentInputRef}
+                  style={styles.documentInput}
+                  value={newContributionText}
+                  onChangeText={setNewContributionText}
+                  multiline
+                  onBlur={handleDocumentBlur}
+                  autoFocus
+                  selectionColor={theme.accent}
+                  placeholder={contributions.length === 0 ? "Start typing..." : "Continue typing..."}
+                  placeholderTextColor={theme.textMuted}
+                />
+              </View>
+            ) : (
+              // Read Mode (with search highlighting if active)
+              <View style={styles.documentTouchable}>
+                {contributions.length > 0 ? (
+                  showSearch && searchQuery.length > 0 ? (
+                    renderHighlightedText()
+                  ) : (
+                    renderFormattedDocument()
+                  )
+                ) : (
+                  <Text style={styles.documentPlaceholder}>
+                    Tap anywhere to start writing...{'\n\n'}
+                    This is a shared document that all team members can edit.
+                  </Text>
                 )}
               </View>
+            )}
+          </TouchableOpacity>
+          <View style={{ height: 200 }} />
+        </ScrollView>
 
-              {contributionsByDate[date].map((contrib) => {
-                const isOwnContribution = contrib.user_id === user?.id;
-
-                return (
-                  <View key={contrib.id} style={styles.contributionCard}>
-                    <View style={styles.contributionHeader}>
-                      <View style={styles.contributionTypeContainer}>
-                        <Text style={styles.contributionType}>{contrib.contribution_type}</Text>
-                        {contrib.time_of_contribution && (
-                          <Text style={styles.contributionTime}>
-                            {contrib.time_of_contribution}
-                          </Text>
-                        )}
-                      </View>
-                      <View style={styles.contributionMeta}>
-                        <Text style={styles.contributionInitials}>
-                          {getUserInitials(contrib.profiles)}
-                          {contrib.is_edited && <Text style={styles.editedLabel}> (edited)</Text>}
-                        </Text>
-                        {isOwnContribution && (
-                          <View style={styles.contributionActions}>
-                            <TouchableOpacity
-                              onPress={() => handleEditContribution(contrib)}
-                              style={styles.actionButton}
-                            >
-                              <Ionicons name="pencil" size={16} color="#ff6b35" />
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              onPress={() => handleDeleteContribution(contrib.id)}
-                              style={styles.actionButton}
-                            >
-                              <Ionicons name="trash-outline" size={16} color="#ef4444" />
-                            </TouchableOpacity>
-                          </View>
-                        )}
-                      </View>
-                    </View>
-                    <Text style={styles.contributionContent}>{contrib.content}</Text>
-                  </View>
-                );
-              })}
+        {/* Document Menu Modal */}
+        <Modal visible={showDocMenu} transparent animationType="fade">
+          <TouchableOpacity
+            style={styles.menuOverlay}
+            activeOpacity={1}
+            onPress={() => setShowDocMenu(false)}
+          >
+            <View style={styles.menuContainer}>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => {
+                  setShowEditHistory(!showEditHistory);
+                  setShowSearch(false);
+                  setSearchQuery('');
+                  setShowDocMenu(false);
+                }}
+              >
+                <Ionicons
+                  name={showEditHistory ? "checkmark-circle" : "time-outline"}
+                  size={22}
+                  color={showEditHistory ? theme.accent : theme.text}
+                />
+                <Text style={[styles.menuItemText, showEditHistory && styles.menuItemTextActive]}>
+                  Edit History
+                </Text>
+                {showEditHistory && (
+                  <Ionicons name="checkmark" size={18} color={theme.accent} />
+                )}
+              </TouchableOpacity>
+              <View style={styles.menuDivider} />
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => {
+                  setShowSearch(true);
+                  setShowEditHistory(false);
+                  setShowDocMenu(false);
+                }}
+              >
+                <Ionicons name="search-outline" size={22} color={theme.text} />
+                <Text style={styles.menuItemText}>Search</Text>
+              </TouchableOpacity>
             </View>
-          ))
-        )}
-      </ScrollView>
+          </TouchableOpacity>
+        </Modal>
+      </View>
     );
   };
 
   const renderRolesTab = () => {
     return (
-      <ScrollView style={styles.tabContent}>
-        <Text style={styles.sectionTitle}>Team Member Roles</Text>
-
+      <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
         {teamMembers.map((member) => {
           const memberRole = roles.find((r) => r.user_id === member.id);
           const canEditRole = isCreator || member.id === user?.id;
 
           return (
             <View key={member.id} style={styles.roleCard}>
-              <View style={styles.roleHeaderRow}>
-                <View style={styles.roleHeader}>
-                  <Text style={styles.memberName}>{member.name || member.email}</Text>
+              <View style={styles.roleHeader}>
+                <View style={styles.memberInfo}>
+                  <View style={styles.memberAvatar}>
+                    <Text style={styles.memberAvatarText}>{getUserInitials(member)}</Text>
+                  </View>
+                  <Text style={styles.memberNameText}>{member.name || member.email}</Text>
                 </View>
                 {canEditRole && (
-                  <View style={styles.roleActions}>
-                    <TouchableOpacity
-                      onPress={() => handleOpenRoleModal(member, memberRole)}
-                      style={styles.roleActionButton}
-                    >
-                      <Ionicons
-                        name={memberRole ? "pencil" : "add-circle"}
-                        size={18}
-                        color="#ff6b35"
-                      />
-                      <Text style={styles.roleActionText}>
-                        {memberRole ? 'Edit' : 'Assign'}
-                      </Text>
-                    </TouchableOpacity>
-                    {memberRole && (
-                      <TouchableOpacity
-                        onPress={() => handleDeleteRole(memberRole.id)}
-                        style={styles.roleActionButton}
-                      >
-                        <Ionicons name="trash-outline" size={18} color="#ef4444" />
-                      </TouchableOpacity>
-                    )}
-                  </View>
+                  <TouchableOpacity
+                    onPress={() => handleOpenRoleModal(member, memberRole)}
+                    style={styles.roleEditBtn}
+                  >
+                    <Ionicons name={memberRole ? "pencil-outline" : "add"} size={18} color={theme.accent} />
+                  </TouchableOpacity>
                 )}
               </View>
               {memberRole ? (
                 <View style={styles.roleContent}>
-                  <Text style={styles.roleTitle}>{memberRole.role_title}</Text>
+                  <Text style={styles.roleTitleText}>{memberRole.role_title}</Text>
                   {memberRole.role_description && (
-                    <Text style={styles.roleDescription}>{memberRole.role_description}</Text>
+                    <Text style={styles.roleDescText}>{memberRole.role_description}</Text>
+                  )}
+                  {canEditRole && memberRole && (
+                    <TouchableOpacity
+                      onPress={() => handleDeleteRole(memberRole.id)}
+                      style={styles.roleDeleteBtn}
+                    >
+                      <Ionicons name="trash-outline" size={14} color={theme.error} />
+                      <Text style={styles.roleDeleteText}>Remove role</Text>
+                    </TouchableOpacity>
                   )}
                 </View>
               ) : (
-                <Text style={styles.noRole}>No role assigned</Text>
+                <Text style={styles.noRoleText}>No role assigned</Text>
               )}
             </View>
           );
         })}
+        <View style={{ height: 100 }} />
       </ScrollView>
     );
   };
 
   const renderMediaTab = () => {
     return (
-      <ScrollView style={styles.tabContent}>
-        <Text style={styles.sectionTitle}>Shared Media</Text>
-
-        {/* Upload Buttons */}
-        <View style={styles.uploadButtonsRow}>
+      <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.uploadRow}>
           <TouchableOpacity
-            style={[styles.uploadButton, uploadingMedia && styles.uploadButtonDisabled]}
+            style={[styles.uploadBtn, uploadingMedia && styles.uploadBtnDisabled]}
             onPress={() => pickMedia(false)}
             disabled={uploadingMedia}
+            activeOpacity={0.8}
           >
             {uploadingMedia ? (
-              <ActivityIndicator color="#ff6b35" />
+              <ActivityIndicator color={theme.accent} size="small" />
             ) : (
               <>
-                <Ionicons name="images-outline" size={24} color="#ff6b35" />
-                <Text style={styles.uploadButtonText}>Photo Library</Text>
+                <Ionicons name="images-outline" size={22} color={theme.accent} />
+                <Text style={styles.uploadBtnText}>Library</Text>
               </>
             )}
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.uploadButton, uploadingMedia && styles.uploadButtonDisabled]}
+            style={[styles.uploadBtn, uploadingMedia && styles.uploadBtnDisabled]}
             onPress={() => pickMedia(true)}
             disabled={uploadingMedia}
+            activeOpacity={0.8}
           >
             {uploadingMedia ? (
-              <ActivityIndicator color="#ff6b35" />
+              <ActivityIndicator color={theme.accent} size="small" />
             ) : (
               <>
-                <Ionicons name="camera-outline" size={24} color="#ff6b35" />
-                <Text style={styles.uploadButtonText}>Take Photo</Text>
+                <Ionicons name="camera-outline" size={22} color={theme.accent} />
+                <Text style={styles.uploadBtnText}>Camera</Text>
               </>
             )}
           </TouchableOpacity>
         </View>
 
-        {/* Media Grid */}
         {mediaItems.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="images-outline" size={48} color="#666" />
-            <Text style={styles.emptyText}>No media yet</Text>
-            <Text style={styles.emptyHint}>Upload photos and videos to share with your team</Text>
+            <View style={styles.emptyIconContainer}>
+              <Ionicons name="images-outline" size={40} color={theme.textMuted} />
+            </View>
+            <Text style={styles.emptyTitle}>No media yet</Text>
+            <Text style={styles.emptySubtitle}>Share photos and videos with your team</Text>
           </View>
         ) : (
           <View style={styles.mediaGrid}>
@@ -797,7 +1030,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
                 key={item.id}
                 style={styles.mediaItem}
                 onPress={() => openImageViewer(index)}
-                activeOpacity={0.8}
+                activeOpacity={0.9}
               >
                 <Image source={{ uri: item.photo_url }} style={styles.mediaImage} />
                 <View style={styles.mediaOverlay}>
@@ -806,13 +1039,13 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
                   </Text>
                   {item.uploaded_by === user?.id && (
                     <TouchableOpacity
-                      style={styles.mediaDeleteButton}
+                      style={styles.mediaDeleteBtn}
                       onPress={(e) => {
                         e.stopPropagation();
                         handleDeleteMedia(item.id);
                       }}
                     >
-                      <Ionicons name="trash-outline" size={16} color="#fff" />
+                      <Ionicons name="trash-outline" size={14} color="#fff" />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -820,6 +1053,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
             ))}
           </View>
         )}
+        <View style={{ height: 100 }} />
       </ScrollView>
     );
   };
@@ -827,7 +1061,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#ff6b35" />
+        <ActivityIndicator size="large" color={theme.accent} />
       </View>
     );
   }
@@ -838,121 +1072,98 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
+          <Ionicons name="chevron-back" size={24} color={theme.text} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Team Workspace</Text>
+          <Text style={styles.headerTitle}>Team Board</Text>
           {selectedPod && (
-            <Text style={styles.headerPodName} numberOfLines={1}>{selectedPod.title}</Text>
+            <TouchableOpacity onPress={toggleSidebar} style={styles.podSelector}>
+              {selectedPod.default_picture && (
+                <Image source={{ uri: selectedPod.default_picture }} style={styles.headerPodPicture} />
+              )}
+              <Text style={styles.podName} numberOfLines={1}>{selectedPod.title}</Text>
+              <Ionicons name="chevron-down" size={16} color={theme.accent} />
+            </TouchableOpacity>
           )}
         </View>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity onPress={toggleSidebar} style={styles.menuBtn}>
+          <Ionicons name={sidebarOpen ? "close" : "menu"} size={24} color={theme.text} />
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.content}>
-        {/* Toggle Button - Always visible */}
-        <TouchableOpacity
-          style={styles.sidebarToggle}
-          onPress={toggleSidebar}
-        >
-          <Ionicons
-            name={sidebarOpen ? "chevron-back" : "chevron-forward"}
-            size={20}
-            color="#ff6b35"
+      <View style={styles.mainArea}>
+        {/* Sidebar Overlay */}
+        {sidebarOpen && (
+          <TouchableOpacity
+            style={styles.sidebarOverlay}
+            activeOpacity={1}
+            onPress={toggleSidebar}
           />
-        </TouchableOpacity>
+        )}
 
         {/* Animated Sidebar */}
         <Animated.View
           style={[
             styles.sidebar,
             {
-              width: sidebarAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, SIDEBAR_WIDTH],
-              }),
+              transform: [{
+                translateX: sidebarAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [-SIDEBAR_WIDTH, 0],
+                })
+              }],
               opacity: sidebarAnim,
             }
           ]}
         >
-          <View style={styles.sidebarInner}>
-            <Text style={styles.sidebarTitle}>My Pods</Text>
-            <ScrollView style={styles.podList}>
-              {pods.map((pod) => (
-                <TouchableOpacity
-                  key={pod.id}
-                  style={[
-                    styles.podTab,
-                    selectedPodId === pod.id && styles.podTabActive
-                  ]}
-                  onPress={() => selectPod(pod.id)}
-                >
-                  <Text style={[
-                    styles.podTabText,
-                    selectedPodId === pod.id && styles.podTabTextActive
-                  ]} numberOfLines={2}>
-                    {pod.title}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
+          <Text style={styles.sidebarTitle}>Your Pods</Text>
+          <ScrollView style={styles.podList} showsVerticalScrollIndicator={false}>
+            {pods.map((pod) => (
+              <TouchableOpacity
+                key={pod.id}
+                style={[styles.podItem, selectedPodId === pod.id && styles.podItemActive]}
+                onPress={() => selectPod(pod.id)}
+                activeOpacity={0.7}
+              >
+                {pod.default_picture ? (
+                  <Image source={{ uri: pod.default_picture }} style={styles.podItemPicture} />
+                ) : (
+                  <View style={styles.podItemPlaceholder}>
+                    <Ionicons name="people" size={14} color={theme.textMuted} />
+                  </View>
+                )}
+                <Text style={[styles.podItemText, selectedPodId === pod.id && styles.podItemTextActive]} numberOfLines={2}>
+                  {pod.title}
+                </Text>
+                {selectedPodId === pod.id && (
+                  <View style={styles.podItemIndicator} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </Animated.View>
 
-        {/* Main Content Area - takes full width */}
-        <View style={styles.mainContent}>
+        {/* Main Content */}
+        <View style={styles.content}>
           {selectedPod && (
             <>
-              {/* Sub-tabs */}
-              <View style={styles.subTabs}>
-                <TouchableOpacity
-                  style={[
-                    styles.subTab,
-                    activeSubTab === 'agenda' && styles.subTabActive
-                  ]}
-                  onPress={() => setActiveSubTab('agenda')}
-                >
-                  <Text style={[
-                    styles.subTabText,
-                    activeSubTab === 'agenda' && styles.subTabTextActive
-                  ]}>
-                    Agenda
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.subTab,
-                    activeSubTab === 'roles' && styles.subTabActive
-                  ]}
-                  onPress={() => setActiveSubTab('roles')}
-                >
-                  <Text style={[
-                    styles.subTabText,
-                    activeSubTab === 'roles' && styles.subTabTextActive
-                  ]}>
-                    Member Roles
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.subTab,
-                    activeSubTab === 'media' && styles.subTabActive
-                  ]}
-                  onPress={() => setActiveSubTab('media')}
-                >
-                  <Text style={[
-                    styles.subTabText,
-                    activeSubTab === 'media' && styles.subTabTextActive
-                  ]}>
-                    Shared Media
-                  </Text>
-                </TouchableOpacity>
+              {/* Segmented Tabs */}
+              <View style={styles.tabBar}>
+                {(['agenda', 'roles', 'media'] as SubTab[]).map((tab) => (
+                  <TouchableOpacity
+                    key={tab}
+                    style={[styles.tab, activeSubTab === tab && styles.tabActive]}
+                    onPress={() => setActiveSubTab(tab)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.tabText, activeSubTab === tab && styles.tabTextActive]}>
+                      {tab === 'agenda' ? 'Agenda' : tab === 'roles' ? 'Roles' : 'Media'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
 
-              {/* Tab Content */}
               {activeSubTab === 'agenda' && renderAgendaTab()}
               {activeSubTab === 'roles' && renderRolesTab()}
               {activeSubTab === 'media' && renderMediaTab()}
@@ -961,213 +1172,85 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
         </View>
       </View>
 
-      {/* Contribute Modal */}
-      <Modal visible={showContributeModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {editingContribution ? 'Edit Contribution' : 'Make a Contribution'}
-              </Text>
-              <TouchableOpacity onPress={() => {
-                setShowContributeModal(false);
-                setEditingContribution(null);
-              }}>
-                <Ionicons name="close" size={28} color="#fff" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.modalBody}>
-              {/* Contribution Type */}
-              <Text style={styles.fieldLabel}>Contribution Type *</Text>
-              <View style={styles.typeButtons}>
-                {(['pre-meeting agenda', 'question', 'comment', 'meeting notes', 'task'] as const).map((type) => (
-                  <TouchableOpacity
-                    key={type}
-                    style={[
-                      styles.typeButton,
-                      contributionType === type && styles.typeButtonActive
-                    ]}
-                    onPress={() => setContributionType(type)}
-                  >
-                    <Text style={[
-                      styles.typeButtonText,
-                      contributionType === type && styles.typeButtonTextActive
-                    ]}>
-                      {type}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {/* Meeting Date */}
-              <Text style={styles.fieldLabel}>Meeting Date *</Text>
-              <TextInput
-                style={styles.input}
-                value={meetingDate}
-                onChangeText={setMeetingDate}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor="#666"
-              />
-
-              {/* Meeting Title */}
-              <Text style={styles.fieldLabel}>Meeting Title (optional)</Text>
-              <TextInput
-                style={styles.input}
-                value={meetingTitle}
-                onChangeText={setMeetingTitle}
-                placeholder="e.g., Weekly Standup"
-                placeholderTextColor="#666"
-                spellCheck={true}
-                autoCorrect={true}
-              />
-
-              {/* Time */}
-              <Text style={styles.fieldLabel}>Time (optional)</Text>
-              <TextInput
-                style={styles.input}
-                value={contributionTime}
-                onChangeText={setContributionTime}
-                placeholder="e.g., 2:30 PM or 14:30"
-                placeholderTextColor="#666"
-              />
-
-              {/* Content */}
-              <Text style={styles.fieldLabel}>Content *</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={contributionContent}
-                onChangeText={setContributionContent}
-                placeholder="Enter your contribution here..."
-                placeholderTextColor="#666"
-                multiline
-                numberOfLines={6}
-                spellCheck={true}
-                autoCorrect={true}
-              />
-
-              {/* Media Upload - Coming Soon */}
-              <Text style={styles.fieldLabel}>Media (coming soon)</Text>
-              <View style={styles.comingSoon}>
-                <Ionicons name="image-outline" size={24} color="#666" />
-                <Text style={styles.comingSoonText}>Photo/Video upload coming soon</Text>
-              </View>
-            </ScrollView>
-
-            <View style={styles.modalFooter}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setShowContributeModal(false)}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.submitButton}
-                onPress={editingContribution ? handleUpdateContribution : handleCreateContribution}
-                disabled={submittingContribution}
-              >
-                {submittingContribution ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.submitButtonText}>
-                    {editingContribution ? 'Update' : 'Submit'}
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Role Assignment Modal */}
+      {/* Role Modal */}
       <Modal visible={showRoleModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 {editingRole?.id ? 'Edit Role' : 'Assign Role'}
               </Text>
-              <TouchableOpacity onPress={() => {
-                setShowRoleModal(false);
-                setEditingRole(null);
-                setRoleTitle('');
-                setRoleDescription('');
-              }}>
-                <Ionicons name="close" size={28} color="#fff" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.modalBody}>
-              <Text style={styles.memberNameLabel}>
-                For: {editingRole?.memberName}
-              </Text>
-
-              {/* Role Title */}
-              <Text style={styles.fieldLabel}>Role Title *</Text>
-              <TextInput
-                style={styles.input}
-                value={roleTitle}
-                onChangeText={setRoleTitle}
-                placeholder="e.g., Project Manager, Developer, Designer"
-                placeholderTextColor="#666"
-                spellCheck={true}
-                autoCorrect={true}
-              />
-
-              {/* Role Description */}
-              <Text style={styles.fieldLabel}>Role Description (optional)</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                value={roleDescription}
-                onChangeText={setRoleDescription}
-                placeholder="Describe the responsibilities and expectations for this role..."
-                placeholderTextColor="#666"
-                multiline
-                numberOfLines={4}
-                spellCheck={true}
-                autoCorrect={true}
-              />
-            </ScrollView>
-
-            <View style={styles.modalFooter}>
               <TouchableOpacity
-                style={styles.cancelButton}
                 onPress={() => {
                   setShowRoleModal(false);
                   setEditingRole(null);
                   setRoleTitle('');
                   setRoleDescription('');
                 }}
+                style={styles.modalClose}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Ionicons name="close" size={24} color={theme.text} />
               </TouchableOpacity>
+            </View>
 
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+              <Text style={styles.memberLabel}>For: {editingRole?.memberName}</Text>
+
+              <Text style={styles.inputLabel}>Role Title</Text>
+              <TextInput
+                style={styles.input}
+                value={roleTitle}
+                onChangeText={setRoleTitle}
+                placeholder="e.g., Project Lead, Designer"
+                placeholderTextColor={theme.textMuted}
+              />
+
+              <Text style={styles.inputLabel}>Description (optional)</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                value={roleDescription}
+                onChangeText={setRoleDescription}
+                placeholder="Describe responsibilities..."
+                placeholderTextColor={theme.textMuted}
+                multiline
+                numberOfLines={4}
+              />
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
               <TouchableOpacity
-                style={styles.submitButton}
+                style={styles.cancelBtn}
+                onPress={() => {
+                  setShowRoleModal(false);
+                  setEditingRole(null);
+                }}
+              >
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.submitBtn, submittingRole && styles.submitBtnDisabled]}
                 onPress={handleSaveRole}
                 disabled={submittingRole}
               >
                 {submittingRole ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color="#fff" size="small" />
                 ) : (
-                  <Text style={styles.submitButtonText}>Save Role</Text>
+                  <Text style={styles.submitBtnText}>Save</Text>
                 )}
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Image Viewer Modal */}
       <Modal visible={showImageViewer} animationType="fade" transparent>
         <View style={styles.imageViewerContainer}>
-          {/* Header */}
           <View style={styles.imageViewerHeader}>
-            <TouchableOpacity
-              onPress={() => setShowImageViewer(false)}
-              style={styles.imageViewerCloseButton}
-            >
+            <TouchableOpacity onPress={() => setShowImageViewer(false)} style={styles.imageViewerClose}>
               <Ionicons name="close" size={28} color="#fff" />
             </TouchableOpacity>
             <Text style={styles.imageViewerCounter}>
@@ -1176,11 +1259,9 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
             <TouchableOpacity
               onPress={() => {
                 const currentItem = mediaItems[selectedImageIndex];
-                if (currentItem) {
-                  saveImageToPhone(currentItem.photo_url);
-                }
+                if (currentItem) saveImageToPhone(currentItem.photo_url);
               }}
-              style={styles.imageViewerDownloadButton}
+              style={styles.imageViewerDownload}
               disabled={savingImage}
             >
               {savingImage ? (
@@ -1191,7 +1272,6 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
             </TouchableOpacity>
           </View>
 
-          {/* Swipeable Image Gallery */}
           <FlatList
             ref={imageViewerRef}
             data={mediaItems}
@@ -1205,24 +1285,14 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
               index,
             })}
             onMomentumScrollEnd={(e) => {
-              const newIndex = Math.round(
-                e.nativeEvent.contentOffset.x / Dimensions.get('window').width
-              );
+              const newIndex = Math.round(e.nativeEvent.contentOffset.x / Dimensions.get('window').width);
               setSelectedImageIndex(newIndex);
             }}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
               <View style={styles.imageViewerSlide}>
-                <Image
-                  source={{ uri: item.photo_url }}
-                  style={styles.imageViewerImage}
-                  resizeMode="contain"
-                />
-                <View style={styles.imageViewerInfo}>
-                  <Text style={styles.imageViewerUploader}>
-                    Uploaded by {item.uploader_name || 'Unknown'}
-                  </Text>
-                </View>
+                <Image source={{ uri: item.photo_url }} style={styles.imageViewerImage} resizeMode="contain" />
+                <Text style={styles.imageViewerUploader}>by {item.uploader_name || 'Unknown'}</Text>
               </View>
             )}
           />
@@ -1237,498 +1307,649 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a', // Charcoal black
+    backgroundColor: theme.bg,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: theme.bg,
   },
+
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingTop: 50,
-    backgroundColor: '#2a2a2a',
-    borderBottomWidth: 2,
-    borderBottomColor: '#ff6b35', // Orange accent
+    paddingTop: Platform.OS === 'ios' ? 56 : 16,
+    paddingBottom: 16,
+    backgroundColor: theme.bgCard,
   },
-  backButton: {
-    padding: 8,
+  backBtn: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerCenter: {
     flex: 1,
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', // Notebook feel
+    fontSize: 13,
+    fontWeight: '500',
+    color: theme.textSecondary,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
-  headerPodName: {
-    fontSize: 12,
-    color: '#ff6b35',
-    marginTop: 2,
-  },
-  content: {
-    flex: 1,
+  podSelector: {
     flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    gap: 4,
   },
-  // Sidebar Toggle
-  sidebarToggle: {
+  podName: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: theme.text,
+    maxWidth: 200,
+  },
+  headerPodPicture: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    marginRight: 6,
+  },
+  menuBtn: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // Main Area
+  mainArea: {
+    flex: 1,
+    position: 'relative',
+  },
+
+  // Sidebar
+  sidebarOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    zIndex: 10,
+  },
+  sidebar: {
     position: 'absolute',
     left: 0,
-    top: 60,
-    zIndex: 100,
-    backgroundColor: '#2a2a2a',
-    borderTopRightRadius: 8,
-    borderBottomRightRadius: 8,
-    paddingVertical: 16,
-    paddingHorizontal: 8,
-    borderWidth: 2,
-    borderLeftWidth: 0,
-    borderColor: '#ff6b35',
-  },
-  // Sidebar
-  sidebar: {
-    backgroundColor: '#2a2a2a',
-    borderRightWidth: 2,
-    borderRightColor: '#ff6b35',
-    overflow: 'hidden',
-    zIndex: 50,
-  },
-  sidebarInner: {
+    top: 0,
+    bottom: 0,
     width: SIDEBAR_WIDTH,
-    padding: 16,
-    height: '100%',
+    backgroundColor: theme.bgCard,
+    zIndex: 20,
+    paddingTop: 24,
+    paddingHorizontal: 20,
   },
   sidebarTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#ff6b35',
-    marginBottom: 16,
-    textTransform: 'uppercase',
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.textMuted,
     letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 16,
   },
   podList: {
     flex: 1,
   },
-  podTab: {
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    marginBottom: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#444',
-  },
-  podTabActive: {
-    backgroundColor: '#ff6b35',
-    borderColor: '#ff6b35',
-  },
-  podTabText: {
-    fontSize: 14,
-    color: '#ccc',
-    fontWeight: '500',
-  },
-  podTabTextActive: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  // Main Content
-  mainContent: {
-    flex: 1,
-    backgroundColor: '#1a1a1a',
-  },
-  subTabs: {
-    flexDirection: 'row',
-    backgroundColor: '#2a2a2a',
-    borderBottomWidth: 2,
-    borderBottomColor: '#ff6b35',
+  podItem: {
+    paddingVertical: 14,
     paddingHorizontal: 16,
-  },
-  subTab: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    marginRight: 8,
-    borderBottomWidth: 3,
-    borderBottomColor: 'transparent',
-  },
-  subTabActive: {
-    borderBottomColor: '#ff6b35',
-  },
-  subTabText: {
-    fontSize: 15,
-    color: '#999',
-    fontWeight: '500',
-  },
-  subTabTextActive: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  tabContent: {
-    flex: 1,
-    padding: 20,
-  },
-  // Agenda Tab
-  contributeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#2a2a2a',
-    padding: 14,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#ff6b35',
-    marginBottom: 20,
-  },
-  contributeButtonText: {
-    color: '#ff6b35',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 8,
-  },
-  meetingSection: {
-    marginBottom: 30,
-  },
-  meetingSectionHeader: {
-    marginBottom: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 2,
-    borderBottomColor: '#ff6b35',
-  },
-  meetingDate: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  meetingTitle: {
-    fontSize: 14,
-    color: '#ff6b35',
-    fontStyle: 'italic',
-  },
-  contributionCard: {
-    backgroundColor: '#2a2a2a',
-    padding: 14,
-    borderRadius: 6,
-    borderLeftWidth: 4,
-    borderLeftColor: '#ff6b35',
-    marginBottom: 12,
-  },
-  contributionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    borderRadius: 12,
     marginBottom: 8,
-  },
-  contributionTypeContainer: {
+    backgroundColor: theme.bgElevated,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+  },
+  podItemActive: {
+    backgroundColor: theme.accentLight,
+  },
+  podItemText: {
     flex: 1,
+    fontSize: 15,
+    fontWeight: '500',
+    color: theme.textSecondary,
   },
-  contributionType: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: '#ff6b35',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  contributionTime: {
-    fontSize: 11,
-    color: '#999',
-  },
-  contributionMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  contributionInitials: {
-    fontSize: 12,
-    color: '#ccc',
+  podItemTextActive: {
+    color: theme.accent,
     fontWeight: '600',
   },
-  editedLabel: {
-    fontSize: 10,
-    color: '#999',
-    fontStyle: 'italic',
+  podItemIndicator: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: theme.accent,
   },
-  contributionActions: {
+  podItemPicture: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    marginRight: 10,
+  },
+  podItemPlaceholder: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: theme.bgCard,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+
+  // Content
+  content: {
+    flex: 1,
+    backgroundColor: theme.bg,
+  },
+
+  // Tab Bar
+  tabBar: {
     flexDirection: 'row',
-    gap: 6,
-  },
-  actionButton: {
+    marginHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 16,
+    backgroundColor: theme.bgCard,
+    borderRadius: 12,
     padding: 4,
   },
-  contributionContent: {
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 10,
+  },
+  tabActive: {
+    backgroundColor: theme.accent,
+  },
+  tabText: {
     fontSize: 14,
+    fontWeight: '600',
+    color: theme.textSecondary,
+  },
+  tabTextActive: {
     color: '#fff',
-    lineHeight: 20,
   },
-  // Roles Tab
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#ff6b35',
-    marginBottom: 20,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+
+  // Tab Content
+  tabContent: {
+    flex: 1,
+    paddingHorizontal: 20,
   },
-  roleCard: {
-    backgroundColor: '#2a2a2a',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#444',
+
+  // Document Styles
+  documentContainer: {
+    flex: 1,
+    marginHorizontal: 16,
   },
-  roleHeaderRow: {
+  documentHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
   },
-  roleHeader: {
-    flex: 1,
-  },
-  memberName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  roleActions: {
+  documentHeaderLeft: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
-  roleActionButton: {
+  savingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  savingText: {
+    fontSize: 12,
+    color: theme.textMuted,
+  },
+  modeBadge: {
+    backgroundColor: theme.accentLight,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  modeBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.accent,
+  },
+  docMenuButton: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 18,
+    backgroundColor: theme.bgCard,
+  },
+  documentScroll: {
+    flex: 1,
+  },
+  documentPage: {
+    backgroundColor: theme.bgDocument,
+    borderRadius: 12,
+    padding: 20,
+    minHeight: SCREEN_HEIGHT - 300,
+  },
+  documentTouchable: {
+    flex: 1,
+    minHeight: 400,
+  },
+  documentText: {
+    fontSize: 16,
+    color: theme.text,
+    lineHeight: 26,
+  },
+  documentPlaceholder: {
+    fontSize: 16,
+    color: theme.textMuted,
+    lineHeight: 26,
+    fontStyle: 'italic',
+  },
+  documentInput: {
+    fontSize: 16,
+    color: theme.text,
+    lineHeight: 26,
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  newContributionInput: {
+    marginTop: 16,
+    minHeight: 80,
+    backgroundColor: theme.bgElevated,
+    borderRadius: 8,
+    padding: 12,
+  },
+  highlightedText: {
+    backgroundColor: theme.highlight,
+  },
+  activeHighlight: {
+    backgroundColor: theme.highlightActive,
+  },
+
+  // Search Bar
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.bgCard,
+    borderRadius: 12,
+    padding: 8,
+    marginBottom: 12,
+    gap: 8,
+  },
+  searchInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.bgElevated,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: theme.text,
+    padding: 0,
+  },
+  searchNav: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
   },
-  roleActionText: {
-    fontSize: 13,
-    color: '#ff6b35',
-    fontWeight: '600',
+  searchCount: {
+    fontSize: 12,
+    color: theme.textSecondary,
+    marginRight: 4,
   },
-  roleContent: {
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#444',
+  searchNavBtn: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: theme.bgElevated,
+    borderRadius: 8,
   },
-  roleTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#ff6b35',
-    marginBottom: 4,
+  searchCloseBtn: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  roleDescription: {
-    fontSize: 13,
-    color: '#ccc',
-    lineHeight: 18,
+
+  // Formatting Toolbar
+  formatToolbarScroll: {
+    maxHeight: 52,
+    marginBottom: 12,
   },
-  noRole: {
-    fontSize: 13,
-    color: '#666',
+  formatToolbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.bgCard,
+    borderRadius: 12,
+    padding: 8,
+    gap: 4,
+  },
+  formatGroup: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  formatBtn: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
+    backgroundColor: theme.bgElevated,
+  },
+  formatBtnActive: {
+    backgroundColor: theme.accent,
+  },
+  formatBtnText: {
+    fontSize: 16,
+    color: theme.text,
+  },
+  formatBtnTextActive: {
+    color: '#fff',
+  },
+  formatBtnBold: {
+    fontWeight: '700',
+  },
+  formatBtnItalic: {
     fontStyle: 'italic',
   },
-  memberNameLabel: {
-    fontSize: 16,
-    color: '#fff',
-    fontWeight: 'bold',
+  formatBtnUnderline: {
+    textDecorationLine: 'underline',
+  },
+  formatDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: theme.border,
+    marginHorizontal: 8,
+  },
+  formatDropdown: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.bgElevated,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 6,
+  },
+  formatDropdownText: {
+    fontSize: 14,
+    color: theme.text,
+    fontWeight: '500',
+  },
+  colorPreview: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  pickerDropdown: {
+    backgroundColor: theme.bgCard,
+    borderRadius: 12,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  pickerOption: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.divider,
+  },
+  pickerOptionActive: {
+    backgroundColor: theme.accentLight,
+  },
+  pickerOptionText: {
+    color: theme.text,
+    fontWeight: '500',
+  },
+  pickerOptionTextActive: {
+    color: theme.accent,
+  },
+  colorPickerDropdown: {
+    backgroundColor: theme.bgCard,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+  },
+  colorGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  colorOption: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  colorOptionActive: {
+    borderColor: theme.accent,
+  },
+
+  // Edit History
+  editHistoryBlock: {
     marginBottom: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#444',
+    borderBottomColor: theme.divider,
   },
+  editHistoryMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 8,
+  },
+  editHistoryAuthor: {
+    backgroundColor: theme.accent,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  editHistoryInitials: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  editHistoryTime: {
+    fontSize: 11,
+    color: theme.textMuted,
+  },
+
+  // Menu
+  menuOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+    paddingTop: Platform.OS === 'ios' ? 180 : 140,
+    paddingRight: 24,
+  },
+  menuContainer: {
+    backgroundColor: theme.bgCard,
+    borderRadius: 12,
+    minWidth: 180,
+    overflow: 'hidden',
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  menuItemText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '500',
+    color: theme.text,
+  },
+  menuItemTextActive: {
+    color: theme.accent,
+  },
+  menuDivider: {
+    height: 1,
+    backgroundColor: theme.divider,
+    marginHorizontal: 16,
+  },
+
   // Empty State
   emptyState: {
     alignItems: 'center',
     paddingVertical: 60,
   },
-  emptyText: {
+  emptyIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: theme.bgCard,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  emptyTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#666',
+    fontWeight: '600',
+    color: theme.textSecondary,
     marginBottom: 8,
   },
-  emptyHint: {
+  emptySubtitle: {
     fontSize: 14,
-    color: '#444',
+    color: theme.textMuted,
     textAlign: 'center',
     paddingHorizontal: 40,
   },
-  // Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+
+  // Role Card
+  roleCard: {
+    backgroundColor: theme.bgCard,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
   },
-  modalContent: {
-    backgroundColor: '#2a2a2a',
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#ff6b35',
-    width: '100%',
-    maxWidth: 600,
-    maxHeight: '90%',
-  },
-  modalHeader: {
+  roleHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 2,
-    borderBottomColor: '#ff6b35',
+    marginBottom: 12,
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  modalBody: {
-    padding: 20,
-  },
-  fieldLabel: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#ff6b35',
-    marginBottom: 8,
-    marginTop: 16,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  typeButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  typeButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#444',
-    backgroundColor: '#1a1a1a',
-  },
-  typeButtonActive: {
-    backgroundColor: '#ff6b35',
-    borderColor: '#ff6b35',
-  },
-  typeButtonText: {
-    fontSize: 12,
-    color: '#999',
-    fontWeight: '500',
-  },
-  typeButtonTextActive: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  input: {
-    backgroundColor: '#1a1a1a',
-    borderWidth: 1,
-    borderColor: '#444',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    color: '#fff',
-  },
-  textArea: {
-    height: 120,
-    textAlignVertical: 'top',
-  },
-  comingSoon: {
+  memberInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#1a1a1a',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#444',
-    borderStyle: 'dashed',
-  },
-  comingSoonText: {
-    fontSize: 13,
-    color: '#666',
-    marginLeft: 8,
-  },
-  modalFooter: {
-    flexDirection: 'row',
-    padding: 20,
     gap: 12,
-    borderTopWidth: 2,
-    borderTopColor: '#ff6b35',
-  },
-  cancelButton: {
     flex: 1,
-    padding: 14,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#666',
+  },
+  memberAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.accent,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#999',
-  },
-  submitButton: {
-    flex: 1,
-    padding: 14,
-    borderRadius: 8,
-    backgroundColor: '#ff6b35',
-    alignItems: 'center',
-  },
-  submitButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
+  memberAvatarText: {
+    fontSize: 14,
+    fontWeight: '700',
     color: '#fff',
   },
-  // Media Tab
-  uploadButtonsRow: {
+  memberNameText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.text,
+    flex: 1,
+  },
+  roleEditBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: theme.accentDim,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  roleContent: {
+    paddingLeft: 52,
+  },
+  roleTitleText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.accent,
+    marginBottom: 4,
+  },
+  roleDescText: {
+    fontSize: 14,
+    color: theme.textSecondary,
+    lineHeight: 20,
+  },
+  roleDeleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 12,
+  },
+  roleDeleteText: {
+    fontSize: 12,
+    color: theme.error,
+  },
+  noRoleText: {
+    fontSize: 14,
+    color: theme.textMuted,
+    fontStyle: 'italic',
+    paddingLeft: 52,
+  },
+
+  // Upload Row
+  uploadRow: {
     flexDirection: 'row',
     gap: 12,
     marginBottom: 20,
   },
-  uploadButton: {
+  uploadBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#2a2a2a',
-    padding: 16,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#ff6b35',
-    gap: 8,
+    backgroundColor: theme.bgCard,
+    paddingVertical: 16,
+    borderRadius: 12,
+    gap: 10,
   },
-  uploadButtonDisabled: {
+  uploadBtnDisabled: {
     opacity: 0.5,
   },
-  uploadButtonText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#ff6b35',
+  uploadBtnText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: theme.accent,
   },
+
+  // Media Grid
   mediaGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
   },
   mediaItem: {
-    width: (Dimensions.get('window').width - 72) / 3,
+    width: (SCREEN_WIDTH - 52) / 3,
     aspectRatio: 1,
-    borderRadius: 8,
+    borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#2a2a2a',
+    backgroundColor: theme.bgCard,
   },
   mediaImage: {
     width: '100%',
@@ -1740,44 +1961,148 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    padding: 6,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    padding: 8,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   mediaUploader: {
     fontSize: 10,
-    color: '#ccc',
+    color: '#fff',
     flex: 1,
   },
-  mediaDeleteButton: {
+  mediaDeleteBtn: {
     padding: 4,
   },
+
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: theme.bgCard,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '90%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.divider,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: theme.text,
+  },
+  modalClose: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.bgElevated,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBody: {
+    padding: 20,
+    maxHeight: 400,
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: theme.textSecondary,
+    marginBottom: 8,
+    marginTop: 16,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  memberLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.accent,
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: theme.bgElevated,
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
+    color: theme.text,
+  },
+  textArea: {
+    minHeight: 120,
+    textAlignVertical: 'top',
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    padding: 20,
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: theme.divider,
+  },
+  cancelBtn: {
+    flex: 1,
+    paddingVertical: 16,
+    borderRadius: 12,
+    backgroundColor: theme.bgElevated,
+    alignItems: 'center',
+  },
+  cancelBtnText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.textSecondary,
+  },
+  submitBtn: {
+    flex: 1,
+    paddingVertical: 16,
+    borderRadius: 12,
+    backgroundColor: theme.accent,
+    alignItems: 'center',
+  },
+  submitBtnDisabled: {
+    opacity: 0.5,
+  },
+  submitBtnText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+  },
+
   // Image Viewer
   imageViewerContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    backgroundColor: '#000',
   },
   imageViewerHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 50,
+    paddingTop: Platform.OS === 'ios' ? 56 : 16,
     paddingHorizontal: 16,
-    paddingBottom: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    paddingBottom: 16,
   },
-  imageViewerCloseButton: {
-    padding: 8,
+  imageViewerClose: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   imageViewerCounter: {
     fontSize: 16,
-    color: '#fff',
     fontWeight: '600',
+    color: '#fff',
   },
-  imageViewerDownloadButton: {
-    padding: 8,
+  imageViewerDownload: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   imageViewerSlide: {
     width: SCREEN_WIDTH,
@@ -1789,19 +2114,9 @@ const styles = StyleSheet.create({
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT - 200,
   },
-  imageViewerInfo: {
-    position: 'absolute',
-    bottom: 20,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
   imageViewerUploader: {
     fontSize: 14,
-    color: '#ccc',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    color: '#999',
+    marginTop: 16,
   },
 });

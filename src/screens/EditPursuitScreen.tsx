@@ -8,8 +8,10 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../config/supabase';
 import { pursuitService } from '../services/pursuitService';
 
@@ -27,8 +29,10 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
   const [teamSizeMax, setTeamSizeMax] = useState(String(pursuit.team_size_max || 8));
   const [meetingCadence, setMeetingCadence] = useState(pursuit.meeting_cadence || '');
   const [location, setLocation] = useState(pursuit.location || '');
+  const [defaultPicture, setDefaultPicture] = useState(pursuit.default_picture || '');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const handleSave = async () => {
     // Validation
@@ -61,6 +65,7 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
           team_size_max: maxSize,
           meeting_cadence: meetingCadence,
           location,
+          default_picture: defaultPicture || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', pursuit.id);
@@ -117,6 +122,96 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
     );
   };
 
+  const pickImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'We need access to your photo library to set a pod picture.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        await uploadImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image');
+    }
+  };
+
+  const uploadImage = async (uri: string) => {
+    setUploadingImage(true);
+    try {
+      // Create form data for upload (same pattern as galleryService)
+      const formData = new FormData();
+      const fileExt = uri.split('.').pop() || 'jpg';
+      const fileName = `pod-pictures/${pursuit.id}_${Date.now()}.${fileExt}`;
+
+      formData.append('file', {
+        uri: uri,
+        type: `image/${fileExt}`,
+        name: fileName,
+      } as any);
+
+      // Get session token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No session');
+
+      // Upload to team-gallery bucket (which we know works)
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/storage/v1/object/team-gallery/${fileName}`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Upload failed');
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('team-gallery')
+        .getPublicUrl(fileName);
+
+      setDefaultPicture(urlData.publicUrl);
+
+      Alert.alert('Success', 'Pod picture uploaded! Remember to save your changes.');
+    } catch (error: any) {
+      console.error('Error uploading image:', error);
+      Alert.alert('Error', error.message || 'Failed to upload image');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const removeImage = () => {
+    Alert.alert(
+      'Remove Picture',
+      'Are you sure you want to remove the pod picture?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () => setDefaultPicture(''),
+        },
+      ]
+    );
+  };
+
   if (deleting) {
     return (
       <View style={styles.loadingContainer}>
@@ -150,6 +245,52 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
             placeholder="e.g., Weekly Book Club"
             maxLength={100}
           />
+        </View>
+
+        {/* Pod Picture */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Pod Picture</Text>
+          <Text style={styles.hint}>This picture will appear in the pod header and chat</Text>
+          <View style={styles.pictureContainer}>
+            {defaultPicture ? (
+              <View style={styles.picturePreview}>
+                <Image source={{ uri: defaultPicture }} style={styles.pictureImage} />
+                <View style={styles.pictureActions}>
+                  <TouchableOpacity
+                    style={styles.changePictureButton}
+                    onPress={pickImage}
+                    disabled={uploadingImage}
+                  >
+                    <Ionicons name="camera-outline" size={18} color="#8b5cf6" />
+                    <Text style={styles.changePictureText}>Change</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.removePictureButton}
+                    onPress={removeImage}
+                    disabled={uploadingImage}
+                  >
+                    <Ionicons name="trash-outline" size={18} color="#ef4444" />
+                    <Text style={styles.removePictureText}>Remove</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.addPictureButton}
+                onPress={pickImage}
+                disabled={uploadingImage}
+              >
+                {uploadingImage ? (
+                  <ActivityIndicator color="#8b5cf6" />
+                ) : (
+                  <>
+                    <Ionicons name="image-outline" size={32} color="#8b5cf6" />
+                    <Text style={styles.addPictureText}>Add Pod Picture</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         {/* Description */}
@@ -371,5 +512,65 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  pictureContainer: {
+    marginTop: 8,
+  },
+  picturePreview: {
+    alignItems: 'center',
+  },
+  pictureImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    marginBottom: 12,
+  },
+  pictureActions: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  changePictureButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: '#f3f4f6',
+    borderRadius: 8,
+  },
+  changePictureText: {
+    color: '#8b5cf6',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  removePictureButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: '#fef2f2',
+    borderRadius: 8,
+  },
+  removePictureText: {
+    color: '#ef4444',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  addPictureButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f5f3ff',
+    borderWidth: 2,
+    borderColor: '#8b5cf6',
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    padding: 24,
+    gap: 8,
+  },
+  addPictureText: {
+    color: '#8b5cf6',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
