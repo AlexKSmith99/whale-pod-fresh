@@ -45,6 +45,12 @@ class AgoraService {
       // Set client role to broadcaster (can send and receive)
       await this.engine.setClientRole(ClientRoleType.ClientRoleBroadcaster);
 
+      // Enable local video BEFORE joining the channel
+      await this.engine.enableLocalVideo(true);
+
+      // Start the local video preview
+      await this.engine.startPreview();
+
       // Join the channel
       await this.engine.joinChannel(token || '', channelName, uid, {
         clientRoleType: ClientRoleType.ClientRoleBroadcaster,
@@ -64,6 +70,8 @@ class AgoraService {
     }
 
     try {
+      // Stop the local video preview
+      await this.engine.stopPreview();
       await this.engine.leaveChannel();
       console.log('Left channel');
     } catch (error) {
@@ -79,6 +87,12 @@ class AgoraService {
 
     try {
       await this.engine.enableLocalVideo(enabled);
+      // Also start/stop preview for consistent behavior
+      if (enabled) {
+        await this.engine.startPreview();
+      } else {
+        await this.engine.stopPreview();
+      }
     } catch (error) {
       console.error('Failed to toggle camera:', error);
       throw error;

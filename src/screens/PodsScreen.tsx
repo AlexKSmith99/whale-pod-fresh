@@ -254,10 +254,22 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard }: PodsSc
   );
   };
 
-  const renderActiveContent = () => (
+  const renderActiveContent = () => {
+    // Sort pods so those with notifications appear first
+    const sortedPods = [...pods].sort((a, b) => {
+      const aCount = notificationCounts.get(a.id) || 0;
+      const bCount = notificationCounts.get(b.id) || 0;
+      // Pods with notifications come first
+      if (aCount > 0 && bCount === 0) return -1;
+      if (aCount === 0 && bCount > 0) return 1;
+      // If both have or don't have notifications, maintain original order
+      return 0;
+    });
+
+    return (
     <View style={styles.content}>
-      {pods.length > 0 ? (
-        pods.map((pod) => renderPodCard(pod))
+      {sortedPods.length > 0 ? (
+        sortedPods.map((pod) => renderPodCard(pod))
       ) : (
         <View style={styles.emptyState}>
           <Text style={styles.emptyEmoji}>🌊</Text>
@@ -267,6 +279,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard }: PodsSc
       )}
     </View>
   );
+  };
 
   const renderPastContent = () => (
     <View style={styles.content}>

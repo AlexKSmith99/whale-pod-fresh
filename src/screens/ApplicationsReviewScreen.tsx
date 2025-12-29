@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import { applicationService } from '../services/applicationService';
+import UserProfileScreen from './UserProfileScreen';
 
 interface Props {
   pursuitId: string;
@@ -11,6 +12,13 @@ export default function ApplicationsReviewScreen({ pursuitId, onBack }: Props) {
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedReviewedId, setExpandedReviewedId] = useState<string | null>(null);
+  const [showUserProfile, setShowUserProfile] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
+  const handleViewProfile = (userId: string) => {
+    setSelectedUserId(userId);
+    setShowUserProfile(true);
+  };
 
   useEffect(() => {
     loadApplications();
@@ -75,6 +83,28 @@ export default function ApplicationsReviewScreen({ pursuitId, onBack }: Props) {
   const pendingApps = applications.filter(a => a.status === 'pending');
   const reviewedApps = applications.filter(a => a.status !== 'pending');
 
+  // Show user profile screen
+  if (showUserProfile && selectedUserId) {
+    const navigation = {
+      navigate: () => {},
+      goBack: () => {
+        setShowUserProfile(false);
+        setSelectedUserId(null);
+      },
+      replace: () => {
+        setShowUserProfile(false);
+        setSelectedUserId(null);
+      },
+    };
+
+    return (
+      <UserProfileScreen
+        route={{ params: { userId: selectedUserId } }}
+        navigation={navigation}
+      />
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -99,17 +129,27 @@ export default function ApplicationsReviewScreen({ pursuitId, onBack }: Props) {
                   <Text style={styles.sectionTitle}>Pending ({pendingApps.length})</Text>
                   {pendingApps.map((app) => (
                     <View key={app.id} style={styles.appCard}>
-                      <View style={styles.appHeader}>
-                        <View style={styles.avatar}>
-                          <Text style={styles.avatarText}>👤</Text>
-                        </View>
+                      <TouchableOpacity
+                        style={styles.appHeader}
+                        onPress={() => app.applicant_id && handleViewProfile(app.applicant_id)}
+                      >
+                        {app.applicant?.profile_picture ? (
+                          <Image source={{ uri: app.applicant.profile_picture }} style={styles.avatarImage} />
+                        ) : (
+                          <View style={styles.avatar}>
+                            <Text style={styles.avatarText}>
+                              {app.applicant?.name?.charAt(0).toUpperCase() || '👤'}
+                            </Text>
+                          </View>
+                        )}
                         <View style={styles.appInfo}>
-                          <Text style={styles.appName}>{app.applicant?.email}</Text>
+                          <Text style={styles.appName}>{app.applicant?.name || app.applicant?.email || 'Applicant'}</Text>
                           <Text style={styles.appDate}>
                             Applied {new Date(app.created_at).toLocaleDateString()}
                           </Text>
+                          <Text style={styles.viewProfileLink}>View profile →</Text>
                         </View>
-                      </View>
+                      </TouchableOpacity>
 
                       <View style={styles.answersSection}>
                         {app.answers.map((answer: any, index: number) => (
@@ -123,7 +163,7 @@ export default function ApplicationsReviewScreen({ pursuitId, onBack }: Props) {
                       <View style={styles.actionButtons}>
                         <TouchableOpacity
                           style={styles.acceptButton}
-                          onPress={() => handleAccept(app.id, app.applicant?.email)}
+                          onPress={() => handleAccept(app.id, app.applicant?.name || app.applicant?.email || 'this applicant')}
                         >
                           <Text style={styles.acceptButtonText}>✓ Accept</Text>
                         </TouchableOpacity>
@@ -143,21 +183,25 @@ export default function ApplicationsReviewScreen({ pursuitId, onBack }: Props) {
                 <>
                   <Text style={styles.sectionTitle}>Reviewed ({reviewedApps.length})</Text>
                   {reviewedApps.map((app) => (
-                    <TouchableOpacity
-                      key={app.id}
-                      style={styles.appCard}
-                      onPress={() => setExpandedReviewedId(expandedReviewedId === app.id ? null : app.id)}
-                      activeOpacity={0.7}
-                    >
-                      <View style={styles.appHeader}>
-                        <View style={[
-                          styles.avatar,
-                          app.status === 'accepted' ? styles.avatarAccepted : styles.avatarDeclined
-                        ]}>
-                          <Text style={styles.avatarText}>👤</Text>
-                        </View>
+                    <View key={app.id} style={styles.appCard}>
+                      <TouchableOpacity
+                        style={styles.appHeader}
+                        onPress={() => app.applicant_id && handleViewProfile(app.applicant_id)}
+                      >
+                        {app.applicant?.profile_picture ? (
+                          <Image source={{ uri: app.applicant.profile_picture }} style={[styles.avatarImage, app.status === 'accepted' ? styles.avatarAcceptedBorder : styles.avatarDeclinedBorder]} />
+                        ) : (
+                          <View style={[
+                            styles.avatar,
+                            app.status === 'accepted' ? styles.avatarAccepted : styles.avatarDeclined
+                          ]}>
+                            <Text style={styles.avatarText}>
+                              {app.applicant?.name?.charAt(0).toUpperCase() || '👤'}
+                            </Text>
+                          </View>
+                        )}
                         <View style={styles.appInfo}>
-                          <Text style={styles.appName}>{app.applicant?.email}</Text>
+                          <Text style={styles.appName}>{app.applicant?.name || app.applicant?.email || 'Applicant'}</Text>
                           <View style={[
                             styles.statusBadge,
                             app.status === 'accepted' ? styles.statusAccepted : styles.statusDeclined
@@ -166,11 +210,17 @@ export default function ApplicationsReviewScreen({ pursuitId, onBack }: Props) {
                               {app.status === 'accepted' ? '✓ Accepted' : '✕ Declined'}
                             </Text>
                           </View>
+                          <Text style={styles.viewProfileLink}>View profile →</Text>
                         </View>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.expandButton}
+                        onPress={() => setExpandedReviewedId(expandedReviewedId === app.id ? null : app.id)}
+                      >
                         <Text style={styles.expandIcon}>
-                          {expandedReviewedId === app.id ? '▲' : '▼'}
+                          {expandedReviewedId === app.id ? '▲ Hide answers' : '▼ Show answers'}
                         </Text>
-                      </View>
+                      </TouchableOpacity>
 
                       {expandedReviewedId === app.id && (
                         <View style={styles.answersSection}>
@@ -186,7 +236,7 @@ export default function ApplicationsReviewScreen({ pursuitId, onBack }: Props) {
                           </Text>
                         </View>
                       )}
-                    </TouchableOpacity>
+                    </View>
                   ))}
                 </>
               )}
@@ -238,10 +288,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 12,
   },
-  avatarText: { fontSize: 24 },
+  avatarText: { fontSize: 24, color: '#fff', fontWeight: 'bold' },
+  avatarImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 12,
+  },
+  avatarAcceptedBorder: { borderWidth: 3, borderColor: '#10b981' },
+  avatarDeclinedBorder: { borderWidth: 3, borderColor: '#ef4444' },
   appInfo: { flex: 1 },
   appName: { fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 4 },
   appDate: { fontSize: 12, color: '#999' },
+  viewProfileLink: { fontSize: 12, color: '#0ea5e9', fontWeight: '600', marginTop: 4 },
   statusBadge: { 
     alignSelf: 'flex-start',
     paddingHorizontal: 10, 
@@ -275,7 +334,14 @@ const styles = StyleSheet.create({
   rejectButtonText: { color: '#fff', fontSize: 15, fontWeight: 'bold' },
   avatarAccepted: { backgroundColor: '#10b981' },
   avatarDeclined: { backgroundColor: '#ef4444' },
-  expandIcon: { fontSize: 12, color: '#999', marginLeft: 8 },
+  expandButton: {
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    marginTop: 8,
+  },
+  expandIcon: { fontSize: 12, color: '#0ea5e9', fontWeight: '600' },
   viewAnswersLabel: {
     fontSize: 14,
     fontWeight: 'bold',

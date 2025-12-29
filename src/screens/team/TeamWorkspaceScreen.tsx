@@ -24,6 +24,7 @@ import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { galleryService, GalleryPhoto } from '../../services/galleryService';
 import { notificationService } from '../../services/notificationService';
+import UserProfileScreen from '../UserProfileScreen';
 
 // Modern dark theme colors
 const theme = {
@@ -100,6 +101,8 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
 
   // Text editing state
   const [newContributionText, setNewContributionText] = useState('');
+  const [fullDocumentText, setFullDocumentText] = useState('');
+  const [isInEditMode, setIsInEditMode] = useState(false);
 
   // Role assignment modal state
   const [showRoleModal, setShowRoleModal] = useState(false);
@@ -118,6 +121,15 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [savingImage, setSavingImage] = useState(false);
   const imageViewerRef = useRef<FlatList>(null);
+
+  // User profile state
+  const [showUserProfile, setShowUserProfile] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
+  const handleViewProfile = (userId: string) => {
+    setSelectedUserId(userId);
+    setShowUserProfile(true);
+  };
 
   const toggleSidebar = () => {
     const toValue = sidebarOpen ? 0 : 1;
@@ -227,12 +239,12 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
     try {
       const { data: members } = await supabase
         .from('team_members')
-        .select('user_id, profiles!user_id(id, name, email)')
+        .select('user_id, profiles!user_id(id, name, email, profile_picture)')
         .eq('pursuit_id', selectedPodId);
 
       const { data: pursuit } = await supabase
         .from('pursuits')
-        .select('creator_id, profiles!creator_id(id, name, email)')
+        .select('creator_id, profiles!creator_id(id, name, email, profile_picture)')
         .eq('id', selectedPodId)
         .single();
 
@@ -375,6 +387,98 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
     }
   };
 
+  const enterEditMode = () => {
+    // Combine all contributions into one text for editing
+    const sortedContribs = [...contributions].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+    const combinedText = sortedContribs.map(c => c.content).join('\n\n');
+    setFullDocumentText(combinedText);
+    setIsInEditMode(true);
+    setIsEditingDocument(true);
+    setShowDocMenu(false);
+    setTimeout(() => documentInputRef.current?.focus(), 100);
+  };
+
+  const saveEditedDocument = async () => {
+    if (!selectedPodId || !user) return;
+
+    const trimmedText = fullDocumentText.trim();
+    const originalText = getFullDocumentText();
+
+    // If nothing changed, just exit
+    if (trimmedText === originalText) {
+      setIsInEditMode(false);
+      setIsEditingDocument(false);
+      setFullDocumentText('');
+      return;
+    }
+
+    setSavingDocument(true);
+    try {
+      // Delete all existing contributions for this pod
+      if (contributions.length > 0) {
+        const { error: deleteError } = await supabase
+          .from('meeting_contributions')
+          .delete()
+          .eq('pursuit_id', selectedPodId);
+
+        if (deleteError) throw deleteError;
+      }
+
+      // If there's new content, save it as a single contribution
+      if (trimmedText) {
+        const { data, error } = await supabase
+          .from('meeting_contributions')
+          .insert([{
+            pursuit_id: selectedPodId,
+            user_id: user.id,
+            meeting_date: new Date().toISOString().split('T')[0],
+            contribution_type: 'meeting notes',
+            content: trimmedText,
+          }])
+          .select('*, profiles!user_id(name, email)')
+          .single();
+
+        if (error) throw error;
+
+        setContributions([{ ...data, content: trimmedText }]);
+
+        // Notify other team members
+        const otherMemberIds = teamMembers.filter(m => m.id !== user.id).map(m => m.id);
+        const currentPod = pods.find((p) => p.id === selectedPodId);
+        if (otherMemberIds.length > 0 && currentPod) {
+          const currentUserProfile = teamMembers.find(m => m.id === user.id);
+          const userName = currentUserProfile?.name || currentUserProfile?.email || 'A teammate';
+          await notificationService.notifyTeamBoardUpdate(
+            otherMemberIds,
+            selectedPodId,
+            currentPod.title,
+            userName,
+            'a document update'
+          );
+        }
+      } else {
+        // All content was deleted
+        setContributions([]);
+      }
+    } catch (error) {
+      console.error('Error saving document:', error);
+      Alert.alert('Error', 'Failed to save changes');
+    } finally {
+      setSavingDocument(false);
+      setIsInEditMode(false);
+      setIsEditingDocument(false);
+      setFullDocumentText('');
+    }
+  };
+
+  const cancelEditMode = () => {
+    setIsInEditMode(false);
+    setIsEditingDocument(false);
+    setFullDocumentText('');
+  };
+
   const getUserInitials = (profile: any) => {
     if (profile?.name) {
       const names = profile.name.split(' ');
@@ -493,8 +597,8 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
     if (sortedContributions.length === 0) {
       return (
         <Text style={styles.documentPlaceholder}>
-          Tap anywhere to start writing...{'\n\n'}
-          This is a shared document that all team members can edit.
+          No content yet.{'\n\n'}
+          Tap the menu (three dots) and select "Edit" to start writing.
         </Text>
       );
     }
@@ -813,6 +917,29 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
           </View>
         )}
 
+        {/* Edit Mode Action Buttons */}
+        {isInEditMode && (
+          <View style={styles.editModeActions}>
+            <TouchableOpacity
+              style={styles.editModeCancelBtn}
+              onPress={cancelEditMode}
+            >
+              <Text style={styles.editModeCancelText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.editModeSaveBtn, savingDocument && styles.editModeSaveBtnDisabled]}
+              onPress={saveEditedDocument}
+              disabled={savingDocument}
+            >
+              {savingDocument ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.editModeSaveText}>Save</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Document Content */}
         <ScrollView
           ref={documentScrollRef}
@@ -820,61 +947,34 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="always"
         >
-          <TouchableOpacity
-            activeOpacity={1}
-            onPress={() => {
-              if (!showEditHistory && !showSearch) {
-                setIsEditingDocument(true);
-                setTimeout(() => documentInputRef.current?.focus(), 100);
-              }
-            }}
-            style={styles.documentPage}
-          >
+          <View style={styles.documentPage}>
             {showEditHistory ? (
               // Edit History Mode
               renderEditHistoryContent()
-            ) : isEditingDocument ? (
-              // Editing Mode - Show existing contributions + seamless editing area
-              <View>
-                {/* Existing saved contributions (read-only) */}
-                {contributions.length > 0 && (
-                  <View style={{ marginBottom: contributions.length > 0 ? 8 : 0 }}>
-                    {renderFormattedDocument()}
-                  </View>
-                )}
-
-                {/* Simple text input */}
-                <TextInput
-                  ref={documentInputRef}
-                  style={styles.documentInput}
-                  value={newContributionText}
-                  onChangeText={setNewContributionText}
-                  multiline
-                  onBlur={handleDocumentBlur}
-                  autoFocus
-                  selectionColor={theme.accent}
-                  placeholder={contributions.length === 0 ? "Start typing..." : "Continue typing..."}
-                  placeholderTextColor={theme.textMuted}
-                />
-              </View>
+            ) : isInEditMode ? (
+              // Full Document Edit Mode - single TextInput for entire document
+              <TextInput
+                ref={documentInputRef}
+                style={[styles.documentInput, styles.fullDocumentEdit]}
+                value={fullDocumentText}
+                onChangeText={setFullDocumentText}
+                multiline
+                autoFocus
+                selectionColor={theme.accent}
+                placeholder="Start typing..."
+                placeholderTextColor={theme.textMuted}
+              />
             ) : (
               // Read Mode (with search highlighting if active)
               <View style={styles.documentTouchable}>
-                {contributions.length > 0 ? (
-                  showSearch && searchQuery.length > 0 ? (
-                    renderHighlightedText()
-                  ) : (
-                    renderFormattedDocument()
-                  )
+                {showSearch && searchQuery.length > 0 ? (
+                  renderHighlightedText()
                 ) : (
-                  <Text style={styles.documentPlaceholder}>
-                    Tap anywhere to start writing...{'\n\n'}
-                    This is a shared document that all team members can edit.
-                  </Text>
+                  renderFormattedDocument()
                 )}
               </View>
             )}
-          </TouchableOpacity>
+          </View>
           <View style={{ height: 200 }} />
         </ScrollView>
 
@@ -886,6 +986,14 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
             onPress={() => setShowDocMenu(false)}
           >
             <View style={styles.menuContainer}>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={enterEditMode}
+              >
+                <Ionicons name="create-outline" size={22} color={theme.accent} />
+                <Text style={[styles.menuItemText, styles.menuItemTextActive]}>Edit</Text>
+              </TouchableOpacity>
+              <View style={styles.menuDivider} />
               <TouchableOpacity
                 style={styles.menuItem}
                 onPress={() => {
@@ -936,12 +1044,22 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
           return (
             <View key={member.id} style={styles.roleCard}>
               <View style={styles.roleHeader}>
-                <View style={styles.memberInfo}>
-                  <View style={styles.memberAvatar}>
-                    <Text style={styles.memberAvatarText}>{getUserInitials(member)}</Text>
+                <TouchableOpacity
+                  style={styles.memberInfo}
+                  onPress={() => handleViewProfile(member.id)}
+                >
+                  {member.profile_picture ? (
+                    <Image source={{ uri: member.profile_picture }} style={styles.memberAvatarImage} />
+                  ) : (
+                    <View style={styles.memberAvatar}>
+                      <Text style={styles.memberAvatarText}>{getUserInitials(member)}</Text>
+                    </View>
+                  )}
+                  <View style={styles.memberNameContainer}>
+                    <Text style={styles.memberNameText}>{member.name || 'Unknown'}</Text>
+                    <Text style={styles.viewProfileLink}>View profile →</Text>
                   </View>
-                  <Text style={styles.memberNameText}>{member.name || member.email}</Text>
-                </View>
+                </TouchableOpacity>
                 {canEditRole && (
                   <TouchableOpacity
                     onPress={() => handleOpenRoleModal(member, memberRole)}
@@ -1063,6 +1181,28 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={theme.accent} />
       </View>
+    );
+  }
+
+  // Show user profile screen
+  if (showUserProfile && selectedUserId) {
+    const navigation = {
+      navigate: () => {},
+      goBack: () => {
+        setShowUserProfile(false);
+        setSelectedUserId(null);
+      },
+      replace: () => {
+        setShowUserProfile(false);
+        setSelectedUserId(null);
+      },
+    };
+
+    return (
+      <UserProfileScreen
+        route={{ params: { userId: selectedUserId } }}
+        navigation={navigation}
+      />
     );
   }
 
@@ -1561,6 +1701,46 @@ const styles = StyleSheet.create({
     minHeight: 100,
     textAlignVertical: 'top',
   },
+  fullDocumentEdit: {
+    minHeight: 300,
+    backgroundColor: theme.bgElevated,
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: theme.accent,
+  },
+  editModeActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+    paddingHorizontal: 4,
+    paddingBottom: 12,
+  },
+  editModeCancelBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    backgroundColor: theme.bgElevated,
+  },
+  editModeCancelText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.textSecondary,
+  },
+  editModeSaveBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    backgroundColor: theme.accent,
+  },
+  editModeSaveBtnDisabled: {
+    opacity: 0.5,
+  },
+  editModeSaveText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
   newContributionInput: {
     marginTop: 16,
     minHeight: 80,
@@ -1863,16 +2043,29 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  memberAvatarImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
   memberAvatarText: {
     fontSize: 14,
     fontWeight: '700',
     color: '#fff',
   },
+  memberNameContainer: {
+    flex: 1,
+  },
   memberNameText: {
     fontSize: 16,
     fontWeight: '600',
     color: theme.text,
-    flex: 1,
+  },
+  viewProfileLink: {
+    fontSize: 12,
+    color: theme.accent,
+    fontWeight: '500',
+    marginTop: 2,
   },
   roleEditBtn: {
     width: 36,

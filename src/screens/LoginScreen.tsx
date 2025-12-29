@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, ScrollView, Platform, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -53,50 +53,66 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>🐋 Whale Pod</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-
-      {!isSignup && (
-        <TouchableOpacity
-          style={styles.checkboxContainer}
-          onPress={() => setRememberMe(!rememberMe)}
-          activeOpacity={0.7}
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
-            {rememberMe && <Text style={styles.checkmark}>✓</Text>}
-          </View>
-          <Text style={styles.checkboxLabel}>Remember me</Text>
-        </TouchableOpacity>
-      )}
+          <Text style={styles.title}>🐋 Whale Pod</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            returnKeyType="next"
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            returnKeyType="done"
+            onSubmitEditing={handleSubmit}
+          />
 
-      <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-        <Text style={styles.buttonText}>{isSignup ? 'Sign Up' : 'Log In'}</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => setIsSignup(!isSignup)}>
-        <Text style={styles.link}>
-          {isSignup ? 'Already have an account? Log in' : 'Need an account? Sign up'}
-        </Text>
-      </TouchableOpacity>
-    </View>
+          {!isSignup && (
+            <TouchableOpacity
+              style={styles.checkboxContainer}
+              onPress={() => setRememberMe(!rememberMe)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+                {rememberMe && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+              <Text style={styles.checkboxLabel}>Remember me</Text>
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity style={styles.button} onPress={handleSubmit}>
+            <Text style={styles.buttonText}>{isSignup ? 'Sign Up' : 'Log In'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setIsSignup(!isSignup)}>
+            <Text style={styles.link}>
+              {isSignup ? 'Already have an account? Log in' : 'Need an account? Sign up'}
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 20, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#fff' },
+  scrollContent: { flexGrow: 1, justifyContent: 'center', padding: 20, paddingBottom: 40 },
   title: { fontSize: 48, fontWeight: 'bold', color: '#0ea5e9', marginBottom: 40, textAlign: 'center' },
   input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 15, marginBottom: 15, fontSize: 16 },
   checkboxContainer: {

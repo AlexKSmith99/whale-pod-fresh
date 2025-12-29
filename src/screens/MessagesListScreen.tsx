@@ -22,6 +22,35 @@ import PodChatScreen from './PodChatScreen';
 const SIDEBAR_WIDTH = 300;
 const LAST_CHAT_KEY = 'whale_pod_last_chat';
 
+// Track locally-read chats at module level so they persist across component remounts
+const locallyReadIndividualChatsSet = new Set<string>();
+const locallyReadPodChatsSet = new Set<string>();
+// Track the total number of messages marked as locally read (for badge adjustment)
+let locallyReadMessageCount = 0;
+
+// Export functions to check locally-read status (for badge count adjustments)
+export const isConversationLocallyRead = (partnerId: string): boolean => {
+  return locallyReadIndividualChatsSet.has(partnerId);
+};
+
+export const getLocallyReadConversationCount = (): number => {
+  return locallyReadIndividualChatsSet.size;
+};
+
+export const getLocallyReadMessageCount = (): number => {
+  return locallyReadMessageCount;
+};
+
+export const addLocallyReadMessages = (count: number): void => {
+  locallyReadMessageCount += count;
+};
+
+export const clearLocallyReadConversations = (): void => {
+  locallyReadIndividualChatsSet.clear();
+  locallyReadPodChatsSet.clear();
+  locallyReadMessageCount = 0;
+};
+
 interface IndividualChat {
   type: 'individual';
   partnerId: string;
@@ -34,6 +63,7 @@ interface IndividualChat {
   lastMessage?: string;
   lastMessageTime?: string;
   isRead: boolean;
+  unreadCount: number;
 }
 
 interface PodChatItem extends PodChat {
@@ -44,7 +74,13 @@ type ChatItem = IndividualChat | PodChatItem;
 
 type FilterTab = 'chats' | 'unread' | 'requests';
 
-export default function MessagesListScreen({ navigation }: any) {
+interface MessagesListScreenProps {
+  navigation?: any;
+  onSelectConversation?: (partnerId: string, partnerEmail: string) => void;
+  onConversationRead?: () => void;
+}
+
+export default function MessagesListScreen({ navigation, onSelectConversation, onConversationRead }: MessagesListScreenProps) {
   const { user } = useAuth();
   const [individualChats, setIndividualChats] = useState<IndividualChat[]>([]);
   const [podChats, setPodChats] = useState<PodChatItem[]>([]);
@@ -54,6 +90,7 @@ export default function MessagesListScreen({ navigation }: any) {
   const sidebarAnim = useRef(new Animated.Value(0)).current;
   const hasAutoSelected = useRef(false);
   const [activeTab, setActiveTab] = useState<FilterTab>('chats');
+  const [viewingUnreadList, setViewingUnreadList] = useState(false);
 
   useEffect(() => {
     loadAllChats();
@@ -148,6 +185,12 @@ export default function MessagesListScreen({ navigation }: any) {
               .eq('id', partnerId)
               .single();
 
+            // Check if this chat was locally marked as read (to preserve state before DB updates)
+            const isLocallyRead = locallyReadIndividualChatsSet.has(partnerId);
+
+            // Get unread count from this partner
+            const unreadCount = isLocallyRead ? 0 : await messageService.getUnreadCountFromSender(user.id, partnerId);
+
             return {
               type: 'individual' as const,
               partnerId,
@@ -155,7 +198,8 @@ export default function MessagesListScreen({ navigation }: any) {
               partnerEmail: conversation.partnerEmail,
               lastMessage: conversation.lastMessage || conversation.content,
               lastMessageTime: conversation.lastMessageTime || conversation.created_at,
-              isRead: conversation.isRead !== false,
+              isRead: isLocallyRead || conversation.isRead !== false,
+              unreadCount,
             };
           })
         );
@@ -164,7 +208,15 @@ export default function MessagesListScreen({ navigation }: any) {
 
         // Load pod chats
         const podData = await podChatService.getUserPodChats(user.id);
-        setPodChats(podData.map(p => ({ ...p, type: 'pod' as const })));
+        setPodChats(podData.map(p => {
+          // Check if this pod chat was locally marked as read
+          const isLocallyRead = locallyReadPodChatsSet.has(p.pursuit_id);
+          return {
+            ...p,
+            type: 'pod' as const,
+            unread_count: isLocallyRead ? 0 : p.unread_count,
+          };
+        }));
       }
     } catch (error) {
       console.error('Error loading chats:', error);
@@ -198,12 +250,36 @@ export default function MessagesListScreen({ navigation }: any) {
     // Mark as read
     if (user) {
       if (chat.type === 'individual') {
-        messageService.markConversationAsRead(user.id, chat.partnerId).catch(console.error);
+        const hadUnread = chat.unreadCount > 0;
+        // Track this chat as locally read so polling doesn't overwrite it
+        if (!locallyReadIndividualChatsSet.has(chat.partnerId) && hadUnread) {
+          locallyReadIndividualChatsSet.add(chat.partnerId);
+          // Track the actual message count for badge adjustment
+          addLocallyReadMessages(chat.unreadCount);
+          // Immediately notify parent to update tab badge
+          if (onConversationRead) {
+            onConversationRead();
+          }
+        }
+        messageService.markConversationAsRead(user.id, chat.partnerId)
+          .catch(console.error);
         setIndividualChats(prev =>
-          prev.map(c => c.partnerId === chat.partnerId ? { ...c, isRead: true } : c)
+          prev.map(c => c.partnerId === chat.partnerId ? { ...c, isRead: true, unreadCount: 0 } : c)
         );
       } else {
-        podChatService.markAsRead(chat.pursuit_id, user.id).catch(console.error);
+        const hadUnread = (chat.unread_count || 0) > 0;
+        // Track this pod chat as locally read so polling doesn't overwrite it
+        if (!locallyReadPodChatsSet.has(chat.pursuit_id) && hadUnread) {
+          locallyReadPodChatsSet.add(chat.pursuit_id);
+          // Track the actual message count for badge adjustment
+          addLocallyReadMessages(chat.unread_count || 0);
+          // Immediately notify parent to update tab badge
+          if (onConversationRead) {
+            onConversationRead();
+          }
+        }
+        podChatService.markAsRead(chat.pursuit_id, user.id)
+          .catch(console.error);
         setPodChats(prev =>
           prev.map(c => c.pursuit_id === chat.pursuit_id ? { ...c, unread_count: 0 } : c)
         );
@@ -232,7 +308,7 @@ export default function MessagesListScreen({ navigation }: any) {
                   await supabase
                     .from('messages')
                     .delete()
-                    .or(`and(sender_id.eq.${user.id},receiver_id.eq.${chat.partnerId}),and(sender_id.eq.${chat.partnerId},receiver_id.eq.${user.id})`);
+                    .or(`and(sender_id.eq.${user.id},recipient_id.eq.${chat.partnerId}),and(sender_id.eq.${chat.partnerId},recipient_id.eq.${user.id})`);
                 }
                 setIndividualChats(prev => prev.filter(c => c.partnerId !== chat.partnerId));
                 // If this was the selected chat, select another one
@@ -276,7 +352,7 @@ export default function MessagesListScreen({ navigation }: any) {
   const getUnreadChats = (): ChatItem[] => {
     return getAllChats().filter(chat => {
       if (chat.type === 'individual') {
-        return !chat.isRead;
+        return chat.unreadCount > 0;
       } else {
         return (chat.unread_count || 0) > 0;
       }
@@ -290,6 +366,88 @@ export default function MessagesListScreen({ navigation }: any) {
   // For now, requests tab shows empty - can be extended later for message requests
   const getRequestsCount = (): number => {
     return 0;
+  };
+
+  const selectChatFromUnreadList = (chat: ChatItem) => {
+    setViewingUnreadList(false);
+    setActiveTab('chats'); // Switch to chats tab so the selected chat is displayed
+    selectChat(chat);
+  };
+
+  const renderUnreadChatCard = (chat: ChatItem) => {
+    if (chat.type === 'individual') {
+      return (
+        <TouchableOpacity
+          key={`unread-ind-${chat.partnerId}`}
+          style={styles.unreadChatCard}
+          onPress={() => selectChatFromUnreadList(chat)}
+        >
+          <View style={styles.unreadChatAvatar}>
+            {chat.partnerProfile?.profile_picture ? (
+              <Image
+                source={{ uri: chat.partnerProfile.profile_picture }}
+                style={styles.unreadChatAvatarImage}
+              />
+            ) : (
+              <View style={styles.unreadChatAvatarPlaceholder}>
+                <Text style={styles.unreadChatAvatarText}>
+                  {chat.partnerProfile?.name?.charAt(0).toUpperCase() || '?'}
+                </Text>
+              </View>
+            )}
+          </View>
+          <View style={styles.unreadChatInfo}>
+            <Text style={styles.unreadChatName} numberOfLines={1}>
+              {chat.partnerProfile?.name || chat.partnerEmail || 'User'}
+            </Text>
+            <Text style={styles.unreadChatPreview} numberOfLines={1}>
+              {chat.unreadCount > 0 ? `${chat.unreadCount} unread message${chat.unreadCount !== 1 ? 's' : ''}` : (chat.lastMessage || 'New message')}
+            </Text>
+          </View>
+          <View style={styles.unreadChatBadge}>
+            <View style={styles.unreadCountBadge}>
+              <Text style={styles.unreadCountText}>{chat.unreadCount || 1}</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+      );
+    } else {
+      return (
+        <TouchableOpacity
+          key={`unread-pod-${chat.pursuit_id}`}
+          style={styles.unreadChatCard}
+          onPress={() => selectChatFromUnreadList(chat)}
+        >
+          <View style={styles.unreadChatAvatar}>
+            {chat.default_picture ? (
+              <Image
+                source={{ uri: chat.default_picture }}
+                style={styles.unreadChatAvatarImage}
+              />
+            ) : (
+              <View style={[styles.unreadChatAvatarPlaceholder, styles.unreadPodAvatar]}>
+                <Text style={styles.unreadChatAvatarText}>
+                  {(chat.custom_name || chat.pursuit_title).charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            )}
+          </View>
+          <View style={styles.unreadChatInfo}>
+            <Text style={styles.unreadChatName} numberOfLines={1}>
+              {chat.custom_name || chat.pursuit_title}
+            </Text>
+            <Text style={styles.unreadChatPreview} numberOfLines={1}>
+              {chat.unread_count} unread message{chat.unread_count !== 1 ? 's' : ''}
+            </Text>
+          </View>
+          <View style={styles.unreadChatBadge}>
+            <View style={styles.unreadCountBadge}>
+              <Text style={styles.unreadCountText}>{chat.unread_count}</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+      );
+    }
   };
 
   const sidebarTranslateX = sidebarAnim.interpolate({
@@ -325,7 +483,11 @@ export default function MessagesListScreen({ navigation }: any) {
           <Text style={styles.sidebarItemText} numberOfLines={1}>
             {chat.partnerProfile?.name || chat.partnerEmail || 'User'}
           </Text>
-          {!chat.isRead && <View style={styles.sidebarUnreadDot} />}
+          {chat.unreadCount > 0 && (
+            <View style={styles.sidebarUnreadCount}>
+              <Text style={styles.sidebarUnreadCountText}>{chat.unreadCount}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       );
     } else {
@@ -448,7 +610,10 @@ export default function MessagesListScreen({ navigation }: any) {
         <View style={styles.tabsContainer}>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'chats' && styles.tabActive]}
-            onPress={() => setActiveTab('chats')}
+            onPress={() => {
+              setActiveTab('chats');
+              setViewingUnreadList(false);
+            }}
           >
             <Text style={[styles.tabText, activeTab === 'chats' && styles.tabTextActive]}>
               Chats
@@ -456,7 +621,10 @@ export default function MessagesListScreen({ navigation }: any) {
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'unread' && styles.tabActive]}
-            onPress={() => setActiveTab('unread')}
+            onPress={() => {
+              setActiveTab('unread');
+              setViewingUnreadList(true);
+            }}
           >
             <Text style={[styles.tabText, activeTab === 'unread' && styles.tabTextActive]}>
               Unread
@@ -501,6 +669,13 @@ export default function MessagesListScreen({ navigation }: any) {
               No unread messages
             </Text>
           </View>
+        ) : activeTab === 'unread' && viewingUnreadList && getUnreadCount() > 0 ? (
+          <ScrollView style={styles.unreadListContainer}>
+            <Text style={styles.unreadListTitle}>
+              {getUnreadCount()} chat{getUnreadCount() !== 1 ? 's' : ''} with unread messages
+            </Text>
+            {getUnreadChats().map(chat => renderUnreadChatCard(chat))}
+          </ScrollView>
         ) : selectedChat ? (
           selectedChat.type === 'individual' ? (
             <ChatScreen
@@ -671,13 +846,13 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   sidebarUnreadDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#0ea5e9',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#ef4444',
   },
   sidebarUnreadCount: {
-    backgroundColor: '#8b5cf6',
+    backgroundColor: '#ef4444',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 10,
@@ -788,5 +963,89 @@ const styles = StyleSheet.create({
   },
   chatArea: {
     flex: 1,
+  },
+  // Unread list styles
+  unreadListContainer: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+    padding: 16,
+  },
+  unreadListTitle: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 16,
+    fontWeight: '500',
+  },
+  unreadChatCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  unreadChatAvatar: {
+    marginRight: 12,
+  },
+  unreadChatAvatarImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+  },
+  unreadChatAvatarPlaceholder: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#0ea5e9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  unreadPodAvatar: {
+    backgroundColor: '#8b5cf6',
+  },
+  unreadChatAvatarText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  unreadChatInfo: {
+    flex: 1,
+  },
+  unreadChatName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  unreadChatPreview: {
+    fontSize: 14,
+    color: '#666',
+  },
+  unreadChatBadge: {
+    marginLeft: 12,
+  },
+  unreadDotIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#ef4444',
+  },
+  unreadCountBadge: {
+    backgroundColor: '#ef4444',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    minWidth: 24,
+    alignItems: 'center',
+  },
+  unreadCountText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#fff',
   },
 });

@@ -560,9 +560,12 @@ export const notificationService = {
   }> {
     const { data, error } = await supabase
       .from('notifications')
-      .select('type')
+      .select('type, related_id')
       .eq('user_id', userId)
       .eq('read', false);
+
+    console.log('📊 All unread notifications:', data);
+    console.log('📊 Notification types breakdown:', data?.map(n => ({ type: n.type, related_id: n.related_id })));
 
     if (error) {
       console.error('Error getting unread counts by type:', error);
@@ -646,12 +649,18 @@ export const notificationService = {
       'member_left',
     ];
 
+    console.log('🔍 Querying notifications for user:', userId);
+    console.log('🔍 Looking for types:', podTypes);
+
     const { data, error } = await supabase
       .from('notifications')
-      .select('related_id, type')
+      .select('related_id, type, read')
       .eq('user_id', userId)
       .eq('read', false)
       .in('type', podTypes);
+
+    console.log('🔍 Query result - data:', data);
+    console.log('🔍 Query result - error:', error);
 
     if (error) {
       console.error('Error getting unread counts by pursuit:', error);
@@ -665,6 +674,7 @@ export const notificationService = {
       }
     });
 
+    console.log('🔍 Final counts map:', Object.fromEntries(counts));
     return counts;
   },
 

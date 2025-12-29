@@ -11,7 +11,7 @@ import FeedScreen from './src/screens/FeedScreen';
 import CreateScreen from './src/screens/CreateScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import UserProfileScreen from './src/screens/UserProfileScreen';
-import MessagesListScreen from './src/screens/MessagesListScreen';
+import MessagesListScreen, { getLocallyReadMessageCount } from './src/screens/MessagesListScreen';
 import ChatScreen from './src/screens/ChatScreen';
 import TeamWorkspaceScreen from './src/screens/team/TeamWorkspaceScreen';
 import PodsScreen from './src/screens/PodsScreen';
@@ -64,6 +64,7 @@ function AppContent() {
   });
   const [currentToast, setCurrentToast] = useState<any>(null);
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
+  const [locallyReadCount, setLocallyReadCount] = useState(0);
 
   // Load notification badge counts and set up real-time listener
   useEffect(() => {
@@ -583,6 +584,12 @@ if (teamBoardPursuitId) {
       setChatPartnerId(partnerId);
       setChatPartnerEmail(partnerEmail);
     }}
+    onConversationRead={() => {
+      // Update the locally-read message count to trigger badge update
+      setLocallyReadCount(getLocallyReadMessageCount());
+      // Also try to reload from DB (in case migration has been run)
+      loadUnreadMessageCount();
+    }}
   />
 )}
       {currentScreen === 'Pods' && (
@@ -618,11 +625,15 @@ if (teamBoardPursuitId) {
             <Text style={[styles.tabText, currentScreen === 'Messages' && styles.tabTextActive]}>
               💬 Messages
             </Text>
-            {unreadMessageCount > 0 && currentScreen !== 'Messages' && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{unreadMessageCount}</Text>
-              </View>
-            )}
+            {(() => {
+              // Adjust unread count by subtracting locally-read conversations
+              const effectiveUnreadCount = Math.max(0, unreadMessageCount - locallyReadCount);
+              return effectiveUnreadCount > 0 && currentScreen !== 'Messages' ? (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{effectiveUnreadCount}</Text>
+                </View>
+              ) : null;
+            })()}
           </View>
         </TouchableOpacity>
         <TouchableOpacity

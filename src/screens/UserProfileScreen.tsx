@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Image,
   Alert,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../config/supabase';
@@ -73,6 +74,20 @@ export default function UserProfileScreen({ route, navigation }: any) {
     });
   };
 
+  const handleOpenLink = (url: string) => {
+    if (!url) return;
+
+    let fullUrl = url;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      fullUrl = 'https://' + url;
+    }
+
+    Linking.openURL(fullUrl).catch((err) => {
+      console.error('Error opening link:', err);
+      Alert.alert('Error', 'Could not open link');
+    });
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -103,7 +118,6 @@ export default function UserProfileScreen({ route, navigation }: any) {
         <Text style={styles.name}>
           {profile?.name || 'Name not set'}
         </Text>
-        <Text style={styles.email}>{profile?.email}</Text>
 
         {profile?.bio && <Text style={styles.bio}>{profile.bio}</Text>}
       </View>
@@ -122,32 +136,43 @@ export default function UserProfileScreen({ route, navigation }: any) {
       </View>
 
       {/* Social Links */}
-      {(profile?.linkedin || profile?.instagram || profile?.github || profile?.portfolio_website) && (
+      {(profile?.linkedin || profile?.instagram || profile?.github || profile?.facebook || profile?.portfolio_website) && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Links</Text>
           {profile?.linkedin && (
-            <View style={styles.linkItem}>
+            <TouchableOpacity style={styles.linkItem} onPress={() => handleOpenLink(profile.linkedin)}>
               <Ionicons name="logo-linkedin" size={20} color="#0077b5" />
               <Text style={styles.linkText}>LinkedIn</Text>
-            </View>
+              <Ionicons name="open-outline" size={16} color="#999" style={styles.linkArrow} />
+            </TouchableOpacity>
           )}
           {profile?.instagram && (
-            <View style={styles.linkItem}>
+            <TouchableOpacity style={styles.linkItem} onPress={() => handleOpenLink(profile.instagram)}>
               <Ionicons name="logo-instagram" size={20} color="#e4405f" />
               <Text style={styles.linkText}>Instagram</Text>
-            </View>
+              <Ionicons name="open-outline" size={16} color="#999" style={styles.linkArrow} />
+            </TouchableOpacity>
+          )}
+          {profile?.facebook && (
+            <TouchableOpacity style={styles.linkItem} onPress={() => handleOpenLink(profile.facebook)}>
+              <Ionicons name="logo-facebook" size={20} color="#1877f2" />
+              <Text style={styles.linkText}>Facebook</Text>
+              <Ionicons name="open-outline" size={16} color="#999" style={styles.linkArrow} />
+            </TouchableOpacity>
           )}
           {profile?.github && (
-            <View style={styles.linkItem}>
+            <TouchableOpacity style={styles.linkItem} onPress={() => handleOpenLink(profile.github)}>
               <Ionicons name="logo-github" size={20} color="#333" />
               <Text style={styles.linkText}>GitHub</Text>
-            </View>
+              <Ionicons name="open-outline" size={16} color="#999" style={styles.linkArrow} />
+            </TouchableOpacity>
           )}
           {profile?.portfolio_website && (
-            <View style={styles.linkItem}>
+            <TouchableOpacity style={styles.linkItem} onPress={() => handleOpenLink(profile.portfolio_website)}>
               <Ionicons name="globe-outline" size={20} color="#0ea5e9" />
               <Text style={styles.linkText}>Portfolio</Text>
-            </View>
+              <Ionicons name="open-outline" size={16} color="#999" style={styles.linkArrow} />
+            </TouchableOpacity>
           )}
         </View>
       )}
@@ -265,11 +290,17 @@ const styles = StyleSheet.create({
   linkItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
   },
   linkText: {
     fontSize: 15,
     color: '#333',
     marginLeft: 12,
+    flex: 1,
+  },
+  linkArrow: {
+    marginLeft: 8,
   },
 });

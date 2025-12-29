@@ -74,12 +74,22 @@ export default function NotificationsScreen({ navigation }: any) {
         break;
 
       case 'time_proposal':
-      case 'kickoff_activated':
-        // Navigate to kickoff scheduling screen
+        // Time proposal notifications are for creators - go to kickoff scheduling
         if (notification.related_id && notification.related_type === 'pursuit') {
           await navigateToPod(notification.related_id, 'kickoff');
         } else if (notification.data?.pursuitId) {
           await navigateToPod(notification.data.pursuitId, 'kickoff');
+        } else {
+          navigation?.navigate?.('Pods');
+        }
+        break;
+
+      case 'kickoff_activated':
+        // Kickoff activated - creators go to scheduling, team members go to propose times
+        if (notification.related_id && notification.related_type === 'pursuit') {
+          await navigateToPodWithCreatorCheck(notification.related_id);
+        } else if (notification.data?.pursuitId) {
+          await navigateToPodWithCreatorCheck(notification.data.pursuitId);
         } else {
           navigation?.navigate?.('Pods');
         }
@@ -167,6 +177,41 @@ export default function NotificationsScreen({ navigation }: any) {
       }
 
       // Navigate to pod detail screen with optional sub-screen
+      navigation?.navigate?.('PodDetail', { pod: pursuit, subScreen });
+    } catch (error) {
+      console.error('Error navigating to pod:', error);
+      navigation?.navigate?.('Pods');
+    }
+  };
+
+  // Navigate to pod with creator check - creators go to kickoff scheduling, team members go to propose times
+  const navigateToPodWithCreatorCheck = async (pursuitId: string) => {
+    try {
+      // Fetch the pursuit data to check if user is creator
+      const { data: pursuit, error } = await supabase
+        .from('pursuits')
+        .select(`
+          *,
+          profiles:creator_id (
+            id,
+            email,
+            name
+          )
+        `)
+        .eq('id', pursuitId)
+        .single();
+
+      if (error || !pursuit) {
+        console.error('Error fetching pursuit:', error);
+        navigation?.navigate?.('Pods');
+        return;
+      }
+
+      // Check if user is the creator
+      const isCreator = pursuit.creator_id === user?.id;
+
+      // Navigate to appropriate sub-screen based on role
+      const subScreen = isCreator ? 'kickoff' : 'propose_times';
       navigation?.navigate?.('PodDetail', { pod: pursuit, subScreen });
     } catch (error) {
       console.error('Error navigating to pod:', error);

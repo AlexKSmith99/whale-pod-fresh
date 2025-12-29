@@ -65,6 +65,8 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
       setShowApplicationsReview(true);
     } else if (initialSubScreen === 'kickoff') {
       setShowKickoffScheduling(true);
+    } else if (initialSubScreen === 'propose_times') {
+      setShowTimeSlotProposal(true);
     }
   }, [initialSubScreen]);
 

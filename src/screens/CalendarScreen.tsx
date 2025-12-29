@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, LayoutChangeEvent } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { meetingService } from '../services/meetingService';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,10 +10,17 @@ interface Props {
   onOpenMeeting?: (meeting: any) => void;
 }
 
+const PAST_DAYS = 30; // Number of past days to show
+const FUTURE_DAYS = 60; // Number of future days to show
+
 export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props) {
   const { user } = useAuth();
   const [meetings, setMeetings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [todayPosition, setTodayPosition] = useState(0);
+  const [hasScrolledToToday, setHasScrolledToToday] = useState(false);
+  const datePositions = useRef<{ [key: string]: number }>({});
 
   useEffect(() => {
     loadMeetings();
@@ -39,20 +46,28 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
     }
   };
 
-  // Generate next 60 days for the calendar
+  // Generate dates list including past and future days
   const generateDatesList = () => {
-    const dates = [];
+    const dates: { date: Date; isToday: boolean; index: number }[] = [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    for (let i = 0; i < 60; i++) {
+    // Start from PAST_DAYS ago
+    for (let i = -PAST_DAYS; i < FUTURE_DAYS; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
-      dates.push(date);
+      dates.push({
+        date,
+        isToday: i === 0,
+        index: i + PAST_DAYS, // Index in the list (0-based)
+      });
     }
 
     return dates;
   };
+
+  // Get the index of today in the dates list
+  const getTodayIndex = () => PAST_DAYS;
 
   const getMeetingsForDate = (date: Date) => {
     return meetings.filter((item: any) => {
@@ -65,12 +80,24 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
     });
   };
 
-  const isToday = (date: Date) => {
+  const checkIsToday = (date: Date) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const checkDate = new Date(date);
     checkDate.setHours(0, 0, 0, 0);
     return checkDate.getTime() === today.getTime();
+  };
+
+  // Scroll to today when content is ready
+  const handleDateLayout = (index: number, y: number, isTodayDate: boolean) => {
+    if (isTodayDate && !hasScrolledToToday) {
+      setTodayPosition(y);
+      // Scroll to today after a brief delay to ensure layout is complete
+      setTimeout(() => {
+        scrollViewRef.current?.scrollTo({ y: y, animated: false });
+        setHasScrolledToToday(true);
+      }, 100);
+    }
   };
 
   const formatDateHeader = (date: Date) => {
@@ -149,6 +176,7 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
       </View>
 
       <ScrollView
+        ref={scrollViewRef}
         style={styles.scrollView}
         refreshControl={
           <RefreshControl
@@ -158,13 +186,22 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
           />
         }
       >
-        {datesList.map((date, index) => {
+        {datesList.map((dateItem, index) => {
+          const { date, isToday: isTodayDate } = dateItem;
           const dateMeetings = getMeetingsForDate(date);
-          const isTodayDate = isToday(date);
           const dateHeader = formatDateHeader(date);
+          const isPastDate = date < new Date(new Date().setHours(0, 0, 0, 0));
 
           return (
-            <View key={date.toISOString()} style={styles.dateSection}>
+            <View
+              key={date.toISOString()}
+              style={[styles.dateSection, isPastDate && styles.pastDateSection]}
+              onLayout={(event) => {
+                if (isTodayDate) {
+                  handleDateLayout(index, event.nativeEvent.layout.y, true);
+                }
+              }}
+            >
               {/* Date Header */}
               <View style={styles.dateHeaderContainer}>
                 <View style={styles.dateLeftSection}>
@@ -267,6 +304,9 @@ const styles = StyleSheet.create({
   dateSection: {
     borderBottomWidth: 1,
     borderBottomColor: colors.borderLight,
+  },
+  pastDateSection: {
+    opacity: 0.7,
   },
   dateHeaderContainer: {
     flexDirection: 'row',

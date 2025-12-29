@@ -171,8 +171,8 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall }: Pr
             </Text>
           </View>
 
-          {/* Join Video Call Button */}
-          {canJoinVideo && isUpcoming && (
+          {/* Join Video Call Button - available for past and upcoming meetings */}
+          {canJoinVideo && (
             <TouchableOpacity
               style={styles.joinButton}
               onPress={handleJoinCall}

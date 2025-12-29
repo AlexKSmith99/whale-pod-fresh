@@ -13,7 +13,7 @@ export const messageService = {
       }])
       .select()
       .single();
-    
+
     if (error) throw error;
     return data;
   },
@@ -25,7 +25,7 @@ export const messageService = {
       .select('*')
       .or(`and(sender_id.eq.${userId1},recipient_id.eq.${userId2}),and(sender_id.eq.${userId2},recipient_id.eq.${userId1})`)
       .order('created_at', { ascending: true });
-    
+
     if (error) throw error;
     return data || [];
   },
@@ -54,14 +54,12 @@ export const messageService = {
           !m.is_read
         );
 
-        console.log(`📧 Conversation with ${partnerId}: hasUnreadMessages=${hasUnreadMessages}`);
-
         conversationsMap.set(partnerId, {
           partnerId,
           partnerEmail,
           lastMessage: msg.content,
           lastMessageTime: msg.created_at,
-          isRead: !hasUnreadMessages, // Show blue dot if there are unread messages
+          isRead: !hasUnreadMessages,
         });
       }
     });
@@ -71,32 +69,31 @@ export const messageService = {
 
   // Mark all messages from a partner as read
   async markConversationAsRead(userId: string, partnerId: string) {
-    console.log('📧 Marking conversation as read - userId:', userId, 'partnerId:', partnerId);
-
+    // Update ALL messages from this partner that aren't already marked as read
+    // This handles both is_read=false and is_read=NULL (old messages)
     const { data, error } = await supabase
       .from('messages')
       .update({ is_read: true })
       .eq('recipient_id', userId)
       .eq('sender_id', partnerId)
-      .eq('is_read', false)
+      .neq('is_read', true)
       .select();
 
     if (error) {
-      console.error('❌ Error marking messages as read:', error);
-      throw error;
+      console.error('Error marking messages as read:', error);
     }
 
-    console.log(`✅ Marked ${data?.length || 0} messages as read`);
-    return data;
+    return data || [];
   },
 
   // Get total count of unread messages for a user
   async getUnreadCount(userId: string): Promise<number> {
+    // Count messages where is_read is NOT true (catches both false and NULL)
     const { count, error } = await supabase
       .from('messages')
       .select('*', { count: 'exact', head: true })
       .eq('recipient_id', userId)
-      .eq('is_read', false);
+      .or('is_read.eq.false,is_read.is.null');
 
     if (error) {
       console.error('Error getting unread count:', error);
@@ -108,12 +105,13 @@ export const messageService = {
 
   // Get count of unread messages from a specific sender
   async getUnreadCountFromSender(userId: string, senderId: string): Promise<number> {
+    // Count messages where is_read is NOT true (catches both false and NULL)
     const { count, error } = await supabase
       .from('messages')
       .select('*', { count: 'exact', head: true })
       .eq('recipient_id', userId)
       .eq('sender_id', senderId)
-      .eq('is_read', false);
+      .or('is_read.eq.false,is_read.is.null');
 
     if (error) {
       console.error('Error getting unread count from sender:', error);
