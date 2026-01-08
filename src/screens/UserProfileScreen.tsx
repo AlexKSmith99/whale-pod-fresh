@@ -8,18 +8,25 @@ import {
   Image,
   Alert,
   Linking,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { connectionService } from '../services/connectionService';
+import { reviewService, REVIEW_ATTRIBUTES } from '../services/reviewService';
 
-export default function UserProfileScreen({ route, navigation }: any) {
+export default function UserProfileScreen({ route, navigation, onWriteReview }: any) {
   const { userId } = route.params;
   const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'about' | 'reviews'>('about');
+  const [canReview, setCanReview] = useState(false);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [averageRatings, setAverageRatings] = useState<any>(null);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
 
   useEffect(() => {
     // Redirect to own profile if viewing yourself
@@ -30,6 +37,8 @@ export default function UserProfileScreen({ route, navigation }: any) {
 
     loadProfile();
     checkConnection();
+    checkCanReview();
+    loadReviews();
   }, [userId, user]);
 
   const loadProfile = async () => {
@@ -52,6 +61,50 @@ export default function UserProfileScreen({ route, navigation }: any) {
     if (user) {
       const connected = await connectionService.areConnected(user.id, userId);
       setIsConnected(connected);
+    }
+  };
+
+  const checkCanReview = async () => {
+    if (user) {
+      try {
+        const eligible = await reviewService.canReviewUser(user.id, userId);
+        setCanReview(eligible);
+      } catch (error) {
+        console.error('Error checking review eligibility:', error);
+      }
+    }
+  };
+
+  const loadReviews = async () => {
+    setReviewsLoading(true);
+    try {
+      const [reviewsData, ratingsData] = await Promise.all([
+        reviewService.getReviewsForUser(userId),
+        reviewService.getAverageRatings(userId),
+      ]);
+      setReviews(reviewsData);
+      setAverageRatings(ratingsData);
+    } catch (error) {
+      console.error('Error loading reviews:', error);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  const handleWriteReview = () => {
+    Alert.alert('Button Pressed', `onWriteReview exists: ${!!onWriteReview}, userId: ${userId}`);
+    if (onWriteReview) {
+      // Use direct callback prop
+      onWriteReview(userId, profile?.name || 'User', profile?.profile_picture);
+    } else if (navigation && navigation.navigate) {
+      // Fallback to navigation
+      navigation.navigate('WriteReview', {
+        revieweeId: userId,
+        revieweeName: profile?.name || 'User',
+        revieweePhoto: profile?.profile_picture,
+      });
+    } else {
+      Alert.alert('Error', 'Navigation not available');
     }
   };
 
@@ -135,6 +188,28 @@ export default function UserProfileScreen({ route, navigation }: any) {
         </TouchableOpacity>
       </View>
 
+      {/* Tabs */}
+      <View style={styles.tabsContainer}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'about' && styles.tabActive]}
+          onPress={() => setActiveTab('about')}
+        >
+          <Text style={[styles.tabText, activeTab === 'about' && styles.tabTextActive]}>
+            About
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'reviews' && styles.tabActive]}
+          onPress={() => setActiveTab('reviews')}
+        >
+          <Text style={[styles.tabText, activeTab === 'reviews' && styles.tabTextActive]}>
+            Reviews ({reviews.length})
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {activeTab === 'about' && (
+        <>
       {/* Social Links */}
       {(profile?.linkedin || profile?.instagram || profile?.github || profile?.facebook || profile?.portfolio_website) && (
         <View style={styles.section}>
@@ -173,6 +248,95 @@ export default function UserProfileScreen({ route, navigation }: any) {
               <Text style={styles.linkText}>Portfolio</Text>
               <Ionicons name="open-outline" size={16} color="#999" style={styles.linkArrow} />
             </TouchableOpacity>
+          )}
+        </View>
+      )}
+        </>
+      )}
+
+      {activeTab === 'reviews' && (
+        <View style={styles.reviewsContainer}>
+          {/* Write Review Button - TESTING: Always show */}
+          <TouchableOpacity style={styles.writeReviewButton} onPress={handleWriteReview}>
+            <Ionicons name="add-circle" size={22} color="#fff" />
+            <Text style={styles.writeReviewButtonText}>Write a Review</Text>
+          </TouchableOpacity>
+          {!canReview && (
+            <Text style={{ color: '#f59e0b', fontSize: 12, textAlign: 'center', marginBottom: 8 }}>
+              (Testing mode - normally hidden until eligible)
+            </Text>
+          )}
+
+          {reviewsLoading ? (
+            <View style={styles.reviewsLoading}>
+              <ActivityIndicator size="small" color="#0ea5e9" />
+              <Text style={styles.reviewsLoadingText}>Loading reviews...</Text>
+            </View>
+          ) : reviews.length === 0 ? (
+            <View style={styles.noReviews}>
+              <Ionicons name="star-outline" size={48} color="#d1d5db" />
+              <Text style={styles.noReviewsText}>No reviews yet</Text>
+              <Text style={styles.noReviewsSubtext}>
+                Reviews will appear here after teammates share their feedback
+              </Text>
+            </View>
+          ) : (
+            <>
+              {/* Average Ratings Summary */}
+              {averageRatings && averageRatings.count > 0 && (
+                <View style={styles.ratingsCard}>
+                  <View style={styles.overallRating}>
+                    <Text style={styles.overallRatingNumber}>
+                      {averageRatings.overall.toFixed(1)}
+                    </Text>
+                    <Text style={styles.overallRatingLabel}>Overall</Text>
+                    <Text style={styles.overallRatingCount}>
+                      Based on {averageRatings.count} review{averageRatings.count !== 1 ? 's' : ''}
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Individual Reviews */}
+              {reviews.map((review) => (
+                <View key={review.id} style={styles.reviewCard}>
+                  <View style={styles.reviewHeader}>
+                    <View style={styles.reviewerInfo}>
+                      <View style={styles.reviewerAvatarSmall}>
+                        <Text style={styles.reviewerAvatarTextSmall}>
+                          {review.reviewer?.name?.charAt(0).toUpperCase() || '?'}
+                        </Text>
+                      </View>
+                      <View>
+                        <Text style={styles.reviewerName}>
+                          {review.reviewer?.name || 'Anonymous'}
+                        </Text>
+                        <Text style={styles.reviewPursuit}>
+                          {review.pursuit?.title || 'Unknown Pod'}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.reviewDate}>
+                      {new Date(review.created_at).toLocaleDateString()}
+                    </Text>
+                  </View>
+
+                  <Text style={styles.reviewDescription}>{review.description}</Text>
+
+                  {/* Rating Pills */}
+                  <View style={styles.ratingPills}>
+                    {REVIEW_ATTRIBUTES.filter(attr => 
+                      review[attr.key] !== null && review[attr.key] !== undefined
+                    ).slice(0, 4).map(attr => (
+                      <View key={attr.key} style={styles.ratingPill}>
+                        <Text style={styles.ratingPillIcon}>{attr.icon}</Text>
+                        <Text style={styles.ratingPillValue}>{review[attr.key]}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ))}
+            </>
           )}
         </View>
       )}
@@ -302,5 +466,178 @@ const styles = StyleSheet.create({
   },
   linkArrow: {
     marginLeft: 8,
+  },
+  // Tabs
+  tabsContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    marginTop: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabActive: {
+    borderBottomColor: '#0ea5e9',
+  },
+  tabText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#6b7280',
+  },
+  tabTextActive: {
+    color: '#0ea5e9',
+    fontWeight: '600',
+  },
+  // Reviews
+  reviewsContainer: {
+    padding: 16,
+  },
+  writeReviewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#10b981',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 16,
+    gap: 8,
+  },
+  writeReviewButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  reviewsLoading: {
+    alignItems: 'center',
+    padding: 40,
+  },
+  reviewsLoadingText: {
+    marginTop: 8,
+    color: '#6b7280',
+  },
+  noReviews: {
+    alignItems: 'center',
+    padding: 40,
+  },
+  noReviewsText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#6b7280',
+    marginTop: 12,
+  },
+  noReviewsSubtext: {
+    fontSize: 14,
+    color: '#9ca3af',
+    textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 20,
+  },
+  ratingsCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  overallRating: {
+    alignItems: 'center',
+  },
+  overallRatingNumber: {
+    fontSize: 48,
+    fontWeight: 'bold',
+    color: '#0ea5e9',
+  },
+  overallRatingLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+    marginTop: 4,
+  },
+  overallRatingCount: {
+    fontSize: 13,
+    color: '#6b7280',
+    marginTop: 4,
+  },
+  reviewCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  reviewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  reviewerInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  reviewerAvatarSmall: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#0ea5e9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  reviewerAvatarTextSmall: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  reviewerName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  reviewPursuit: {
+    fontSize: 13,
+    color: '#0ea5e9',
+    marginTop: 2,
+  },
+  reviewDate: {
+    fontSize: 12,
+    color: '#9ca3af',
+  },
+  reviewDescription: {
+    fontSize: 14,
+    color: '#4b5563',
+    lineHeight: 21,
+    marginBottom: 12,
+  },
+  ratingPills: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  ratingPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f3f4f6',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 4,
+  },
+  ratingPillIcon: {
+    fontSize: 14,
+  },
+  ratingPillValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
   },
 });

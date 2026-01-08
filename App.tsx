@@ -25,6 +25,10 @@ import EditPursuitScreen from './src/screens/EditPursuitScreen';
 import VideoCallScreen from './src/screens/VideoCallScreen';
 import RemovalReasonScreen from './src/screens/RemovalReasonScreen';
 import MemberLeftScreen from './src/screens/MemberLeftScreen';
+import MeetingInvitationScreen from './src/screens/MeetingInvitationScreen';
+import InterviewTimeSlotProposalScreen from './src/screens/InterviewTimeSlotProposalScreen';
+import InterviewSchedulingScreen from './src/screens/InterviewSchedulingScreen';
+import WriteReviewScreen from './src/screens/WriteReviewScreen';
 import { AGORA_APP_ID } from './src/services/agoraService';
 
 function AppContent() {
@@ -53,6 +57,24 @@ function AppContent() {
     memberName: string;
     reason: string;
     leftAt: string;
+  } | null>(null);
+  const [viewingMeetingInvitation, setViewingMeetingInvitation] = useState<string | null>(null);
+  const [viewingInterviewProposal, setViewingInterviewProposal] = useState<{
+    applicationId: string;
+    pursuitId: string;
+    pursuitTitle: string;
+  } | null>(null);
+  const [viewingInterviewScheduling, setViewingInterviewScheduling] = useState<{
+    applicationId: string;
+    pursuitId: string;
+    pursuitTitle: string;
+    applicantId: string;
+    applicantName: string;
+  } | null>(null);
+  const [viewingWriteReview, setViewingWriteReview] = useState<{
+    revieweeId: string;
+    revieweeName: string;
+    revieweePhoto?: string;
   } | null>(null);
   const [badgeCounts, setBadgeCounts] = useState({
     messages: 0,
@@ -89,16 +111,17 @@ function AppContent() {
           },
           (payload) => {
             console.log('🔔 NEW NOTIFICATION RECEIVED VIA REALTIME:', payload);
-            const newNotification = payload.new;
+            const newNotification = payload.new as any;
 
             // Don't show toast for message notifications (those only show badge)
             if (newNotification.type !== 'message' && newNotification.type !== 'new_message') {
-              // Show toast
+              // Show toast - include data for navigation
               setCurrentToast({
                 title: newNotification.title,
                 body: newNotification.body,
                 type: newNotification.type,
                 id: newNotification.id,
+                data: newNotification.data, // Include data for interview navigation
               });
             }
 
@@ -123,6 +146,158 @@ function AppContent() {
         console.log('🔔 Cleaning up realtime subscription');
         supabase.removeChannel(channel);
         clearInterval(interval);
+      };
+    }
+  }, [auth.user]);
+
+  // Listen for interview scheduling requests (fallback for when notification insert fails)
+  useEffect(() => {
+    if (auth.user) {
+      console.log('🎤 Setting up interview request listener for applicant:', auth.user.id);
+
+      const interviewChannel = supabase
+        .channel('interview-requests')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'pursuit_applications',
+            filter: `applicant_id=eq.${auth.user.id}`,
+          },
+          async (payload) => {
+            console.log('🎤 APPLICATION UPDATE RECEIVED:', payload);
+            const updatedApp = payload.new as any;
+            const oldApp = payload.old as any;
+
+            // Check if status changed to interview_pending
+            if (updatedApp.status === 'interview_pending' && oldApp.status !== 'interview_pending') {
+              console.log('🎤 Interview scheduling requested! Showing toast...');
+
+              // Fetch pursuit title for the toast
+              try {
+                const { data: pursuitData } = await supabase
+                  .from('pursuits')
+                  .select('title, creator_id, profiles:creator_id(name, email)')
+                  .eq('id', updatedApp.pursuit_id)
+                  .single();
+
+                const creatorProfile = pursuitData?.profiles as any;
+                const creatorName = creatorProfile?.name || creatorProfile?.email?.split('@')[0] || 'The creator';
+                const pursuitTitle = pursuitData?.title || 'a pursuit';
+
+                // Show toast notification
+                setCurrentToast({
+                  title: `${creatorName} wants to schedule an interview`,
+                  body: `Propose your available times for "${pursuitTitle}"`,
+                  type: 'interview_scheduling_requested',
+                  id: updatedApp.id,
+                });
+              } catch (error) {
+                console.error('Error fetching pursuit info for toast:', error);
+                // Show generic toast
+                setCurrentToast({
+                  title: 'Interview Request',
+                  body: 'A creator wants to schedule an interview with you',
+                  type: 'interview_scheduling_requested',
+                  id: updatedApp.id,
+                });
+              }
+            }
+          }
+        )
+        .subscribe((status, err) => {
+          console.log('🎤 Interview requests subscription status:', status);
+          if (err) {
+            console.error('🎤 Interview requests subscription error:', err);
+          }
+          if (status === 'SUBSCRIBED') {
+            console.log('🎤 Successfully subscribed to interview requests');
+          }
+        });
+
+      return () => {
+        console.log('🎤 Cleaning up interview requests subscription');
+        supabase.removeChannel(interviewChannel);
+      };
+    }
+  }, [auth.user]);
+
+  // Listen for interview times submitted (for creators to see when applicants submit availability)
+  useEffect(() => {
+    if (auth.user) {
+      console.log('🎤 Setting up interview times listener for creator:', auth.user.id);
+
+      // We need to listen to all pursuit_applications updates and filter by pursuits we created
+      const interviewTimesChannel = supabase
+        .channel('interview-times-submitted')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'pursuit_applications',
+          },
+          async (payload) => {
+            const updatedApp = payload.new as any;
+            const oldApp = payload.old as any;
+
+            // Check if status changed to interview_times_submitted
+            if (updatedApp.status === 'interview_times_submitted' && oldApp.status !== 'interview_times_submitted') {
+              console.log('🎤 Interview times submitted detected:', updatedApp);
+
+              try {
+                // Check if current user is the creator of this pursuit
+                const { data: pursuitData } = await supabase
+                  .from('pursuits')
+                  .select('title, creator_id')
+                  .eq('id', updatedApp.pursuit_id)
+                  .single();
+
+                if (pursuitData?.creator_id === auth.user?.id) {
+                  console.log('🎤 Current user is creator - showing toast');
+
+                  // Fetch applicant name
+                  const { data: applicantData } = await supabase
+                    .from('profiles')
+                    .select('name, email')
+                    .eq('id', updatedApp.applicant_id)
+                    .single();
+
+                  const applicantName = applicantData?.name || applicantData?.email?.split('@')[0] || 'An applicant';
+                  const pursuitTitle = pursuitData?.title || 'a pursuit';
+
+                  // Show toast notification with data for navigation
+                  setCurrentToast({
+                    title: `${applicantName} submitted interview times`,
+                    body: `Review their availability for "${pursuitTitle}"`,
+                    type: 'interview_times_submitted',
+                    id: updatedApp.id,
+                    data: {
+                      applicationId: updatedApp.id,
+                      pursuitId: updatedApp.pursuit_id,
+                    },
+                  });
+                }
+              } catch (error) {
+                console.error('Error processing interview times submitted:', error);
+              }
+            }
+          }
+        )
+        .subscribe((status, err) => {
+          console.log('🎤 Interview times submitted subscription status:', status);
+          if (err) {
+            console.error('🎤 Interview times submitted subscription error:', err);
+          }
+          if (status === 'SUBSCRIBED') {
+            console.log('🎤 Successfully subscribed to interview times submitted');
+          }
+        });
+
+      return () => {
+        console.log('🎤 Cleaning up interview times submitted subscription');
+        supabase.removeChannel(interviewTimesChannel);
       };
     }
   }, [auth.user]);
@@ -245,7 +420,7 @@ function AppContent() {
     const typeMap: { [key: string]: string[] } = {
       'Messages': ['message', 'new_message'],
       'Pods': ['min_team_size_reached', 'kickoff_activated', 'time_proposal', 'team_board_update'],
-      'Calendar': ['kickoff_scheduled', 'kickoff_scheduled_creator', 'kickoff_scheduled_team', 'meeting', 'new_meeting'],
+      'Calendar': ['kickoff_scheduled', 'kickoff_scheduled_creator', 'kickoff_scheduled_team', 'meeting', 'new_meeting', 'meeting_invitation'],
       'Profile': ['connection_request', 'connection_accepted'],
     };
 
@@ -255,6 +430,66 @@ function AppContent() {
         await notificationService.markAllAsReadByType(auth.user.id, type);
       }
       loadBadgeCounts();
+    }
+  };
+
+  // Fetch data needed for interview proposal screen
+  const fetchInterviewProposalData = async (applicationId: string, pursuitId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('pursuits')
+        .select('title')
+        .eq('id', pursuitId)
+        .single();
+
+      if (error) throw error;
+
+      setViewingInterviewProposal({
+        applicationId,
+        pursuitId,
+        pursuitTitle: data?.title || 'Pursuit',
+      });
+    } catch (error) {
+      console.error('Error fetching interview proposal data:', error);
+    }
+  };
+
+  // Fetch data needed for interview scheduling screen
+  const fetchInterviewSchedulingData = async (applicationId: string, pursuitId: string) => {
+    try {
+      // Fetch application and pursuit data
+      const { data: appData, error: appError } = await supabase
+        .from('pursuit_applications')
+        .select(`
+          applicant_id,
+          applicant:profiles!applicant_id(
+            name,
+            email
+          )
+        `)
+        .eq('id', applicationId)
+        .single();
+
+      if (appError) throw appError;
+
+      const { data: pursuitData, error: pursuitError } = await supabase
+        .from('pursuits')
+        .select('title')
+        .eq('id', pursuitId)
+        .single();
+
+      if (pursuitError) throw pursuitError;
+
+      const applicantProfile = appData?.applicant as any;
+      setViewingInterviewScheduling({
+        applicationId,
+        pursuitId,
+        pursuitTitle: pursuitData?.title || 'Pursuit',
+        applicantId: appData?.applicant_id || '',
+        applicantName: applicantProfile?.name || applicantProfile?.email || 'Applicant',
+      });
+    } catch (error) {
+      console.error('Error fetching interview scheduling data:', error);
     }
   };
 
@@ -310,6 +545,25 @@ function AppContent() {
           reason: params.reason,
           leftAt: params.leftAt,
         });
+      } else if (screen === 'MeetingInvitation' && params?.meetingId) {
+        setViewingMeetingInvitation(params.meetingId);
+      } else if (screen === 'InterviewTimeSlotProposal' && params?.applicationId) {
+        // Need to fetch pursuit info for the interview proposal screen
+        fetchInterviewProposalData(params.applicationId, params.pursuitId);
+      } else if (screen === 'InterviewScheduling' && params?.applicationId) {
+        // Need to fetch pursuit and applicant info for the interview scheduling screen
+        fetchInterviewSchedulingData(params.applicationId, params.pursuitId);
+      } else if (screen === 'WriteReview') {
+        console.log('🖊️ Navigating to WriteReview with params:', params);
+        if (params?.revieweeId) {
+          setViewingWriteReview({
+            revieweeId: params.revieweeId,
+            revieweeName: params.revieweeName || 'User',
+            revieweePhoto: params.revieweePhoto,
+          });
+        } else {
+          Alert.alert('Error', 'Cannot write review - user ID missing');
+        }
       }
     },
     goBack: () => {
@@ -439,12 +693,91 @@ if (viewingMemberLeft) {
   );
 }
 
+// Show Meeting Invitation screen
+if (viewingMeetingInvitation) {
+  return (
+    <MeetingInvitationScreen
+      meetingId={viewingMeetingInvitation}
+      onBack={() => {
+        setViewingMeetingInvitation(null);
+        setCurrentScreen('Notifications');
+      }}
+      onResponded={() => {
+        setViewingMeetingInvitation(null);
+        setCurrentScreen('Calendar');
+      }}
+    />
+  );
+}
+
+// Show Interview Time Slot Proposal screen (for applicants to propose interview times)
+if (viewingInterviewProposal) {
+  return (
+    <InterviewTimeSlotProposalScreen
+      applicationId={viewingInterviewProposal.applicationId}
+      pursuitId={viewingInterviewProposal.pursuitId}
+      pursuitTitle={viewingInterviewProposal.pursuitTitle}
+      onClose={() => {
+        setViewingInterviewProposal(null);
+        setCurrentScreen('Notifications');
+      }}
+      onSubmitted={() => {
+        setViewingInterviewProposal(null);
+        setCurrentScreen('Feed');
+      }}
+    />
+  );
+}
+
+// Show Interview Scheduling screen (for creators to schedule the interview)
+if (viewingInterviewScheduling) {
+  return (
+    <InterviewSchedulingScreen
+      applicationId={viewingInterviewScheduling.applicationId}
+      pursuitId={viewingInterviewScheduling.pursuitId}
+      pursuitTitle={viewingInterviewScheduling.pursuitTitle}
+      applicantId={viewingInterviewScheduling.applicantId}
+      applicantName={viewingInterviewScheduling.applicantName}
+      onClose={() => {
+        setViewingInterviewScheduling(null);
+        setCurrentScreen('Notifications');
+      }}
+      onScheduled={() => {
+        setViewingInterviewScheduling(null);
+        setCurrentScreen('Calendar');
+      }}
+    />
+  );
+}
+
+// Show Write Review screen
+if (viewingWriteReview) {
+  console.log('🖊️ Rendering WriteReviewScreen with:', viewingWriteReview);
+  return (
+    <WriteReviewScreen
+      route={{ params: viewingWriteReview }}
+      navigation={{
+        ...navigation,
+        goBack: () => setViewingWriteReview(null),
+      }}
+    />
+  );
+}
+
 // Show User Profile screen (before chat so it takes priority when clicked from chat)
 if (viewingUserId) {
   return (
     <UserProfileScreen
       route={{ params: { userId: viewingUserId } }}
       navigation={navigation}
+      onWriteReview={(revieweeId: string, revieweeName: string, revieweePhoto?: string) => {
+        Alert.alert('Debug', `Writing review for ${revieweeName} (${revieweeId})`);
+        setViewingWriteReview({
+          revieweeId,
+          revieweeName,
+          revieweePhoto,
+        });
+      }}
     />
   );
 }
@@ -562,9 +895,44 @@ if (teamBoardPursuitId) {
     <View style={{ flex: 1 }}>
       <NotificationToast
         notification={currentToast}
-        onPress={() => {
-          // Navigate to notifications tab when toast is tapped
-          setCurrentScreen('Notifications');
+        onPress={async () => {
+          // Handle navigation based on notification type
+          if (currentToast?.type === 'interview_scheduling_requested' && currentToast?.id) {
+            // Applicant taps toast - navigate to interview proposal screen
+            try {
+              const { data: appData } = await supabase
+                .from('pursuit_applications')
+                .select('pursuit_id, pursuits(title)')
+                .eq('id', currentToast.id)
+                .single();
+
+              if (appData) {
+                const pursuitData = appData.pursuits as any;
+                setViewingInterviewProposal({
+                  applicationId: currentToast.id,
+                  pursuitId: appData.pursuit_id,
+                  pursuitTitle: pursuitData?.title || 'Pursuit',
+                });
+              }
+            } catch (error) {
+              console.error('Error navigating to interview proposal:', error);
+              setCurrentScreen('Notifications');
+            }
+          } else if (currentToast?.type === 'interview_times_submitted' && currentToast?.data?.applicationId) {
+            // Creator taps toast - navigate to interview scheduling screen
+            try {
+              const applicationId = currentToast.data.applicationId;
+              const pursuitId = currentToast.data.pursuitId;
+              console.log('🎤 Navigating to interview scheduling:', { applicationId, pursuitId });
+              await fetchInterviewSchedulingData(applicationId, pursuitId);
+            } catch (error) {
+              console.error('Error navigating to interview scheduling:', error);
+              setCurrentScreen('Notifications');
+            }
+          } else {
+            // Default: navigate to notifications tab
+            setCurrentScreen('Notifications');
+          }
           setCurrentToast(null);
         }}
         onDismiss={() => setCurrentToast(null)}
@@ -596,6 +964,13 @@ if (teamBoardPursuitId) {
         <PodsScreen
           onOpenPodDetails={(pod) => setViewingPodDetail(pod)}
           onOpenTeamBoard={openTeamBoard}
+          onOpenInterviewProposal={(applicationId, pursuitId, pursuitTitle) => {
+            setViewingInterviewProposal({
+              applicationId,
+              pursuitId,
+              pursuitTitle,
+            });
+          }}
         />
       )}
       {currentScreen === 'Calendar' && (
