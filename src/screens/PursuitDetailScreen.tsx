@@ -237,7 +237,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
 
                 if (teamMembers && teamMembers.length > 0) {
                   const teamMemberIds = teamMembers.map(tm => tm.user_id);
-                  const creatorName = user?.name || user?.email || 'The creator';
+                  const creatorName = user?.name || 'The pod creator';
                   await notificationService.notifyKickoffActivated(
                     teamMemberIds,
                     pursuit.id,
@@ -263,7 +263,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
   };
 
   const handleRemoveMemberConfirm = (member: any) => {
-    const memberName = member.user?.name || member.user?.email || 'this member';
+    const memberName = member.user?.name || 'this member';
     Alert.alert(
       `Remove ${memberName} from the Pod?`,
       '',
@@ -390,7 +390,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
       // Send notification to creator if share with leader is checked
       if (shareWithLeader) {
         try {
-          const userName = user.name || user.email || 'A team member';
+          const userName = user.name || 'A team member';
           await notificationService.sendPushNotification(
             [pursuit.creator_id],
             `${userName} left ${pursuit.title}`,
@@ -505,6 +505,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
     return (
       <ApplicationsReviewScreen
         pursuitId={pursuit.id}
+        pursuit={pursuit}
         onBack={() => setShowApplicationsReview(false)}
       />
     );
@@ -601,7 +602,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                     </View>
                   )}
                   <Text style={styles.memberName} numberOfLines={2}>
-                    {member.user?.name || member.user?.email || 'Team Member'}
+                    {member.user?.name || 'Team Member'}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -726,6 +727,9 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                   <Text style={styles.kickoffBadgeText}>🚀 KICKOFF MEETING</Text>
                 </View>
               )}
+              <Text style={styles.teamBoardPrompt}>
+                💡 Add your thoughts to the Team Board!
+              </Text>
             </View>
           </View>
         )}
@@ -933,7 +937,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
               <ScrollView style={styles.modalContent}>
                 <View style={styles.removalForm}>
                   <Text style={styles.removalMemberName}>
-                    Removing: {memberToRemove?.user?.name || memberToRemove?.user?.email}
+                    Removing: {memberToRemove?.user?.name || 'Team Member'}
                   </Text>
 
                   <Text style={styles.removalLabel}>Reason for Removal</Text>
@@ -1191,6 +1195,7 @@ const styles = StyleSheet.create({
   nextMeetingDetail: { fontSize: 14, color: '#666' },
   kickoffBadge: { backgroundColor: '#f59e0b', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, alignSelf: 'flex-start' },
   kickoffBadgeText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
+  teamBoardPrompt: { color: '#0ea5e9', fontSize: 14, fontWeight: '600', marginTop: 12, fontStyle: 'italic', textAlign: 'center' },
   activateKickoffButton: { backgroundColor: '#f59e0b', borderRadius: 12, padding: 18, alignItems: 'center', marginTop: 20, shadowColor: '#f59e0b', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
   activateKickoffText: { color: '#fff', fontSize: 17, fontWeight: 'bold' },
   scheduleKickoffButton: { backgroundColor: '#10b981', borderRadius: 12, padding: 18, alignItems: 'center', marginTop: 20, shadowColor: '#10b981', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },

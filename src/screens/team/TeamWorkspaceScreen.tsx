@@ -370,7 +370,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
       const currentPod = pods.find((p) => p.id === selectedPodId);
       if (otherMemberIds.length > 0 && currentPod) {
         const currentUserProfile = teamMembers.find(m => m.id === user.id);
-        const userName = currentUserProfile?.name || currentUserProfile?.email || 'A teammate';
+        const userName = currentUserProfile?.name || 'A teammate';
         await notificationService.notifyTeamBoardUpdate(
           otherMemberIds,
           selectedPodId,
@@ -449,7 +449,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
         const currentPod = pods.find((p) => p.id === selectedPodId);
         if (otherMemberIds.length > 0 && currentPod) {
           const currentUserProfile = teamMembers.find(m => m.id === user.id);
-          const userName = currentUserProfile?.name || currentUserProfile?.email || 'A teammate';
+          const userName = currentUserProfile?.name || 'A teammate';
           await notificationService.notifyTeamBoardUpdate(
             otherMemberIds,
             selectedPodId,
@@ -487,7 +487,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
       }
       return names[0][0].toUpperCase();
     }
-    return profile?.email?.[0].toUpperCase() || '?';
+    return '?';
   };
 
   const formatDateTime = (dateString: string) => {
@@ -662,7 +662,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
       const currentPod = pods.find((p) => p.id === selectedPodId);
       if (otherMemberIds.length > 0 && currentPod) {
         const currentUserProfile = teamMembers.find(m => m.id === user.id);
-        const userName = currentUserProfile?.name || currentUserProfile?.email || 'A teammate';
+        const userName = currentUserProfile?.name || 'A teammate';
         await notificationService.notifyTeamBoardUpdate(
           otherMemberIds,
           selectedPodId,
@@ -735,7 +735,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
   };
 
   const handleOpenRoleModal = (member: any, existingRole?: any) => {
-    setEditingRole(existingRole ? { ...existingRole, memberId: member.id, memberName: member.name || member.email } : { memberId: member.id, memberName: member.name || member.email });
+    setEditingRole(existingRole ? { ...existingRole, memberId: member.id, memberName: member.name || 'Team Member' } : { memberId: member.id, memberName: member.name || 'Team Member' });
     setRoleTitle(existingRole?.role_title || '');
     setRoleDescription(existingRole?.role_description || '');
     setShowRoleModal(true);
@@ -788,7 +788,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
       const currentPod = pods.find((p) => p.id === selectedPodId);
       if (otherMemberIds.length > 0 && currentPod && user) {
         const currentUserProfile = teamMembers.find(m => m.id === user.id);
-        const userName = currentUserProfile?.name || currentUserProfile?.email || 'A teammate';
+        const userName = currentUserProfile?.name || 'A teammate';
         await notificationService.notifyTeamBoardUpdate(
           otherMemberIds,
           selectedPodId,

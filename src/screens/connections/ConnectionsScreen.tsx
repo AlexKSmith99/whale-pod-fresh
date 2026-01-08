@@ -157,16 +157,13 @@ connection.profile.profile_picture }}
                     <View style={styles.avatar}>
                       <Text style={styles.avatarText}>
                         
-{connection.profile?.name?.charAt(0).toUpperCase() ||
-                         
-connection.profile?.email?.charAt(0).toUpperCase() || '?'}
+{connection.profile?.name?.charAt(0).toUpperCase() || '?'}
                       </Text>
                     </View>
                   )}
                   <View style={styles.connectionInfo}>
                     <Text style={styles.connectionName}>
-                      {connection.profile?.name || 
-connection.profile?.email?.split('@')[0] || 'Unknown'}
+                      {connection.profile?.name || 'Unknown'}
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} 
@@ -209,16 +206,13 @@ request.profile.profile_picture }}
                             <View style={styles.avatar}>
                               <Text style={styles.avatarText}>
                                 
-{request.profile?.name?.charAt(0).toUpperCase() ||
-                                 
-request.profile?.email?.charAt(0).toUpperCase() || '?'}
+{request.profile?.name?.charAt(0).toUpperCase() || '?'}
                               </Text>
                             </View>
                           )}
                           <View style={styles.requestDetails}>
                             <Text style={styles.requestName}>
-                              {request.profile?.name || 
-request.profile?.email?.split('@')[0] || 'Unknown'}
+                              {request.profile?.name || 'Unknown'}
                             </Text>
                           </View>
                         </TouchableOpacity>
@@ -276,8 +270,7 @@ request.profile?.email?.charAt(0).toUpperCase() || '?'}
                         )}
                         <View style={styles.connectionInfo}>
                           <Text style={styles.connectionName}>
-                            {request.profile?.name || 
-request.profile?.email?.split('@')[0] || 'Unknown'}
+                            {request.profile?.name || 'Unknown'}
                           </Text>
                           <Text 
 style={styles.sentStatus}>Pending...</Text>

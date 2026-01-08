@@ -32,13 +32,15 @@ type FilterType = 'active' | 'past' | 'pending';
 interface PodsScreenProps {
   onOpenPodDetails: (pod: Pod) => void;
   onOpenTeamBoard: (pursuitId: string) => void;
+  onOpenInterviewProposal?: (applicationId: string, pursuitId: string, pursuitTitle: string) => void;
 }
 
-export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard }: PodsScreenProps) {
+export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenInterviewProposal }: PodsScreenProps) {
   const { user } = useAuth();
   const [pods, setPods] = useState<Pod[]>([]);
   const [pastPods, setPastPods] = useState<Pod[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
+  const [interviewPendingApps, setInterviewPendingApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<FilterType>('active');
   const [notificationCounts, setNotificationCounts] = useState<Map<string, number>>(new Map());
@@ -129,6 +131,16 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard }: PodsSc
       if (appsError) throw appsError;
       setApplications(apps || []);
 
+      // Get interview pending applications (applicant needs to propose times)
+      const { data: interviewApps, error: interviewAppsError } = await supabase
+        .from('pursuit_applications')
+        .select('id, pursuit_id, status, pursuits(title, description)')
+        .eq('applicant_id', user.id)
+        .eq('status', 'interview_pending');
+
+      if (interviewAppsError) throw interviewAppsError;
+      setInterviewPendingApps(interviewApps || []);
+
       // Load notification counts by pursuit
       const counts = await notificationService.getUnreadCountsByPursuit(user.id);
       console.log('📍 Notification counts by pursuit:', Object.fromEntries(counts));
@@ -173,7 +185,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard }: PodsSc
         onPress={() => setActiveFilter('pending')}
       >
         <Text style={[styles.filterTabText, activeFilter === 'pending' && styles.filterTabTextActive]}>
-          Pending ({applications.length})
+          Pending ({applications.length + interviewPendingApps.length})
         </Text>
       </TouchableOpacity>
     </View>
@@ -297,21 +309,56 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard }: PodsSc
 
   const renderPendingContent = () => (
     <View style={styles.content}>
-      {applications.length > 0 ? (
-        applications.map((app) => (
-          <View key={app.id} style={styles.applicationCard}>
-            <View style={styles.applicationHeader}>
-              <Text style={styles.applicationTitle}>{app.pursuits?.title}</Text>
-              <View style={styles.pendingBadge}>
-                <Text style={styles.pendingText}>PENDING</Text>
+      {/* Interview Requests - show first with action required */}
+      {interviewPendingApps.length > 0 && (
+        <>
+          <Text style={styles.sectionLabel}>Interview Requests</Text>
+          {interviewPendingApps.map((app) => (
+            <View key={app.id} style={[styles.applicationCard, styles.interviewCard]}>
+              <View style={styles.applicationHeader}>
+                <Text style={styles.applicationTitle}>{app.pursuits?.title}</Text>
+                <View style={styles.interviewBadge}>
+                  <Text style={styles.interviewBadgeText}>INTERVIEW</Text>
+                </View>
               </View>
+              <Text style={styles.applicationDescription} numberOfLines={2}>
+                {app.pursuits?.description}
+              </Text>
+              <Text style={styles.interviewPrompt}>
+                The creator wants to schedule an interview! Propose your available times.
+              </Text>
+              <TouchableOpacity
+                style={styles.proposeTimesButton}
+                onPress={() => onOpenInterviewProposal?.(app.id, app.pursuit_id, app.pursuits?.title || 'Pursuit')}
+              >
+                <Text style={styles.proposeTimesButtonText}>Propose Interview Times</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={styles.applicationDescription} numberOfLines={2}>
-              {app.pursuits?.description}
-            </Text>
-          </View>
-        ))
-      ) : (
+          ))}
+        </>
+      )}
+
+      {/* Regular pending applications */}
+      {applications.length > 0 && (
+        <>
+          {interviewPendingApps.length > 0 && <Text style={styles.sectionLabel}>Pending Review</Text>}
+          {applications.map((app) => (
+            <View key={app.id} style={styles.applicationCard}>
+              <View style={styles.applicationHeader}>
+                <Text style={styles.applicationTitle}>{app.pursuits?.title}</Text>
+                <View style={styles.pendingBadge}>
+                  <Text style={styles.pendingText}>PENDING</Text>
+                </View>
+              </View>
+              <Text style={styles.applicationDescription} numberOfLines={2}>
+                {app.pursuits?.description}
+              </Text>
+            </View>
+          ))}
+        </>
+      )}
+
+      {applications.length === 0 && interviewPendingApps.length === 0 && (
         <View style={styles.emptyState}>
           <Text style={styles.emptyEmoji}>📝</Text>
           <Text style={styles.emptyText}>No pending applications</Text>
@@ -384,6 +431,13 @@ const styles = StyleSheet.create({
   applicationsSection: { backgroundColor: '#fef3c7', padding: 15, borderBottomWidth: 1, borderBottomColor: '#f59e0b' },
   applicationsTitle: { fontSize: 16, fontWeight: 'bold', color: '#92400e', marginBottom: 12 },
   applicationCard: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: '#f59e0b' },
+  interviewCard: { borderColor: '#8b5cf6', borderWidth: 2, backgroundColor: '#faf5ff' },
+  interviewBadge: { backgroundColor: '#8b5cf6', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  interviewBadgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
+  interviewPrompt: { fontSize: 13, color: '#7c3aed', marginTop: 10, marginBottom: 12, fontStyle: 'italic' },
+  proposeTimesButton: { backgroundColor: '#8b5cf6', borderRadius: 8, padding: 12, alignItems: 'center' },
+  proposeTimesButtonText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
+  sectionLabel: { fontSize: 14, fontWeight: '600', color: '#666', marginBottom: 10, marginTop: 5 },
   applicationHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   applicationTitle: { fontSize: 16, fontWeight: 'bold', color: '#1f2937', flex: 1, marginRight: 8 },
   applicationDescription: { fontSize: 13, color: '#6b7280', lineHeight: 18 },

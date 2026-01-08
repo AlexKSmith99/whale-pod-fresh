@@ -11,10 +11,12 @@ import {
   Image,
   Modal,
   Alert,
+  Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { podChatService, PodChatMessage } from '../services/podChatService';
+import { supabase } from '../config/supabase';
 
 interface Props {
   pursuitId: string;
@@ -41,6 +43,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
   const [tempChatName, setTempChatName] = useState('');
   const flatListRef = useRef<FlatList>(null);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const [myProfile, setMyProfile] = useState<any>(null);
 
   // Update chatName when props change (e.g., when switching to a different chat)
   useEffect(() => {
@@ -74,10 +77,29 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
   useEffect(() => {
     loadMessages();
     loadMembers();
+    loadMyProfile();
     markAsRead();
     const interval = setInterval(loadMessages, 3000);
     return () => clearInterval(interval);
   }, [pursuitId]);
+
+  const loadMyProfile = async () => {
+    try {
+      if (user) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('name, profile_picture, email')
+          .eq('id', user.id)
+          .single();
+
+        if (!error && data) {
+          setMyProfile(data);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading my profile:', error);
+    }
+  };
 
   const loadMessages = async () => {
     try {
@@ -114,6 +136,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
 
     const messageText = newMessage.trim();
     setNewMessage('');
+    Keyboard.dismiss();
 
     try {
       await podChatService.sendMessage(pursuitId, user.id, messageText);
@@ -175,7 +198,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
         <View style={isMyMessage ? styles.myMessageContent : styles.theirMessageContent}>
           {!isMyMessage && (
             <Text style={styles.senderName}>
-              {sender?.name || sender?.email?.split('@')[0] || 'User'}
+              {sender?.name || 'User'}
             </Text>
           )}
           <View
@@ -193,11 +216,19 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
           </View>
         </View>
         {isMyMessage && (
-          <View style={styles.messageAvatar}>
-            <Text style={styles.messageAvatarText}>
-              {user?.name?.charAt(0).toUpperCase() || 'Y'}
-            </Text>
-          </View>
+          myProfile?.profile_picture ? (
+            <Image
+              source={{ uri: myProfile.profile_picture }}
+              style={styles.messageAvatar}
+            />
+          ) : (
+            <View style={styles.messageAvatar}>
+              <Text style={styles.messageAvatarText}>
+                {myProfile?.name?.charAt(0).toUpperCase() ||
+                 myProfile?.email?.charAt(0).toUpperCase() || '?'}
+              </Text>
+            </View>
+          )
         )}
       </View>
     );
@@ -316,12 +347,12 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
                   ) : (
                     <View style={styles.memberAvatar}>
                       <Text style={styles.memberAvatarText}>
-                        {item.name?.charAt(0).toUpperCase() || item.email?.charAt(0).toUpperCase() || '?'}
+                        {item.name?.charAt(0).toUpperCase() || '?'}
                       </Text>
                     </View>
                   )}
                   <View style={styles.memberInfo}>
-                    <Text style={styles.memberName}>{item.name || item.email?.split('@')[0]}</Text>
+                    <Text style={styles.memberName}>{item.name || 'Team Member'}</Text>
                     {item.isCreator && (
                       <View style={styles.creatorBadge}>
                         <Text style={styles.creatorBadgeText}>Creator</Text>

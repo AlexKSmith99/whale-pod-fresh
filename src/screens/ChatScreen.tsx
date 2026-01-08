@@ -10,6 +10,7 @@ import {
   Platform,
   Image,
   Modal,
+  Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
@@ -126,6 +127,7 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
 
     const messageText = newMessage.trim();
     setNewMessage('');
+    Keyboard.dismiss();
 
     try {
       await messageService.sendMessage(user.id, partnerId, messageText);
@@ -238,7 +240,7 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
             </View>
           )}
           <Text style={styles.headerUserName}>
-            {otherUserProfile?.name || otherUserProfile?.email?.split('@')[0] || 'User'}
+            {otherUserProfile?.name || 'User'}
           </Text>
         </TouchableOpacity>
         <View style={{ width: 24 }} />

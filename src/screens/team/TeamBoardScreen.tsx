@@ -425,7 +425,7 @@ export default function TeamBoardScreen({ pursuitId, onBack, onStartVideoCall }:
                     styles.participantButtonText,
                     selectedParticipant === member.id && styles.participantButtonTextActive
                   ]}>
-                    {member.name || member.email?.split('@')[0] || 'Unknown'}
+                    {member.name || 'Team Member'}
                   </Text>
                 </TouchableOpacity>
               ))}

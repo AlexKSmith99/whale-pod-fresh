@@ -1,14 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Image, Linking } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { applicationService } from '../services/applicationService';
+import { notificationService } from '../services/notificationService';
+import { supabase } from '../config/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import UserProfileScreen from './UserProfileScreen';
 
 interface Props {
   pursuitId: string;
+  pursuit?: any;
   onBack: () => void;
+  onScheduleInterview?: (applicationId: string, applicantId: string, applicantName: string) => void;
 }
 
-export default function ApplicationsReviewScreen({ pursuitId, onBack }: Props) {
+export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, onScheduleInterview }: Props) {
+  const { user } = useAuth();
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedReviewedId, setExpandedReviewedId] = useState<string | null>(null);
@@ -80,8 +87,88 @@ export default function ApplicationsReviewScreen({ pursuitId, onBack }: Props) {
     );
   };
 
-  const pendingApps = applications.filter(a => a.status === 'pending');
-  const reviewedApps = applications.filter(a => a.status !== 'pending');
+  const handleScheduleInterview = async (app: any) => {
+    const applicantName = app.applicant?.name || 'the applicant';
+
+    Alert.alert(
+      'Schedule Interview',
+      `Request ${applicantName} to propose interview times?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Send Request',
+          onPress: async () => {
+            try {
+              console.log('📋 Schedule Interview - App data:', {
+                appId: app.id,
+                applicantId: app.applicant_id,
+                pursuitId,
+                pursuitTitle: pursuit?.title,
+              });
+
+              // Update application status to 'interview_pending'
+              const { error } = await supabase
+                .from('pursuit_applications')
+                .update({ status: 'interview_pending' })
+                .eq('id', app.id);
+
+              if (error) throw error;
+              console.log('✅ Application status updated to interview_pending');
+
+              // Get creator's profile for notification
+              const { data: creatorProfile } = await supabase
+                .from('profiles')
+                .select('name, email')
+                .eq('id', user!.id)
+                .single();
+
+              const creatorName = creatorProfile?.name || 'The pod creator';
+              console.log('📤 Sending notification to applicant:', app.applicant_id, 'from creator:', creatorName);
+
+              // Send notification to applicant to propose interview times
+              await notificationService.notifyInterviewSchedulingRequested(
+                app.applicant_id,
+                app.id,
+                pursuitId,
+                pursuit?.title || 'Pursuit',
+                creatorName
+              );
+
+              console.log('✅ Notification sent successfully');
+              Alert.alert('Request Sent!', `${applicantName} will be notified to propose interview times.`);
+              loadApplications();
+            } catch (error: any) {
+              console.error('Error scheduling interview:', error);
+              Alert.alert('Error', error.message || 'Failed to send interview request');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Include applications with interview in progress in the pending section
+  const pendingApps = applications.filter(a =>
+    a.status === 'pending' ||
+    a.status === 'interview_pending' ||
+    a.status === 'interview_times_submitted' ||
+    a.status === 'interview_scheduled'
+  );
+  const reviewedApps = applications.filter(a => a.status === 'accepted' || a.status === 'declined');
+
+  // Helper to get interview button state
+  const getInterviewButtonState = (status: string) => {
+    switch (status) {
+      case 'interview_pending':
+        return { text: '✓ Interview Time Proposal Sent', disabled: true, style: 'sent' };
+      case 'interview_times_submitted':
+        return { text: '📅 Review Proposed Times', disabled: false, style: 'review' };
+      case 'interview_scheduled':
+        return { text: '✓ Interview Scheduled', disabled: true, style: 'scheduled' };
+      default:
+        return { text: '🎤 Schedule Interview', disabled: false, style: 'default' };
+    }
+  };
 
   // Show user profile screen
   if (showUserProfile && selectedUserId) {
@@ -143,10 +230,25 @@ export default function ApplicationsReviewScreen({ pursuitId, onBack }: Props) {
                           </View>
                         )}
                         <View style={styles.appInfo}>
-                          <Text style={styles.appName}>{app.applicant?.name || app.applicant?.email || 'Applicant'}</Text>
+                          <Text style={styles.appName}>{app.applicant?.name || 'Applicant'}</Text>
                           <Text style={styles.appDate}>
                             Applied {new Date(app.created_at).toLocaleDateString()}
                           </Text>
+                          {app.status === 'interview_pending' && (
+                            <View style={styles.interviewStatusBadge}>
+                              <Text style={styles.interviewStatusText}>⏳ Awaiting time proposals</Text>
+                            </View>
+                          )}
+                          {app.status === 'interview_times_submitted' && (
+                            <View style={[styles.interviewStatusBadge, styles.interviewStatusReview]}>
+                              <Text style={styles.interviewStatusText}>📅 Times proposed - review needed</Text>
+                            </View>
+                          )}
+                          {app.status === 'interview_scheduled' && (
+                            <View style={[styles.interviewStatusBadge, styles.interviewStatusScheduled]}>
+                              <Text style={styles.interviewStatusText}>✓ Interview scheduled</Text>
+                            </View>
+                          )}
                           <Text style={styles.viewProfileLink}>View profile →</Text>
                         </View>
                       </TouchableOpacity>
@@ -160,10 +262,58 @@ export default function ApplicationsReviewScreen({ pursuitId, onBack }: Props) {
                         ))}
                       </View>
 
+                      {/* Resume Attachment */}
+                      {app.resume_url && (
+                        <TouchableOpacity
+                          style={styles.resumeAttachment}
+                          onPress={() => Linking.openURL(app.resume_url)}
+                        >
+                          <View style={styles.resumeIconContainer}>
+                            <Ionicons name="document-text" size={20} color="#8b5cf6" />
+                          </View>
+                          <View style={styles.resumeInfo}>
+                            <Text style={styles.resumeLabel}>📎 Resume Attached</Text>
+                            <Text style={styles.resumeFilename} numberOfLines={1}>
+                              {app.resume_filename || 'View Resume'}
+                            </Text>
+                          </View>
+                          <Ionicons name="open-outline" size={18} color="#8b5cf6" />
+                        </TouchableOpacity>
+                      )}
+
                       <View style={styles.actionButtons}>
+                        {pursuit?.requires_interview && (() => {
+                          const buttonState = getInterviewButtonState(app.status);
+                          return (
+                            <TouchableOpacity
+                              style={[
+                                styles.interviewButton,
+                                buttonState.style === 'sent' && styles.interviewButtonSent,
+                                buttonState.style === 'review' && styles.interviewButtonReview,
+                                buttonState.style === 'scheduled' && styles.interviewButtonScheduled,
+                              ]}
+                              onPress={() => {
+                                if (buttonState.style === 'review' && onScheduleInterview) {
+                                  // Navigate to review proposed times
+                                  onScheduleInterview(app.id, app.applicant_id, app.applicant?.name || 'Applicant');
+                                } else if (!buttonState.disabled) {
+                                  handleScheduleInterview(app);
+                                }
+                              }}
+                              disabled={buttonState.disabled}
+                            >
+                              <Text style={[
+                                styles.interviewButtonText,
+                                buttonState.disabled && styles.interviewButtonTextDisabled,
+                              ]}>
+                                {buttonState.text}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })()}
                         <TouchableOpacity
                           style={styles.acceptButton}
-                          onPress={() => handleAccept(app.id, app.applicant?.name || app.applicant?.email || 'this applicant')}
+                          onPress={() => handleAccept(app.id, app.applicant?.name || 'this applicant')}
                         >
                           <Text style={styles.acceptButtonText}>✓ Accept</Text>
                         </TouchableOpacity>
@@ -201,7 +351,7 @@ export default function ApplicationsReviewScreen({ pursuitId, onBack }: Props) {
                           </View>
                         )}
                         <View style={styles.appInfo}>
-                          <Text style={styles.appName}>{app.applicant?.name || app.applicant?.email || 'Applicant'}</Text>
+                          <Text style={styles.appName}>{app.applicant?.name || 'Applicant'}</Text>
                           <View style={[
                             styles.statusBadge,
                             app.status === 'accepted' ? styles.statusAccepted : styles.statusDeclined
@@ -231,6 +381,24 @@ export default function ApplicationsReviewScreen({ pursuitId, onBack }: Props) {
                               <Text style={styles.answerText}>{answer.answer}</Text>
                             </View>
                           ))}
+                          {/* Resume Attachment for reviewed apps */}
+                          {app.resume_url && (
+                            <TouchableOpacity
+                              style={styles.resumeAttachment}
+                              onPress={() => Linking.openURL(app.resume_url)}
+                            >
+                              <View style={styles.resumeIconContainer}>
+                                <Ionicons name="document-text" size={20} color="#8b5cf6" />
+                              </View>
+                              <View style={styles.resumeInfo}>
+                                <Text style={styles.resumeLabel}>📎 Resume Attached</Text>
+                                <Text style={styles.resumeFilename} numberOfLines={1}>
+                                  {app.resume_filename || 'View Resume'}
+                                </Text>
+                              </View>
+                              <Ionicons name="open-outline" size={18} color="#8b5cf6" />
+                            </TouchableOpacity>
+                          )}
                           <Text style={styles.appDateReviewed}>
                             Applied {new Date(app.created_at).toLocaleDateString()}
                           </Text>
@@ -301,6 +469,25 @@ const styles = StyleSheet.create({
   appName: { fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 4 },
   appDate: { fontSize: 12, color: '#999' },
   viewProfileLink: { fontSize: 12, color: '#0ea5e9', fontWeight: '600', marginTop: 4 },
+  interviewStatusBadge: {
+    backgroundColor: '#f3e8ff',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    marginTop: 4,
+    alignSelf: 'flex-start',
+  },
+  interviewStatusReview: {
+    backgroundColor: '#fef3c7',
+  },
+  interviewStatusScheduled: {
+    backgroundColor: '#d1fae5',
+  },
+  interviewStatusText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
   statusBadge: { 
     alignSelf: 'flex-start',
     paddingHorizontal: 10, 
@@ -315,7 +502,60 @@ const styles = StyleSheet.create({
   answerBlock: { marginBottom: 12 },
   answerQuestion: { fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 4 },
   answerText: { fontSize: 14, color: '#666', lineHeight: 20 },
-  actionButtons: { flexDirection: 'row', gap: 10 },
+  // Resume attachment styles
+  resumeAttachment: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f3ff',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#ddd6fe',
+  },
+  resumeIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: '#ede9fe',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  resumeInfo: {
+    flex: 1,
+  },
+  resumeLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#8b5cf6',
+    marginBottom: 2,
+  },
+  resumeFilename: {
+    fontSize: 12,
+    color: '#6b7280',
+  },
+  actionButtons: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
+  interviewButton: {
+    flex: 1,
+    backgroundColor: '#8b5cf6',
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+    minWidth: '100%',
+    marginBottom: 8,
+  },
+  interviewButtonSent: {
+    backgroundColor: '#9ca3af',
+  },
+  interviewButtonReview: {
+    backgroundColor: '#f59e0b',
+  },
+  interviewButtonScheduled: {
+    backgroundColor: '#10b981',
+  },
+  interviewButtonText: { color: '#fff', fontSize: 15, fontWeight: 'bold' },
+  interviewButtonTextDisabled: { opacity: 0.9 },
   acceptButton: { 
     flex: 1, 
     backgroundColor: '#10b981', 

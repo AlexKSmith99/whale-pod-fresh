@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Switch, Modal, FlatList } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Switch, Modal, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { pursuitService } from '../services/pursuitService';
 
-const PURSUIT_TYPES = ['Education', 'Friends', 'Problem', 'Business', 'Lifestyle', 'Hobby', 'Fitness', 'Side Hustle', 'Travel', 'Discussion', 'New Endeavor', 'Accountability', 'Networking', 'Health', 'Personal Growth', 'Career Growth', 'Hangout', 'Socialize', 'Explore', 'Nature', 'Social Media', 'Spiritual', 'Religion', 'Mental Health', 'Art', 'Music', 'Sport'];
+const PURSUIT_TYPES = ['Education', 'Friends', 'Problem', 'Business', 'Lifestyle', 'Hobby', 'Fitness', 'Side Hustle', 'Travel', 'Discussion', 'New Endeavor', 'Accountability', 'Networking', 'Health', 'Medical', 'Support', 'Personal Growth', 'Career Growth', 'Hangout', 'Socialize', 'Explore', 'Nature', 'Social Media', 'Spiritual', 'Religion', 'Mental Health', 'Art', 'Music', 'Sport'];
 const DECISION_SYSTEMS = ['Standard Vote', 'Admin Has Ultimate Say', 'Delegated', 'Weighted Voting'];
 const ATTENDANCE_STYLES = ['Mandatory', 'Optional', 'Frequent'];
 
@@ -23,40 +23,75 @@ const US_STATES = [
   { name: 'Wisconsin', abbr: 'WI' }, { name: 'Wyoming', abbr: 'WY' }
 ];
 
-const US_CITIES = [
-  'New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix', 'Philadelphia', 'San Antonio', 'San Diego', 'Dallas', 'San Jose',
-  'Austin', 'Jacksonville', 'Fort Worth', 'Columbus', 'Charlotte', 'San Francisco', 'Indianapolis', 'Seattle', 'Denver', 'Washington',
-  'Boston', 'El Paso', 'Nashville', 'Detroit', 'Oklahoma City', 'Portland', 'Las Vegas', 'Memphis', 'Louisville', 'Baltimore',
-  'Milwaukee', 'Albuquerque', 'Tucson', 'Fresno', 'Mesa', 'Sacramento', 'Atlanta', 'Kansas City', 'Colorado Springs', 'Omaha',
-  'Raleigh', 'Miami', 'Long Beach', 'Virginia Beach', 'Oakland', 'Minneapolis', 'Tulsa', 'Tampa', 'Arlington', 'New Orleans',
-  'Wichita', 'Cleveland', 'Bakersfield', 'Aurora', 'Anaheim', 'Honolulu', 'Santa Ana', 'Riverside', 'Corpus Christi', 'Lexington',
-  'Henderson', 'Stockton', 'Saint Paul', 'Cincinnati', 'St. Louis', 'Pittsburgh', 'Greensboro', 'Lincoln', 'Anchorage', 'Plano',
-  'Orlando', 'Irvine', 'Newark', 'Durham', 'Chula Vista', 'Toledo', 'Fort Wayne', 'St. Petersburg', 'Laredo', 'Jersey City',
-  'Chandler', 'Madison', 'Lubbock', 'Scottsdale', 'Reno', 'Buffalo', 'Gilbert', 'Glendale', 'North Las Vegas', 'Winston-Salem',
-  'Chesapeake', 'Norfolk', 'Fremont', 'Garland', 'Irving', 'Hialeah', 'Richmond', 'Boise', 'Spokane', 'Baton Rouge',
-  'Tacoma', 'San Bernardino', 'Modesto', 'Fontana', 'Des Moines', 'Moreno Valley', 'Santa Clarita', 'Fayetteville', 'Birmingham', 'Oxnard',
-  'Rochester', 'Port St. Lucie', 'Grand Rapids', 'Huntsville', 'Salt Lake City', 'Frisco', 'Yonkers', 'Amarillo', 'Glendale', 'Huntington Beach',
-  'McKinney', 'Montgomery', 'Augusta', 'Aurora', 'Akron', 'Little Rock', 'Tempe', 'Columbus', 'Overland Park', 'Grand Prairie',
-  'Tallahassee', 'Cape Coral', 'Mobile', 'Knoxville', 'Shreveport', 'Worcester', 'Ontario', 'Vancouver', 'Sioux Falls', 'Chattanooga',
-  'Brownsville', 'Fort Lauderdale', 'Providence', 'Newport News', 'Rancho Cucamonga', 'Santa Rosa', 'Peoria', 'Oceanside', 'Elk Grove', 'Salem',
-  'Pembroke Pines', 'Eugene', 'Garden Grove', 'Cary', 'Fort Collins', 'Corona', 'Springfield', 'Jackson', 'Alexandria', 'Hayward',
-  'Clarksville', 'Lakewood', 'Lancaster', 'Salinas', 'Palmdale', 'Hollywood', 'Springfield', 'Macon', 'Kansas City', 'Sunnyvale',
-  'Pomona', 'Killeen', 'Escondido', 'Pasadena', 'Naperville', 'Bellevue', 'Joliet', 'Murfreesboro', 'Midland', 'Rockford',
-  'Paterson', 'Savannah', 'Bridgeport', 'Torrance', 'McAllen', 'Syracuse', 'Surprise', 'Denton', 'Roseville', 'Thornton',
-  'Miramar', 'Pasadena', 'Mesquite', 'Olathe', 'Dayton', 'Carrollton', 'Waco', 'Orange', 'Fullerton', 'Charleston',
-  'West Valley City', 'Visalia', 'Hampton', 'Gainesville', 'Warren', 'Coral Springs', 'Cedar Rapids', 'Round Rock', 'Sterling Heights', 'Kent',
-  'Columbia', 'Santa Clara', 'New Haven', 'Stamford', 'Concord', 'Elizabeth', 'Athens', 'Thousand Oaks', 'Lafayette', 'Simi Valley',
-  'Topeka', 'Norman', 'Fargo', 'Wilmington', 'Abilene', 'Odessa', 'Columbia', 'Pearland', 'Victorville', 'Hartford',
-  'Vallejo', 'Allentown', 'Berkeley', 'Richardson', 'Arvada', 'Ann Arbor', 'Rochester', 'Cambridge', 'Sugar Land', 'Lansing',
-  'Evansville', 'College Station', 'Fairfield', 'Clearwater', 'Beaumont', 'Independence', 'Provo', 'West Jordan', 'Murrieta', 'Palm Bay',
-  'El Monte', 'Carlsbad', 'North Charleston', 'Temecula', 'Clovis', 'Springfield', 'Meridian', 'Westminster', 'Costa Mesa', 'High Point',
-  'Manchester', 'Pueblo', 'Lakeland', 'Pompano Beach', 'West Palm Beach', 'Antioch', 'Everett', 'Downey', 'Lowell', 'Centennial',
-  'Elgin', 'Richmond', 'Peoria', 'Broken Arrow', 'Miami Gardens', 'Billings', 'Jurupa Valley', 'Sandy Springs', 'Gresham', 'Lewisville',
-  'Hillsboro', 'Ventura', 'Greeley', 'Inglewood', 'Waterbury', 'League City', 'Santa Maria', 'Tyler', 'Davie', 'Lakewood',
-  'Daly City', 'Boulder', 'Allen', 'West Covina', 'Sparks', 'Wichita Falls', 'Green Bay', 'San Mateo', 'Norwalk', 'Rialto',
-  'Las Cruces', 'Chico', 'El Cajon', 'Burbank', 'South Bend', 'Renton', 'Vista', 'Davenport', 'Edinburg', 'Tuscaloosa',
-  'Carmel', 'Spokane Valley', 'San Angelo', 'Vacaville', 'Clinton', 'Bend', 'Woodbridge'
-];
+// City to state(s) mapping - cities can exist in multiple states
+const CITY_STATE_MAP: { [city: string]: string[] } = {
+  'New York': ['NY'], 'Los Angeles': ['CA'], 'Chicago': ['IL'], 'Houston': ['TX'], 'Phoenix': ['AZ'],
+  'Philadelphia': ['PA'], 'San Antonio': ['TX'], 'San Diego': ['CA'], 'Dallas': ['TX'], 'San Jose': ['CA'],
+  'Austin': ['TX'], 'Jacksonville': ['FL'], 'Fort Worth': ['TX'], 'Columbus': ['OH', 'GA'], 'Charlotte': ['NC'],
+  'San Francisco': ['CA'], 'Indianapolis': ['IN'], 'Seattle': ['WA'], 'Denver': ['CO'], 'Washington': ['DC'],
+  'Boston': ['MA'], 'El Paso': ['TX'], 'Nashville': ['TN'], 'Detroit': ['MI'], 'Oklahoma City': ['OK'],
+  'Portland': ['OR', 'ME'], 'Las Vegas': ['NV'], 'Memphis': ['TN'], 'Louisville': ['KY'], 'Baltimore': ['MD'],
+  'Milwaukee': ['WI'], 'Albuquerque': ['NM'], 'Tucson': ['AZ'], 'Fresno': ['CA'], 'Mesa': ['AZ'],
+  'Sacramento': ['CA'], 'Atlanta': ['GA'], 'Kansas City': ['MO', 'KS'], 'Colorado Springs': ['CO'], 'Omaha': ['NE'],
+  'Raleigh': ['NC'], 'Miami': ['FL'], 'Long Beach': ['CA'], 'Virginia Beach': ['VA'], 'Oakland': ['CA'],
+  'Minneapolis': ['MN'], 'Tulsa': ['OK'], 'Tampa': ['FL'], 'Arlington': ['TX', 'VA'], 'New Orleans': ['LA'],
+  'Wichita': ['KS'], 'Cleveland': ['OH'], 'Bakersfield': ['CA'], 'Aurora': ['CO', 'IL'], 'Anaheim': ['CA'],
+  'Honolulu': ['HI'], 'Santa Ana': ['CA'], 'Riverside': ['CA'], 'Corpus Christi': ['TX'], 'Lexington': ['KY'],
+  'Henderson': ['NV'], 'Stockton': ['CA'], 'Saint Paul': ['MN'], 'Cincinnati': ['OH'], 'St. Louis': ['MO'],
+  'Pittsburgh': ['PA'], 'Greensboro': ['NC'], 'Lincoln': ['NE'], 'Anchorage': ['AK'], 'Plano': ['TX'],
+  'Orlando': ['FL'], 'Irvine': ['CA'], 'Newark': ['NJ'], 'Durham': ['NC'], 'Chula Vista': ['CA'],
+  'Toledo': ['OH'], 'Fort Wayne': ['IN'], 'St. Petersburg': ['FL'], 'Laredo': ['TX'], 'Jersey City': ['NJ'],
+  'Chandler': ['AZ'], 'Madison': ['WI'], 'Lubbock': ['TX'], 'Scottsdale': ['AZ'], 'Reno': ['NV'],
+  'Buffalo': ['NY'], 'Gilbert': ['AZ'], 'Glendale': ['AZ', 'CA'], 'North Las Vegas': ['NV'], 'Winston-Salem': ['NC'],
+  'Chesapeake': ['VA'], 'Norfolk': ['VA'], 'Fremont': ['CA'], 'Garland': ['TX'], 'Irving': ['TX'],
+  'Hialeah': ['FL'], 'Richmond': ['VA', 'CA'], 'Boise': ['ID'], 'Spokane': ['WA'], 'Baton Rouge': ['LA'],
+  'Tacoma': ['WA'], 'San Bernardino': ['CA'], 'Modesto': ['CA'], 'Fontana': ['CA'], 'Des Moines': ['IA'],
+  'Moreno Valley': ['CA'], 'Santa Clarita': ['CA'], 'Fayetteville': ['NC', 'AR'], 'Birmingham': ['AL'], 'Oxnard': ['CA'],
+  'Rochester': ['NY', 'MN'], 'Port St. Lucie': ['FL'], 'Grand Rapids': ['MI'], 'Huntsville': ['AL'], 'Salt Lake City': ['UT'],
+  'Frisco': ['TX'], 'Yonkers': ['NY'], 'Amarillo': ['TX'], 'Huntington Beach': ['CA'],
+  'McKinney': ['TX'], 'Montgomery': ['AL'], 'Augusta': ['GA', 'ME'], 'Akron': ['OH'], 'Little Rock': ['AR'],
+  'Tempe': ['AZ'], 'Overland Park': ['KS'], 'Grand Prairie': ['TX'],
+  'Tallahassee': ['FL'], 'Cape Coral': ['FL'], 'Mobile': ['AL'], 'Knoxville': ['TN'], 'Shreveport': ['LA'],
+  'Worcester': ['MA'], 'Ontario': ['CA'], 'Vancouver': ['WA'], 'Sioux Falls': ['SD'], 'Chattanooga': ['TN'],
+  'Brownsville': ['TX'], 'Fort Lauderdale': ['FL'], 'Providence': ['RI'], 'Newport News': ['VA'],
+  'Rancho Cucamonga': ['CA'], 'Santa Rosa': ['CA'], 'Peoria': ['AZ', 'IL'], 'Oceanside': ['CA'], 'Elk Grove': ['CA'],
+  'Salem': ['OR', 'MA'], 'Pembroke Pines': ['FL'], 'Eugene': ['OR'], 'Garden Grove': ['CA'], 'Cary': ['NC'],
+  'Fort Collins': ['CO'], 'Corona': ['CA'], 'Springfield': ['IL', 'MO', 'MA', 'OH'], 'Jackson': ['MS', 'TN'],
+  'Alexandria': ['VA', 'LA'], 'Hayward': ['CA'], 'Clarksville': ['TN'], 'Lakewood': ['CO', 'CA', 'NJ', 'OH'],
+  'Lancaster': ['CA', 'PA'], 'Salinas': ['CA'], 'Palmdale': ['CA'], 'Hollywood': ['FL'], 'Macon': ['GA'],
+  'Sunnyvale': ['CA'], 'Pomona': ['CA'], 'Killeen': ['TX'], 'Escondido': ['CA'], 'Pasadena': ['CA', 'TX'],
+  'Naperville': ['IL'], 'Bellevue': ['WA'], 'Joliet': ['IL'], 'Murfreesboro': ['TN'], 'Midland': ['TX'],
+  'Rockford': ['IL'], 'Paterson': ['NJ'], 'Savannah': ['GA'], 'Bridgeport': ['CT'], 'Torrance': ['CA'],
+  'McAllen': ['TX'], 'Syracuse': ['NY'], 'Surprise': ['AZ'], 'Denton': ['TX'], 'Roseville': ['CA'],
+  'Thornton': ['CO'], 'Miramar': ['FL'], 'Mesquite': ['TX'], 'Olathe': ['KS'], 'Dayton': ['OH'],
+  'Carrollton': ['TX'], 'Waco': ['TX'], 'Orange': ['CA'], 'Fullerton': ['CA'], 'Charleston': ['SC', 'WV'],
+  'West Valley City': ['UT'], 'Visalia': ['CA'], 'Hampton': ['VA'], 'Gainesville': ['FL'], 'Warren': ['MI'],
+  'Coral Springs': ['FL'], 'Cedar Rapids': ['IA'], 'Round Rock': ['TX'], 'Sterling Heights': ['MI'], 'Kent': ['WA'],
+  'Columbia': ['SC', 'MO', 'MD'], 'Santa Clara': ['CA'], 'New Haven': ['CT'], 'Stamford': ['CT'],
+  'Concord': ['CA', 'NC', 'NH'], 'Elizabeth': ['NJ'], 'Athens': ['GA'], 'Thousand Oaks': ['CA'],
+  'Lafayette': ['LA', 'IN'], 'Simi Valley': ['CA'], 'Topeka': ['KS'], 'Norman': ['OK'], 'Fargo': ['ND'],
+  'Wilmington': ['DE', 'NC'], 'Abilene': ['TX'], 'Odessa': ['TX'], 'Pearland': ['TX'], 'Victorville': ['CA'],
+  'Hartford': ['CT'], 'Vallejo': ['CA'], 'Allentown': ['PA'], 'Berkeley': ['CA'], 'Richardson': ['TX'],
+  'Arvada': ['CO'], 'Ann Arbor': ['MI'], 'Cambridge': ['MA'], 'Sugar Land': ['TX'], 'Lansing': ['MI'],
+  'Evansville': ['IN'], 'College Station': ['TX'], 'Fairfield': ['CA', 'CT'], 'Clearwater': ['FL'],
+  'Beaumont': ['TX'], 'Independence': ['MO'], 'Provo': ['UT'], 'West Jordan': ['UT'], 'Murrieta': ['CA'],
+  'Palm Bay': ['FL'], 'El Monte': ['CA'], 'Carlsbad': ['CA'], 'North Charleston': ['SC'], 'Temecula': ['CA'],
+  'Clovis': ['CA', 'NM'], 'Meridian': ['ID', 'MS'], 'Westminster': ['CO', 'CA'], 'Costa Mesa': ['CA'],
+  'High Point': ['NC'], 'Manchester': ['NH'], 'Pueblo': ['CO'], 'Lakeland': ['FL'], 'Pompano Beach': ['FL'],
+  'West Palm Beach': ['FL'], 'Antioch': ['CA'], 'Everett': ['WA'], 'Downey': ['CA'], 'Lowell': ['MA'],
+  'Centennial': ['CO'], 'Elgin': ['IL'], 'Broken Arrow': ['OK'], 'Miami Gardens': ['FL'], 'Billings': ['MT'],
+  'Jurupa Valley': ['CA'], 'Sandy Springs': ['GA'], 'Gresham': ['OR'], 'Lewisville': ['TX'], 'Hillsboro': ['OR'],
+  'Ventura': ['CA'], 'Greeley': ['CO'], 'Inglewood': ['CA'], 'Waterbury': ['CT'], 'League City': ['TX'],
+  'Santa Maria': ['CA'], 'Tyler': ['TX'], 'Davie': ['FL'], 'Daly City': ['CA'], 'Boulder': ['CO'],
+  'Allen': ['TX'], 'West Covina': ['CA'], 'Sparks': ['NV'], 'Wichita Falls': ['TX'], 'Green Bay': ['WI'],
+  'San Mateo': ['CA'], 'Norwalk': ['CA', 'CT'], 'Rialto': ['CA'], 'Las Cruces': ['NM'], 'Chico': ['CA'],
+  'El Cajon': ['CA'], 'Burbank': ['CA'], 'South Bend': ['IN'], 'Renton': ['WA'], 'Vista': ['CA'],
+  'Davenport': ['IA'], 'Edinburg': ['TX'], 'Tuscaloosa': ['AL'], 'Carmel': ['IN'], 'Spokane Valley': ['WA'],
+  'San Angelo': ['TX'], 'Vacaville': ['CA'], 'Clinton': ['MD', 'MS'], 'Bend': ['OR'], 'Woodbridge': ['NJ', 'VA']
+};
+
+// Get all unique city names
+const US_CITIES = Object.keys(CITY_STATE_MAP).sort();
 
 interface Props {
   onClose?: () => void;
@@ -140,11 +175,61 @@ export default function CreateScreen({ onClose }: Props = {}) {
     setLocationCity(city);
     setCitySearchQuery(city);
     setShowCitySuggestions(false);
+    
+    // If this city only exists in one state, auto-select that state
+    const statesForCity = CITY_STATE_MAP[city];
+    if (statesForCity && statesForCity.length === 1) {
+      setLocationState(statesForCity[0]);
+    } else if (statesForCity && locationState && !statesForCity.includes(locationState)) {
+      // If current state is not valid for this city, clear it
+      setLocationState('');
+    }
   };
 
-  const filteredCities = US_CITIES.filter(city =>
-    city.toLowerCase().startsWith(citySearchQuery.toLowerCase())
-  ).slice(0, 10);
+  const selectState = (stateAbbr: string) => {
+    // If tapping the same state, deselect it
+    if (locationState === stateAbbr) {
+      setLocationState('');
+      setShowStateModal(false);
+      return;
+    }
+    
+    setLocationState(stateAbbr);
+    setShowStateModal(false);
+    
+    // If current city doesn't exist in this state, clear it
+    if (locationCity && CITY_STATE_MAP[locationCity] && !CITY_STATE_MAP[locationCity].includes(stateAbbr)) {
+      setLocationCity('');
+      setCitySearchQuery('');
+    }
+  };
+
+  const clearState = () => {
+    setLocationState('');
+    setShowStateModal(false);
+  };
+
+  // Filter cities based on search query AND selected state (if any)
+  const filteredCities = US_CITIES.filter(city => {
+    const matchesSearch = city.toLowerCase().startsWith(citySearchQuery.toLowerCase());
+    if (!matchesSearch) return false;
+    
+    // If a state is selected, only show cities in that state
+    if (locationState) {
+      const statesForCity = CITY_STATE_MAP[city];
+      return statesForCity && statesForCity.includes(locationState);
+    }
+    return true;
+  }).slice(0, 10);
+
+  // Filter states based on selected city (if any)
+  const filteredStates = US_STATES.filter(state => {
+    // If a city is selected, only show states where that city exists
+    if (locationCity && CITY_STATE_MAP[locationCity]) {
+      return CITY_STATE_MAP[locationCity].includes(state.abbr);
+    }
+    return true;
+  });
 
   const handleCreate = async () => {
     // Validation
@@ -276,13 +361,21 @@ export default function CreateScreen({ onClose }: Props = {}) {
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView 
+      style={styles.container} 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+    >
       <View style={styles.header}>
         <Text style={styles.title}>Create a Pursuit</Text>
         <Text style={styles.subtitle}>* = Required fields</Text>
       </View>
 
-      <ScrollView style={styles.scrollView}>
+      <ScrollView 
+        style={styles.scrollView}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={true}
+      >
         <View style={styles.form}>
           
           {/* BASIC INFORMATION */}
@@ -356,7 +449,11 @@ export default function CreateScreen({ onClose }: Props = {}) {
             {(locationTypes.includes('In-person') || locationTypes.includes('Hybrid')) && (
               <>
                 <Text style={styles.label}>City *</Text>
-                <Text style={styles.hint}>Start typing to search cities</Text>
+                <Text style={styles.hint}>
+                  {locationState 
+                    ? `Start typing to search cities in ${locationState}` 
+                    : 'Start typing to search cities'}
+                </Text>
                 <View>
                   <TextInput
                     style={styles.input}
@@ -621,30 +718,42 @@ export default function CreateScreen({ onClose }: Props = {}) {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select State</Text>
+              <Text style={styles.modalTitle}>
+                Select State{locationCity ? ` (for ${locationCity})` : ''}
+              </Text>
               <TouchableOpacity onPress={() => setShowStateModal(false)}>
                 <Text style={styles.modalClose}>✕</Text>
               </TouchableOpacity>
             </View>
-            <FlatList
-              data={US_STATES}
-              keyExtractor={(item) => item.abbr}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.stateItem}
-                  onPress={() => {
-                    setLocationState(item.abbr);
-                    setShowStateModal(false);
-                  }}
-                >
-                  <Text style={styles.stateText}>{item.name} ({item.abbr})</Text>
-                </TouchableOpacity>
-              )}
-            />
+            {locationState ? (
+              <TouchableOpacity style={styles.clearButton} onPress={clearState}>
+                <Text style={styles.clearButtonText}>✕ Clear selection ({locationState})</Text>
+              </TouchableOpacity>
+            ) : null}
+            {filteredStates.length === 0 ? (
+              <View style={styles.emptyStateContainer}>
+                <Text style={styles.emptyStateText}>No states found for the selected city</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={filteredStates}
+                keyExtractor={(item) => item.abbr}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[styles.stateItem, locationState === item.abbr && styles.stateItemSelected]}
+                    onPress={() => selectState(item.abbr)}
+                  >
+                    <Text style={[styles.stateText, locationState === item.abbr && styles.stateTextSelected]}>
+                      {item.name} ({item.abbr}){locationState === item.abbr ? ' (tap to deselect)' : ''}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              />
+            )}
           </View>
         </View>
       </Modal>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -801,8 +910,37 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
+  stateItemSelected: {
+    backgroundColor: '#e0f2fe',
+  },
   stateText: {
     fontSize: 15,
     color: '#333',
+  },
+  stateTextSelected: {
+    color: '#0ea5e9',
+    fontWeight: '600',
+  },
+  emptyStateContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyStateText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+  },
+  clearButton: {
+    backgroundColor: '#fee2e2',
+    padding: 12,
+    marginHorizontal: 16,
+    marginTop: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  clearButtonText: {
+    color: '#dc2626',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

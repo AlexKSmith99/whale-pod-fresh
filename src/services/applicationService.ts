@@ -45,7 +45,7 @@ export const applicationService = {
       console.log('✅ Applicant found:', applicant);
 
       if (pursuit && applicant) {
-        const applicantName = applicant.name || applicant.email || 'Someone';
+        const applicantName = applicant.name || 'An applicant';
         console.log('🔔 Sending notification to creator:', pursuit.creator_id, 'about applicant:', applicantName);
 
         await notificationService.notifyApplicationReceived(
@@ -175,7 +175,7 @@ export const applicationService = {
       console.log('✅ Creator found:', creator);
 
       if (pursuit && creator) {
-        const creatorName = creator.name || creator.email || 'The creator';
+        const creatorName = creator.name || 'The pod creator';
         console.log('🔔 Sending acceptance notification to:', application.applicant_id, 'for pursuit:', pursuit.title);
 
         await notificationService.notifyApplicationAccepted(
@@ -259,7 +259,7 @@ export const applicationService = {
       console.log('✅ Creator found:', creator);
 
       if (pursuit && creator) {
-        const creatorName = creator.name || creator.email || 'The creator';
+        const creatorName = creator.name || 'The pod creator';
         console.log('🔔 Sending rejection notification to:', application.applicant_id, 'for pursuit:', pursuit.title);
 
         await notificationService.notifyApplicationRejected(

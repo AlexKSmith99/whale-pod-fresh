@@ -134,20 +134,22 @@ export const notificationService = {
 
       console.log('💾 Inserting notifications into database:', notifications);
 
-      // DEBUG: Check current session
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('🔐 Current session role:', session?.user?.role || 'NO SESSION');
-      console.log('🔐 Current user ID:', session?.user?.id || 'NO USER');
+      // Insert notifications directly - wrapped in try-catch to be non-blocking
+      try {
+        const { data: insertedData, error: historyError } = await supabase
+          .from('notifications')
+          .insert(notifications)
+          .select();
 
-      const { data: insertedData, error: historyError } = await supabase
-        .rpc('create_notifications', {
-          input_notifications: notifications,
-        });
-
-      if (historyError) {
-        console.error('❌ Error storing notification history:', historyError);
-      } else {
-        console.log('✅ Notifications stored successfully:', insertedData);
+        if (historyError) {
+          // Log but don't throw - notification failure shouldn't block main flow
+          console.warn('⚠️ Could not store notification (RLS may be blocking):', historyError.message);
+        } else {
+          console.log('✅ Notifications stored successfully:', insertedData);
+        }
+      } catch (insertError) {
+        // Silently handle - notifications are secondary to the main action
+        console.warn('⚠️ Notification insert failed:', insertError);
       }
 
       // Try to send push notifications if tokens are available
@@ -534,6 +536,30 @@ export const notificationService = {
     );
   },
 
+  // Meeting invitation notification
+  async notifyMeetingInvitation(
+    participantIds: string[],
+    meetingId: string,
+    meetingTitle: string,
+    creatorName: string,
+    meetingDate: string,
+    meetingTime: string,
+    pursuitName: string
+  ) {
+    await this.sendPushNotification(
+      participantIds,
+      `${creatorName} invited you to "${meetingTitle}"`,
+      `${meetingDate} at ${meetingTime} - ${pursuitName}. Tap to respond.`,
+      {
+        type: 'meeting_invitation',
+        meetingId,
+      },
+      'meeting_invitation',
+      meetingId,
+      'meeting'
+    );
+  },
+
   // Get unread notification count
   async getUnreadCount(userId: string): Promise<number> {
     const { count, error } = await supabase
@@ -676,6 +702,77 @@ export const notificationService = {
 
     console.log('🔍 Final counts map:', Object.fromEntries(counts));
     return counts;
+  },
+
+  // Interview scheduling requested - notify applicant to propose times
+  async notifyInterviewSchedulingRequested(
+    applicantId: string,
+    applicationId: string,
+    pursuitId: string,
+    pursuitName: string,
+    creatorName: string
+  ) {
+    await this.sendPushNotification(
+      [applicantId],
+      `${creatorName} wants to schedule an interview for "${pursuitName}"`,
+      'Propose your available interview times for next week',
+      {
+        type: 'interview_scheduling_requested',
+        applicationId,
+        pursuitId,
+      },
+      'interview_scheduling_requested',
+      applicationId,
+      'application'
+    );
+  },
+
+  // Interview times submitted - notify creator
+  async notifyInterviewTimesSubmitted(
+    creatorId: string,
+    applicationId: string,
+    pursuitId: string,
+    pursuitName: string,
+    applicantName: string
+  ) {
+    await this.sendPushNotification(
+      [creatorId],
+      `${applicantName} submitted their interview availability for "${pursuitName}"`,
+      'Review their times and schedule the interview',
+      {
+        type: 'interview_times_submitted',
+        applicationId,
+        pursuitId,
+      },
+      'interview_times_submitted',
+      applicationId,
+      'application'
+    );
+  },
+
+  // Interview scheduled - notify applicant
+  async notifyInterviewScheduled(
+    applicantId: string,
+    applicationId: string,
+    pursuitId: string,
+    pursuitName: string,
+    creatorName: string,
+    interviewDate: string,
+    interviewTime: string
+  ) {
+    await this.sendPushNotification(
+      [applicantId],
+      `Interview scheduled for "${pursuitName}"`,
+      `${creatorName} scheduled your interview for ${interviewDate} at ${interviewTime}`,
+      {
+        type: 'interview_scheduled',
+        applicationId,
+        pursuitId,
+      },
+      'interview_scheduled',
+      applicationId,
+      'application'
+    );
   },
 
   // Mark all notifications as read for a specific pursuit

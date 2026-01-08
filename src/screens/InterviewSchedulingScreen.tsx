@@ -10,8 +10,11 @@ import { supabase } from '../config/supabase';
 import { colors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
 
 interface Props {
+  applicationId: string;
   pursuitId: string;
   pursuitTitle: string;
+  applicantId: string;
+  applicantName: string;
   onClose: () => void;
   onScheduled: () => void;
 }
@@ -25,15 +28,23 @@ const formatTime12Hour = (time24: string): string => {
   return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
 };
 
-export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClose, onScheduled }: Props) {
+export default function InterviewSchedulingScreen({
+  applicationId,
+  pursuitId,
+  pursuitTitle,
+  applicantId,
+  applicantName,
+  onClose,
+  onScheduled
+}: Props) {
   const { user } = useAuth();
-  const [proposals, setProposals] = useState<any[]>([]);
+  const [proposedTimes, setProposedTimes] = useState<any[]>([]);
+  const [timezone, setTimezone] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [selectedTime, setSelectedTime] = useState<any>(null);
   const [meetingType, setMeetingType] = useState<'in_person' | 'video' | 'hybrid'>('video');
   const [location, setLocation] = useState('');
-  const [duration, setDuration] = useState('60');
-  const [teamMembersCount, setTeamMembersCount] = useState(0);
+  const [duration, setDuration] = useState('30');
   const [useCustomTime, setUseCustomTime] = useState(false);
   const [customDate, setCustomDate] = useState(new Date());
   const [customTime, setCustomTime] = useState(new Date());
@@ -41,43 +52,39 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
   const [showTimePicker, setShowTimePicker] = useState(false);
 
   useEffect(() => {
-    loadProposals();
-    loadTeamMembersCount();
+    loadProposedTimes();
   }, []);
 
-  const loadProposals = async () => {
+  const loadProposedTimes = async () => {
     try {
       setLoading(true);
-      const data = await meetingService.getKickoffProposals(pursuitId);
-      setProposals(data || []);
+      console.log('🎤 Loading proposed times for applicationId:', applicationId);
+
+      const { data, error } = await supabase
+        .from('pursuit_applications')
+        .select('id, status, interview_proposed_times, interview_timezone')
+        .eq('id', applicationId)
+        .single();
+
+      console.log('🎤 Query result:', { data, error });
+
+      if (error) throw error;
+
+      console.log('🎤 Proposed times from DB:', data.interview_proposed_times);
+      console.log('🎤 Application status:', data.status);
+
+      setProposedTimes(data.interview_proposed_times || []);
+      setTimezone(data.interview_timezone || 'America/New_York');
     } catch (error) {
-      console.error('Error loading proposals:', error);
-      Alert.alert('Error', 'Failed to load time proposals');
+      console.error('Error loading proposed times:', error);
+      Alert.alert('Error', 'Failed to load proposed interview times');
     } finally {
       setLoading(false);
     }
   };
 
-  const loadTeamMembersCount = async () => {
-    try {
-      // Get all active/accepted team members excluding the creator
-      const { data, error } = await supabase
-        .from('team_members')
-        .select('user_id')
-        .eq('pursuit_id', pursuitId)
-        .in('status', ['active', 'accepted'])
-        .neq('user_id', user!.id); // Exclude creator
-
-      if (error) throw error;
-      setTeamMembersCount(data?.length || 0);
-    } catch (error) {
-      console.error('Error loading team members count:', error);
-    }
-  };
-
   const getScheduledDateTime = () => {
     if (useCustomTime) {
-      // Combine custom date and time
       const combined = new Date(customDate);
       combined.setHours(customTime.getHours(), customTime.getMinutes(), 0, 0);
       return combined;
@@ -113,14 +120,28 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
     return null;
   };
 
-  const handleScheduleKickoff = async () => {
+  const handleScheduleInterview = async () => {
     if (!useCustomTime && !selectedTime) {
-      Alert.alert('Missing Selection', 'Please select a meeting time or choose a custom time');
+      Alert.alert('Missing Selection', 'Please select an interview time or choose a custom time');
       return;
     }
 
     if ((meetingType === 'in_person' || meetingType === 'hybrid') && !location.trim()) {
-      Alert.alert('Missing Location', 'Please enter a location for the meeting');
+      Alert.alert('Missing Location', 'Please enter a location for the interview');
+      return;
+    }
+
+    // Validate that the selected time is not in the past
+    const scheduledDateTimeObj = getScheduledDateTime();
+    if (scheduledDateTimeObj && scheduledDateTimeObj < new Date()) {
+      Alert.alert('Invalid Time', 'You cannot schedule an interview in the past. Please select a future date and time.');
+      return;
+    }
+
+    // Validate minimum duration (15 minutes)
+    const durationNum = parseInt(duration) || 30;
+    if (durationNum < 15) {
+      Alert.alert('Invalid Duration', 'Interview duration must be at least 15 minutes.');
       return;
     }
 
@@ -128,8 +149,8 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
     if (!displayDateTime) return;
 
     Alert.alert(
-      'Schedule Kickoff',
-      `This will schedule the kickoff meeting for ${displayDateTime.date} at ${displayDateTime.time}. All team members will be notified.`,
+      'Schedule Interview',
+      `This will schedule the interview with ${applicantName} for ${displayDateTime.date} at ${displayDateTime.time}.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -137,41 +158,25 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
           onPress: async () => {
             setLoading(true);
             try {
-              // Get team members (both active and accepted)
-              const { data: teamMembers, error: teamError } = await supabase
-                .from('team_members')
-                .select('user_id')
-                .eq('pursuit_id', pursuitId)
-                .in('status', ['active', 'accepted']);
-
-              if (teamError) throw teamError;
-
-              const participantIds = teamMembers?.map((tm: any) => tm.user_id) || [];
-
-              // Add creator to participants if not already included
-              if (!participantIds.includes(user!.id)) {
-                participantIds.push(user!.id);
-              }
-
-              console.log(`📅 Creating kickoff meeting with ${participantIds.length} participants:`, participantIds);
-
-              // Create scheduled time from selected proposal or custom time
+              // Get scheduled time
               const scheduledDateTimeObj = getScheduledDateTime();
               if (!scheduledDateTimeObj) throw new Error('No scheduled time selected');
               const scheduledDateTime = scheduledDateTimeObj.toISOString();
 
-              // Create the kickoff meeting
+              // Create the interview meeting with both creator and applicant
+              const participantIds = [user!.id, applicantId];
+
               const meeting = await meetingService.createMeeting({
                 pursuit_id: pursuitId,
                 creator_id: user!.id,
-                title: `${pursuitTitle} - Kickoff Meeting`,
-                description: 'Team kickoff meeting to get started on this pursuit',
+                title: `Interview - ${pursuitTitle}`,
+                description: `Interview for ${applicantName}'s application to ${pursuitTitle}`,
                 meeting_type: meetingType,
                 location: meetingType !== 'video' ? location : undefined,
                 scheduled_time: scheduledDateTime,
-                duration_minutes: parseInt(duration) || 60,
-                timezone: useCustomTime ? Intl.DateTimeFormat().resolvedOptions().timeZone : (selectedTime?.timezone || 'America/New_York'),
-                is_kickoff: true,
+                duration_minutes: parseInt(duration) || 30,
+                timezone: useCustomTime ? Intl.DateTimeFormat().resolvedOptions().timeZone : timezone,
+                is_kickoff: false,
                 recording_enabled: meetingType === 'video',
                 participant_ids: participantIds,
               });
@@ -182,55 +187,31 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                 await agoraService.updateMeetingAgoraInfo(meeting.id, channelName);
               }
 
-              // Update pursuit status to active
-              const { error: statusError } = await supabase
-                .from('pursuits')
-                .update({ status: 'active' })
-                .eq('id', pursuitId);
+              // Update application status to interview_scheduled
+              const { error: appError } = await supabase
+                .from('pursuit_applications')
+                .update({
+                  status: 'interview_scheduled',
+                  interview_meeting_id: meeting.id,
+                  interview_scheduled_time: scheduledDateTime,
+                })
+                .eq('id', applicationId);
 
-              if (statusError) throw statusError;
+              if (appError) throw appError;
 
-              // Send notifications to team members and creator
-              try {
-                // Format the date and time for notification
-                const meetingDate = new Date(scheduledDateTime).toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  month: 'long',
-                  day: 'numeric'
-                });
-                const meetingTime = displayDateTime!.time;
+              // Notify applicant about the scheduled interview
+              const creatorName = user?.name || 'The pod creator';
+              await notificationService.notifyInterviewScheduled(
+                applicantId,
+                applicationId,
+                pursuitId,
+                pursuitTitle,
+                creatorName,
+                displayDateTime.date,
+                displayDateTime.time
+              );
 
-                // Notify team members (excluding creator)
-                if (participantIds.length > 0) {
-                  const teamMemberIds = participantIds.filter(id => id !== user!.id);
-                  if (teamMemberIds.length > 0) {
-                    // Get creator name for notification
-                    const creatorName = user?.name || 'The pod creator';
-                    await notificationService.notifyKickoffScheduledToTeam(
-                      teamMemberIds,
-                      pursuitId,
-                      pursuitTitle,
-                      creatorName,
-                      meetingDate,
-                      meetingTime
-                    );
-                  }
-                }
-
-                // Notify creator with different message about agenda
-                await notificationService.notifyKickoffScheduledToCreator(
-                  user!.id,
-                  pursuitId,
-                  pursuitTitle,
-                  meetingDate,
-                  meetingTime
-                );
-              } catch (notifError) {
-                console.error('Error sending kickoff scheduled notification:', notifError);
-                // Don't throw - notification failure shouldn't block scheduling
-              }
-
-              Alert.alert('Success!', 'Kickoff meeting scheduled successfully!', [
+              Alert.alert('Success!', 'Interview scheduled successfully!', [
                 {
                   text: 'OK',
                   onPress: () => {
@@ -240,8 +221,8 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                 }
               ]);
             } catch (error: any) {
-              console.error('Error scheduling kickoff:', error);
-              Alert.alert('Error', error.message || 'Failed to schedule kickoff');
+              console.error('Error scheduling interview:', error);
+              Alert.alert('Error', error.message || 'Failed to schedule interview');
             } finally {
               setLoading(false);
             }
@@ -251,46 +232,6 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
     );
   };
 
-  // Group time slots by date and time for calendar view
-  const groupedTimeSlots: { [key: string]: { [key: string]: any[] } } = {};
-  const teamMemberColors: { [key: string]: string } = {};
-  const colorPalette = [
-    colors.primary,
-    '#10b981', // green
-    '#f59e0b', // amber
-    '#8b5cf6', // purple
-    '#ec4899', // pink
-    '#06b6d4', // cyan
-  ];
-
-  // Assign colors to team members
-  let colorIndex = 0;
-  proposals.forEach((proposal) => {
-    if (!teamMemberColors[proposal.user_id]) {
-      teamMemberColors[proposal.user_id] = colorPalette[colorIndex % colorPalette.length];
-      colorIndex++;
-    }
-
-    proposal.proposed_times.forEach((time: any) => {
-      const timeKey = `${time.start_time}-${time.end_time}`;
-
-      if (!groupedTimeSlots[time.date]) {
-        groupedTimeSlots[time.date] = {};
-      }
-      if (!groupedTimeSlots[time.date][timeKey]) {
-        groupedTimeSlots[time.date][timeKey] = [];
-      }
-
-      groupedTimeSlots[time.date][timeKey].push({
-        ...time,
-        user_id: proposal.user_id,
-        proposer: proposal.user,
-        timezone: proposal.timezone,
-        color: teamMemberColors[proposal.user_id],
-      });
-    });
-  });
-
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -298,7 +239,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
           <Ionicons name="close" size={28} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Schedule Kickoff</Text>
+        <Text style={styles.headerTitle}>Schedule Interview</Text>
         <View style={{ width: 28 }} />
       </View>
 
@@ -306,102 +247,59 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
         <View style={styles.content}>
           <View style={styles.introSection}>
             <Text style={styles.pursuitTitle}>{pursuitTitle}</Text>
+            <Text style={styles.applicantLabel}>Interview with:</Text>
+            <Text style={styles.applicantName}>{applicantName}</Text>
             <Text style={styles.introText}>
-              Review all time proposals from your team members and select the final meeting time.
+              Review the proposed times below and select when to schedule the interview.
             </Text>
-            <Text style={styles.statsText}>
-              {proposals.length}/{teamMembersCount} team member{teamMembersCount !== 1 ? 's' : ''} submitted proposals
-            </Text>
-            {proposals.length < teamMembersCount && (
-              <Text style={styles.warningText}>
-                ⚠️ Waiting for {teamMembersCount - proposals.length} more team member{teamMembersCount - proposals.length !== 1 ? 's' : ''} to submit
-              </Text>
-            )}
           </View>
 
-          {/* Proposed Times Calendar */}
-          <Text style={styles.sectionTitle}>Proposed Meeting Times</Text>
+          {/* Proposed Times */}
+          <Text style={styles.sectionTitle}>Proposed Interview Times</Text>
 
-          {/* Legend */}
-          {Object.keys(groupedTimeSlots).length > 0 && (
-            <View style={styles.legend}>
-              <Text style={styles.legendTitle}>Team Members:</Text>
-              <View style={styles.legendItems}>
-                {proposals.map((proposal) => (
-                  <View key={proposal.user_id} style={styles.legendItem}>
-                    <View style={[styles.legendColor, { backgroundColor: teamMemberColors[proposal.user_id] }]} />
-                    <Text style={styles.legendText}>{proposal.user?.name || 'Team member'}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
-
-          {Object.keys(groupedTimeSlots).length === 0 ? (
+          {proposedTimes.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons name="time-outline" size={48} color={colors.textTertiary} />
-              <Text style={styles.emptyText}>No proposals yet</Text>
-              <Text style={styles.emptySubtext}>Waiting for team members to submit their availability</Text>
+              <Text style={styles.emptyText}>No times proposed yet</Text>
+              <Text style={styles.emptySubtext}>The applicant hasn't submitted their availability</Text>
             </View>
           ) : (
-            Object.keys(groupedTimeSlots).sort().map((date) => (
-              <View key={date} style={styles.dateGroup}>
-                <Text style={styles.dateHeader}>
-                  {new Date(date).toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    month: 'long',
-                    day: 'numeric',
-                    year: 'numeric'
-                  })}
-                </Text>
+            proposedTimes.map((slot, index) => {
+              const isSelected = !useCustomTime &&
+                selectedTime &&
+                selectedTime.date === slot.date &&
+                selectedTime.start_time === slot.start_time;
 
-                {Object.keys(groupedTimeSlots[date]).sort().map((timeKey) => {
-                  const slots = groupedTimeSlots[date][timeKey];
-                  const firstSlot = slots[0];
-                  const isSelected = !useCustomTime &&
-                                    selectedTime &&
-                                    selectedTime.date === date &&
-                                    selectedTime.start_time === firstSlot.start_time &&
-                                    selectedTime.end_time === firstSlot.end_time;
-
-                  return (
-                    <TouchableOpacity
-                      key={`${date}-${timeKey}`}
-                      style={[
-                        styles.timeSlotOption,
-                        isSelected && styles.timeSlotSelected
-                      ]}
-                      onPress={() => {
-                        setSelectedTime(firstSlot);
-                        setUseCustomTime(false);
-                      }}
-                    >
-                      <View style={styles.timeSlotInfo}>
-                        <Text style={styles.timeSlotTime}>
-                          {formatTime12Hour(firstSlot.start_time)} - {formatTime12Hour(firstSlot.end_time)}
-                        </Text>
-                        <View style={styles.teamMembersRow}>
-                          {slots.map((slot, idx) => (
-                            <View key={idx} style={styles.memberBadge}>
-                              <View style={[styles.memberColorDot, { backgroundColor: slot.color }]} />
-                              <Text style={styles.memberName}>{slot.proposer?.name || 'Team member'}</Text>
-                            </View>
-                          ))}
-                        </View>
-                        {slots.length > 1 && (
-                          <Text style={styles.overlapText}>
-                            ✨ {slots.length} members available
-                          </Text>
-                        )}
-                      </View>
-                      {isSelected && (
-                        <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            ))
+              return (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.timeSlotOption,
+                    isSelected && styles.timeSlotSelected
+                  ]}
+                  onPress={() => {
+                    setSelectedTime(slot);
+                    setUseCustomTime(false);
+                  }}
+                >
+                  <View style={styles.timeSlotInfo}>
+                    <Text style={styles.timeSlotDate}>
+                      {new Date(slot.date).toLocaleDateString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric'
+                      })}
+                    </Text>
+                    <Text style={styles.timeSlotTime}>
+                      {formatTime12Hour(slot.start_time)} - {formatTime12Hour(slot.end_time)}
+                    </Text>
+                  </View>
+                  {isSelected && (
+                    <Ionicons name="checkmark-circle" size={24} color="#8b5cf6" />
+                  )}
+                </TouchableOpacity>
+              );
+            })
           )}
 
           {/* Custom Time Option */}
@@ -419,7 +317,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
               <Ionicons
                 name="calendar-outline"
                 size={24}
-                color={useCustomTime ? colors.primary : colors.textSecondary}
+                color={useCustomTime ? '#8b5cf6' : colors.textSecondary}
               />
               <View style={styles.customTimeTextContainer}>
                 <Text style={[
@@ -434,7 +332,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
               </View>
             </View>
             {useCustomTime && (
-              <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+              <Ionicons name="checkmark-circle" size={24} color="#8b5cf6" />
             )}
           </TouchableOpacity>
 
@@ -444,9 +342,9 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
               <Text style={styles.inputLabel}>Select Date</Text>
               <TouchableOpacity
                 style={styles.dateTimeButton}
-                onPress={() => setShowDatePicker(true)}
+                onPress={() => setShowDatePicker(!showDatePicker)}
               >
-                <Ionicons name="calendar" size={20} color={colors.primary} />
+                <Ionicons name="calendar" size={20} color="#8b5cf6" />
                 <Text style={styles.dateTimeButtonText}>
                   {customDate.toLocaleDateString('en-US', {
                     weekday: 'long',
@@ -455,14 +353,38 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                     year: 'numeric'
                   })}
                 </Text>
+                <Ionicons name={showDatePicker ? "chevron-up" : "chevron-down"} size={16} color="#8b5cf6" />
               </TouchableOpacity>
+
+              {showDatePicker && (
+                <View style={styles.pickerContainer}>
+                  <DateTimePicker
+                    value={customDate}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    minimumDate={new Date()}
+                    onChange={(event, date) => {
+                      if (Platform.OS === 'android') setShowDatePicker(false);
+                      if (date) setCustomDate(date);
+                    }}
+                  />
+                  {Platform.OS === 'ios' && (
+                    <TouchableOpacity
+                      style={styles.doneButton}
+                      onPress={() => setShowDatePicker(false)}
+                    >
+                      <Text style={styles.doneButtonText}>Done</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
 
               <Text style={styles.inputLabel}>Select Time</Text>
               <TouchableOpacity
                 style={styles.dateTimeButton}
-                onPress={() => setShowTimePicker(true)}
+                onPress={() => setShowTimePicker(!showTimePicker)}
               >
-                <Ionicons name="time" size={20} color={colors.primary} />
+                <Ionicons name="time" size={20} color="#8b5cf6" />
                 <Text style={styles.dateTimeButtonText}>
                   {customTime.toLocaleTimeString('en-US', {
                     hour: 'numeric',
@@ -470,31 +392,29 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                     hour12: true
                   })}
                 </Text>
+                <Ionicons name={showTimePicker ? "chevron-up" : "chevron-down"} size={16} color="#8b5cf6" />
               </TouchableOpacity>
 
-              {showDatePicker && (
-                <DateTimePicker
-                  value={customDate}
-                  mode="date"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  minimumDate={new Date()}
-                  onChange={(event, date) => {
-                    setShowDatePicker(Platform.OS === 'ios');
-                    if (date) setCustomDate(date);
-                  }}
-                />
-              )}
-
               {showTimePicker && (
-                <DateTimePicker
-                  value={customTime}
-                  mode="time"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  onChange={(event, time) => {
-                    setShowTimePicker(Platform.OS === 'ios');
-                    if (time) setCustomTime(time);
-                  }}
-                />
+                <View style={styles.pickerContainer}>
+                  <DateTimePicker
+                    value={customTime}
+                    mode="time"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={(event, time) => {
+                      if (Platform.OS === 'android') setShowTimePicker(false);
+                      if (time) setCustomTime(time);
+                    }}
+                  />
+                  {Platform.OS === 'ios' && (
+                    <TouchableOpacity
+                      style={styles.doneButton}
+                      onPress={() => setShowTimePicker(false)}
+                    >
+                      <Text style={styles.doneButtonText}>Done</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
               )}
             </View>
           )}
@@ -523,7 +443,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                   <Text style={styles.inputLabel}>Location</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="e.g., Conference Room A"
+                    placeholder="e.g., Coffee Shop, Office"
                     value={location}
                     onChangeText={setLocation}
                   />
@@ -534,7 +454,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
               <Text style={styles.inputLabel}>Duration (minutes)</Text>
               <TextInput
                 style={styles.input}
-                placeholder="60"
+                placeholder="30"
                 value={duration}
                 onChangeText={setDuration}
                 keyboardType="numeric"
@@ -543,11 +463,11 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
               {/* Schedule Button */}
               <TouchableOpacity
                 style={[styles.scheduleButton, loading && styles.scheduleButtonDisabled]}
-                onPress={handleScheduleKickoff}
+                onPress={handleScheduleInterview}
                 disabled={loading}
               >
                 <Text style={styles.scheduleButtonText}>
-                  {loading ? 'Sending Invites...' : 'Send Kick-Off Invites'}
+                  {loading ? 'Scheduling...' : 'Schedule Interview'}
                 </Text>
               </TouchableOpacity>
             </>
@@ -593,7 +513,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing['4xl'],
   },
   introSection: {
-    backgroundColor: colors.warningLight,
+    backgroundColor: '#f3e8ff',
     padding: spacing.lg,
     borderRadius: borderRadius.lg,
     marginBottom: spacing.xl,
@@ -601,24 +521,24 @@ const styles = StyleSheet.create({
   pursuitTitle: {
     fontSize: typography.fontSize.lg,
     fontWeight: typography.fontWeight.bold,
-    color: colors.warning,
+    color: '#8b5cf6',
+    marginBottom: spacing.sm,
+  },
+  applicantLabel: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textSecondary,
+    marginTop: spacing.sm,
+  },
+  applicantName: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.textPrimary,
     marginBottom: spacing.sm,
   },
   introText: {
     fontSize: typography.fontSize.sm,
     color: colors.textSecondary,
     lineHeight: 20,
-    marginBottom: spacing.sm,
-  },
-  statsText: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.warning,
-  },
-  warningText: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.error,
     marginTop: spacing.sm,
   },
   sectionTitle: {
@@ -645,16 +565,6 @@ const styles = StyleSheet.create({
     color: colors.textTertiary,
     marginTop: spacing.xs,
   },
-  dateGroup: {
-    marginBottom: spacing.lg,
-  },
-  dateHeader: {
-    fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.bold,
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
-    paddingLeft: spacing.sm,
-  },
   timeSlotOption: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -668,82 +578,22 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   timeSlotSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primaryLight,
+    borderColor: '#8b5cf6',
+    backgroundColor: '#f3e8ff',
   },
   timeSlotInfo: {
     flex: 1,
   },
+  timeSlotDate: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.textPrimary,
+    marginBottom: 4,
+  },
   timeSlotTime: {
     fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-  },
-  timeSlotProposer: {
-    fontSize: typography.fontSize.sm,
-    color: colors.textSecondary,
-  },
-  legend: {
-    backgroundColor: colors.backgroundSecondary,
-    padding: spacing.base,
-    borderRadius: borderRadius.base,
-    marginBottom: spacing.base,
-  },
-  legendTitle: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-  },
-  legendItems: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  legendColor: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  legendText: {
-    fontSize: typography.fontSize.xs,
-    color: colors.textSecondary,
-  },
-  teamMembersRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-    marginTop: spacing.xs,
-  },
-  memberBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    backgroundColor: colors.backgroundSecondary,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: borderRadius.base,
-  },
-  memberColorDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  memberName: {
-    fontSize: typography.fontSize.xs,
-    color: colors.textSecondary,
-  },
-  overlapText: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.semibold,
-    color: colors.success,
-    marginTop: spacing.xs,
+    fontWeight: typography.fontWeight.bold,
+    color: '#8b5cf6',
   },
   chipContainer: {
     flexDirection: 'row',
@@ -760,8 +610,8 @@ const styles = StyleSheet.create({
     borderColor: colors.borderLight,
   },
   chipSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: '#8b5cf6',
+    borderColor: '#8b5cf6',
   },
   chipText: {
     fontSize: typography.fontSize.sm,
@@ -789,7 +639,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   scheduleButton: {
-    backgroundColor: colors.warning,
+    backgroundColor: '#8b5cf6',
     borderRadius: borderRadius.base,
     padding: spacing.lg,
     alignItems: 'center',
@@ -818,9 +668,9 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
   },
   customTimeButtonSelected: {
-    borderColor: colors.primary,
+    borderColor: '#8b5cf6',
     borderStyle: 'solid',
-    backgroundColor: colors.primaryLight,
+    backgroundColor: '#f3e8ff',
   },
   customTimeButtonContent: {
     flexDirection: 'row',
@@ -837,7 +687,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   customTimeButtonTextSelected: {
-    color: colors.primary,
+    color: '#8b5cf6',
   },
   customTimeSubtext: {
     fontSize: typography.fontSize.sm,
@@ -864,5 +714,22 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.base,
     color: colors.textPrimary,
     fontWeight: typography.fontWeight.medium,
+    flex: 1,
+  },
+  pickerContainer: {
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: borderRadius.base,
+    marginBottom: spacing.base,
+    overflow: 'hidden',
+  },
+  doneButton: {
+    backgroundColor: '#8b5cf6',
+    padding: spacing.sm,
+    alignItems: 'center',
+  },
+  doneButtonText: {
+    color: colors.white,
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semibold,
   },
 });

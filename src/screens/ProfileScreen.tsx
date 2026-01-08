@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Linking, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Linking, Image, Alert, Modal } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
 import { connectionService } from '../services/connectionService';
 import { reviewService } from '../services/reviewService';
 import EditProfileScreen from './EditProfileScreen';
+import PrivacyPreferencesScreen from './PrivacyPreferencesScreen';
 import ReviewScreen from './ReviewScreen';
 
 export default function ProfileScreen({ navigation }: any) {
@@ -22,6 +24,8 @@ const [averageRatings, setAverageRatings] = useState<any>(null);
 const [reviewableTeammates, setReviewableTeammates] = useState<any[]>([]);
 const [showReviewScreen, setShowReviewScreen] = useState(false);
 const [selectedReviewee, setSelectedReviewee] = useState<any>(null);
+const [showMenu, setShowMenu] = useState(false);
+const [showPrivacyPreferences, setShowPrivacyPreferences] = useState(false);
 
   useEffect(() => {
   loadProfile();
@@ -219,6 +223,16 @@ const handleRejectConnection = async (connectionId: string) => {
     Linking.openURL(fullUrl);
   };
 
+  if (showPrivacyPreferences) {
+    return (
+      <PrivacyPreferencesScreen 
+        onBack={() => {
+          setShowPrivacyPreferences(false);
+        }} 
+      />
+    );
+  }
+
   if (showEdit) {
     return (
       <EditProfileScreen 
@@ -242,10 +256,67 @@ const handleRejectConnection = async (connectionId: string) => {
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>My Profile</Text>
-        <TouchableOpacity onPress={() => setShowEdit(true)} style={styles.editButton}>
-          <Text style={styles.editButtonText}>Edit</Text>
+        <TouchableOpacity onPress={() => setShowMenu(true)} style={styles.menuButton}>
+          <Ionicons name="menu" size={28} color="#1f2937" />
         </TouchableOpacity>
       </View>
+
+      {/* Settings Menu Modal */}
+      <Modal
+        visible={showMenu}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowMenu(false)}
+      >
+        <TouchableOpacity 
+          style={styles.menuOverlay} 
+          activeOpacity={1} 
+          onPress={() => setShowMenu(false)}
+        >
+          <View style={styles.menuContainer}>
+            <View style={styles.menuHeader}>
+              <Text style={styles.menuTitle}>Settings</Text>
+              <TouchableOpacity onPress={() => setShowMenu(false)}>
+                <Ionicons name="close" size={24} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
+            
+            <TouchableOpacity 
+              style={styles.menuItem}
+              onPress={() => {
+                setShowMenu(false);
+                setShowEdit(true);
+              }}
+            >
+              <View style={styles.menuItemIcon}>
+                <Ionicons name="person-outline" size={22} color="#0ea5e9" />
+              </View>
+              <View style={styles.menuItemContent}>
+                <Text style={styles.menuItemText}>Account Details</Text>
+                <Text style={styles.menuItemSubtext}>Edit your profile information</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.menuItem}
+              onPress={() => {
+                setShowMenu(false);
+                setShowPrivacyPreferences(true);
+              }}
+            >
+              <View style={styles.menuItemIcon}>
+                <Ionicons name="shield-outline" size={22} color="#10b981" />
+              </View>
+              <View style={styles.menuItemContent}>
+                <Text style={styles.menuItemText}>Privacy Preferences</Text>
+                <Text style={styles.menuItemSubtext}>Manage your privacy settings</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       <View style={styles.content}>
         <View style={styles.avatarContainer}>
@@ -254,7 +325,7 @@ const handleRejectConnection = async (connectionId: string) => {
           ) : (
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>
-                {profile?.name?.charAt(0).toUpperCase() || profile?.email?.charAt(0).toUpperCase() || '?'}
+                {profile?.name?.charAt(0).toUpperCase() || '?'}
               </Text>
             </View>
           )}
@@ -541,8 +612,73 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: { fontSize: 28, fontWeight: 'bold', color: '#0ea5e9' },
-  editButton: { backgroundColor: '#0ea5e9', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
-  editButtonText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
+  menuButton: { 
+    padding: 8,
+  },
+  // Menu Modal Styles
+  menuOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+    paddingTop: 100,
+    paddingRight: 16,
+  },
+  menuContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    width: 280,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+    overflow: 'hidden',
+  },
+  menuHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  menuTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1f2937',
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  menuItemIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: '#f3f4f6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  menuItemContent: {
+    flex: 1,
+  },
+  menuItemText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 2,
+  },
+  menuItemSubtext: {
+    fontSize: 12,
+    color: '#9ca3af',
+  },
   content: { padding: 20, paddingBottom: 100 },
   avatarContainer: { alignItems: 'center', marginBottom: 20 },
   avatar: {

@@ -193,7 +193,7 @@ export const meetingService = {
         .eq('id', userId)
         .single();
 
-      const memberName = submitter?.name || submitter?.email || 'A team member';
+      const memberName = submitter?.name || 'A team member';
 
       // Notify creator that this member submitted their availability
       await notificationService.notifyTimeProposalSubmitted(

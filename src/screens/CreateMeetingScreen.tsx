@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, Modal, FlatList, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, Modal, FlatList, Switch, Image, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '../contexts/AuthContext';
 import { meetingService } from '../services/meetingService';
 import { agoraService } from '../services/agoraService';
+import { notificationService } from '../services/notificationService';
 import { supabase } from '../config/supabase';
 import { colors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
 
@@ -22,9 +24,11 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
   const [selectedPursuit, setSelectedPursuit] = useState<any>(null);
   const [meetingType, setMeetingType] = useState<'in_person' | 'video' | 'hybrid'>('video');
   const [location, setLocation] = useState('');
-  const [scheduledDate, setScheduledDate] = useState('');
-  const [scheduledTime, setScheduledTime] = useState('');
+  const [scheduledDate, setScheduledDate] = useState<Date>(new Date());
+  const [scheduledTime, setScheduledTime] = useState<Date>(new Date());
   const [duration, setDuration] = useState('60');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [timezone, setTimezone] = useState('America/New_York');
   const [recordingEnabled, setRecordingEnabled] = useState(false);
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>([]);
@@ -49,19 +53,43 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
     if (!user) return;
 
     try {
-      // Get pursuits where user is creator or team member
-      const { data: teamMemberships, error } = await supabase
+      // Get pursuits where user is the creator
+      const { data: createdPursuits, error: createdError } = await supabase
+        .from('pursuits')
+        .select('*')
+        .eq('creator_id', user.id);
+
+      if (createdError) throw createdError;
+
+      // Get active memberships (not removed)
+      const { data: activeMemberships, error: memberError } = await supabase
         .from('team_members')
-        .select(`
-          pursuit:pursuits(*)
-        `)
+        .select('pursuit_id')
         .eq('user_id', user.id)
-        .eq('status', 'active');
+        .neq('status', 'removed');
 
-      if (error) throw error;
+      if (memberError) throw memberError;
 
-      const pursuits = teamMemberships?.map((tm: any) => tm.pursuit).filter(Boolean) || [];
-      setUserPursuits(pursuits);
+      const memberPursuitIds = activeMemberships?.map(m => m.pursuit_id) || [];
+
+      let memberPursuits: any[] = [];
+      if (memberPursuitIds.length > 0) {
+        const { data, error } = await supabase
+          .from('pursuits')
+          .select('*')
+          .in('id', memberPursuitIds);
+
+        if (error) throw error;
+        memberPursuits = data || [];
+      }
+
+      // Combine and deduplicate (in case user is both creator and team member)
+      const allPursuits = [...(createdPursuits || []), ...memberPursuits];
+      const uniquePursuits = allPursuits.filter((pursuit, index, self) =>
+        index === self.findIndex(p => p.id === pursuit.id)
+      );
+
+      setUserPursuits(uniquePursuits);
     } catch (error) {
       console.error('Error loading pursuits:', error);
     }
@@ -75,10 +103,10 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
         .from('team_members')
         .select(`
           user_id,
-          user:profiles(id, name, email)
+          user:profiles(id, name, email, profile_picture)
         `)
         .eq('pursuit_id', selectedPursuit.id)
-        .eq('status', 'active');
+        .neq('status', 'removed');
 
       if (error) throw error;
       setPursuitMembers(data || []);
@@ -88,6 +116,17 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
       setSelectedParticipants(memberIds);
     } catch (error) {
       console.error('Error loading members:', error);
+    }
+  };
+
+  const toggleSelectAll = () => {
+    const allMemberIds = pursuitMembers.map((m: any) => m.user_id);
+    if (selectedParticipants.length === allMemberIds.length) {
+      // Deselect all
+      setSelectedParticipants([]);
+    } else {
+      // Select all
+      setSelectedParticipants(allMemberIds);
     }
   };
 
@@ -111,8 +150,20 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
       return;
     }
 
-    if (!scheduledDate || !scheduledTime) {
-      Alert.alert('Missing Date/Time', 'Please select a date and time');
+    // Combine date and time into a single DateTime
+    const scheduledDateTime = new Date(scheduledDate);
+    scheduledDateTime.setHours(scheduledTime.getHours(), scheduledTime.getMinutes(), 0, 0);
+
+    // Validate date/time is not in the past
+    if (scheduledDateTime < new Date()) {
+      Alert.alert('Invalid Time', 'You cannot schedule a meeting in the past. Please select a future date and time.');
+      return;
+    }
+
+    // Validate minimum duration (15 minutes)
+    const durationNum = parseInt(duration) || 60;
+    if (durationNum < 15) {
+      Alert.alert('Invalid Duration', 'Meeting duration must be at least 15 minutes.');
       return;
     }
 
@@ -128,8 +179,8 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
 
     setLoading(true);
     try {
-      // Combine date and time
-      const scheduledDateTime = new Date(`${scheduledDate}T${scheduledTime}`).toISOString();
+      // Use the already validated scheduledDateTime
+      const scheduledDateTimeISO = scheduledDateTime.toISOString();
 
       // Create meeting
       const meeting = await meetingService.createMeeting({
@@ -138,9 +189,9 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
         title,
         description,
         meeting_type: meetingType,
-        location: meetingType === 'in_person' ? location : undefined,
-        scheduled_time: scheduledDateTime,
-        duration_minutes: parseInt(duration) || 60,
+        location: (meetingType === 'in_person' || meetingType === 'hybrid') ? location : undefined,
+        scheduled_time: scheduledDateTimeISO,
+        duration_minutes: durationNum,
         timezone,
         is_kickoff: false,
         recording_enabled: recordingEnabled,
@@ -153,7 +204,43 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
         await agoraService.updateMeetingAgoraInfo(meeting.id, channelName);
       }
 
-      Alert.alert('Success!', 'Meeting created successfully', [
+      // Get creator's profile for notification
+      const { data: creatorProfile } = await supabase
+        .from('profiles')
+        .select('name, email')
+        .eq('id', user!.id)
+        .single();
+
+      const creatorName = creatorProfile?.name || 'The organizer';
+
+      // Format date and time for notification
+      const meetingDate = scheduledDateTime;
+      const formattedDate = meetingDate.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+      });
+      const formattedTime = meetingDate.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
+
+      // Send meeting invitation notifications to all participants (except creator)
+      const participantsToNotify = selectedParticipants.filter(id => id !== user!.id);
+      if (participantsToNotify.length > 0) {
+        await notificationService.notifyMeetingInvitation(
+          participantsToNotify,
+          meeting.id,
+          title,
+          creatorName,
+          formattedDate,
+          formattedTime,
+          selectedPursuit.title
+        );
+      }
+
+      Alert.alert('Invites Sent!', `Meeting invitations sent to ${participantsToNotify.length} team member${participantsToNotify.length !== 1 ? 's' : ''}`, [
         { text: 'OK', onPress: () => {
           onMeetingCreated?.();
           onClose();
@@ -180,6 +267,18 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
 
       <ScrollView style={styles.scrollView}>
         <View style={styles.form}>
+          {/* Pod Selection - First field */}
+          <Text style={[styles.label, { marginTop: 0 }]}>Pod *</Text>
+          <TouchableOpacity
+            style={[styles.input, styles.pickerButton]}
+            onPress={() => setShowPursuitModal(true)}
+          >
+            <Text style={selectedPursuit ? styles.pickerTextSelected : styles.pickerText}>
+              {selectedPursuit ? selectedPursuit.title : 'Select pod'}
+            </Text>
+            <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+
           {/* Title */}
           <Text style={styles.label}>Meeting Title *</Text>
           <TextInput
@@ -188,6 +287,53 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
             value={title}
             onChangeText={setTitle}
           />
+
+          {/* Participants - shown after Pod is selected */}
+          {selectedPursuit && (
+            <>
+              <Text style={styles.label}>Participants * ({selectedParticipants.length} selected)</Text>
+              <TouchableOpacity
+                style={[styles.input, styles.pickerButton]}
+                onPress={() => setShowParticipantsModal(true)}
+              >
+                <View style={styles.selectedParticipantsPreview}>
+                  {selectedParticipants.length > 0 ? (
+                    <>
+                      {pursuitMembers
+                        .filter(m => selectedParticipants.includes(m.user_id))
+                        .slice(0, 3)
+                        .map((member, index) => (
+                          member.user?.profile_picture ? (
+                            <Image
+                              key={member.user_id}
+                              source={{ uri: member.user.profile_picture }}
+                              style={[styles.previewAvatar, { marginLeft: index > 0 ? -8 : 0 }]}
+                            />
+                          ) : (
+                            <View key={member.user_id} style={[styles.previewAvatar, styles.previewAvatarPlaceholder, { marginLeft: index > 0 ? -8 : 0 }]}>
+                              <Text style={styles.previewAvatarText}>
+                                {member.user?.name?.charAt(0).toUpperCase() || '?'}
+                              </Text>
+                            </View>
+                          )
+                        ))}
+                      {selectedParticipants.length > 3 && (
+                        <View style={[styles.previewAvatar, styles.previewAvatarMore, { marginLeft: -8 }]}>
+                          <Text style={styles.previewAvatarMoreText}>+{selectedParticipants.length - 3}</Text>
+                        </View>
+                      )}
+                      <Text style={[styles.pickerTextSelected, { marginLeft: 8 }]}>
+                        {selectedParticipants.length} team member{selectedParticipants.length !== 1 ? 's' : ''}
+                      </Text>
+                    </>
+                  ) : (
+                    <Text style={styles.pickerText}>Select participants</Text>
+                  )}
+                </View>
+                <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </>
+          )}
 
           {/* Description */}
           <Text style={styles.label}>Description (optional)</Text>
@@ -199,18 +345,6 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
             multiline
             numberOfLines={3}
           />
-
-          {/* Pursuit Selection */}
-          <Text style={styles.label}>Pursuit *</Text>
-          <TouchableOpacity
-            style={[styles.input, styles.pickerButton]}
-            onPress={() => setShowPursuitModal(true)}
-          >
-            <Text style={selectedPursuit ? styles.pickerTextSelected : styles.pickerText}>
-              {selectedPursuit ? selectedPursuit.title : 'Select pursuit'}
-            </Text>
-            <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
-          </TouchableOpacity>
 
           {/* Meeting Type */}
           <Text style={styles.label}>Meeting Type *</Text>
@@ -243,21 +377,82 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
 
           {/* Date */}
           <Text style={styles.label}>Date *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="YYYY-MM-DD (e.g., 2025-01-15)"
-            value={scheduledDate}
-            onChangeText={setScheduledDate}
-          />
+          <TouchableOpacity
+            style={[styles.input, styles.pickerButton]}
+            onPress={() => setShowDatePicker(!showDatePicker)}
+          >
+            <Ionicons name="calendar" size={20} color={colors.primary} />
+            <Text style={styles.pickerTextSelected}>
+              {scheduledDate.toLocaleDateString('en-US', {
+                weekday: 'long',
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric'
+              })}
+            </Text>
+            <Ionicons name={showDatePicker ? "chevron-up" : "chevron-down"} size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+          {showDatePicker && (
+            <View style={styles.datePickerContainer}>
+              <DateTimePicker
+                value={scheduledDate}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                minimumDate={new Date()}
+                onChange={(event, date) => {
+                  if (Platform.OS === 'android') setShowDatePicker(false);
+                  if (date) setScheduledDate(date);
+                }}
+              />
+              {Platform.OS === 'ios' && (
+                <TouchableOpacity
+                  style={styles.doneButton}
+                  onPress={() => setShowDatePicker(false)}
+                >
+                  <Text style={styles.doneButtonText}>Done</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
 
           {/* Time */}
           <Text style={styles.label}>Time *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="HH:MM (e.g., 14:30)"
-            value={scheduledTime}
-            onChangeText={setScheduledTime}
-          />
+          <TouchableOpacity
+            style={[styles.input, styles.pickerButton]}
+            onPress={() => setShowTimePicker(!showTimePicker)}
+          >
+            <Ionicons name="time" size={20} color={colors.primary} />
+            <Text style={styles.pickerTextSelected}>
+              {scheduledTime.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+              })}
+            </Text>
+            <Ionicons name={showTimePicker ? "chevron-up" : "chevron-down"} size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+          {showTimePicker && (
+            <View style={styles.datePickerContainer}>
+              <DateTimePicker
+                value={scheduledTime}
+                mode="time"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                minuteInterval={15}
+                onChange={(event, time) => {
+                  if (Platform.OS === 'android') setShowTimePicker(false);
+                  if (time) setScheduledTime(time);
+                }}
+              />
+              {Platform.OS === 'ios' && (
+                <TouchableOpacity
+                  style={styles.doneButton}
+                  onPress={() => setShowTimePicker(false)}
+                >
+                  <Text style={styles.doneButtonText}>Done</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
 
           {/* Duration */}
           <Text style={styles.label}>Duration (minutes)</Text>
@@ -268,22 +463,6 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
             onChangeText={setDuration}
             keyboardType="numeric"
           />
-
-          {/* Participants */}
-          {selectedPursuit && (
-            <>
-              <Text style={styles.label}>Participants * ({selectedParticipants.length} selected)</Text>
-              <TouchableOpacity
-                style={[styles.input, styles.pickerButton]}
-                onPress={() => setShowParticipantsModal(true)}
-              >
-                <Text style={styles.pickerTextSelected}>
-                  {selectedParticipants.length} team members
-                </Text>
-                <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
-              </TouchableOpacity>
-            </>
-          )}
 
           {/* Recording */}
           {(meetingType === 'video' || meetingType === 'hybrid') && (
@@ -300,7 +479,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
             disabled={loading}
           >
             <Text style={styles.createButtonText}>
-              {loading ? 'Creating...' : 'Create Meeting'}
+              {loading ? 'Sending...' : 'Send Meeting Invites'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -316,7 +495,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Pursuit</Text>
+              <Text style={styles.modalTitle}>Select Pod</Text>
               <TouchableOpacity onPress={() => setShowPursuitModal(false)}>
                 <Ionicons name="close" size={24} color={colors.textPrimary} />
               </TouchableOpacity>
@@ -358,6 +537,25 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
                 <Ionicons name="close" size={24} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
+            {/* Select All Option */}
+            <TouchableOpacity
+              style={[styles.modalItem, styles.selectAllItem]}
+              onPress={toggleSelectAll}
+            >
+              <View style={styles.participantInfo}>
+                <View style={[styles.selectAllIcon, selectedParticipants.length === pursuitMembers.length && styles.selectAllIconActive]}>
+                  <Ionicons
+                    name={selectedParticipants.length === pursuitMembers.length ? "checkmark" : "people"}
+                    size={18}
+                    color={selectedParticipants.length === pursuitMembers.length ? colors.white : colors.primary}
+                  />
+                </View>
+                <Text style={styles.selectAllText}>Select All ({pursuitMembers.length})</Text>
+              </View>
+              {selectedParticipants.length === pursuitMembers.length && (
+                <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+              )}
+            </TouchableOpacity>
             <FlatList
               data={pursuitMembers}
               keyExtractor={(item) => item.user_id}
@@ -366,9 +564,25 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
                   style={styles.modalItem}
                   onPress={() => toggleParticipant(item.user_id)}
                 >
-                  <Text style={styles.modalItemText}>{item.user.name || item.user.email}</Text>
-                  {selectedParticipants.includes(item.user_id) && (
+                  <View style={styles.participantInfo}>
+                    {item.user?.profile_picture ? (
+                      <Image
+                        source={{ uri: item.user.profile_picture }}
+                        style={styles.participantAvatar}
+                      />
+                    ) : (
+                      <View style={[styles.participantAvatar, styles.participantAvatarPlaceholder]}>
+                        <Text style={styles.participantAvatarText}>
+                          {item.user?.name?.charAt(0).toUpperCase() || '?'}
+                        </Text>
+                      </View>
+                    )}
+                    <Text style={styles.modalItemText}>{item.user?.name || 'Team Member'}</Text>
+                  </View>
+                  {selectedParticipants.includes(item.user_id) ? (
                     <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+                  ) : (
+                    <View style={styles.uncheckedCircle} />
                   )}
                 </TouchableOpacity>
               )}
@@ -438,12 +652,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: spacing.sm,
   },
   pickerText: {
     color: colors.textTertiary,
+    flex: 1,
   },
   pickerTextSelected: {
     color: colors.textPrimary,
+    flex: 1,
   },
   chipContainer: {
     flexDirection: 'row',
@@ -495,12 +712,12 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.lg,
   },
   modalContent: {
     backgroundColor: colors.white,
-    borderTopLeftRadius: borderRadius.xl,
-    borderTopRightRadius: borderRadius.xl,
+    borderRadius: borderRadius.xl,
     maxHeight: '70%',
     paddingBottom: spacing.xl,
   },
@@ -528,5 +745,105 @@ const styles = StyleSheet.create({
   modalItemText: {
     fontSize: typography.fontSize.base,
     color: colors.textPrimary,
+  },
+  // Participants preview styles
+  selectedParticipantsPreview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  previewAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: colors.white,
+  },
+  previewAvatarPlaceholder: {
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  previewAvatarText: {
+    fontSize: 12,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.white,
+  },
+  previewAvatarMore: {
+    backgroundColor: colors.textSecondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  previewAvatarMoreText: {
+    fontSize: 10,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.white,
+  },
+  // Participant modal styles
+  participantInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: spacing.base,
+  },
+  participantAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  participantAvatarPlaceholder: {
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  participantAvatarText: {
+    fontSize: 16,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.white,
+  },
+  uncheckedCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.borderLight,
+  },
+  selectAllItem: {
+    backgroundColor: colors.backgroundSecondary,
+  },
+  selectAllIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.backgroundSecondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  selectAllIconActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  selectAllText: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.textPrimary,
+  },
+  datePickerContainer: {
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: borderRadius.base,
+    marginBottom: spacing.base,
+    overflow: 'hidden',
+  },
+  doneButton: {
+    backgroundColor: colors.primary,
+    padding: spacing.sm,
+    alignItems: 'center',
+  },
+  doneButtonText: {
+    color: colors.white,
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semibold,
   },
 });

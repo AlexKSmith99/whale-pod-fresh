@@ -236,9 +236,15 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
                             onPress={() => onOpenMeeting && onOpenMeeting(meeting)}
                             activeOpacity={0.7}
                           >
-                            <View style={[styles.meetingColorBar, { backgroundColor: colors.primary }]} />
+                            <View style={[styles.meetingColorBar, { backgroundColor: meeting.meeting_type === 'in_person' ? '#10b981' : meeting.meeting_type === 'hybrid' ? '#f59e0b' : colors.primary }]} />
                             <View style={styles.meetingContent}>
                               <View style={styles.meetingTopRow}>
+                                <Ionicons
+                                  name={getMeetingIcon(meeting.meeting_type) as any}
+                                  size={16}
+                                  color={meeting.meeting_type === 'in_person' ? '#10b981' : meeting.meeting_type === 'hybrid' ? '#f59e0b' : colors.primary}
+                                  style={{ marginRight: 6 }}
+                                />
                                 <Text style={styles.meetingTitle} numberOfLines={1}>
                                   {meeting.title}
                                 </Text>
@@ -251,9 +257,13 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
                               <View style={styles.meetingBottomRow}>
                                 <Text style={styles.meetingTimeText}>{timeString}</Text>
                                 <Text style={styles.meetingDivider}>•</Text>
-                                <Text style={styles.meetingPursuitText} numberOfLines={1}>
-                                  {meeting.pursuit?.title || 'Pursuit'}
-                                </Text>
+                                <Text style={styles.meetingTypeText}>{getMeetingTypeLabel(meeting.meeting_type)}</Text>
+                                {meeting.location && (
+                                  <>
+                                    <Text style={styles.meetingDivider}>•</Text>
+                                    <Text style={styles.meetingLocationText} numberOfLines={1}>{meeting.location}</Text>
+                                  </>
+                                )}
                               </View>
                             </View>
                           </TouchableOpacity>
@@ -417,5 +427,15 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: typography.fontSize.sm,
     color: colors.textSecondary,
+  },
+  meetingTypeText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textSecondary,
+    fontWeight: typography.fontWeight.medium,
+  },
+  meetingLocationText: {
+    flex: 1,
+    fontSize: typography.fontSize.sm,
+    color: colors.textTertiary,
   },
 });

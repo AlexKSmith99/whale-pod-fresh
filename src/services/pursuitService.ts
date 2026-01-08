@@ -19,7 +19,18 @@ export const pursuitService = {
 
     let query = supabase
       .from('pursuits')
-      .select('*');
+      .select(`
+        *,
+        team_members!team_members_pursuit_id_fkey (
+          user_id,
+          status,
+          user:profiles!team_members_user_id_fkey (
+            id,
+            name,
+            profile_picture
+          )
+        )
+      `);
 
     // Apply filters if provided
     if (filters.status && filters.status.length > 0) {
@@ -48,8 +59,12 @@ export const pursuitService = {
       query = query.or(`pursuit_categories.ov.${pgArray},subcategory.in.(${filters.category.join(',')})`);
     }
 
-    if (filters.location && filters.location.length > 0) {
-      query = query.in('location', filters.location);
+    if (filters.locationSearch && filters.locationSearch.length > 0) {
+      // Multiple locations with OR logic (case-insensitive search)
+      const locationConditions = filters.locationSearch
+        .map((loc: string) => `location.ilike.%${loc}%`)
+        .join(',');
+      query = query.or(locationConditions);
     }
 
     if (filters.team_size && filters.team_size.length > 0) {
@@ -76,7 +91,19 @@ export const pursuitService = {
       query = query.or(`title.ilike.%${filters.keyword}%,description.ilike.%${filters.keyword}%,subcategory.ilike.%${filters.keyword}%`);
     }
 
-    query = query.order('created_at', { ascending: false });
+    // Apply sorting
+    if (filters.sortBy) {
+      const ascending = filters.sortOrder === 'asc';
+      if (filters.sortBy === 'kickoff_date') {
+        // Sort by kickoff_date, with nulls at the end
+        query = query.order('kickoff_date', { ascending, nullsFirst: false });
+      } else if (filters.sortBy === 'created_at') {
+        query = query.order('created_at', { ascending });
+      }
+    } else {
+      // Default sort: newest first
+      query = query.order('created_at', { ascending: false });
+    }
 
     const { data, error} = await query;
 

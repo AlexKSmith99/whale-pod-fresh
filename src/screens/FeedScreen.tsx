@@ -1,10 +1,35 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, StatusBar, TextInput, Modal, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, StatusBar, TextInput, Modal, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { pursuitService } from '../services/pursuitService';
 import { useAuth } from '../contexts/AuthContext';
 import PursuitDetailScreen from './PursuitDetailScreen';
 import { colors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+
+// Location suggestions for autocomplete
+const LOCATION_SUGGESTIONS = [
+  'Remote', 'Hybrid',
+  'New York, NY', 'Los Angeles, CA', 'Chicago, IL', 'Houston, TX', 'Phoenix, AZ',
+  'Philadelphia, PA', 'San Antonio, TX', 'San Diego, CA', 'Dallas, TX', 'San Jose, CA',
+  'Austin, TX', 'Jacksonville, FL', 'Fort Worth, TX', 'Columbus, OH', 'Charlotte, NC',
+  'San Francisco, CA', 'Indianapolis, IN', 'Seattle, WA', 'Denver, CO', 'Washington, DC',
+  'Boston, MA', 'El Paso, TX', 'Nashville, TN', 'Detroit, MI', 'Oklahoma City, OK',
+  'Portland, OR', 'Las Vegas, NV', 'Memphis, TN', 'Louisville, KY', 'Baltimore, MD',
+  'Milwaukee, WI', 'Albuquerque, NM', 'Tucson, AZ', 'Fresno, CA', 'Mesa, AZ',
+  'Sacramento, CA', 'Atlanta, GA', 'Kansas City, MO', 'Colorado Springs, CO', 'Omaha, NE',
+  'Raleigh, NC', 'Miami, FL', 'Long Beach, CA', 'Virginia Beach, VA', 'Oakland, CA',
+  'Minneapolis, MN', 'Tulsa, OK', 'Tampa, FL', 'Arlington, TX', 'New Orleans, LA',
+  'Wichita, KS', 'Cleveland, OH', 'Bakersfield, CA', 'Aurora, CO', 'Anaheim, CA',
+  'Honolulu, HI', 'Santa Ana, CA', 'Riverside, CA', 'Corpus Christi, TX', 'Lexington, KY',
+  'Henderson, NV', 'Stockton, CA', 'Saint Paul, MN', 'Cincinnati, OH', 'St. Louis, MO',
+  'Pittsburgh, PA', 'Greensboro, NC', 'Lincoln, NE', 'Anchorage, AK', 'Plano, TX',
+  'Orlando, FL', 'Irvine, CA', 'Newark, NJ', 'Durham, NC', 'Chula Vista, CA',
+  'Toledo, OH', 'Fort Wayne, IN', 'St. Petersburg, FL', 'Laredo, TX', 'Jersey City, NJ',
+  'Chandler, AZ', 'Madison, WI', 'Lubbock, TX', 'Scottsdale, AZ', 'Reno, NV',
+  'Buffalo, NY', 'Gilbert, AZ', 'Glendale, AZ', 'North Las Vegas, NV', 'Winston-Salem, NC',
+  'Chesapeake, VA', 'Norfolk, VA', 'Fremont, CA', 'Garland, TX', 'Irving, TX',
+  'Hialeah, FL', 'Richmond, VA', 'Boise, ID', 'Spokane, WA', 'Baton Rouge, LA',
+];
 
 interface Props {
   onStartMessage?: (userId: string, userEmail: string) => void;
@@ -27,19 +52,26 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
   const [locationFilter, setLocationFilter] = useState<string[]>([]);
   const [teamSizeFilter, setTeamSizeFilter] = useState<string[]>([]);
 
+  // Sort states
+  const [sortBy, setSortBy] = useState<string>('created_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
   // Modal states
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showPursuitTypeModal, setShowPursuitTypeModal] = useState(false);
   const [showKeywordModal, setShowKeywordModal] = useState(false);
   const [tempKeyword, setTempKeyword] = useState('');
   const [showLocationModal, setShowLocationModal] = useState(false);
+  const [locationSearchText, setLocationSearchText] = useState('');
+  const [tempSelectedLocations, setTempSelectedLocations] = useState<string[]>([]);
   const [showTeamSizeModal, setShowTeamSizeModal] = useState(false);
+  const [showDateSortModal, setShowDateSortModal] = useState(false);
 
   useEffect(() => {
-    // Load pursuits whenever filters change
+    // Load pursuits whenever filters or sort changes
     loadPursuits();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, pursuitTypeFilter, keywordFilter, locationFilter, teamSizeFilter]);
+  }, [statusFilter, pursuitTypeFilter, keywordFilter, locationFilter, teamSizeFilter, sortBy, sortOrder]);
   const loadPursuits = async () => {
     try {
       const filters: any = {};
@@ -59,9 +91,9 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
         filters.keyword = keywordFilter.trim();
       }
 
-      // Apply location filter
+      // Apply location filter (multiple locations)
       if (locationFilter.length > 0) {
-        filters.location = locationFilter;
+        filters.locationSearch = locationFilter;
       }
 
       // Apply team size filter
@@ -73,6 +105,10 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
       if (searchQuery) {
         filters.search = searchQuery;
       }
+
+      // Apply sorting
+      filters.sortBy = sortBy;
+      filters.sortOrder = sortOrder;
 
       const data = await pursuitService.getPursuits(filters);
       setPursuits(data);
@@ -138,6 +174,15 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
     setKeywordFilter('');
     setLocationFilter([]);
     setTeamSizeFilter([]);
+  };
+
+  // Toggle location selection
+  const toggleLocationSelection = (location: string) => {
+    if (tempSelectedLocations.includes(location)) {
+      setTempSelectedLocations(tempSelectedLocations.filter(l => l !== location));
+    } else {
+      setTempSelectedLocations([...tempSelectedLocations, location]);
+    }
   };
 
   if (selectedPursuit) {
@@ -323,13 +368,32 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
           <FilterButton
             label="Location"
             count={getFilterCount(locationFilter)}
-            onPress={() => setShowLocationModal(true)}
+            onPress={() => {
+              setTempSelectedLocations([...locationFilter]);
+              setLocationSearchText('');
+              setShowLocationModal(true);
+            }}
           />
           <FilterButton
             label="Team Size"
             count={getFilterCount(teamSizeFilter)}
             onPress={() => setShowTeamSizeModal(true)}
           />
+          <TouchableOpacity
+            style={[styles.filterButton, styles.sortButton]}
+            onPress={() => setShowDateSortModal(true)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="swap-vertical" size={16} color={colors.primary} />
+            <Text style={[styles.filterButtonText, styles.sortButtonText]}>
+              {sortBy === 'created_at' ? 'Date Posted' : 'Kickoff Date'}
+            </Text>
+            <Ionicons
+              name={sortOrder === 'desc' ? 'arrow-down' : 'arrow-up'}
+              size={14}
+              color={colors.primary}
+            />
+          </TouchableOpacity>
         </ScrollView>
 
         {/* Clear Filters Button */}
@@ -411,14 +475,141 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
         </KeyboardAvoidingView>
       </Modal>
 
-      <FilterModal
+      {/* Location Search Modal with Multi-Select */}
+      <Modal
         visible={showLocationModal}
-        onClose={() => setShowLocationModal(false)}
-        title="Filter by Location"
-        options={['Remote', 'Hybrid', 'New York, NY', 'San Francisco, CA', 'Los Angeles, CA', 'Chicago, IL', 'Boston, MA', 'Austin, TX', 'Seattle, WA']}
-        selectedValues={locationFilter}
-        onToggle={(value) => toggleFilter(locationFilter, setLocationFilter, value)}
-      />
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowLocationModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.locationModalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Filter by Location</Text>
+              <TouchableOpacity onPress={() => setShowLocationModal(false)}>
+                <Ionicons name="close" size={24} color={colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Selected Locations Chips */}
+            {tempSelectedLocations.length > 0 && (
+              <View style={styles.selectedLocationsContainer}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.selectedLocationsScroll}>
+                  {tempSelectedLocations.map((loc, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={styles.selectedLocationChip}
+                      onPress={() => toggleLocationSelection(loc)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.selectedLocationChipText}>{loc}</Text>
+                      <Ionicons name="close-circle" size={16} color={colors.white} />
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            <View style={styles.locationInputContainer}>
+              <Ionicons name="search" size={18} color={colors.textTertiary} style={styles.locationSearchIcon} />
+              <TextInput
+                style={styles.locationSearchInput}
+                placeholder="Search cities, states, or 'Remote'..."
+                placeholderTextColor={colors.textTertiary}
+                value={locationSearchText}
+                onChangeText={setLocationSearchText}
+                autoFocus
+              />
+              {locationSearchText.length > 0 && (
+                <TouchableOpacity onPress={() => setLocationSearchText('')}>
+                  <Ionicons name="close-circle" size={18} color={colors.textTertiary} />
+                </TouchableOpacity>
+              )}
+            </View>
+            
+            {/* Suggestions List */}
+            <ScrollView 
+              style={styles.locationSuggestionsList} 
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={true}
+            >
+              {LOCATION_SUGGESTIONS
+                .filter(loc => loc.toLowerCase().includes(locationSearchText.toLowerCase()))
+                .slice(0, 20)
+                .map((suggestion, index) => {
+                  const isSelected = tempSelectedLocations.includes(suggestion);
+                  return (
+                    <TouchableOpacity
+                      key={index}
+                      style={[styles.locationSuggestionItem, isSelected && styles.locationSuggestionItemSelected]}
+                      onPress={() => toggleLocationSelection(suggestion)}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons 
+                        name={suggestion === 'Remote' ? 'globe-outline' : suggestion === 'Hybrid' ? 'git-merge-outline' : 'location-outline'} 
+                        size={18} 
+                        color={isSelected ? colors.primary : colors.textSecondary} 
+                      />
+                      <Text style={[styles.locationSuggestionText, isSelected && styles.locationSuggestionTextSelected]}>
+                        {suggestion}
+                      </Text>
+                      {isSelected && (
+                        <Ionicons name="checkmark-circle" size={22} color={colors.primary} />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })
+              }
+              {/* Custom location option */}
+              {locationSearchText.length > 0 && 
+                !LOCATION_SUGGESTIONS.some(loc => loc.toLowerCase() === locationSearchText.toLowerCase()) &&
+                !tempSelectedLocations.includes(locationSearchText) && (
+                <TouchableOpacity
+                  style={[styles.locationSuggestionItem, styles.locationCustomItem]}
+                  onPress={() => {
+                    toggleLocationSelection(locationSearchText);
+                    setLocationSearchText('');
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
+                  <Text style={[styles.locationSuggestionText, styles.locationCustomText]}>
+                    Add "{locationSearchText}"
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </ScrollView>
+
+            <View style={styles.keywordButtonRow}>
+              <TouchableOpacity
+                style={styles.keywordClearButton}
+                onPress={() => {
+                  setTempSelectedLocations([]);
+                  setLocationSearchText('');
+                  setLocationFilter([]);
+                  setShowLocationModal(false);
+                }}
+              >
+                <Text style={styles.keywordClearButtonText}>Clear All</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.keywordApplyButton}
+                onPress={() => {
+                  setLocationFilter(tempSelectedLocations);
+                  setShowLocationModal(false);
+                }}
+              >
+                <Text style={styles.keywordApplyButtonText}>
+                  Apply{tempSelectedLocations.length > 0 ? ` (${tempSelectedLocations.length})` : ''}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       <FilterModal
         visible={showTeamSizeModal}
@@ -428,6 +619,110 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
         selectedValues={teamSizeFilter}
         onToggle={(value) => toggleFilter(teamSizeFilter, setTeamSizeFilter, value)}
       />
+
+      {/* Date Sort Modal */}
+      <Modal
+        visible={showDateSortModal}
+        transparent
+        animationType="none"
+        onRequestClose={() => setShowDateSortModal(false)}
+        statusBarTranslucent
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowDateSortModal(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalContent}
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Sort by Date</Text>
+              <TouchableOpacity onPress={() => setShowDateSortModal(false)} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+                <Ionicons name="close" size={24} color={colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+              {/* Date Posted Options */}
+              <Text style={styles.sortSectionTitle}>Date Posted</Text>
+              <TouchableOpacity
+                style={styles.modalOption}
+                onPress={() => {
+                  setSortBy('created_at');
+                  setSortOrder('desc');
+                  setShowDateSortModal(false);
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={styles.sortOptionRow}>
+                  <Ionicons name="arrow-down" size={18} color={colors.textSecondary} />
+                  <Text style={styles.modalOptionText}>Newest First</Text>
+                </View>
+                {sortBy === 'created_at' && sortOrder === 'desc' && (
+                  <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalOption}
+                onPress={() => {
+                  setSortBy('created_at');
+                  setSortOrder('asc');
+                  setShowDateSortModal(false);
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={styles.sortOptionRow}>
+                  <Ionicons name="arrow-up" size={18} color={colors.textSecondary} />
+                  <Text style={styles.modalOptionText}>Oldest First</Text>
+                </View>
+                {sortBy === 'created_at' && sortOrder === 'asc' && (
+                  <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+                )}
+              </TouchableOpacity>
+
+              {/* Kickoff Date Options */}
+              <Text style={styles.sortSectionTitle}>Kickoff Date</Text>
+              <TouchableOpacity
+                style={styles.modalOption}
+                onPress={() => {
+                  setSortBy('kickoff_date');
+                  setSortOrder('asc');
+                  setShowDateSortModal(false);
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={styles.sortOptionRow}>
+                  <Ionicons name="arrow-up" size={18} color={colors.textSecondary} />
+                  <Text style={styles.modalOptionText}>Soonest First</Text>
+                </View>
+                {sortBy === 'kickoff_date' && sortOrder === 'asc' && (
+                  <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalOption}
+                onPress={() => {
+                  setSortBy('kickoff_date');
+                  setSortOrder('desc');
+                  setShowDateSortModal(false);
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={styles.sortOptionRow}>
+                  <Ionicons name="arrow-down" size={18} color={colors.textSecondary} />
+                  <Text style={styles.modalOptionText}>Latest First</Text>
+                </View>
+                {sortBy === 'kickoff_date' && sortOrder === 'desc' && (
+                  <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+                )}
+              </TouchableOpacity>
+            </ScrollView>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
 
       <ScrollView
         style={styles.scrollView}
@@ -524,35 +819,75 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
 
                 {/* Footer */}
                 <View style={styles.cardFooter}>
-                  <View style={styles.infoRow}>
-                    <View style={styles.infoItem}>
-                      <View style={styles.iconContainer}>
-                        <Ionicons name="people" size={14} color={colors.textSecondary} />
+                  <View style={styles.footerTopRow}>
+                    <View style={styles.infoRow}>
+                      <View style={styles.infoItem}>
+                        <View style={styles.iconContainer}>
+                          <Ionicons name="people" size={14} color={colors.textSecondary} />
+                        </View>
+                        <Text style={styles.infoText}>
+                          {pursuit.current_members_count}/{pursuit.team_size_max}
+                        </Text>
                       </View>
-                      <Text style={styles.infoText}>
-                        {pursuit.current_members_count}/{pursuit.team_size_max}
-                      </Text>
+
+                      {pursuit.location && (
+                        <View style={styles.infoItemFlex}>
+                          <View style={styles.iconContainer}>
+                            <Ionicons name="location" size={14} color={colors.textSecondary} />
+                          </View>
+                          <Text style={styles.infoTextFlex} numberOfLines={1}>
+                            {pursuit.location}
+                          </Text>
+                        </View>
+                      )}
+
+                      {pursuit.meeting_cadence && (
+                        <View style={styles.infoItemFlex}>
+                          <View style={styles.iconContainer}>
+                            <Ionicons name="calendar" size={14} color={colors.textSecondary} />
+                          </View>
+                          <Text style={styles.infoTextFlex} numberOfLines={1}>
+                            {pursuit.meeting_cadence}
+                          </Text>
+                        </View>
+                      )}
                     </View>
 
-                    {pursuit.location && (
-                      <View style={styles.infoItemFlex}>
-                        <View style={styles.iconContainer}>
-                          <Ionicons name="location" size={14} color={colors.textSecondary} />
-                        </View>
-                        <Text style={styles.infoTextFlex} numberOfLines={1}>
-                          {pursuit.location}
-                        </Text>
-                      </View>
-                    )}
-
-                    {pursuit.meeting_cadence && (
-                      <View style={styles.infoItemFlex}>
-                        <View style={styles.iconContainer}>
-                          <Ionicons name="calendar" size={14} color={colors.textSecondary} />
-                        </View>
-                        <Text style={styles.infoTextFlex} numberOfLines={1}>
-                          {pursuit.meeting_cadence}
-                        </Text>
+                    {/* Team Members Avatar Stack */}
+                    {pursuit.team_members && pursuit.team_members.filter((m: any) => m.status === 'active' || m.status === 'accepted').length > 0 && (
+                      <View style={styles.avatarStack}>
+                        {pursuit.team_members
+                          .filter((m: any) => m.status === 'active' || m.status === 'accepted')
+                          .slice(0, 3)
+                          .map((member: any, index: number) => (
+                            <View
+                              key={member.user_id}
+                              style={[
+                                styles.stackedAvatar,
+                                { marginLeft: index === 0 ? 0 : -8, zIndex: 10 - index }
+                              ]}
+                            >
+                              {member.user?.profile_picture ? (
+                                <Image
+                                  source={{ uri: member.user.profile_picture }}
+                                  style={styles.stackedAvatarImage}
+                                />
+                              ) : (
+                                <View style={styles.stackedAvatarPlaceholder}>
+                                  <Text style={styles.stackedAvatarText}>
+                                    {member.user?.name?.charAt(0).toUpperCase() || '?'}
+                                  </Text>
+                                </View>
+                              )}
+                            </View>
+                          ))}
+                        {pursuit.team_members.filter((m: any) => m.status === 'active' || m.status === 'accepted').length > 3 && (
+                          <View style={[styles.stackedAvatar, styles.stackedAvatarMore, { marginLeft: -8, zIndex: 5 }]}>
+                            <Text style={styles.stackedAvatarMoreText}>
+                              +{pursuit.team_members.filter((m: any) => m.status === 'active' || m.status === 'accepted').length - 3}
+                            </Text>
+                          </View>
+                        )}
                       </View>
                     )}
                   </View>
@@ -908,6 +1243,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.base,
+    flex: 1,
+    flexShrink: 1,
+    flexWrap: 'wrap',
+    minWidth: 0,
   },
 
   infoItem: {
@@ -944,6 +1283,62 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontWeight: typography.fontWeight.medium,
     flexShrink: 1,
+  },
+
+  // Footer layout with avatar stack
+  footerTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+
+  // Avatar Stack Styles (Google Docs style)
+  avatarStack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+
+  stackedAvatar: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 2,
+    borderColor: colors.white,
+    overflow: 'hidden',
+  },
+
+  stackedAvatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 13,
+  },
+
+  stackedAvatarPlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  stackedAvatarText: {
+    color: colors.white,
+    fontSize: 11,
+    fontWeight: typography.fontWeight.bold,
+  },
+
+  stackedAvatarMore: {
+    backgroundColor: colors.backgroundSecondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  stackedAvatarMoreText: {
+    color: colors.textSecondary,
+    fontSize: 10,
+    fontWeight: typography.fontWeight.bold,
   },
 
   // Keyword Search Modal Styles
@@ -990,5 +1385,131 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.base,
     color: colors.white,
     fontWeight: typography.fontWeight.semibold,
+  },
+
+  // Sort Button Styles
+  sortButton: {
+    backgroundColor: colors.primaryLight,
+    borderColor: colors.primary,
+  },
+
+  sortButtonText: {
+    color: colors.primary,
+  },
+
+  sortSectionTitle: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.textSecondary,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
+    backgroundColor: colors.backgroundSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+
+  sortOptionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+
+  // Location Autocomplete Styles
+  locationModalContent: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
+    maxHeight: '80%',
+    paddingBottom: spacing['2xl'],
+  },
+
+  locationInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: borderRadius.base,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.base,
+    paddingHorizontal: spacing.base,
+    height: 48,
+  },
+
+  locationSearchIcon: {
+    marginRight: spacing.sm,
+  },
+
+  locationSearchInput: {
+    flex: 1,
+    fontSize: typography.fontSize.base,
+    color: colors.textPrimary,
+  },
+
+  locationSuggestionsList: {
+    maxHeight: 300,
+    marginBottom: spacing.base,
+  },
+
+  locationSuggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.base,
+    paddingHorizontal: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+    gap: spacing.sm,
+  },
+
+  locationSuggestionText: {
+    flex: 1,
+    fontSize: typography.fontSize.base,
+    color: colors.textPrimary,
+  },
+
+  locationCustomItem: {
+    backgroundColor: colors.primaryLight,
+    borderBottomWidth: 0,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.sm,
+    borderRadius: borderRadius.base,
+  },
+
+  locationCustomText: {
+    color: colors.primary,
+    fontWeight: typography.fontWeight.medium,
+  },
+
+  selectedLocationsContainer: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.sm,
+  },
+
+  selectedLocationsScroll: {
+    gap: spacing.sm,
+  },
+
+  selectedLocationChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.full,
+    gap: spacing.xs,
+  },
+
+  selectedLocationChipText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.white,
+    fontWeight: typography.fontWeight.medium,
+  },
+
+  locationSuggestionItemSelected: {
+    backgroundColor: colors.primaryLight,
+  },
+
+  locationSuggestionTextSelected: {
+    color: colors.primary,
+    fontWeight: typography.fontWeight.medium,
   },
 });

@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '../contexts/AuthContext';
-import { meetingService } from '../services/meetingService';
+import { supabase } from '../config/supabase';
+import { notificationService } from '../services/notificationService';
 import { colors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
 
 interface Props {
+  applicationId: string;
   pursuitId: string;
   pursuitTitle: string;
   onClose: () => void;
@@ -19,17 +21,37 @@ interface TimeSlot {
   endTime: Date | null;
 }
 
-export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClose, onSubmitted }: Props) {
+export default function InterviewTimeSlotProposalScreen({ applicationId, pursuitId, pursuitTitle, onClose, onSubmitted }: Props) {
   const { user } = useAuth();
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([
     { date: new Date(), startTime: new Date(), endTime: new Date() }
   ]);
   const [loading, setLoading] = useState(false);
+  const [creatorId, setCreatorId] = useState<string | null>(null);
 
   // For native DateTimePicker
   const [showDatePicker, setShowDatePicker] = useState<number | null>(null);
   const [showStartTimePicker, setShowStartTimePicker] = useState<number | null>(null);
   const [showEndTimePicker, setShowEndTimePicker] = useState<number | null>(null);
+
+  useEffect(() => {
+    loadCreatorId();
+  }, []);
+
+  const loadCreatorId = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('pursuits')
+        .select('creator_id')
+        .eq('id', pursuitId)
+        .single();
+
+      if (error) throw error;
+      setCreatorId(data.creator_id);
+    } catch (error) {
+      console.error('Error loading creator:', error);
+    }
+  };
 
   const addTimeSlot = () => {
     setTimeSlots([...timeSlots, { date: new Date(), startTime: new Date(), endTime: new Date() }]);
@@ -152,12 +174,9 @@ export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClos
 
     setLoading(true);
     try {
-      // Convert time slots to the format expected by the database
+      // Convert time slots to the format for storage
       const proposedTimes = validSlots.map(slot => {
-        // Format date as YYYY-MM-DD
         const dateStr = slot.date!.toISOString().split('T')[0];
-
-        // Format times as HH:MM
         const startStr = slot.startTime!.toTimeString().split(' ')[0].substring(0, 5);
         const endStr = slot.endTime!.toTimeString().split(' ')[0].substring(0, 5);
 
@@ -171,22 +190,46 @@ export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClos
       // Get timezone from device
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-      await meetingService.submitKickoffProposal(
-        pursuitId,
-        user!.id,
-        proposedTimes,
-        timezone
-      );
+      console.log('🎤 Saving interview times for applicationId:', applicationId);
+      console.log('🎤 Proposed times to save:', JSON.stringify(proposedTimes, null, 2));
+      console.log('🎤 Timezone:', timezone);
 
-      Alert.alert('Success!', 'Your time proposals have been submitted', [
+      // Save interview time proposals to pursuit_applications table
+      const { data: updateData, error: updateError } = await supabase
+        .from('pursuit_applications')
+        .update({
+          status: 'interview_times_submitted',
+          interview_proposed_times: proposedTimes,
+          interview_timezone: timezone,
+        })
+        .eq('id', applicationId)
+        .select();
+
+      console.log('🎤 Update result:', { updateData, updateError });
+
+      if (updateError) throw updateError;
+
+      // Notify creator that applicant submitted interview times
+      if (creatorId) {
+        const applicantName = user?.name || 'The applicant';
+        await notificationService.notifyInterviewTimesSubmitted(
+          creatorId,
+          applicationId,
+          pursuitId,
+          pursuitTitle,
+          applicantName
+        );
+      }
+
+      Alert.alert('Success!', 'Your interview time proposals have been submitted', [
         { text: 'OK', onPress: () => {
           onSubmitted();
           onClose();
         }}
       ]);
     } catch (error: any) {
-      console.error('Error submitting proposals:', error);
-      Alert.alert('Error', error.message || 'Failed to submit time proposals');
+      console.error('Error submitting interview proposals:', error);
+      Alert.alert('Error', error.message || 'Failed to submit interview time proposals');
     } finally {
       setLoading(false);
     }
@@ -199,7 +242,7 @@ export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClos
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
           <Ionicons name="close" size={28} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Propose Meeting Times</Text>
+        <Text style={styles.headerTitle}>Propose Interview Times</Text>
         <View style={{ width: 28 }} />
       </View>
 
@@ -208,8 +251,8 @@ export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClos
           <View style={styles.introSection}>
             <Text style={styles.pursuitTitle}>{pursuitTitle}</Text>
             <Text style={styles.introText}>
-              The kickoff meeting has been activated! Please propose your available time slots below.
-              Your team creator will review all proposals and select the final meeting time.
+              The creator wants to schedule an interview with you! Please propose your available time slots for the next week below.
+              They will review your times and select the final interview time.
             </Text>
           </View>
 
@@ -319,7 +362,7 @@ export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClos
             disabled={loading}
           >
             <Text style={styles.submitButtonText}>
-              {loading ? 'Submitting...' : 'Submit Time Proposals'}
+              {loading ? 'Submitting...' : 'Submit Interview Times'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -363,7 +406,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing['4xl'],
   },
   introSection: {
-    backgroundColor: colors.primaryLight,
+    backgroundColor: '#f3e8ff',
     padding: spacing.lg,
     borderRadius: borderRadius.lg,
     marginBottom: spacing.xl,
@@ -371,7 +414,7 @@ const styles = StyleSheet.create({
   pursuitTitle: {
     fontSize: typography.fontSize.lg,
     fontWeight: typography.fontWeight.bold,
-    color: colors.primary,
+    color: '#8b5cf6',
     marginBottom: spacing.sm,
   },
   introText: {
@@ -447,17 +490,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.backgroundSecondary,
     borderRadius: borderRadius.base,
     borderWidth: 1,
-    borderColor: colors.primary,
+    borderColor: '#8b5cf6',
     borderStyle: 'dashed',
     marginTop: spacing.base,
   },
   addSlotText: {
     fontSize: typography.fontSize.base,
-    color: colors.primary,
+    color: '#8b5cf6',
     fontWeight: typography.fontWeight.semibold,
   },
   submitButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: '#8b5cf6',
     borderRadius: borderRadius.base,
     padding: spacing.lg,
     alignItems: 'center',

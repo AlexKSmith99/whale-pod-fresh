@@ -128,6 +128,46 @@ export default function NotificationsScreen({ navigation }: any) {
         navigation?.navigate?.('Calendar');
         break;
 
+      case 'meeting_invitation':
+        // Navigate to meeting invitation response screen
+        if (notification.related_id) {
+          navigation?.navigate?.('MeetingInvitation', { meetingId: notification.related_id });
+        } else if (notification.data?.meetingId) {
+          navigation?.navigate?.('MeetingInvitation', { meetingId: notification.data.meetingId });
+        } else {
+          navigation?.navigate?.('Calendar');
+        }
+        break;
+
+      case 'interview_scheduling_requested':
+        // Applicant needs to propose interview times
+        if (notification.related_id || notification.data?.applicationId) {
+          const applicationId = notification.related_id || notification.data?.applicationId;
+          const pursuitId = notification.data?.pursuitId;
+          navigation?.navigate?.('InterviewTimeSlotProposal', {
+            applicationId,
+            pursuitId,
+          });
+        }
+        break;
+
+      case 'interview_times_submitted':
+        // Creator needs to schedule the interview
+        if (notification.related_id || notification.data?.applicationId) {
+          const applicationId = notification.related_id || notification.data?.applicationId;
+          const pursuitId = notification.data?.pursuitId;
+          navigation?.navigate?.('InterviewScheduling', {
+            applicationId,
+            pursuitId,
+          });
+        }
+        break;
+
+      case 'interview_scheduled':
+        // Interview has been scheduled - go to calendar
+        navigation?.navigate?.('Calendar');
+        break;
+
       case 'member_removed':
         // Navigate to removal reason screen
         navigation?.navigate?.('RemovalReason', {
@@ -240,11 +280,16 @@ export default function NotificationsScreen({ navigation }: any) {
       case 'kickoff_scheduled':
       case 'meeting':
       case 'new_meeting':
+      case 'meeting_invitation':
         return 'calendar';
       case 'member_removed':
         return 'person-remove';
       case 'member_left':
         return 'exit-outline';
+      case 'interview_scheduling_requested':
+      case 'interview_times_submitted':
+      case 'interview_scheduled':
+        return 'videocam';
       default:
         return 'notifications';
     }

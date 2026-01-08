@@ -69,31 +69,34 @@ export const messageService = {
 
   // Mark all messages from a partner as read
   async markConversationAsRead(userId: string, partnerId: string) {
-    // Update ALL messages from this partner that aren't already marked as read
-    // This handles both is_read=false and is_read=NULL (old messages)
+    console.log('📧 markConversationAsRead called:', { userId, partnerId });
+
+    // Update ALL messages from this partner to current user
+    // No need to filter by is_read - updating already-read messages is fine (no-op)
     const { data, error } = await supabase
       .from('messages')
       .update({ is_read: true })
       .eq('recipient_id', userId)
       .eq('sender_id', partnerId)
-      .neq('is_read', true)
       .select();
 
     if (error) {
-      console.error('Error marking messages as read:', error);
+      console.error('❌ Error marking messages as read:', error);
+      throw error;
     }
 
+    console.log('✅ Marked', data?.length || 0, 'messages as read');
     return data || [];
   },
 
   // Get total count of unread messages for a user
   async getUnreadCount(userId: string): Promise<number> {
     // Count messages where is_read is NOT true (catches both false and NULL)
+    // Use nested and() within or() to properly combine all conditions
     const { count, error } = await supabase
       .from('messages')
       .select('*', { count: 'exact', head: true })
-      .eq('recipient_id', userId)
-      .or('is_read.eq.false,is_read.is.null');
+      .or(`and(recipient_id.eq.${userId},is_read.eq.false),and(recipient_id.eq.${userId},is_read.is.null)`);
 
     if (error) {
       console.error('Error getting unread count:', error);
@@ -106,12 +109,11 @@ export const messageService = {
   // Get count of unread messages from a specific sender
   async getUnreadCountFromSender(userId: string, senderId: string): Promise<number> {
     // Count messages where is_read is NOT true (catches both false and NULL)
+    // Use nested and() within or() to properly combine all conditions
     const { count, error } = await supabase
       .from('messages')
       .select('*', { count: 'exact', head: true })
-      .eq('recipient_id', userId)
-      .eq('sender_id', senderId)
-      .or('is_read.eq.false,is_read.is.null');
+      .or(`and(recipient_id.eq.${userId},sender_id.eq.${senderId},is_read.eq.false),and(recipient_id.eq.${userId},sender_id.eq.${senderId},is_read.is.null)`);
 
     if (error) {
       console.error('Error getting unread count from sender:', error);

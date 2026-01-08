@@ -69,6 +69,10 @@ export default function NotificationToast({ notification, onPress, onDismiss }: 
       case 'new_meeting':
       case 'kickoff_scheduled':
         return 'calendar';
+      case 'interview_scheduling_requested':
+      case 'interview_times_submitted':
+      case 'interview_scheduled':
+        return 'mic';
       default:
         return 'notifications';
     }
