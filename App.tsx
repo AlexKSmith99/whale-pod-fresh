@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, ActivityIndicator, TouchableOpacity, Text, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useFonts, NothingYouCouldDo_400Regular } from '@expo-google-fonts/nothing-you-could-do';
+import { JuliusSansOne_400Regular } from '@expo-google-fonts/julius-sans-one';
+import { Aboreto_400Regular } from '@expo-google-fonts/aboreto';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
+import { ThemeProvider } from './src/theme/ThemeContext';
 import { notificationService } from './src/services/notificationService';
 import { messageService } from './src/services/messageService';
 import { podChatService } from './src/services/podChatService';
@@ -36,6 +40,8 @@ import { AGORA_APP_ID } from './src/services/agoraService';
 
 function AppContent() {
   const auth = useAuth();
+  const { theme, isNewTheme } = require('./src/theme/ThemeContext').useTheme();
+  const themeColors = theme.colors;
   const [currentScreen, setCurrentScreen] = useState('Feed');
   const [chatPartnerId, setChatPartnerId] = useState<string | null>(null);
   const [chatPartnerEmail, setChatPartnerEmail] = useState<string | null>(null);
@@ -1294,39 +1300,42 @@ if (teamBoardPursuitId) {
       {currentScreen === 'Notifications' && <NotificationsScreen navigation={navigation} />}
       {currentScreen === 'Profile' && <ProfileScreen navigation={navigation} />}
 
-      <View style={styles.tabBar}>
-        <TouchableOpacity style={styles.tab} onPress={() => {
+      <View style={[styles.tabBar, {
+        backgroundColor: themeColors.tabBarBackground,
+        borderTopColor: themeColors.tabBarBorder,
+      }]}>
+        <TouchableOpacity style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : '#f0f0f0' }]} onPress={() => {
           hapticService.lightTap();
           setCurrentScreen('Feed');
         }}>
-          <Text style={[styles.tabIcon, currentScreen === 'Feed' && styles.tabIconActive]}>
+          <Text style={[styles.tabIcon, { opacity: currentScreen === 'Feed' ? 1 : 0.4 }]}>
             🌊
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.tab}
+          style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : '#f0f0f0' }]}
           onPress={() => {
             hapticService.lightTap();
             setCurrentScreen('Messages');
           }}
         >
           <View style={styles.tabContent}>
-            <Text style={[styles.tabIcon, currentScreen === 'Messages' && styles.tabIconActive]}>
+            <Text style={[styles.tabIcon, { opacity: currentScreen === 'Messages' ? 1 : 0.4 }]}>
               🫧
             </Text>
             {(() => {
               // Adjust unread count by subtracting locally-read conversations
               const effectiveUnreadCount = Math.max(0, unreadMessageCount - locallyReadCount);
               return effectiveUnreadCount > 0 && currentScreen !== 'Messages' ? (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{effectiveUnreadCount}</Text>
+                <View style={[styles.badge, { backgroundColor: isNewTheme ? themeColors.accentGreen : '#ef4444' }]}>
+                  <Text style={[styles.badgeText, { color: isNewTheme ? themeColors.background : '#fff' }]}>{effectiveUnreadCount}</Text>
                 </View>
               ) : null;
             })()}
           </View>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.tab}
+          style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : '#f0f0f0' }]}
           onPress={() => {
             hapticService.lightTap();
             setCurrentScreen('Pods');
@@ -1334,18 +1343,18 @@ if (teamBoardPursuitId) {
           }}
         >
           <View style={styles.tabContent}>
-            <Text style={[styles.tabIcon, currentScreen === 'Pods' && styles.tabIconActive]}>
+            <Text style={[styles.tabIcon, { opacity: currentScreen === 'Pods' ? 1 : 0.4 }]}>
               🐳
             </Text>
             {badgeCounts.pods > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{badgeCounts.pods}</Text>
+              <View style={[styles.badge, { backgroundColor: isNewTheme ? themeColors.accentGreen : '#ef4444' }]}>
+                <Text style={[styles.badgeText, { color: isNewTheme ? themeColors.background : '#fff' }]}>{badgeCounts.pods}</Text>
               </View>
             )}
           </View>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.tab}
+          style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : '#f0f0f0' }]}
           onPress={() => {
             hapticService.lightTap();
             setCurrentScreen('Calendar');
@@ -1353,30 +1362,30 @@ if (teamBoardPursuitId) {
           }}
         >
           <View style={styles.tabContent}>
-            <Text style={[styles.tabIcon, currentScreen === 'Calendar' && styles.tabIconActive]}>
+            <Text style={[styles.tabIcon, { opacity: currentScreen === 'Calendar' ? 1 : 0.4 }]}>
               🌙
             </Text>
             {badgeCounts.calendar > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{badgeCounts.calendar}</Text>
+              <View style={[styles.badge, { backgroundColor: isNewTheme ? themeColors.accentGreen : '#ef4444' }]}>
+                <Text style={[styles.badgeText, { color: isNewTheme ? themeColors.background : '#fff' }]}>{badgeCounts.calendar}</Text>
               </View>
             )}
           </View>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.tab}
+          style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : '#f0f0f0' }]}
           onPress={() => {
             hapticService.lightTap();
             setCurrentScreen('Notifications');
           }}
         >
           <View style={styles.tabContent}>
-            <Text style={[styles.tabIcon, currentScreen === 'Notifications' && styles.tabIconActive]}>
+            <Text style={[styles.tabIcon, { opacity: currentScreen === 'Notifications' ? 1 : 0.4 }]}>
               ✦
             </Text>
             {badgeCounts.notifications > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{badgeCounts.notifications}</Text>
+              <View style={[styles.badge, { backgroundColor: isNewTheme ? themeColors.accentGreen : '#ef4444' }]}>
+                <Text style={[styles.badgeText, { color: isNewTheme ? themeColors.background : '#fff' }]}>{badgeCounts.notifications}</Text>
               </View>
             )}
           </View>
@@ -1390,12 +1399,12 @@ if (teamBoardPursuitId) {
           }}
         >
           <View style={styles.tabContent}>
-            <Text style={[styles.tabIcon, currentScreen === 'Profile' && styles.tabIconActive]}>
+            <Text style={[styles.tabIcon, { opacity: currentScreen === 'Profile' ? 1 : 0.4 }]}>
               🪷
             </Text>
             {badgeCounts.connections > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{badgeCounts.connections}</Text>
+              <View style={[styles.badge, { backgroundColor: isNewTheme ? themeColors.accentGreen : '#ef4444' }]}>
+                <Text style={[styles.badgeText, { color: isNewTheme ? themeColors.background : '#fff' }]}>{badgeCounts.connections}</Text>
               </View>
             )}
           </View>
@@ -1449,10 +1458,6 @@ const styles = StyleSheet.create({
   },
   tabIcon: {
     fontSize: 26,
-    opacity: 0.4,
-  },
-  tabIconActive: {
-    opacity: 1,
   },
   badge: {
     position: 'absolute',
@@ -1489,10 +1494,28 @@ const styles = StyleSheet.create({
 });
 
 export default function App() {
+  // Load all fonts globally
+  const [fontsLoaded] = useFonts({
+    NothingYouCouldDo_400Regular,
+    JuliusSansOne_400Regular,
+    Aboreto_400Regular,
+  });
+
+  // Show loading while fonts load
+  if (!fontsLoaded) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0B1220' }}>
+        <ActivityIndicator size="large" color="#A8E6A3" />
+      </View>
+    );
+  }
+
   return (
-    <AuthProvider>
-      <AppContent />
-      <StatusBar style="auto" />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AppContent />
+        <StatusBar style="auto" />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

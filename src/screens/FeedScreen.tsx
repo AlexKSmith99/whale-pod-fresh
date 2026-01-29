@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, StatusBar, TextInput, Modal, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useFonts, NothingYouCouldDo_400Regular } from '@expo-google-fonts/nothing-you-could-do';
 import { pursuitService } from '../services/pursuitService';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../theme/ThemeContext';
+import { HapticManager } from '../services/hapticManager';
 import PursuitDetailScreen from './PursuitDetailScreen';
-import { colors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
 
 // Location suggestions for autocomplete
 const LOCATION_SUGGESTIONS = [
@@ -41,9 +42,8 @@ interface Props {
 
 export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeetingNotes, onOpenCreate }: Props) {
   const { user } = useAuth();
-  const [fontsLoaded] = useFonts({
-    NothingYouCouldDo_400Regular,
-  });
+  const { theme, toggleTheme, isNewTheme } = useTheme();
+  const colors = theme.colors;
   const [pursuits, setPursuits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPursuit, setSelectedPursuit] = useState<any>(null);
@@ -224,27 +224,39 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
     label: string;
     count: number | null;
     onPress: () => void;
-  }) => (
-    <TouchableOpacity
-      style={[styles.filterButton, count !== null && count > 0 && styles.filterButtonActive]}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      <Text style={[styles.filterButtonText, count !== null && count > 0 && styles.filterButtonTextActive]}>
-        {label}
-      </Text>
-      {count !== null && count > 0 && (
-        <View style={styles.filterBadge}>
-          <Text style={styles.filterBadgeText}>{count}</Text>
-        </View>
-      )}
-      <Ionicons
-        name="chevron-down"
-        size={16}
-        color={count !== null && count > 0 ? colors.white : colors.textSecondary}
-      />
-    </TouchableOpacity>
-  );
+  }) => {
+    const isActive = count !== null && count > 0;
+    return (
+      <TouchableOpacity
+        style={[
+          dynamicStyles.filterButton,
+          isActive && dynamicStyles.filterButtonActive
+        ]}
+        onPress={() => {
+          HapticManager.selection();
+          onPress();
+        }}
+        activeOpacity={0.7}
+      >
+        <Text style={[
+          dynamicStyles.filterButtonText,
+          isActive && { color: isNewTheme ? colors.background : legacyColors.white }
+        ]}>
+          {label}
+        </Text>
+        {isActive && (
+          <View style={[styles.filterBadge, { backgroundColor: isNewTheme ? colors.background : legacyColors.white }]}>
+            <Text style={[styles.filterBadgeText, { color: isNewTheme ? colors.accentGreen : legacyColors.primary }]}>{count}</Text>
+          </View>
+        )}
+        <Ionicons
+          name="chevron-down"
+          size={16}
+          color={isActive ? (isNewTheme ? colors.background : legacyColors.white) : colors.textSecondary}
+        />
+      </TouchableOpacity>
+    );
+  };
 
   // Filter Modal Component - SIMPLIFIED: Only X button closes modal
   const FilterModal = React.memo(({
@@ -270,17 +282,17 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
       statusBarTranslucent
     >
       <TouchableOpacity
-        style={styles.modalOverlay}
+        style={[styles.modalOverlay, { backgroundColor: isNewTheme ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)' }]}
         activeOpacity={1}
         onPress={(e) => e.stopPropagation()}
       >
         <TouchableOpacity
-          style={styles.modalContent}
+          style={[styles.modalContent, { backgroundColor: isNewTheme ? colors.surface : legacyColors.white }]}
           activeOpacity={1}
           onPress={(e) => e.stopPropagation()}
         >
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{title}</Text>
+          <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{title}</Text>
             <TouchableOpacity onPress={onClose} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
               <Ionicons name="close" size={24} color={colors.textPrimary} />
             </TouchableOpacity>
@@ -290,13 +302,16 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
             {options.map((option) => (
               <TouchableOpacity
                 key={option}
-                style={styles.modalOption}
-                onPress={() => onToggle(option)}
+                style={[styles.modalOption, { borderBottomColor: colors.border }]}
+                onPress={() => {
+                  HapticManager.selection();
+                  onToggle(option);
+                }}
                 activeOpacity={0.7}
               >
-                <Text style={styles.modalOptionText}>{option}</Text>
+                <Text style={[styles.modalOptionText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{option}</Text>
                 {selectedValues.includes(option) && (
-                  <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+                  <Ionicons name="checkmark-circle" size={24} color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
                 )}
               </TouchableOpacity>
             ))}
@@ -306,31 +321,166 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
     </Modal>
   ));
 
+  // Dynamic styles based on theme
+  const dynamicStyles = {
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      backgroundColor: isNewTheme ? colors.surface : colors.surface,
+      paddingTop: 50,
+      paddingBottom: spacing.base,
+      borderBottomWidth: isNewTheme ? 1 : 0,
+      borderBottomColor: colors.border,
+    },
+    headerGreeting: {
+      fontSize: typography.fontSize.sm,
+      color: colors.textSecondary,
+      fontWeight: typography.fontWeight.medium as '500',
+      marginBottom: spacing.xs,
+      fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined,
+      textTransform: isNewTheme ? 'uppercase' as const : 'none' as const,
+      letterSpacing: isNewTheme ? 1 : 0,
+    },
+    headerTitle: {
+      fontSize: typography.fontSize['3xl'],
+      fontWeight: typography.fontWeight.bold as '700',
+      color: isNewTheme ? colors.accentGreen : colors.textPrimary,
+      fontFamily: 'NothingYouCouldDo_400Regular',
+    },
+    searchContainer: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      backgroundColor: isNewTheme ? colors.surfaceAlt : colors.backgroundSecondary,
+      marginHorizontal: spacing.lg,
+      paddingHorizontal: spacing.base,
+      borderRadius: borderRadius.base,
+      height: 44,
+      marginBottom: spacing.base,
+      borderWidth: isNewTheme ? 1 : 0,
+      borderColor: colors.border,
+    },
+    searchInput: {
+      flex: 1,
+      marginLeft: spacing.sm,
+      fontSize: typography.fontSize.base,
+      color: colors.textPrimary,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    card: {
+      backgroundColor: isNewTheme ? colors.surface : legacyColors.white,
+      borderRadius: borderRadius.lg,
+      padding: spacing.lg,
+      marginBottom: spacing.base,
+      ...shadows.base,
+      shadowColor: isNewTheme ? '#000' : '#000',
+      borderWidth: 1,
+      borderColor: isNewTheme ? colors.border : legacyColors.borderLight,
+    },
+    cardTitle: {
+      flex: 1,
+      fontSize: typography.fontSize.lg,
+      fontWeight: typography.fontWeight.semibold as '600',
+      color: colors.textPrimary,
+      lineHeight: typography.fontSize.lg * typography.lineHeight.tight,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    cardDescription: {
+      fontSize: typography.fontSize.base,
+      color: colors.textSecondary,
+      lineHeight: typography.fontSize.base * typography.lineHeight.normal,
+      marginBottom: spacing.md,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    filterButton: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: spacing.base,
+      paddingVertical: spacing.sm,
+      borderRadius: borderRadius.full,
+      backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.backgroundSecondary,
+      borderWidth: 1,
+      borderColor: isNewTheme ? colors.border : legacyColors.borderLight,
+      gap: spacing.xs,
+    },
+    filterButtonActive: {
+      backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary,
+      borderColor: isNewTheme ? colors.accentGreen : legacyColors.primary,
+    },
+    filterButtonText: {
+      fontSize: typography.fontSize.sm,
+      fontWeight: typography.fontWeight.medium as '500',
+      color: colors.textSecondary,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    tag: {
+      backgroundColor: isNewTheme ? 'rgba(168, 230, 163, 0.15)' : legacyColors.primaryLight,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs,
+      borderRadius: borderRadius.full,
+      borderWidth: isNewTheme ? 1 : 0,
+      borderColor: isNewTheme ? colors.accentGreenMuted : 'transparent',
+    },
+    tagText: {
+      fontSize: typography.fontSize.xs,
+      fontWeight: typography.fontWeight.medium as '500',
+      color: isNewTheme ? colors.accentGreen : legacyColors.primary,
+      fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined,
+      textTransform: isNewTheme ? 'uppercase' as const : 'none' as const,
+      letterSpacing: isNewTheme ? 0.5 : 0,
+    },
+  };
+
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
+    <View style={dynamicStyles.container}>
+      <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
 
       {/* Modern Header */}
-      <View style={styles.header}>
+      <View style={dynamicStyles.header}>
         <View style={styles.headerTop}>
           <View>
-            <Text style={styles.headerGreeting}>Discover</Text>
-            <Text style={[styles.headerTitle, fontsLoaded && { fontFamily: 'NothingYouCouldDo_400Regular' }]}>Whale Pods</Text>
+            <Text style={dynamicStyles.headerGreeting}>Discover</Text>
+            <Text style={dynamicStyles.headerTitle}>Whale Pods</Text>
           </View>
-          <TouchableOpacity
-            onPress={onOpenCreate}
-            style={styles.createButton}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="add-circle" size={32} color={colors.primary} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {/* Theme Toggle Button */}
+            <TouchableOpacity
+              onPress={() => {
+                HapticManager.themeToggle();
+                toggleTheme();
+              }}
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name={isNewTheme ? 'sunny' : 'moon'}
+                size={20}
+                color={isNewTheme ? colors.background : '#fff'}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={onOpenCreate}
+              style={styles.createButton}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="add-circle" size={32} color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Modern Search Bar */}
-        <View style={styles.searchContainer}>
+        <View style={dynamicStyles.searchContainer}>
           <Ionicons name="search" size={18} color={colors.textTertiary} />
           <TextInput
-            style={styles.searchInput}
+            style={dynamicStyles.searchInput}
             placeholder="Search pursuits..."
             placeholderTextColor={colors.textTertiary}
             value={searchQuery}
@@ -384,18 +534,24 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
             onPress={() => setShowTeamSizeModal(true)}
           />
           <TouchableOpacity
-            style={[styles.filterButton, styles.sortButton]}
-            onPress={() => setShowDateSortModal(true)}
+            style={[dynamicStyles.filterButton, {
+              backgroundColor: isNewTheme ? 'rgba(168, 230, 163, 0.15)' : legacyColors.primaryLight,
+              borderColor: isNewTheme ? colors.accentGreen : legacyColors.primary,
+            }]}
+            onPress={() => {
+              HapticManager.selection();
+              setShowDateSortModal(true);
+            }}
             activeOpacity={0.7}
           >
-            <Ionicons name="swap-vertical" size={16} color={colors.primary} />
-            <Text style={[styles.filterButtonText, styles.sortButtonText]}>
+            <Ionicons name="swap-vertical" size={16} color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
+            <Text style={[dynamicStyles.filterButtonText, { color: isNewTheme ? colors.accentGreen : legacyColors.primary }]}>
               {sortBy === 'created_at' ? 'Date Posted' : 'Kickoff Date'}
             </Text>
             <Ionicons
               name={sortOrder === 'desc' ? 'arrow-down' : 'arrow-up'}
               size={14}
-              color={colors.primary}
+              color={isNewTheme ? colors.accentGreen : legacyColors.primary}
             />
           </TouchableOpacity>
         </ScrollView>
@@ -403,8 +559,11 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
         {/* Clear Filters Button */}
         {(statusFilter.length > 0 || pursuitTypeFilter.length > 0 || keywordFilter ||
           locationFilter.length > 0 || teamSizeFilter.length > 0) && (
-          <TouchableOpacity style={styles.clearFiltersButton} onPress={clearAllFilters}>
-            <Text style={styles.clearFiltersText}>Clear All Filters</Text>
+          <TouchableOpacity style={styles.clearFiltersButton} onPress={() => {
+            HapticManager.lightTap();
+            clearAllFilters();
+          }}>
+            <Text style={[styles.clearFiltersText, { color: colors.error }]}>Clear All Filters</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -735,43 +894,49 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
           <RefreshControl
             refreshing={loading}
             onRefresh={onRefresh}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
+            tintColor={isNewTheme ? colors.accentGreen : legacyColors.primary}
+            colors={[isNewTheme ? colors.accentGreen : legacyColors.primary]}
           />
         }
       >
         <View style={styles.content}>
           {pursuits.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <View style={styles.emptyIconContainer}>
+              <View style={[styles.emptyIconContainer, { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.backgroundSecondary }]}>
                 <Ionicons name="search-outline" size={48} color={colors.textTertiary} />
               </View>
-              <Text style={styles.emptyText}>No pursuits found</Text>
-              <Text style={styles.emptySubtext}>Be the first to create one!</Text>
+              <Text style={[styles.emptyText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>No pursuits found</Text>
+              <Text style={[styles.emptySubtext, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Be the first to create one!</Text>
             </View>
           ) : (
             pursuits.map((pursuit) => (
               <TouchableOpacity
                 key={pursuit.id}
-                style={styles.card}
-                onPress={() => setSelectedPursuit(pursuit)}
+                style={dynamicStyles.card}
+                onPress={() => {
+                  HapticManager.lightTap();
+                  setSelectedPursuit(pursuit);
+                }}
                 activeOpacity={0.7}
               >
                 {/* Header with Title and Status */}
                 <View style={styles.cardHeader}>
                   <View style={styles.cardTitleContainer}>
-                    <Text style={styles.cardTitle} numberOfLines={2}>
+                    <Text style={dynamicStyles.cardTitle} numberOfLines={2}>
                       {pursuit.title}
                     </Text>
                     {pursuit.creator_id === user?.id && (
-                      <View style={styles.ownerBadge}>
-                        <Text style={styles.ownerBadgeText}>YOURS</Text>
+                      <View style={[styles.ownerBadge, { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.success }]}>
+                        <Text style={[styles.ownerBadgeText, { color: isNewTheme ? colors.background : legacyColors.white }]}>YOURS</Text>
                       </View>
                     )}
                   </View>
                   <View style={[
                     styles.statusBadge,
-                    pursuit.status === 'active' ? styles.statusActive : styles.statusPending
+                    { backgroundColor: pursuit.status === 'active'
+                      ? (isNewTheme ? 'rgba(134, 239, 172, 0.15)' : legacyColors.successLight)
+                      : (isNewTheme ? 'rgba(252, 211, 77, 0.15)' : legacyColors.warningLight)
+                    }
                   ]}>
                     <View style={[
                       styles.statusDot,
@@ -787,7 +952,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
                 </View>
 
                 {/* Description */}
-                <Text style={styles.cardDescription} numberOfLines={3}>
+                <Text style={dynamicStyles.cardDescription} numberOfLines={3}>
                   {pursuit.description}
                 </Text>
 
@@ -797,20 +962,23 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
                   <View style={styles.tags}>
                     {/* Pursuit Types */}
                     {pursuit.pursuit_types && pursuit.pursuit_types.slice(0, 2).map((type: string, index: number) => (
-                      <View key={`type-${index}`} style={styles.tag}>
-                        <Text style={styles.tagText}>{type}</Text>
+                      <View key={`type-${index}`} style={dynamicStyles.tag}>
+                        <Text style={dynamicStyles.tagText}>{type}</Text>
                       </View>
                     ))}
                     {/* Categories */}
                     {pursuit.pursuit_categories && pursuit.pursuit_categories.slice(0, 2).map((category: string, index: number) => (
-                      <View key={`cat-${index}`} style={[styles.tag, styles.categoryTag]}>
-                        <Text style={[styles.tagText, styles.categoryTagText]}>{category}</Text>
+                      <View key={`cat-${index}`} style={[dynamicStyles.tag, {
+                        backgroundColor: isNewTheme ? 'rgba(129, 140, 248, 0.15)' : legacyColors.secondaryLight,
+                        borderColor: isNewTheme ? 'rgba(129, 140, 248, 0.3)' : 'transparent',
+                      }]}>
+                        <Text style={[dynamicStyles.tagText, { color: isNewTheme ? colors.primary : legacyColors.secondary }]}>{category}</Text>
                       </View>
                     ))}
                     {/* Show +N if more items */}
                     {((pursuit.pursuit_types?.length || 0) + (pursuit.pursuit_categories?.length || 0) > 4) && (
-                      <View style={styles.tag}>
-                        <Text style={styles.tagText}>
+                      <View style={dynamicStyles.tag}>
+                        <Text style={dynamicStyles.tagText}>
                           +{((pursuit.pursuit_types?.length || 0) + (pursuit.pursuit_categories?.length || 0)) - 4}
                         </Text>
                       </View>
@@ -819,27 +987,27 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
                 )}
 
                 {/* Divider */}
-                <View style={styles.divider} />
+                <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
                 {/* Footer */}
                 <View style={styles.cardFooter}>
                   <View style={styles.footerTopRow}>
                   <View style={styles.infoRow}>
                     <View style={styles.infoItem}>
-                      <View style={styles.iconContainer}>
+                      <View style={[styles.iconContainer, { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.backgroundSecondary }]}>
                         <Ionicons name="people" size={14} color={colors.textSecondary} />
                       </View>
-                      <Text style={styles.infoText}>
+                      <Text style={[styles.infoText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
                         {pursuit.current_members_count}/{pursuit.team_size_max}
                       </Text>
                     </View>
 
                     {pursuit.location && (
                       <View style={styles.infoItemFlex}>
-                        <View style={styles.iconContainer}>
+                        <View style={[styles.iconContainer, { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.backgroundSecondary }]}>
                           <Ionicons name="location" size={14} color={colors.textSecondary} />
                         </View>
-                        <Text style={styles.infoTextFlex} numberOfLines={1}>
+                        <Text style={[styles.infoTextFlex, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]} numberOfLines={1}>
                           {pursuit.location}
                         </Text>
                       </View>
@@ -847,10 +1015,10 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
 
                     {pursuit.meeting_cadence && (
                       <View style={styles.infoItemFlex}>
-                        <View style={styles.iconContainer}>
+                        <View style={[styles.iconContainer, { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.backgroundSecondary }]}>
                           <Ionicons name="calendar" size={14} color={colors.textSecondary} />
                         </View>
-                        <Text style={styles.infoTextFlex} numberOfLines={1}>
+                        <Text style={[styles.infoTextFlex, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]} numberOfLines={1}>
                           {pursuit.meeting_cadence}
                         </Text>
                         </View>
@@ -868,7 +1036,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
                               key={member.user_id}
                               style={[
                                 styles.stackedAvatar,
-                                { marginLeft: index === 0 ? 0 : -8, zIndex: 10 - index }
+                                { marginLeft: index === 0 ? 0 : -8, zIndex: 10 - index, borderColor: isNewTheme ? colors.surface : legacyColors.white }
                               ]}
                             >
                               {member.user?.profile_picture ? (
@@ -877,8 +1045,8 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
                                   style={styles.stackedAvatarImage}
                                 />
                               ) : (
-                                <View style={styles.stackedAvatarPlaceholder}>
-                                  <Text style={styles.stackedAvatarText}>
+                                <View style={[styles.stackedAvatarPlaceholder, { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]}>
+                                  <Text style={[styles.stackedAvatarText, { color: isNewTheme ? colors.background : legacyColors.white }]}>
                                     {member.user?.name?.charAt(0).toUpperCase() || '?'}
                                   </Text>
                                 </View>
@@ -886,8 +1054,8 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
                             </View>
                           ))}
                         {pursuit.team_members.filter((m: any) => m.status === 'active' || m.status === 'accepted').length > 3 && (
-                          <View style={[styles.stackedAvatar, styles.stackedAvatarMore, { marginLeft: -8, zIndex: 5 }]}>
-                            <Text style={styles.stackedAvatarMoreText}>
+                          <View style={[styles.stackedAvatar, styles.stackedAvatarMore, { marginLeft: -8, zIndex: 5, backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.backgroundSecondary, borderColor: isNewTheme ? colors.surface : legacyColors.white }]}>
+                            <Text style={[styles.stackedAvatarMoreText, { color: colors.textSecondary }]}>
                               +{pursuit.team_members.filter((m: any) => m.status === 'active' || m.status === 'accepted').length - 3}
                             </Text>
                           </View>
@@ -908,12 +1076,12 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: legacyColors.background,
   },
 
   // Header Styles
   header: {
-    backgroundColor: colors.white,
+    backgroundColor: legacyColors.white,
     paddingTop: 50,
     paddingBottom: spacing.base,
     ...shadows.sm,
@@ -929,7 +1097,7 @@ const styles = StyleSheet.create({
 
   headerGreeting: {
     fontSize: typography.fontSize.sm,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
     fontWeight: typography.fontWeight.medium,
     marginBottom: spacing.xs,
   },
@@ -937,7 +1105,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: typography.fontSize['3xl'],
     fontWeight: typography.fontWeight.bold,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
   },
 
   createButton: {
@@ -951,7 +1119,7 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: legacyColors.backgroundSecondary,
     marginHorizontal: spacing.lg,
     paddingHorizontal: spacing.base,
     borderRadius: borderRadius.base,
@@ -963,7 +1131,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: spacing.sm,
     fontSize: typography.fontSize.base,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
   },
 
   // Filter Styles
@@ -982,29 +1150,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.base,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.full,
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: legacyColors.backgroundSecondary,
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: legacyColors.borderLight,
     gap: spacing.xs,
   },
 
   filterButtonActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: legacyColors.primary,
+    borderColor: legacyColors.primary,
   },
 
   filterButtonText: {
     fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.medium,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
   },
 
   filterButtonTextActive: {
-    color: colors.white,
+    color: legacyColors.white,
   },
 
   filterBadge: {
-    backgroundColor: colors.white,
+    backgroundColor: legacyColors.white,
     borderRadius: borderRadius.full,
     minWidth: 20,
     height: 20,
@@ -1016,7 +1184,7 @@ const styles = StyleSheet.create({
   filterBadgeText: {
     fontSize: typography.fontSize.xs,
     fontWeight: typography.fontWeight.bold,
-    color: colors.primary,
+    color: legacyColors.primary,
   },
 
   clearFiltersButton: {
@@ -1029,7 +1197,7 @@ const styles = StyleSheet.create({
   clearFiltersText: {
     fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.error,
+    color: legacyColors.error,
   },
 
   // Modal Styles
@@ -1040,7 +1208,7 @@ const styles = StyleSheet.create({
   },
 
   modalContent: {
-    backgroundColor: colors.white,
+    backgroundColor: legacyColors.white,
     borderTopLeftRadius: borderRadius.xl,
     borderTopRightRadius: borderRadius.xl,
     maxHeight: '70%',
@@ -1053,13 +1221,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
+    borderBottomColor: legacyColors.borderLight,
   },
 
   modalTitle: {
     fontSize: typography.fontSize.xl,
     fontWeight: typography.fontWeight.bold,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
   },
 
   modalScroll: {
@@ -1073,12 +1241,12 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.base,
     paddingHorizontal: spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
+    borderBottomColor: legacyColors.borderLight,
   },
 
   modalOptionText: {
     fontSize: typography.fontSize.base,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
     fontWeight: typography.fontWeight.medium,
   },
 
@@ -1104,7 +1272,7 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: borderRadius.full,
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: legacyColors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.lg,
@@ -1113,25 +1281,25 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: typography.fontSize.xl,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
     marginBottom: spacing.sm,
   },
 
   emptySubtext: {
     fontSize: typography.fontSize.base,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
     textAlign: 'center',
   },
 
   // Card Styles
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: legacyColors.white,
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
     marginBottom: spacing.base,
     ...shadows.base,
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: legacyColors.borderLight,
   },
 
   cardHeader: {
@@ -1149,12 +1317,12 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: typography.fontSize.lg,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
     lineHeight: typography.fontSize.lg * typography.lineHeight.tight,
   },
 
   ownerBadge: {
-    backgroundColor: colors.success,
+    backgroundColor: legacyColors.success,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: borderRadius.full,
@@ -1163,7 +1331,7 @@ const styles = StyleSheet.create({
   ownerBadgeText: {
     fontSize: typography.fontSize.xs,
     fontWeight: typography.fontWeight.bold,
-    color: colors.white,
+    color: legacyColors.white,
   },
 
   statusBadge: {
@@ -1177,11 +1345,11 @@ const styles = StyleSheet.create({
   },
 
   statusPending: {
-    backgroundColor: colors.warningLight,
+    backgroundColor: legacyColors.warningLight,
   },
 
   statusActive: {
-    backgroundColor: colors.successLight,
+    backgroundColor: legacyColors.successLight,
   },
 
   statusDot: {
@@ -1197,7 +1365,7 @@ const styles = StyleSheet.create({
 
   cardDescription: {
     fontSize: typography.fontSize.base,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
     lineHeight: typography.fontSize.base * typography.lineHeight.normal,
     marginBottom: spacing.md,
   },
@@ -1211,7 +1379,7 @@ const styles = StyleSheet.create({
   },
 
   tag: {
-    backgroundColor: colors.primaryLight,
+    backgroundColor: legacyColors.primaryLight,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: borderRadius.full,
@@ -1220,21 +1388,21 @@ const styles = StyleSheet.create({
   tagText: {
     fontSize: typography.fontSize.xs,
     fontWeight: typography.fontWeight.medium,
-    color: colors.primary,
+    color: legacyColors.primary,
   },
 
   categoryTag: {
-    backgroundColor: colors.secondaryLight,
+    backgroundColor: legacyColors.secondaryLight,
   },
 
   categoryTagText: {
-    color: colors.secondary,
+    color: legacyColors.secondary,
   },
 
   // Divider
   divider: {
     height: 1,
-    backgroundColor: colors.borderLight,
+    backgroundColor: legacyColors.borderLight,
     marginBottom: spacing.md,
   },
 
@@ -1271,20 +1439,20 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: borderRadius.sm,
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: legacyColors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
 
   infoText: {
     fontSize: typography.fontSize.sm,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
     fontWeight: typography.fontWeight.medium,
   },
 
   infoTextFlex: {
     fontSize: typography.fontSize.xs,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
     fontWeight: typography.fontWeight.medium,
     flexShrink: 1,
   },
@@ -1309,7 +1477,7 @@ const styles = StyleSheet.create({
     height: 26,
     borderRadius: 13,
     borderWidth: 2,
-    borderColor: colors.white,
+    borderColor: legacyColors.white,
     overflow: 'hidden',
   },
 
@@ -1322,36 +1490,36 @@ const styles = StyleSheet.create({
   stackedAvatarPlaceholder: {
     width: '100%',
     height: '100%',
-    backgroundColor: colors.primary,
+    backgroundColor: legacyColors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
 
   stackedAvatarText: {
-    color: colors.white,
+    color: legacyColors.white,
     fontSize: 11,
     fontWeight: typography.fontWeight.bold,
   },
 
   stackedAvatarMore: {
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: legacyColors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
 
   stackedAvatarMoreText: {
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
     fontSize: 10,
     fontWeight: typography.fontWeight.bold,
   },
 
   // Keyword Search Modal Styles
   keywordInput: {
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: legacyColors.backgroundSecondary,
     borderRadius: borderRadius.base,
     padding: spacing.base,
     fontSize: typography.fontSize.base,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
     marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
   },
@@ -1365,7 +1533,7 @@ const styles = StyleSheet.create({
 
   keywordClearButton: {
     flex: 1,
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: legacyColors.backgroundSecondary,
     borderRadius: borderRadius.base,
     padding: spacing.base,
     alignItems: 'center',
@@ -1373,13 +1541,13 @@ const styles = StyleSheet.create({
 
   keywordClearButtonText: {
     fontSize: typography.fontSize.base,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
     fontWeight: typography.fontWeight.semibold,
   },
 
   keywordApplyButton: {
     flex: 1,
-    backgroundColor: colors.primary,
+    backgroundColor: legacyColors.primary,
     borderRadius: borderRadius.base,
     padding: spacing.base,
     alignItems: 'center',
@@ -1387,28 +1555,28 @@ const styles = StyleSheet.create({
 
   keywordApplyButtonText: {
     fontSize: typography.fontSize.base,
-    color: colors.white,
+    color: legacyColors.white,
     fontWeight: typography.fontWeight.semibold,
   },
 
   // Sort Button Styles
   sortButton: {
-    backgroundColor: colors.primaryLight,
-    borderColor: colors.primary,
+    backgroundColor: legacyColors.primaryLight,
+    borderColor: legacyColors.primary,
   },
 
   sortButtonText: {
-    color: colors.primary,
+    color: legacyColors.primary,
   },
 
   sortSectionTitle: {
     fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.bold,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
     paddingBottom: spacing.sm,
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: legacyColors.backgroundSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -1421,7 +1589,7 @@ const styles = StyleSheet.create({
 
   // Location Autocomplete Styles
   locationModalContent: {
-    backgroundColor: colors.white,
+    backgroundColor: legacyColors.white,
     borderTopLeftRadius: borderRadius.xl,
     borderTopRightRadius: borderRadius.xl,
     maxHeight: '80%',
@@ -1431,7 +1599,7 @@ const styles = StyleSheet.create({
   locationInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: legacyColors.backgroundSecondary,
     borderRadius: borderRadius.base,
     marginHorizontal: spacing.lg,
     marginBottom: spacing.base,
@@ -1446,7 +1614,7 @@ const styles = StyleSheet.create({
   locationSearchInput: {
     flex: 1,
     fontSize: typography.fontSize.base,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
   },
 
   locationSuggestionsList: {
@@ -1460,18 +1628,18 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.base,
     paddingHorizontal: spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
+    borderBottomColor: legacyColors.borderLight,
     gap: spacing.sm,
   },
 
   locationSuggestionText: {
     flex: 1,
     fontSize: typography.fontSize.base,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
   },
 
   locationCustomItem: {
-    backgroundColor: colors.primaryLight,
+    backgroundColor: legacyColors.primaryLight,
     borderBottomWidth: 0,
     marginHorizontal: spacing.lg,
     marginTop: spacing.sm,
@@ -1479,7 +1647,7 @@ const styles = StyleSheet.create({
   },
 
   locationCustomText: {
-    color: colors.primary,
+    color: legacyColors.primary,
     fontWeight: typography.fontWeight.medium,
   },
 
@@ -1495,7 +1663,7 @@ const styles = StyleSheet.create({
   selectedLocationChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primary,
+    backgroundColor: legacyColors.primary,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: borderRadius.full,
@@ -1504,16 +1672,16 @@ const styles = StyleSheet.create({
 
   selectedLocationChipText: {
     fontSize: typography.fontSize.sm,
-    color: colors.white,
+    color: legacyColors.white,
     fontWeight: typography.fontWeight.medium,
   },
 
   locationSuggestionItemSelected: {
-    backgroundColor: colors.primaryLight,
+    backgroundColor: legacyColors.primaryLight,
   },
 
   locationSuggestionTextSelected: {
-    color: colors.primary,
+    color: legacyColors.primary,
     fontWeight: typography.fontWeight.medium,
   },
 });
