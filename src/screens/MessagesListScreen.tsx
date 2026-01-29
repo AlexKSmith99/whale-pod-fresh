@@ -10,10 +10,10 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import { useFonts, NothingYouCouldDo_400Regular } from '@expo-google-fonts/nothing-you-could-do';
 import { useAuth } from '../contexts/AuthContext';
 import { messageService } from '../services/messageService';
 import { podChatService, PodChat } from '../services/podChatService';
@@ -21,7 +21,9 @@ import { supabase } from '../config/supabase';
 import ChatScreen from './ChatScreen';
 import PodChatScreen from './PodChatScreen';
 import PodMemberCollage from '../components/PodMemberCollage';
-import { colors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+import { useTheme } from '../theme/ThemeContext';
+import GrainTexture from '../components/ui/GrainTexture';
 
 const SIDEBAR_WIDTH = 320;
 const LAST_CHAT_KEY = 'whale_pod_last_chat';
@@ -84,9 +86,8 @@ interface MessagesListScreenProps {
 
 export default function MessagesListScreen({ navigation, onSelectConversation, onConversationRead }: MessagesListScreenProps) {
   const { user } = useAuth();
-  const [fontsLoaded] = useFonts({
-    NothingYouCouldDo_400Regular,
-  });
+  const { theme, isNewTheme } = useTheme();
+  const colors = theme.colors;
   const [individualChats, setIndividualChats] = useState<IndividualChat[]>([]);
   const [podChats, setPodChats] = useState<PodChatItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -387,7 +388,11 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
       return (
         <TouchableOpacity
           key={`dm-${chat.partnerId}`}
-          style={[styles.chatCard, isSelected && styles.chatCardSelected]}
+          style={[
+            styles.chatCard,
+            { backgroundColor: isNewTheme ? colors.surface : legacyColors.white, borderBottomColor: colors.border },
+            isSelected && { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.primaryLight, borderLeftWidth: 3, borderLeftColor: colors.primary }
+          ]}
           onPress={() => selectChat(chat)}
           activeOpacity={0.7}
         >
@@ -409,19 +414,19 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
 
           <View style={styles.chatInfo}>
             <View style={styles.chatHeader}>
-              <Text style={[styles.chatName, hasUnread && styles.chatNameUnread]} numberOfLines={1}>
+              <Text style={[styles.chatName, { color: colors.textPrimary }, hasUnread && styles.chatNameUnread]} numberOfLines={1}>
                 {chat.partnerProfile?.name || chat.partnerEmail || 'User'}
               </Text>
-              <Text style={[styles.chatTime, hasUnread && styles.chatTimeUnread]}>
+              <Text style={[styles.chatTime, { color: colors.textTertiary }, hasUnread && { color: colors.primary }]}>
                 {formatTime(chat.lastMessageTime)}
               </Text>
             </View>
             <View style={styles.chatPreviewRow}>
-              <Text style={[styles.chatPreview, hasUnread && styles.chatPreviewUnread]} numberOfLines={1}>
+              <Text style={[styles.chatPreview, { color: colors.textSecondary }, hasUnread && { color: colors.textPrimary }]} numberOfLines={1}>
                 {chat.lastMessage || 'Start a conversation'}
               </Text>
               {hasUnread && (
-                <View style={styles.unreadBadge}>
+                <View style={[styles.unreadBadge, { backgroundColor: colors.primary }]}>
                   <Text style={styles.unreadBadgeText}>{chat.unreadCount}</Text>
                 </View>
               )}
@@ -434,7 +439,11 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
       return (
         <TouchableOpacity
           key={`pod-${chat.pursuit_id}`}
-          style={[styles.chatCard, isSelected && styles.chatCardSelected]}
+          style={[
+            styles.chatCard,
+            { backgroundColor: isNewTheme ? colors.surface : legacyColors.white, borderBottomColor: colors.border },
+            isSelected && { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.primaryLight, borderLeftWidth: 3, borderLeftColor: colors.primary }
+          ]}
           onPress={() => selectChat(chat)}
           activeOpacity={0.7}
         >
@@ -453,23 +462,23 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
           <View style={styles.chatInfo}>
             <View style={styles.chatHeader}>
               <View style={styles.chatNameRow}>
-                <Text style={[styles.chatName, hasUnread && styles.chatNameUnread]} numberOfLines={1}>
+                <Text style={[styles.chatName, { color: colors.textPrimary }, hasUnread && styles.chatNameUnread]} numberOfLines={1}>
                   {chat.custom_name || chat.pursuit_title}
                 </Text>
-                <View style={styles.podBadge}>
-                  <Text style={styles.podBadgeText}>Pod</Text>
+                <View style={[styles.podBadge, { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.primaryLight }]}>
+                  <Text style={[styles.podBadgeText, { color: colors.primary }]}>Pod</Text>
                 </View>
               </View>
-              <Text style={[styles.chatTime, hasUnread && styles.chatTimeUnread]}>
+              <Text style={[styles.chatTime, { color: colors.textTertiary }, hasUnread && { color: colors.primary }]}>
                 {formatTime(chat.last_message_time)}
               </Text>
             </View>
             <View style={styles.chatPreviewRow}>
-              <Text style={[styles.chatPreview, hasUnread && styles.chatPreviewUnread]} numberOfLines={1}>
+              <Text style={[styles.chatPreview, { color: colors.textSecondary }, hasUnread && { color: colors.textPrimary }]} numberOfLines={1}>
                 {chat.last_message || 'No messages yet'}
               </Text>
               {hasUnread && (
-                <View style={styles.unreadBadge}>
+                <View style={[styles.unreadBadge, { backgroundColor: colors.primary }]}>
                   <Text style={styles.unreadBadgeText}>{chat.unread_count}</Text>
                 </View>
               )}
@@ -482,10 +491,12 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+        {isNewTheme && <GrainTexture opacity={0.06} />}
         <View style={styles.loadingContent}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Loading conversations...</Text>
+          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading conversations...</Text>
         </View>
       </View>
     );
@@ -493,21 +504,23 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
 
   if (!selectedChat && individualChats.length === 0 && podChats.length === 0) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+        {isNewTheme && <GrainTexture opacity={0.06} />}
+        <View style={[styles.header, { backgroundColor: isNewTheme ? colors.surface : legacyColors.white }]}>
           <View style={styles.headerTop}>
             <View>
-              <Text style={styles.headerGreeting}>Your conversations</Text>
-              <Text style={styles.headerTitle}>Chats</Text>
+              <Text style={[styles.headerGreeting, { color: colors.textSecondary }]}>Your conversations</Text>
+              <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Chats</Text>
             </View>
           </View>
         </View>
         <View style={styles.emptyContainer}>
-          <View style={styles.emptyIconContainer}>
+          <View style={[styles.emptyIconContainer, { backgroundColor: isNewTheme ? colors.surface : legacyColors.backgroundSecondary }]}>
             <Ionicons name="chatbubbles-outline" size={48} color={colors.textTertiary} />
           </View>
-          <Text style={styles.emptyTitle}>No conversations yet</Text>
-          <Text style={styles.emptySubtitle}>
+          <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>No conversations yet</Text>
+          <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
             Start chatting with team members or join a pod to access group chats
           </Text>
         </View>
@@ -520,10 +533,12 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={0}
     >
+      <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+      {isNewTheme && <GrainTexture opacity={0.06} />}
       {/* Sidebar Overlay */}
       {sidebarOpen && (
         <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
@@ -537,24 +552,32 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
 
       {/* Sidebar */}
       <Animated.View
-        style={[styles.sidebar, { transform: [{ translateX: sidebarTranslateX }] }]}
+        style={[styles.sidebar, { transform: [{ translateX: sidebarTranslateX }], backgroundColor: isNewTheme ? colors.surface : legacyColors.white }]}
       >
-        <View style={styles.sidebarHeader}>
-          <Text style={[styles.sidebarTitle, fontsLoaded && { fontFamily: 'NothingYouCouldDo_400Regular' }]}>Conversations</Text>
-          <TouchableOpacity onPress={toggleSidebar} style={styles.sidebarCloseBtn}>
+        <View style={[styles.sidebarHeader, { borderBottomColor: colors.border }]}>
+          <Text style={[styles.sidebarTitle, { fontFamily: 'NothingYouCouldDo_400Regular', color: isNewTheme ? colors.primary : colors.textPrimary }]}>Conversations</Text>
+          <TouchableOpacity onPress={toggleSidebar} style={[styles.sidebarCloseBtn, { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.backgroundSecondary }]}>
             <Ionicons name="close" size={24} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
         {/* Sidebar Tabs */}
-        <View style={styles.sidebarTabs}>
+        <View style={[styles.sidebarTabs, { borderBottomColor: colors.border }]}>
           {(['all', 'direct', 'pods'] as FilterTab[]).map((tab) => (
             <TouchableOpacity
               key={tab}
-              style={[styles.sidebarTab, activeTab === tab && styles.sidebarTabActive]}
+              style={[
+                styles.sidebarTab,
+                { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.backgroundSecondary },
+                activeTab === tab && { backgroundColor: colors.primary }
+              ]}
               onPress={() => setActiveTab(tab)}
             >
-              <Text style={[styles.sidebarTabText, activeTab === tab && styles.sidebarTabTextActive]}>
+              <Text style={[
+                styles.sidebarTabText,
+                { color: colors.textSecondary },
+                activeTab === tab && { color: legacyColors.white }
+              ]}>
                 {tab === 'all' ? 'All' : tab === 'direct' ? 'Direct' : 'Pods'}
               </Text>
             </TouchableOpacity>
@@ -565,7 +588,7 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
           {filteredChats.length === 0 ? (
             <View style={styles.sidebarEmpty}>
               <Ionicons name="chatbubble-outline" size={32} color={colors.textTertiary} />
-              <Text style={styles.sidebarEmptyText}>No conversations</Text>
+              <Text style={[styles.sidebarEmptyText, { color: colors.textTertiary }]}>No conversations</Text>
             </View>
           ) : (
             filteredChats.map(chat => renderChatCard(chat))
@@ -608,17 +631,17 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
             />
           )
         ) : (
-          <View style={styles.noChatSelected}>
+          <View style={[styles.noChatSelected, { backgroundColor: colors.background }]}>
             <View style={styles.noChatContent}>
-              <View style={styles.noChatIconContainer}>
+              <View style={[styles.noChatIconContainer, { backgroundColor: isNewTheme ? colors.surface : legacyColors.primaryLight }]}>
                 <Ionicons name="chatbubbles" size={40} color={colors.primary} />
               </View>
-              <Text style={styles.noChatTitle}>Select a conversation</Text>
-              <Text style={styles.noChatSubtitle}>
+              <Text style={[styles.noChatTitle, { color: colors.textPrimary }]}>Select a conversation</Text>
+              <Text style={[styles.noChatSubtitle, { color: colors.textSecondary }]}>
                 Choose from your existing chats or start a new conversation
               </Text>
-              <TouchableOpacity style={styles.openSidebarButton} onPress={toggleSidebar}>
-                <Ionicons name="menu" size={20} color={colors.white} />
+              <TouchableOpacity style={[styles.openSidebarButton, { backgroundColor: colors.primary }]} onPress={toggleSidebar}>
+                <Ionicons name="menu" size={20} color={legacyColors.white} />
                 <Text style={styles.openSidebarButtonText}>View All Chats</Text>
               </TouchableOpacity>
             </View>
@@ -632,13 +655,13 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: legacyColors.background,
   },
 
   // Loading State
   loadingContainer: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: legacyColors.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -648,13 +671,13 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: spacing.base,
     fontSize: typography.fontSize.base,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
     fontWeight: typography.fontWeight.medium,
   },
 
   // Header
   header: {
-    backgroundColor: colors.white,
+    backgroundColor: legacyColors.white,
     paddingTop: 50,
     paddingBottom: spacing.base,
     ...shadows.sm,
@@ -667,20 +690,20 @@ const styles = StyleSheet.create({
   },
   headerGreeting: {
     fontSize: typography.fontSize.sm,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
     fontWeight: typography.fontWeight.medium,
     marginBottom: spacing.xs,
   },
   headerTitle: {
     fontSize: typography.fontSize['3xl'],
     fontWeight: typography.fontWeight.bold,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
   },
 
   // Sidebar
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: colors.textPrimary,
+    backgroundColor: legacyColors.textPrimary,
     zIndex: 10,
   },
   sidebar: {
@@ -689,7 +712,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: SIDEBAR_WIDTH,
-    backgroundColor: colors.white,
+    backgroundColor: legacyColors.white,
     zIndex: 20,
     paddingTop: 50,
     ...shadows.lg,
@@ -701,18 +724,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.base,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
+    borderBottomColor: legacyColors.borderLight,
   },
   sidebarTitle: {
     fontSize: typography.fontSize.xl,
     fontWeight: typography.fontWeight.bold,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
   },
   sidebarCloseBtn: {
     width: 36,
     height: 36,
     borderRadius: borderRadius.full,
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: legacyColors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -722,24 +745,24 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.base,
     gap: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
+    borderBottomColor: legacyColors.borderLight,
   },
   sidebarTab: {
     paddingHorizontal: spacing.base,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.full,
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: legacyColors.backgroundSecondary,
   },
   sidebarTabActive: {
-    backgroundColor: colors.primary,
+    backgroundColor: legacyColors.primary,
   },
   sidebarTabText: {
     fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.medium,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
   },
   sidebarTabTextActive: {
-    color: colors.white,
+    color: legacyColors.white,
   },
   sidebarScroll: {
     flex: 1,
@@ -751,7 +774,7 @@ const styles = StyleSheet.create({
   sidebarEmptyText: {
     marginTop: spacing.base,
     fontSize: typography.fontSize.base,
-    color: colors.textTertiary,
+    color: legacyColors.textTertiary,
   },
 
   // Chat Cards
@@ -760,14 +783,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.base,
-    backgroundColor: colors.white,
+    backgroundColor: legacyColors.white,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
+    borderBottomColor: legacyColors.borderLight,
   },
   chatCardSelected: {
-    backgroundColor: colors.primaryLight,
+    backgroundColor: legacyColors.primaryLight,
     borderLeftWidth: 3,
-    borderLeftColor: colors.primary,
+    borderLeftColor: legacyColors.primary,
   },
   avatarContainer: {
     position: 'relative',
@@ -786,15 +809,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dmAvatar: {
-    backgroundColor: colors.secondary,
+    backgroundColor: legacyColors.secondary,
   },
   podAvatar: {
-    backgroundColor: colors.primary,
+    backgroundColor: legacyColors.primary,
   },
   avatarText: {
     fontSize: typography.fontSize.xl,
     fontWeight: typography.fontWeight.bold,
-    color: colors.white,
+    color: legacyColors.white,
   },
   onlineIndicator: {
     position: 'absolute',
@@ -803,9 +826,9 @@ const styles = StyleSheet.create({
     width: 14,
     height: 14,
     borderRadius: 7,
-    backgroundColor: colors.success,
+    backgroundColor: legacyColors.success,
     borderWidth: 2,
-    borderColor: colors.white,
+    borderColor: legacyColors.white,
   },
   chatInfo: {
     flex: 1,
@@ -825,14 +848,14 @@ const styles = StyleSheet.create({
   chatName: {
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
     flex: 1,
   },
   chatNameUnread: {
     fontWeight: typography.fontWeight.bold,
   },
   podBadge: {
-    backgroundColor: colors.primaryLight,
+    backgroundColor: legacyColors.primaryLight,
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
     borderRadius: borderRadius.sm,
@@ -841,14 +864,14 @@ const styles = StyleSheet.create({
   podBadgeText: {
     fontSize: typography.fontSize.xs,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.primary,
+    color: legacyColors.primary,
   },
   chatTime: {
     fontSize: typography.fontSize.xs,
-    color: colors.textTertiary,
+    color: legacyColors.textTertiary,
   },
   chatTimeUnread: {
-    color: colors.primary,
+    color: legacyColors.primary,
     fontWeight: typography.fontWeight.semibold,
   },
   chatPreviewRow: {
@@ -858,14 +881,14 @@ const styles = StyleSheet.create({
   chatPreview: {
     flex: 1,
     fontSize: typography.fontSize.sm,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
   },
   chatPreviewUnread: {
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
     fontWeight: typography.fontWeight.medium,
   },
   unreadBadge: {
-    backgroundColor: colors.primary,
+    backgroundColor: legacyColors.primary,
     minWidth: 22,
     height: 22,
     borderRadius: 11,
@@ -877,7 +900,7 @@ const styles = StyleSheet.create({
   unreadBadgeText: {
     fontSize: typography.fontSize.xs,
     fontWeight: typography.fontWeight.bold,
-    color: colors.white,
+    color: legacyColors.white,
   },
 
   // Empty State
@@ -891,7 +914,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: legacyColors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.lg,
@@ -899,12 +922,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: typography.fontSize.xl,
     fontWeight: typography.fontWeight.bold,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
     marginBottom: spacing.sm,
   },
   emptySubtitle: {
     fontSize: typography.fontSize.base,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -915,7 +938,7 @@ const styles = StyleSheet.create({
   },
   noChatSelected: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: legacyColors.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -927,7 +950,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: colors.primaryLight,
+    backgroundColor: legacyColors.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.lg,
@@ -935,12 +958,12 @@ const styles = StyleSheet.create({
   noChatTitle: {
     fontSize: typography.fontSize.xl,
     fontWeight: typography.fontWeight.bold,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
     marginBottom: spacing.sm,
   },
   noChatSubtitle: {
     fontSize: typography.fontSize.base,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: spacing.xl,
@@ -948,7 +971,7 @@ const styles = StyleSheet.create({
   openSidebarButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primary,
+    backgroundColor: legacyColors.primary,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.base,
     borderRadius: borderRadius.lg,
@@ -958,6 +981,6 @@ const styles = StyleSheet.create({
   openSidebarButtonText: {
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.white,
+    color: legacyColors.white,
   },
 });

@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, LayoutChangeEvent } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, LayoutChangeEvent, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useFonts, NothingYouCouldDo_400Regular } from '@expo-google-fonts/nothing-you-could-do';
 import { meetingService } from '../services/meetingService';
 import { useAuth } from '../contexts/AuthContext';
-import { colors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+import { useTheme } from '../theme/ThemeContext';
+import GrainTexture from '../components/ui/GrainTexture';
+import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
 
 interface Props {
   onCreateMeeting?: () => void;
@@ -16,9 +17,8 @@ const FUTURE_DAYS = 60; // Number of future days to show
 
 export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props) {
   const { user } = useAuth();
-  const [fontsLoaded] = useFonts({
-    NothingYouCouldDo_400Regular,
-  });
+  const { theme, isNewTheme } = useTheme();
+  const colors = theme.colors;
   const [meetings, setMeetings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -166,16 +166,82 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
 
   const datesList = generateDatesList();
 
+  // Dynamic styles based on theme
+  const dynamicStyles = {
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      paddingTop: 50,
+      paddingBottom: spacing.base,
+      paddingHorizontal: spacing.lg,
+      backgroundColor: colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    headerTitle: {
+      fontSize: typography.fontSize['3xl'],
+      fontWeight: typography.fontWeight.bold as '700',
+      color: isNewTheme ? colors.accentGreen : colors.textPrimary,
+      fontFamily: 'NothingYouCouldDo_400Regular',
+    },
+    dateSection: {
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    dayName: {
+      fontSize: typography.fontSize.xs,
+      fontWeight: typography.fontWeight.semibold as '600',
+      color: colors.textSecondary,
+      marginBottom: spacing.xs,
+      letterSpacing: 0.5,
+      fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined,
+    },
+    dayNumber: {
+      fontSize: typography.fontSize['2xl'],
+      fontWeight: typography.fontWeight.medium as '500',
+      color: colors.textPrimary,
+    },
+    meetingItem: {
+      flexDirection: 'row' as const,
+      backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.backgroundSecondary,
+      borderRadius: borderRadius.base,
+      overflow: 'hidden' as const,
+      marginBottom: spacing.sm,
+    },
+    meetingTitle: {
+      flex: 1,
+      fontSize: typography.fontSize.base,
+      fontWeight: typography.fontWeight.semibold as '600',
+      color: colors.textPrimary,
+      marginRight: spacing.sm,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    meetingTimeText: {
+      fontSize: typography.fontSize.sm,
+      color: colors.textSecondary,
+      fontWeight: typography.fontWeight.medium as '500',
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+  };
+
   return (
-    <View style={styles.container}>
+    <View style={dynamicStyles.container}>
+      <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+      {isNewTheme && <GrainTexture opacity={0.06} />}
+
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={[styles.headerTitle, fontsLoaded && { fontFamily: 'NothingYouCouldDo_400Regular' }]}>Calendar</Text>
+      <View style={dynamicStyles.header}>
+        <Text style={dynamicStyles.headerTitle}>Calendar</Text>
         <TouchableOpacity
           style={styles.createButton}
           onPress={onCreateMeeting}
         >
-          <Ionicons name="add-circle" size={32} color={colors.primary} />
+          <Ionicons name="add-circle" size={32} color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
         </TouchableOpacity>
       </View>
 
@@ -186,7 +252,7 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
           <RefreshControl
             refreshing={loading}
             onRefresh={loadMeetings}
-            tintColor={colors.primary}
+            tintColor={isNewTheme ? colors.accentGreen : legacyColors.primary}
           />
         }
       >
@@ -199,7 +265,7 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
           return (
             <View
               key={date.toISOString()}
-              style={[styles.dateSection, isPastDate && styles.pastDateSection]}
+              style={[dynamicStyles.dateSection, isPastDate && styles.pastDateSection]}
               onLayout={(event) => {
                 if (isTodayDate) {
                   handleDateLayout(index, event.nativeEvent.layout.y, true);
@@ -209,11 +275,11 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
               {/* Date Header */}
               <View style={styles.dateHeaderContainer}>
                 <View style={styles.dateLeftSection}>
-                  <Text style={[styles.dayName, isTodayDate && styles.todayDayName]}>
+                  <Text style={[dynamicStyles.dayName, isTodayDate && { color: isNewTheme ? colors.accentGreen : legacyColors.primary }]}>
                     {dateHeader.dayName.substring(0, 3).toUpperCase()}
                   </Text>
-                  <View style={[styles.dayNumberContainer, isTodayDate && styles.todayDayNumberContainer]}>
-                    <Text style={[styles.dayNumber, isTodayDate && styles.todayDayNumber]}>
+                  <View style={[styles.dayNumberContainer, isTodayDate && { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]}>
+                    <Text style={[dynamicStyles.dayNumber, isTodayDate && { color: isNewTheme ? colors.background : legacyColors.white, fontWeight: '700' as '700' }]}>
                       {dateHeader.dayNumber}
                     </Text>
                   </View>
@@ -221,7 +287,7 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
 
                 <View style={styles.dateRightSection}>
                   {dateMeetings.length === 0 ? (
-                    <View style={styles.emptyDateLine} />
+                    <View style={[styles.emptyDateLine, { backgroundColor: colors.border }]} />
                   ) : (
                     <View style={styles.meetingsContainer}>
                       {dateMeetings.map((item: any) => {
@@ -232,40 +298,41 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
                           hour: 'numeric',
                           minute: '2-digit'
                         });
+                        const accentColor = meeting.meeting_type === 'in_person' ? '#10b981' : meeting.meeting_type === 'hybrid' ? '#f59e0b' : (isNewTheme ? colors.accentGreen : legacyColors.primary);
 
                         return (
                           <TouchableOpacity
                             key={meeting.id}
-                            style={styles.meetingItem}
+                            style={dynamicStyles.meetingItem}
                             onPress={() => onOpenMeeting && onOpenMeeting(meeting)}
                             activeOpacity={0.7}
                           >
-                            <View style={[styles.meetingColorBar, { backgroundColor: meeting.meeting_type === 'in_person' ? '#10b981' : meeting.meeting_type === 'hybrid' ? '#f59e0b' : colors.primary }]} />
+                            <View style={[styles.meetingColorBar, { backgroundColor: accentColor }]} />
                             <View style={styles.meetingContent}>
                               <View style={styles.meetingTopRow}>
                                 <Ionicons
                                   name={getMeetingIcon(meeting.meeting_type) as any}
                                   size={16}
-                                  color={meeting.meeting_type === 'in_person' ? '#10b981' : meeting.meeting_type === 'hybrid' ? '#f59e0b' : colors.primary}
+                                  color={accentColor}
                                   style={{ marginRight: 6 }}
                                 />
-                                <Text style={styles.meetingTitle} numberOfLines={1}>
+                                <Text style={dynamicStyles.meetingTitle} numberOfLines={1}>
                                   {meeting.title}
                                 </Text>
                                 {meeting.is_kickoff && (
-                                  <View style={styles.kickoffBadge}>
-                                    <Text style={styles.kickoffBadgeText}>KICKOFF</Text>
+                                  <View style={[styles.kickoffBadge, { backgroundColor: colors.warning }]}>
+                                    <Text style={[styles.kickoffBadgeText, { color: isNewTheme ? colors.background : legacyColors.white }]}>KICKOFF</Text>
                                   </View>
                                 )}
                               </View>
                               <View style={styles.meetingBottomRow}>
-                                <Text style={styles.meetingTimeText}>{timeString}</Text>
-                                <Text style={styles.meetingDivider}>•</Text>
-                                <Text style={styles.meetingTypeText}>{getMeetingTypeLabel(meeting.meeting_type)}</Text>
+                                <Text style={dynamicStyles.meetingTimeText}>{timeString}</Text>
+                                <Text style={[styles.meetingDivider, { color: colors.textTertiary }]}>•</Text>
+                                <Text style={[styles.meetingTypeText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{getMeetingTypeLabel(meeting.meeting_type)}</Text>
                                 {meeting.location && (
                                   <>
-                                    <Text style={styles.meetingDivider}>•</Text>
-                                    <Text style={styles.meetingLocationText} numberOfLines={1}>{meeting.location}</Text>
+                                    <Text style={[styles.meetingDivider, { color: colors.textTertiary }]}>•</Text>
+                                    <Text style={[styles.meetingLocationText, { color: colors.textTertiary }]} numberOfLines={1}>{meeting.location}</Text>
                                   </>
                                 )}
                               </View>
@@ -288,7 +355,7 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: legacyColors.white,
   },
   header: {
     flexDirection: 'row',
@@ -297,14 +364,14 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: spacing.base,
     paddingHorizontal: spacing.lg,
-    backgroundColor: colors.white,
+    backgroundColor: legacyColors.white,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
+    borderBottomColor: legacyColors.borderLight,
   },
   headerTitle: {
     fontSize: typography.fontSize['3xl'],
     fontWeight: typography.fontWeight.bold,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
   },
   createButton: {
     width: 40,
@@ -317,7 +384,7 @@ const styles = StyleSheet.create({
   },
   dateSection: {
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
+    borderBottomColor: legacyColors.borderLight,
   },
   pastDateSection: {
     opacity: 0.7,
@@ -335,12 +402,12 @@ const styles = StyleSheet.create({
   dayName: {
     fontSize: typography.fontSize.xs,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
     marginBottom: spacing.xs,
     letterSpacing: 0.5,
   },
   todayDayName: {
-    color: colors.primary,
+    color: legacyColors.primary,
   },
   dayNumberContainer: {
     width: 40,
@@ -350,15 +417,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   todayDayNumberContainer: {
-    backgroundColor: colors.primary,
+    backgroundColor: legacyColors.primary,
   },
   dayNumber: {
     fontSize: typography.fontSize['2xl'],
     fontWeight: typography.fontWeight.medium,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
   },
   todayDayNumber: {
-    color: colors.white,
+    color: legacyColors.white,
     fontWeight: typography.fontWeight.bold,
   },
   dateRightSection: {
@@ -367,7 +434,7 @@ const styles = StyleSheet.create({
   },
   emptyDateLine: {
     height: 1,
-    backgroundColor: colors.borderLight,
+    backgroundColor: legacyColors.borderLight,
     marginVertical: spacing.lg,
   },
   meetingsContainer: {
@@ -375,14 +442,14 @@ const styles = StyleSheet.create({
   },
   meetingItem: {
     flexDirection: 'row',
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: legacyColors.backgroundSecondary,
     borderRadius: borderRadius.base,
     overflow: 'hidden',
     marginBottom: spacing.sm,
   },
   meetingColorBar: {
     width: 4,
-    backgroundColor: colors.primary,
+    backgroundColor: legacyColors.primary,
   },
   meetingContent: {
     flex: 1,
@@ -399,11 +466,11 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
     marginRight: spacing.sm,
   },
   kickoffBadge: {
-    backgroundColor: colors.warning,
+    backgroundColor: legacyColors.warning,
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
     borderRadius: borderRadius.full,
@@ -411,7 +478,7 @@ const styles = StyleSheet.create({
   kickoffBadgeText: {
     fontSize: typography.fontSize.xs,
     fontWeight: typography.fontWeight.bold,
-    color: colors.white,
+    color: legacyColors.white,
   },
   meetingBottomRow: {
     flexDirection: 'row',
@@ -419,27 +486,27 @@ const styles = StyleSheet.create({
   },
   meetingTimeText: {
     fontSize: typography.fontSize.sm,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
     fontWeight: typography.fontWeight.medium,
   },
   meetingDivider: {
     fontSize: typography.fontSize.sm,
-    color: colors.textTertiary,
+    color: legacyColors.textTertiary,
     marginHorizontal: spacing.xs,
   },
   meetingPursuitText: {
     flex: 1,
     fontSize: typography.fontSize.sm,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
   },
   meetingTypeText: {
     fontSize: typography.fontSize.sm,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
     fontWeight: typography.fontWeight.medium,
   },
   meetingLocationText: {
     flex: 1,
     fontSize: typography.fontSize.sm,
-    color: colors.textTertiary,
+    color: legacyColors.textTertiary,
   },
 });

@@ -5,7 +5,7 @@ import { pursuitService } from '../services/pursuitService';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
 import { HapticManager } from '../services/hapticManager';
-import ChalkboardTexture from '../components/ui/ChalkboardTexture';
+import GrainTexture from '../components/ui/GrainTexture';
 import PursuitDetailScreen from './PursuitDetailScreen';
 import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
 
@@ -437,8 +437,8 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
     <View style={dynamicStyles.container}>
       <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
 
-      {/* Chalkboard texture overlay for new theme */}
-      {isNewTheme && <ChalkboardTexture opacity={0.12} />}
+      {/* Grain texture overlay for new theme */}
+      {isNewTheme && <GrainTexture opacity={0.06} />}
 
       {/* Modern Header */}
       <View style={dynamicStyles.header}>

@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useFonts, NothingYouCouldDo_400Regular } from '@expo-google-fonts/nothing-you-could-do';
 import { useAuth } from '../contexts/AuthContext';
 import { notificationService } from '../services/notificationService';
 import { supabase } from '../config/supabase';
-import { colors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+import { useTheme } from '../theme/ThemeContext';
+import GrainTexture from '../components/ui/GrainTexture';
 
 export default function NotificationsScreen({ navigation }: any) {
   const { user } = useAuth();
-  const [fontsLoaded] = useFonts({
-    NothingYouCouldDo_400Regular,
-  });
+  const { theme, isNewTheme } = useTheme();
+  const colors = theme.colors;
   const [notifications, setNotifications] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -328,10 +328,18 @@ export default function NotificationsScreen({ navigation }: any) {
 
   const renderNotification = ({ item }: { item: any }) => (
     <TouchableOpacity
-      style={[styles.notificationCard, !item.read && styles.unreadCard]}
+      style={[
+        styles.notificationCard,
+        { backgroundColor: isNewTheme ? colors.surface : legacyColors.white },
+        !item.read && [styles.unreadCard, { backgroundColor: isNewTheme ? colors.surface : legacyColors.primaryLight, borderLeftColor: colors.primary }]
+      ]}
       onPress={() => handleNotificationPress(item)}
     >
-      <View style={[styles.iconContainer, !item.read && styles.unreadIcon]}>
+      <View style={[
+        styles.iconContainer,
+        { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.backgroundSecondary },
+        !item.read && { backgroundColor: colors.primary + '20' }
+      ]}>
         <Ionicons
           name={getNotificationIcon(item.type) as any}
           size={24}
@@ -339,35 +347,39 @@ export default function NotificationsScreen({ navigation }: any) {
         />
       </View>
       <View style={styles.notificationContent}>
-        <Text style={[styles.notificationTitle, !item.read && styles.unreadText]}>
+        <Text style={[styles.notificationTitle, { color: colors.textPrimary }, !item.read && styles.unreadText]}>
           {item.title}
         </Text>
-        <Text style={styles.notificationBody}>{item.body}</Text>
-        <Text style={styles.timestamp}>{formatTimestamp(item.created_at)}</Text>
+        <Text style={[styles.notificationBody, { color: colors.textSecondary }]}>{item.body}</Text>
+        <Text style={[styles.timestamp, { color: colors.textTertiary }]}>{formatTimestamp(item.created_at)}</Text>
       </View>
-      {!item.read && <View style={styles.unreadDot} />}
+      {!item.read && <View style={[styles.unreadDot, { backgroundColor: colors.primary }]} />}
     </TouchableOpacity>
   );
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.loadingText}>Loading notifications...</Text>
+      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+        {isNewTheme && <GrainTexture opacity={0.06} />}
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading notifications...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={[styles.headerTitle, fontsLoaded && { fontFamily: 'NothingYouCouldDo_400Regular' }]}>Notifications</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+      {isNewTheme && <GrainTexture opacity={0.06} />}
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <Text style={[styles.headerTitle, { fontFamily: 'NothingYouCouldDo_400Regular', color: isNewTheme ? colors.accentGreen : colors.textPrimary }]}>Notifications</Text>
       </View>
 
       {notifications.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="notifications-off-outline" size={64} color={colors.textSecondary} />
-          <Text style={styles.emptyText}>No notifications yet</Text>
-          <Text style={styles.emptySubtext}>We'll notify you when something happens</Text>
+          <Text style={[styles.emptyText, { color: colors.textPrimary }]}>No notifications yet</Text>
+          <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>We'll notify you when something happens</Text>
         </View>
       ) : (
         <FlatList
@@ -387,20 +399,16 @@ export default function NotificationsScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   header: {
     paddingTop: 50,
     paddingBottom: spacing.base,
     paddingHorizontal: spacing.lg,
-    backgroundColor: colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
   },
   headerTitle: {
     fontSize: typography.fontSize.xl,
     fontWeight: typography.fontWeight.bold,
-    color: colors.textPrimary,
   },
   centerContainer: {
     flex: 1,
@@ -409,7 +417,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: typography.fontSize.base,
-    color: colors.textSecondary,
   },
   emptyContainer: {
     flex: 1,
@@ -420,12 +427,10 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: typography.fontSize.lg,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.textPrimary,
     marginTop: spacing.lg,
   },
   emptySubtext: {
     fontSize: typography.fontSize.sm,
-    color: colors.textSecondary,
     marginTop: spacing.xs,
     textAlign: 'center',
   },
@@ -434,28 +439,21 @@ const styles = StyleSheet.create({
   },
   notificationCard: {
     flexDirection: 'row',
-    backgroundColor: colors.white,
     padding: spacing.base,
     borderRadius: borderRadius.base,
     marginBottom: spacing.sm,
     ...shadows.base,
   },
   unreadCard: {
-    backgroundColor: colors.primaryLight,
     borderLeftWidth: 3,
-    borderLeftColor: colors.primary,
   },
   iconContainer: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing.base,
-  },
-  unreadIcon: {
-    backgroundColor: colors.primary + '20',
   },
   notificationContent: {
     flex: 1,
@@ -463,7 +461,6 @@ const styles = StyleSheet.create({
   notificationTitle: {
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.textPrimary,
     marginBottom: spacing.xs,
   },
   unreadText: {
@@ -471,19 +468,16 @@ const styles = StyleSheet.create({
   },
   notificationBody: {
     fontSize: typography.fontSize.sm,
-    color: colors.textSecondary,
     marginBottom: spacing.xs,
     lineHeight: 18,
   },
   timestamp: {
     fontSize: typography.fontSize.xs,
-    color: colors.textTertiary,
   },
   unreadDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: colors.primary,
     position: 'absolute',
     top: spacing.base,
     right: spacing.base,
