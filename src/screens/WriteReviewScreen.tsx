@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,12 +10,139 @@ import {
   ActivityIndicator,
   Modal,
   Image,
+  LayoutChangeEvent,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Slider from '@react-native-community/slider';
 import { useAuth } from '../contexts/AuthContext';
+
+// Custom Slider Component (works in Metro/Expo Go)
+interface CustomSliderProps {
+  value: number;
+  onValueChange: (value: number) => void;
+  minimumValue?: number;
+  maximumValue?: number;
+  step?: number;
+}
+
+const CustomSlider: React.FC<CustomSliderProps> = ({
+  value,
+  onValueChange,
+  minimumValue = 0,
+  maximumValue = 10,
+  step = 1,
+}) => {
+  const trackRef = useRef<View>(null);
+  const layoutRef = useRef({ width: 0, pageX: 0 });
+
+  const getValueFromPageX = (pageX: number) => {
+    const { width, pageX: trackLeft } = layoutRef.current;
+    if (width === 0) return value;
+    
+    const positionX = pageX - trackLeft;
+    const percentage = Math.max(0, Math.min(1, positionX / width));
+    const rawValue = minimumValue + percentage * (maximumValue - minimumValue);
+    const steppedValue = Math.round(rawValue / step) * step;
+    return Math.max(minimumValue, Math.min(maximumValue, steppedValue));
+  };
+
+  const measureTrack = () => {
+    trackRef.current?.measure((x, y, width, height, pageX, pageY) => {
+      layoutRef.current = { width, pageX };
+    });
+  };
+
+  const handleResponderGrant = (evt: any) => {
+    // Re-measure on touch start to ensure accuracy
+    trackRef.current?.measure((x, y, width, height, pageX, pageY) => {
+      layoutRef.current = { width, pageX };
+      const newValue = getValueFromPageX(evt.nativeEvent.pageX);
+      onValueChange(newValue);
+    });
+  };
+
+  const handleResponderMove = (evt: any) => {
+    const newValue = getValueFromPageX(evt.nativeEvent.pageX);
+    onValueChange(newValue);
+  };
+
+  const percentage = (value - minimumValue) / (maximumValue - minimumValue);
+
+  return (
+    <View style={customSliderStyles.container}>
+      <Text style={customSliderStyles.label}>0</Text>
+      <View
+        ref={trackRef}
+        style={customSliderStyles.track}
+        onLayout={measureTrack}
+        onStartShouldSetResponder={() => true}
+        onMoveShouldSetResponder={() => true}
+        onResponderGrant={handleResponderGrant}
+        onResponderMove={handleResponderMove}
+        onResponderTerminationRequest={() => false}
+      >
+        <View style={[customSliderStyles.filledTrack, { width: `${percentage * 100}%` }]} />
+        <View style={[customSliderStyles.thumb, { left: `${percentage * 100}%`, marginLeft: -16 }]}>
+          <Text style={customSliderStyles.thumbText}>{value}</Text>
+        </View>
+      </View>
+      <Text style={customSliderStyles.label}>10</Text>
+    </View>
+  );
+};
+
+const customSliderStyles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  label: {
+    fontSize: 14,
+    color: '#9ca3af',
+    width: 24,
+    textAlign: 'center',
+  },
+  track: {
+    flex: 1,
+    height: 8,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 4,
+    marginHorizontal: 8,
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  filledTrack: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: '#0ea5e9',
+    borderRadius: 4,
+  },
+  thumb: {
+    position: 'absolute',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#0ea5e9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    top: -12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  thumbText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+});
 import { reviewService, REVIEW_ATTRIBUTES, EligiblePursuit, ReviewRatings } from '../services/reviewService';
 import { supabase } from '../config/supabase';
+import { colors } from '../theme/designSystem';
 
 interface WriteReviewScreenProps {
   route: {
@@ -265,33 +392,18 @@ export default function WriteReviewScreen({ route, navigation }: WriteReviewScre
                 )}
               </View>
               
-              <View style={styles.sliderContainer}>
-                <Text style={styles.sliderMin}>0</Text>
-                <Slider
-                  style={styles.slider}
-                  minimumValue={0}
-                  maximumValue={10}
-                  step={1}
-                  value={ratings[attr.key as keyof ReviewRatings] ?? 5}
-                  onSlidingComplete={(value) => handleRatingChange(attr.key, value)}
-                  minimumTrackTintColor="#0ea5e9"
-                  maximumTrackTintColor="#e5e7eb"
-                  thumbTintColor="#0ea5e9"
-                />
-                <Text style={styles.sliderMax}>10</Text>
-              </View>
+              {/* Slider (0-10) */}
+              <CustomSlider
+                value={ratings[attr.key as keyof ReviewRatings] ?? 5}
+                onValueChange={(value) => handleRatingChange(attr.key, value)}
+                minimumValue={0}
+                maximumValue={10}
+                step={1}
+              />
               
-              <View style={styles.ratingValueContainer}>
-                {ratings[attr.key as keyof ReviewRatings] !== undefined ? (
-                  <View style={styles.ratingValueBadge}>
-                    <Text style={styles.ratingValue}>
-                      {ratings[attr.key as keyof ReviewRatings]}
-                    </Text>
-                  </View>
-                ) : (
-                  <Text style={styles.notRatedText}>Not rated</Text>
-                )}
-              </View>
+              {ratings[attr.key as keyof ReviewRatings] === undefined && (
+                <Text style={styles.notRatedText}>Drag slider to rate</Text>
+              )}
             </View>
           ))}
         </View>
@@ -375,13 +487,13 @@ export default function WriteReviewScreen({ route, navigation }: WriteReviewScre
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   loadingText: {
     marginTop: 12,
@@ -573,45 +685,12 @@ const styles = StyleSheet.create({
     color: '#ef4444',
     fontWeight: '500',
   },
-  sliderContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  slider: {
-    flex: 1,
-    height: 40,
-  },
-  sliderMin: {
-    fontSize: 14,
-    color: '#9ca3af',
-    width: 24,
-    textAlign: 'center',
-  },
-  sliderMax: {
-    fontSize: 14,
-    color: '#9ca3af',
-    width: 24,
-    textAlign: 'center',
-  },
-  ratingValueContainer: {
-    alignItems: 'center',
-  },
-  ratingValueBadge: {
-    backgroundColor: '#0ea5e9',
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  ratingValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
   notRatedText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#9ca3af',
     fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: 4,
   },
   submitButton: {
     flexDirection: 'row',

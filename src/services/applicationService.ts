@@ -45,7 +45,7 @@ export const applicationService = {
       console.log('✅ Applicant found:', applicant);
 
       if (pursuit && applicant) {
-        const applicantName = applicant.name || 'An applicant';
+        const applicantName = applicant.name || applicant.email?.split('@')[0] || 'Someone';
         console.log('🔔 Sending notification to creator:', pursuit.creator_id, 'about applicant:', applicantName);
 
         await notificationService.notifyApplicationReceived(
@@ -142,6 +142,50 @@ export const applicationService = {
       }
     }
 
+    // Add new member to all future scheduled meetings for this pod
+    try {
+      console.log('📅 Checking for future meetings to add new member to...');
+
+      // Get all future scheduled meetings for this pursuit
+      const { data: futureMeetings, error: meetingsError } = await supabase
+        .from('meetings')
+        .select('id, title')
+        .eq('pursuit_id', application.pursuit_id)
+        .eq('status', 'scheduled')
+        .gte('scheduled_time', new Date().toISOString());
+
+      if (meetingsError) {
+        console.error('❌ Error fetching future meetings:', meetingsError);
+      } else if (futureMeetings && futureMeetings.length > 0) {
+        console.log(`📅 Found ${futureMeetings.length} future meetings to add new member to`);
+
+        // Add new member as participant to each meeting
+        const participantRecords = futureMeetings.map(meeting => ({
+          meeting_id: meeting.id,
+          user_id: application.applicant_id,
+          status: 'invited',
+        }));
+
+        const { error: participantsError } = await supabase
+          .from('meeting_participants')
+          .upsert(participantRecords, {
+            onConflict: 'meeting_id,user_id',
+            ignoreDuplicates: true
+          });
+
+        if (participantsError) {
+          console.error('❌ Error adding new member to meetings:', participantsError);
+        } else {
+          console.log(`✅ Added new member to ${futureMeetings.length} future meetings`);
+        }
+      } else {
+        console.log('📅 No future meetings found for this pod');
+      }
+    } catch (meetingError) {
+      console.error('❌ Error adding member to future meetings:', meetingError);
+      // Don't throw - meeting participant failure shouldn't block acceptance
+    }
+
     // Send notifications
     try {
       console.log('🔔 Fetching pursuit details for acceptance notification...');
@@ -175,7 +219,7 @@ export const applicationService = {
       console.log('✅ Creator found:', creator);
 
       if (pursuit && creator) {
-        const creatorName = creator.name || 'The pod creator';
+        const creatorName = creator.name || creator.email?.split('@')[0] || 'The creator';
         console.log('🔔 Sending acceptance notification to:', application.applicant_id, 'for pursuit:', pursuit.title);
 
         await notificationService.notifyApplicationAccepted(
@@ -259,7 +303,7 @@ export const applicationService = {
       console.log('✅ Creator found:', creator);
 
       if (pursuit && creator) {
-        const creatorName = creator.name || 'The pod creator';
+        const creatorName = creator.name || creator.email?.split('@')[0] || 'The creator';
         console.log('🔔 Sending rejection notification to:', application.applicant_id, 'for pursuit:', pursuit.title);
 
         await notificationService.notifyApplicationRejected(

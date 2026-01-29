@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Animated, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+import { hapticService } from '../services/hapticService';
 
 interface Props {
   notification: {
@@ -20,6 +21,9 @@ export default function NotificationToast({ notification, onPress, onDismiss }: 
   useEffect(() => {
     if (notification) {
       setVisible(true);
+      // Haptic feedback when notification appears
+      hapticService.rhythmicPulse(2, 100);
+
       // Slide in
       Animated.timing(slideAnim, {
         toValue: 0,
@@ -27,10 +31,10 @@ export default function NotificationToast({ notification, onPress, onDismiss }: 
         useNativeDriver: true,
       }).start();
 
-      // Auto dismiss after 3 seconds
+      // Auto dismiss after 6 seconds
       const timer = setTimeout(() => {
         dismiss();
-      }, 3000);
+      }, 6000);
 
       return () => clearTimeout(timer);
     }
@@ -48,6 +52,7 @@ export default function NotificationToast({ notification, onPress, onDismiss }: 
   };
 
   const handlePress = () => {
+    hapticService.lightTap();
     dismiss();
     onPress?.();
   };
@@ -64,6 +69,8 @@ export default function NotificationToast({ notification, onPress, onDismiss }: 
         return 'people';
       case 'message':
       case 'new_message':
+      case 'pod_chat':
+      case 'pod_chat_message':
         return 'chatbubble';
       case 'meeting':
       case 'new_meeting':
@@ -125,7 +132,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.base,
     padding: spacing.base,
     alignItems: 'center',
-    ...shadows.large,
+    ...shadows.lg,
   },
   iconContainer: {
     width: 40,

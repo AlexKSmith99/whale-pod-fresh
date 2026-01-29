@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFonts, NothingYouCouldDo_400Regular } from '@expo-google-fonts/nothing-you-could-do';
 import { useAuth } from '../contexts/AuthContext';
 import { notificationService } from '../services/notificationService';
 import { supabase } from '../config/supabase';
@@ -8,6 +9,9 @@ import { colors, typography, spacing, borderRadius, shadows } from '../theme/des
 
 export default function NotificationsScreen({ navigation }: any) {
   const { user } = useAuth();
+  const [fontsLoaded] = useFonts({
+    NothingYouCouldDo_400Regular,
+  });
   const [notifications, setNotifications] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -48,8 +52,10 @@ export default function NotificationsScreen({ navigation }: any) {
     switch (notification.type) {
       case 'message':
       case 'new_message':
+      case 'pod_chat':
+      case 'pod_chat_message':
         // Navigate to messages - would need conversation ID to navigate to specific chat
-        if (notification.data?.conversationId) {
+        if (notification.data?.conversationId || notification.data?.pursuitId) {
           // TODO: Fetch conversation details and navigate
           navigation?.navigate?.('Messages');
         } else {
@@ -74,11 +80,12 @@ export default function NotificationsScreen({ navigation }: any) {
         break;
 
       case 'time_proposal':
+      case 'all_proposals_submitted':
         // Time proposal notifications are for creators - go to kickoff scheduling
         if (notification.related_id && notification.related_type === 'pursuit') {
-          await navigateToPod(notification.related_id, 'kickoff');
+          await navigateToPod(notification.related_id, 'kickoff', true);
         } else if (notification.data?.pursuitId) {
-          await navigateToPod(notification.data.pursuitId, 'kickoff');
+          await navigateToPod(notification.data.pursuitId, 'kickoff', true);
         } else {
           navigation?.navigate?.('Pods');
         }
@@ -87,9 +94,9 @@ export default function NotificationsScreen({ navigation }: any) {
       case 'kickoff_activated':
         // Kickoff activated - creators go to scheduling, team members go to propose times
         if (notification.related_id && notification.related_type === 'pursuit') {
-          await navigateToPodWithCreatorCheck(notification.related_id);
+          await navigateToPodWithCreatorCheck(notification.related_id, true);
         } else if (notification.data?.pursuitId) {
-          await navigateToPodWithCreatorCheck(notification.data.pursuitId);
+          await navigateToPodWithCreatorCheck(notification.data.pursuitId, true);
         } else {
           navigation?.navigate?.('Pods');
         }
@@ -193,7 +200,7 @@ export default function NotificationsScreen({ navigation }: any) {
     }
   };
 
-  const navigateToPod = async (pursuitId: string, subScreen?: string) => {
+  const navigateToPod = async (pursuitId: string, subScreen?: string, fromNotifications?: boolean) => {
     try {
       // Fetch the full pod/pursuit data
       const { data: pursuit, error } = await supabase
@@ -216,8 +223,8 @@ export default function NotificationsScreen({ navigation }: any) {
         return;
       }
 
-      // Navigate to pod detail screen with optional sub-screen
-      navigation?.navigate?.('PodDetail', { pod: pursuit, subScreen });
+      // Navigate to pod detail screen with optional sub-screen and fromNotifications flag
+      navigation?.navigate?.('PodDetail', { pod: pursuit, subScreen, fromNotifications });
     } catch (error) {
       console.error('Error navigating to pod:', error);
       navigation?.navigate?.('Pods');
@@ -225,7 +232,7 @@ export default function NotificationsScreen({ navigation }: any) {
   };
 
   // Navigate to pod with creator check - creators go to kickoff scheduling, team members go to propose times
-  const navigateToPodWithCreatorCheck = async (pursuitId: string) => {
+  const navigateToPodWithCreatorCheck = async (pursuitId: string, fromNotifications?: boolean) => {
     try {
       // Fetch the pursuit data to check if user is creator
       const { data: pursuit, error } = await supabase
@@ -252,7 +259,7 @@ export default function NotificationsScreen({ navigation }: any) {
 
       // Navigate to appropriate sub-screen based on role
       const subScreen = isCreator ? 'kickoff' : 'propose_times';
-      navigation?.navigate?.('PodDetail', { pod: pursuit, subScreen });
+      navigation?.navigate?.('PodDetail', { pod: pursuit, subScreen, fromNotifications });
     } catch (error) {
       console.error('Error navigating to pod:', error);
       navigation?.navigate?.('Pods');
@@ -263,6 +270,8 @@ export default function NotificationsScreen({ navigation }: any) {
     switch (type) {
       case 'message':
       case 'new_message':
+      case 'pod_chat':
+      case 'pod_chat_message':
         return 'chatbubble';
       case 'connection_request':
       case 'connection_accepted':
@@ -351,7 +360,7 @@ export default function NotificationsScreen({ navigation }: any) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Notifications</Text>
+        <Text style={[styles.headerTitle, fontsLoaded && { fontFamily: 'NothingYouCouldDo_400Regular' }]}>Notifications</Text>
       </View>
 
       {notifications.length === 0 ? (

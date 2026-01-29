@@ -6,6 +6,8 @@ import { notificationService } from '../services/notificationService';
 import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import UserProfileScreen from './UserProfileScreen';
+import WriteReviewScreen from './WriteReviewScreen';
+import { colors } from '../theme/designSystem';
 
 interface Props {
   pursuitId: string;
@@ -21,10 +23,23 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
   const [expandedReviewedId, setExpandedReviewedId] = useState<string | null>(null);
   const [showUserProfile, setShowUserProfile] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  
+  // Write review state
+  const [showWriteReview, setShowWriteReview] = useState(false);
+  const [revieweeInfo, setRevieweeInfo] = useState<{
+    revieweeId: string;
+    revieweeName: string;
+    revieweePhoto?: string;
+  } | null>(null);
 
   const handleViewProfile = (userId: string) => {
     setSelectedUserId(userId);
     setShowUserProfile(true);
+  };
+  
+  const handleWriteReview = (revieweeId: string, revieweeName: string, revieweePhoto?: string) => {
+    setRevieweeInfo({ revieweeId, revieweeName, revieweePhoto });
+    setShowWriteReview(true);
   };
 
   useEffect(() => {
@@ -88,7 +103,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
   };
 
   const handleScheduleInterview = async (app: any) => {
-    const applicantName = app.applicant?.name || 'the applicant';
+    const applicantName = app.applicant?.name || app.applicant?.email?.split('@')[0] || 'the applicant';
 
     Alert.alert(
       'Schedule Interview',
@@ -122,7 +137,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
                 .eq('id', user!.id)
                 .single();
 
-              const creatorName = creatorProfile?.name || 'The pod creator';
+              const creatorName = creatorProfile?.name || creatorProfile?.email?.split('@')[0] || 'The creator';
               console.log('📤 Sending notification to applicant:', app.applicant_id, 'from creator:', creatorName);
 
               // Send notification to applicant to propose interview times
@@ -170,6 +185,21 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
     }
   };
 
+  // Show write review screen
+  if (showWriteReview && revieweeInfo) {
+    return (
+      <WriteReviewScreen
+        route={{ params: revieweeInfo }}
+        navigation={{
+          goBack: () => {
+            setShowWriteReview(false);
+            setRevieweeInfo(null);
+          },
+        }}
+      />
+    );
+  }
+
   // Show user profile screen
   if (showUserProfile && selectedUserId) {
     const navigation = {
@@ -188,6 +218,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
       <UserProfileScreen
         route={{ params: { userId: selectedUserId } }}
         navigation={navigation}
+        onWriteReview={handleWriteReview}
       />
     );
   }
@@ -417,7 +448,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  container: { flex: 1, backgroundColor: colors.background },
   header: { 
     backgroundColor: '#fff', 
     padding: 20, 

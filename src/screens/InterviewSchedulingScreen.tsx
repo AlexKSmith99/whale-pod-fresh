@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Platform, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '../contexts/AuthContext';
@@ -200,7 +200,7 @@ export default function InterviewSchedulingScreen({
               if (appError) throw appError;
 
               // Notify applicant about the scheduled interview
-              const creatorName = user?.name || 'The pod creator';
+              const creatorName = user?.name || user?.email?.split('@')[0] || 'The creator';
               await notificationService.notifyInterviewScheduled(
                 applicantId,
                 applicationId,
@@ -356,27 +356,44 @@ export default function InterviewSchedulingScreen({
                 <Ionicons name={showDatePicker ? "chevron-up" : "chevron-down"} size={16} color="#8b5cf6" />
               </TouchableOpacity>
 
-              {showDatePicker && (
-                <View style={styles.pickerContainer}>
-                  <DateTimePicker
-                    value={customDate}
-                    mode="date"
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                    minimumDate={new Date()}
-                    onChange={(event, date) => {
-                      if (Platform.OS === 'android') setShowDatePicker(false);
-                      if (date) setCustomDate(date);
-                    }}
-                  />
-                  {Platform.OS === 'ios' && (
-                    <TouchableOpacity
-                      style={styles.doneButton}
-                      onPress={() => setShowDatePicker(false)}
-                    >
-                      <Text style={styles.doneButtonText}>Done</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
+              {showDatePicker && Platform.OS === 'ios' && (
+                <Modal transparent animationType="fade" visible={showDatePicker}>
+                  <TouchableOpacity 
+                    style={styles.pickerOverlay} 
+                    activeOpacity={1} 
+                    onPress={() => setShowDatePicker(false)}
+                  >
+                    <View style={styles.pickerModalContent}>
+                      <DateTimePicker
+                        value={customDate}
+                        mode="date"
+                        display="spinner"
+                        minimumDate={new Date()}
+                        onChange={(event, date) => {
+                          if (date) setCustomDate(date);
+                        }}
+                      />
+                      <TouchableOpacity
+                        style={styles.doneButton}
+                        onPress={() => setShowDatePicker(false)}
+                      >
+                        <Text style={styles.doneButtonText}>Done</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </TouchableOpacity>
+                </Modal>
+              )}
+              {showDatePicker && Platform.OS === 'android' && (
+                <DateTimePicker
+                  value={customDate}
+                  mode="date"
+                  display="default"
+                  minimumDate={new Date()}
+                  onChange={(event, date) => {
+                    setShowDatePicker(false);
+                    if (date) setCustomDate(date);
+                  }}
+                />
               )}
 
               <Text style={styles.inputLabel}>Select Time</Text>
@@ -395,26 +412,42 @@ export default function InterviewSchedulingScreen({
                 <Ionicons name={showTimePicker ? "chevron-up" : "chevron-down"} size={16} color="#8b5cf6" />
               </TouchableOpacity>
 
-              {showTimePicker && (
-                <View style={styles.pickerContainer}>
-                  <DateTimePicker
-                    value={customTime}
-                    mode="time"
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                    onChange={(event, time) => {
-                      if (Platform.OS === 'android') setShowTimePicker(false);
-                      if (time) setCustomTime(time);
-                    }}
-                  />
-                  {Platform.OS === 'ios' && (
-                    <TouchableOpacity
-                      style={styles.doneButton}
-                      onPress={() => setShowTimePicker(false)}
-                    >
-                      <Text style={styles.doneButtonText}>Done</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
+              {showTimePicker && Platform.OS === 'ios' && (
+                <Modal transparent animationType="fade" visible={showTimePicker}>
+                  <TouchableOpacity 
+                    style={styles.pickerOverlay} 
+                    activeOpacity={1} 
+                    onPress={() => setShowTimePicker(false)}
+                  >
+                    <View style={styles.pickerModalContent}>
+                      <DateTimePicker
+                        value={customTime}
+                        mode="time"
+                        display="spinner"
+                        onChange={(event, time) => {
+                          if (time) setCustomTime(time);
+                        }}
+                      />
+                      <TouchableOpacity
+                        style={styles.doneButton}
+                        onPress={() => setShowTimePicker(false)}
+                      >
+                        <Text style={styles.doneButtonText}>Done</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </TouchableOpacity>
+                </Modal>
+              )}
+              {showTimePicker && Platform.OS === 'android' && (
+                <DateTimePicker
+                  value={customTime}
+                  mode="time"
+                  display="default"
+                  onChange={(event, time) => {
+                    setShowTimePicker(false);
+                    if (time) setCustomTime(time);
+                  }}
+                />
               )}
             </View>
           )}
@@ -721,6 +754,17 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.base,
     marginBottom: spacing.base,
     overflow: 'hidden',
+  },
+  pickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  pickerModalContent: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: borderRadius.lg,
+    borderTopRightRadius: borderRadius.lg,
+    paddingBottom: spacing.xl,
   },
   doneButton: {
     backgroundColor: '#8b5cf6',

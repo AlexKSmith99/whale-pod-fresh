@@ -193,7 +193,7 @@ export const meetingService = {
         .eq('id', userId)
         .single();
 
-      const memberName = submitter?.name || 'A team member';
+      const memberName = submitter?.name || submitter?.email?.split('@')[0] || 'A team member';
 
       // Notify creator that this member submitted their availability
       await notificationService.notifyTimeProposalSubmitted(
@@ -315,5 +315,81 @@ export const meetingService = {
       .eq('id', meetingId);
 
     if (error) throw error;
+  },
+
+  // Update meeting details
+  async updateMeeting(meetingId: string, updates: {
+    title?: string;
+    description?: string;
+    scheduled_time?: string;
+    duration_minutes?: number;
+    meeting_type?: 'in_person' | 'video' | 'hybrid';
+    location?: string;
+  }) {
+    const { data, error } = await supabase
+      .from('meetings')
+      .update(updates)
+      .eq('id', meetingId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  // Get meeting participants with profile info
+  async getMeetingParticipants(meetingId: string) {
+    const { data, error } = await supabase
+      .from('meeting_participants')
+      .select(`
+        *,
+        user:profiles(id, name, email, profile_picture)
+      `)
+      .eq('meeting_id', meetingId);
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  // Add participant to meeting
+  async addParticipant(meetingId: string, userId: string) {
+    const { error } = await supabase
+      .from('meeting_participants')
+      .upsert({
+        meeting_id: meetingId,
+        user_id: userId,
+        status: 'invited',
+      }, {
+        onConflict: 'meeting_id,user_id',
+        ignoreDuplicates: true
+      });
+
+    if (error) throw error;
+  },
+
+  // Remove participant from meeting
+  async removeParticipant(meetingId: string, userId: string) {
+    const { error } = await supabase
+      .from('meeting_participants')
+      .delete()
+      .eq('meeting_id', meetingId)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+  },
+
+  // Get pod members for adding to meeting
+  async getPodMembers(pursuitId: string) {
+    const { data, error } = await supabase
+      .from('team_members')
+      .select(`
+        user_id,
+        user:profiles(id, name, email, profile_picture)
+      `)
+      .eq('pursuit_id', pursuitId)
+      .in('status', ['active', 'accepted']);
+
+    if (error) throw error;
+    return data || [];
   },
 };

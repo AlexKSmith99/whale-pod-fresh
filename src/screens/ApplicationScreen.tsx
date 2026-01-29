@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Linking } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as DocumentPicker from 'expo-document-picker';
 import { useAuth } from '../contexts/AuthContext';
 import { applicationService } from '../services/applicationService';
+import { supabase } from '../config/supabase';
+import { colors } from '../theme/designSystem';
 
 interface Props {
   pursuit: any;
@@ -12,23 +15,100 @@ interface Props {
 
 export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Props) {
   const { user } = useAuth();
+  const scrollViewRef = useRef<ScrollView>(null);
   const [answers, setAnswers] = useState<{ [key: number]: string }>({});
   const [loading, setLoading] = useState(false);
-  const [resumeUrl, setResumeUrl] = useState('');
+  const [resumeFile, setResumeFile] = useState<{
+    uri: string;
+    name: string;
+    size?: number;
+    mimeType?: string;
+  } | null>(null);
+  const [uploadingResume, setUploadingResume] = useState(false);
 
   // Use custom questions if provided, otherwise use default
   const questions = pursuit.application_questions && pursuit.application_questions.length > 0
     ? pursuit.application_questions
     : ['Why are you a good team fit?', 'Where do you hope to see this go?'];
 
-  const isValidUrl = (url: string) => {
-    if (!url.trim()) return false;
+  const pickDocument = async () => {
     try {
-      const urlObj = new URL(url);
-      return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
-    } catch {
-      return false;
+      const result = await DocumentPicker.getDocumentAsync({
+        type: [
+          'application/pdf',
+          'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ],
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const file = result.assets[0];
+        
+        // Check file size (max 10MB)
+        if (file.size && file.size > 10 * 1024 * 1024) {
+          Alert.alert('File Too Large', 'Please select a file smaller than 10MB');
+          return;
+        }
+
+        setResumeFile({
+          uri: file.uri,
+          name: file.name,
+          size: file.size,
+          mimeType: file.mimeType,
+        });
+      }
+    } catch (error) {
+      console.error('Error picking document:', error);
+      Alert.alert('Error', 'Failed to select document');
     }
+  };
+
+  const uploadResume = async (): Promise<string | null> => {
+    if (!resumeFile || !user) return null;
+
+    setUploadingResume(true);
+    try {
+      // Create a unique filename
+      const fileName = `${user.id}/${Date.now()}_${resumeFile.name}`;
+
+      // Read file as base64
+      const response = await fetch(resumeFile.uri);
+      const arrayBuffer = await response.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('resumes')
+        .upload(fileName, uint8Array, {
+          contentType: resumeFile.mimeType || 'application/pdf',
+          upsert: false,
+        });
+
+      if (error) {
+        console.error('Upload error:', error);
+        throw new Error('Failed to upload resume');
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('resumes')
+        .getPublicUrl(fileName);
+
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error('Error uploading resume:', error);
+      throw error;
+    } finally {
+      setUploadingResume(false);
+    }
+  };
+
+  const formatFileSize = (bytes?: number) => {
+    if (!bytes) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   const handleSubmit = async () => {
@@ -40,32 +120,41 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
     }
 
     // Check if resume is required but not provided
-    if (pursuit.requires_resume && !resumeUrl.trim()) {
-      Alert.alert('Resume Required', 'This pod requires a resume. Please provide a link to your resume.');
-      return;
-    }
-
-    // Validate URL if provided
-    if (resumeUrl.trim() && !isValidUrl(resumeUrl)) {
-      Alert.alert('Invalid URL', 'Please enter a valid URL starting with http:// or https://');
+    if (pursuit.requires_resume && !resumeFile) {
+      Alert.alert('Resume Required', 'This pod requires a resume. Please upload your resume.');
       return;
     }
 
     setLoading(true);
+    console.log('🚀 Starting application submission...');
     try {
+      // Upload resume if provided
+      let resumeUrl = null;
+      if (resumeFile) {
+        console.log('📎 Uploading resume...');
+        resumeUrl = await uploadResume();
+        console.log('📎 Resume uploaded:', resumeUrl);
+      }
+
       const formattedAnswers = questions.map((q: string, i: number) => ({
         question: q,
         answer: answers[i],
       }));
+
+      console.log('📝 Calling applicationService.createApplication...');
+      console.log('📝 Pursuit ID:', pursuit.id);
+      console.log('📝 Applicant ID:', user?.id);
 
       await applicationService.createApplication({
         pursuit_id: pursuit.id,
         applicant_id: user?.id,
         answers: formattedAnswers,
         status: 'pending',
-        resume_url: resumeUrl.trim() || null,
-        resume_filename: resumeUrl.trim() ? 'Resume Link' : null,
+        resume_url: resumeUrl,
+        resume_filename: resumeFile?.name || null,
       });
+      
+      console.log('✅ Application created successfully!');
 
       Alert.alert(
         '🎉 Application Submitted!',
@@ -73,6 +162,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
         [{ text: 'OK', onPress: onSubmitted }]
       );
     } catch (error: any) {
+      console.error('❌ Application submission error:', error);
       Alert.alert('Error', error.message);
     } finally {
       setLoading(false);
@@ -80,7 +170,11 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+    >
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Text style={styles.backText}>← Cancel</Text>
@@ -88,7 +182,12 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
         <Text style={styles.title}>Apply to Pursuit</Text>
       </View>
 
-      <ScrollView style={styles.scrollView} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        ref={scrollViewRef}
+        style={styles.scrollView}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={styles.scrollContent}
+      >
         <View style={styles.content}>
           <View style={styles.pursuitCard}>
             <Text style={styles.pursuitTitle}>{pursuit.title}</Text>
@@ -113,12 +212,18 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
                   numberOfLines={4}
                   spellCheck={true}
                   autoCorrect={true}
+                  onFocus={() => {
+                    // Scroll to make the input visible when focused
+                    setTimeout(() => {
+                      scrollViewRef.current?.scrollToEnd({ animated: true });
+                    }, 300);
+                  }}
                 />
               </View>
             ))}
           </View>
 
-          {/* Resume URL Section */}
+          {/* Resume Upload Section */}
           {pursuit.requires_resume && (
             <View style={styles.resumeSection}>
               <View style={styles.resumeHeader}>
@@ -129,45 +234,67 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
                 </View>
               </View>
 
-              <Text style={styles.resumeInstructions}>
-                Paste a link to your resume hosted on Google Drive, Dropbox, OneDrive, or any file sharing service.
-              </Text>
+              {!resumeFile ? (
+                <>
+                  <Text style={styles.resumeInstructions}>
+                    Upload your resume in PDF or Word format (max 10MB)
+                  </Text>
 
-              <View style={styles.urlInputContainer}>
-                <Ionicons name="link-outline" size={20} color="#9ca3af" style={styles.urlIcon} />
-                <TextInput
-                  style={styles.urlInput}
-                  placeholder="https://drive.google.com/file/..."
-                  placeholderTextColor="#9ca3af"
-                  value={resumeUrl}
-                  onChangeText={setResumeUrl}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  keyboardType="url"
-                />
-                {resumeUrl.trim() !== '' && (
-                  <TouchableOpacity onPress={() => setResumeUrl('')} style={styles.clearButton}>
-                    <Ionicons name="close-circle" size={20} color="#9ca3af" />
+                  <TouchableOpacity 
+                    style={styles.uploadButton}
+                    onPress={pickDocument}
+                    disabled={uploadingResume}
+                  >
+                    <Ionicons name="cloud-upload-outline" size={24} color="#8b5cf6" />
+                    <Text style={styles.uploadButtonText}>Choose File</Text>
                   </TouchableOpacity>
-                )}
-              </View>
 
-              {resumeUrl.trim() !== '' && isValidUrl(resumeUrl) && (
-                <TouchableOpacity 
-                  style={styles.previewLink}
-                  onPress={() => Linking.openURL(resumeUrl)}
-                >
-                  <Ionicons name="open-outline" size={16} color="#8b5cf6" />
-                  <Text style={styles.previewLinkText}>Preview link</Text>
-                </TouchableOpacity>
+                  <View style={styles.supportedFormats}>
+                    <Text style={styles.supportedFormatsText}>
+                      Supported: PDF, DOC, DOCX
+                    </Text>
+                  </View>
+                </>
+              ) : (
+                <View style={styles.selectedFileContainer}>
+                  <View style={styles.selectedFile}>
+                    <View style={styles.fileIconContainer}>
+                      <Ionicons 
+                        name={resumeFile.name.endsWith('.pdf') ? 'document' : 'document-text'} 
+                        size={28} 
+                        color="#8b5cf6" 
+                      />
+                    </View>
+                    <View style={styles.fileInfo}>
+                      <Text style={styles.fileName} numberOfLines={1}>{resumeFile.name}</Text>
+                      {resumeFile.size && (
+                        <Text style={styles.fileSize}>{formatFileSize(resumeFile.size)}</Text>
+                      )}
+                    </View>
+                    <TouchableOpacity 
+                      style={styles.removeFileButton}
+                      onPress={() => setResumeFile(null)}
+                    >
+                      <Ionicons name="close-circle" size={24} color="#ef4444" />
+                    </TouchableOpacity>
+                  </View>
+
+                  <TouchableOpacity 
+                    style={styles.changeFileButton}
+                    onPress={pickDocument}
+                  >
+                    <Ionicons name="swap-horizontal" size={16} color="#8b5cf6" />
+                    <Text style={styles.changeFileText}>Change file</Text>
+                  </TouchableOpacity>
+                </View>
               )}
 
-              <View style={styles.tipBox}>
-                <Ionicons name="bulb-outline" size={16} color="#f59e0b" />
-                <Text style={styles.tipText}>
-                  Tip: Make sure your file sharing link is set to "Anyone with the link can view"
-                </Text>
-              </View>
+              {uploadingResume && (
+                <View style={styles.uploadingIndicator}>
+                  <ActivityIndicator size="small" color="#8b5cf6" />
+                  <Text style={styles.uploadingText}>Uploading resume...</Text>
+                </View>
+              )}
             </View>
           )}
 
@@ -191,12 +318,12 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  container: { flex: 1, backgroundColor: colors.background },
   header: { 
     backgroundColor: '#fff', 
     padding: 20, 
@@ -208,7 +335,8 @@ const styles = StyleSheet.create({
   backText: { fontSize: 16, color: '#0ea5e9', fontWeight: '600' },
   title: { fontSize: 24, fontWeight: 'bold', color: '#333' },
   scrollView: { flex: 1 },
-  content: { padding: 20, paddingBottom: 100 },
+  scrollContent: { flexGrow: 1 },
+  content: { padding: 20, paddingBottom: 120 },
   pursuitCard: { 
     backgroundColor: '#e0f2fe', 
     borderRadius: 12, 
@@ -279,58 +407,93 @@ const styles = StyleSheet.create({
   resumeInstructions: {
     fontSize: 13,
     color: '#666',
-    marginBottom: 12,
+    marginBottom: 16,
     lineHeight: 18,
   },
-  urlInputContainer: {
+  uploadButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f9fafb',
-    borderRadius: 10,
+    justifyContent: 'center',
+    backgroundColor: '#f3e8ff',
+    borderRadius: 12,
+    padding: 20,
+    borderWidth: 2,
+    borderColor: '#8b5cf6',
+    borderStyle: 'dashed',
+    gap: 10,
+  },
+  uploadButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#8b5cf6',
+  },
+  supportedFormats: {
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  supportedFormatsText: {
+    fontSize: 12,
+    color: '#9ca3af',
+  },
+  selectedFileContainer: {
+    marginTop: 4,
+  },
+  selectedFile: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f3e8ff',
+    borderRadius: 12,
+    padding: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    paddingHorizontal: 12,
-    marginBottom: 8,
+    borderColor: '#ddd6fe',
   },
-  urlIcon: {
-    marginRight: 8,
+  fileIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
-  urlInput: {
+  fileInfo: {
     flex: 1,
-    fontSize: 14,
-    color: '#333',
-    paddingVertical: 14,
   },
-  clearButton: {
+  fileName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 2,
+  },
+  fileSize: {
+    fontSize: 12,
+    color: '#6b7280',
+  },
+  removeFileButton: {
     padding: 4,
   },
-  previewLink: {
+  changeFileButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
-    marginBottom: 12,
+    justifyContent: 'center',
+    marginTop: 12,
+    gap: 6,
   },
-  previewLinkText: {
-    fontSize: 13,
+  changeFileText: {
+    fontSize: 14,
     color: '#8b5cf6',
     fontWeight: '500',
-    marginLeft: 4,
   },
-  tipBox: {
+  uploadingIndicator: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: '#fffbeb',
-    borderRadius: 8,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#fef3c7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+    gap: 8,
   },
-  tipText: {
-    flex: 1,
-    fontSize: 12,
-    color: '#92400e',
-    marginLeft: 8,
-    lineHeight: 16,
+  uploadingText: {
+    fontSize: 13,
+    color: '#8b5cf6',
   },
   infoBox: { 
     flexDirection: 'row',

@@ -214,18 +214,33 @@ export const reviewService = {
    * Get reviews received by a user
    */
   async getReviewsForUser(userId: string): Promise<Review[]> {
-    const { data, error } = await supabase
+    // First get the reviews with pursuit info
+    const { data: reviewsData, error } = await supabase
       .from('reviews')
       .select(`
         *,
-        reviewer:profiles!reviewer_id(name, profile_picture),
         pursuit:pursuits(title)
       `)
       .eq('reviewee_id', userId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    if (!reviewsData || reviewsData.length === 0) return [];
+
+    // Fetch reviewer profiles separately
+    const reviewerIds = [...new Set(reviewsData.map(r => r.reviewer_id))];
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, name, profile_picture')
+      .in('id', reviewerIds);
+
+    const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+
+    // Combine reviews with reviewer profiles
+    return reviewsData.map(review => ({
+      ...review,
+      reviewer: profileMap.get(review.reviewer_id) || { name: 'Unknown', profile_picture: null }
+    }));
   },
 
   /**
@@ -304,17 +319,32 @@ export const reviewService = {
    * Get reviews written by a user
    */
   async getReviewsWrittenByUser(userId: string): Promise<Review[]> {
-    const { data, error } = await supabase
+    // First get the reviews with pursuit info
+    const { data: reviewsData, error } = await supabase
       .from('reviews')
       .select(`
         *,
-        reviewee:profiles!reviewee_id(name, profile_picture),
         pursuit:pursuits(title)
       `)
       .eq('reviewer_id', userId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    if (!reviewsData || reviewsData.length === 0) return [];
+
+    // Fetch reviewee profiles separately
+    const revieweeIds = [...new Set(reviewsData.map(r => r.reviewee_id))];
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, name, profile_picture')
+      .in('id', revieweeIds);
+
+    const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+
+    // Combine reviews with reviewee profiles
+    return reviewsData.map(review => ({
+      ...review,
+      reviewee: profileMap.get(review.reviewee_id) || { name: 'Unknown', profile_picture: null }
+    }));
   },
 };

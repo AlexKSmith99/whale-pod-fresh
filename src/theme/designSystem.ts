@@ -2,10 +2,10 @@
 // Clean, minimal, professional aesthetic
 
 export const colors = {
-  // Base colors - clean whites and grays
+  // Base colors - clean whites and off-whites
   white: '#FFFFFF',
-  background: '#FAFBFC',
-  backgroundSecondary: '#F5F7FA',
+  background: '#FEFEFE',      // Very light off-white - barely darker than white
+  backgroundSecondary: '#F9FAFB', // Subtle secondary background
 
   // Text colors - high contrast for readability
   textPrimary: '#1A1D1F',

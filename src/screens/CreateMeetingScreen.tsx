@@ -211,7 +211,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
         .eq('id', user!.id)
         .single();
 
-      const creatorName = creatorProfile?.name || 'The organizer';
+      const creatorName = creatorProfile?.name || creatorProfile?.email?.split('@')[0] || 'The organizer';
 
       // Format date and time for notification
       const meetingDate = scheduledDateTime;
@@ -392,27 +392,44 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
             </Text>
             <Ionicons name={showDatePicker ? "chevron-up" : "chevron-down"} size={20} color={colors.textSecondary} />
           </TouchableOpacity>
-          {showDatePicker && (
-            <View style={styles.datePickerContainer}>
-              <DateTimePicker
-                value={scheduledDate}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                minimumDate={new Date()}
-                onChange={(event, date) => {
-                  if (Platform.OS === 'android') setShowDatePicker(false);
-                  if (date) setScheduledDate(date);
-                }}
-              />
-              {Platform.OS === 'ios' && (
-                <TouchableOpacity
-                  style={styles.doneButton}
-                  onPress={() => setShowDatePicker(false)}
-                >
-                  <Text style={styles.doneButtonText}>Done</Text>
-                </TouchableOpacity>
-              )}
-            </View>
+          {showDatePicker && Platform.OS === 'ios' && (
+            <Modal transparent animationType="fade" visible={showDatePicker}>
+              <TouchableOpacity 
+                style={styles.pickerOverlay} 
+                activeOpacity={1} 
+                onPress={() => setShowDatePicker(false)}
+              >
+                <View style={styles.pickerModalContent}>
+                  <DateTimePicker
+                    value={scheduledDate}
+                    mode="date"
+                    display="spinner"
+                    minimumDate={new Date()}
+                    onChange={(event, date) => {
+                      if (date) setScheduledDate(date);
+                    }}
+                  />
+                  <TouchableOpacity
+                    style={styles.doneButton}
+                    onPress={() => setShowDatePicker(false)}
+                  >
+                    <Text style={styles.doneButtonText}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+            </Modal>
+          )}
+          {showDatePicker && Platform.OS === 'android' && (
+            <DateTimePicker
+              value={scheduledDate}
+              mode="date"
+              display="default"
+              minimumDate={new Date()}
+              onChange={(event, date) => {
+                setShowDatePicker(false);
+                if (date) setScheduledDate(date);
+              }}
+            />
           )}
 
           {/* Time */}
@@ -431,27 +448,44 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
             </Text>
             <Ionicons name={showTimePicker ? "chevron-up" : "chevron-down"} size={20} color={colors.textSecondary} />
           </TouchableOpacity>
-          {showTimePicker && (
-            <View style={styles.datePickerContainer}>
-              <DateTimePicker
-                value={scheduledTime}
-                mode="time"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                minuteInterval={15}
-                onChange={(event, time) => {
-                  if (Platform.OS === 'android') setShowTimePicker(false);
-                  if (time) setScheduledTime(time);
-                }}
-              />
-              {Platform.OS === 'ios' && (
-                <TouchableOpacity
-                  style={styles.doneButton}
-                  onPress={() => setShowTimePicker(false)}
-                >
-                  <Text style={styles.doneButtonText}>Done</Text>
-                </TouchableOpacity>
-              )}
-            </View>
+          {showTimePicker && Platform.OS === 'ios' && (
+            <Modal transparent animationType="fade" visible={showTimePicker}>
+              <TouchableOpacity 
+                style={styles.pickerOverlay} 
+                activeOpacity={1} 
+                onPress={() => setShowTimePicker(false)}
+              >
+                <View style={styles.pickerModalContent}>
+                  <DateTimePicker
+                    value={scheduledTime}
+                    mode="time"
+                    display="spinner"
+                    minuteInterval={15}
+                    onChange={(event, time) => {
+                      if (time) setScheduledTime(time);
+                    }}
+                  />
+                  <TouchableOpacity
+                    style={styles.doneButton}
+                    onPress={() => setShowTimePicker(false)}
+                  >
+                    <Text style={styles.doneButtonText}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+            </Modal>
+          )}
+          {showTimePicker && Platform.OS === 'android' && (
+            <DateTimePicker
+              value={scheduledTime}
+              mode="time"
+              display="default"
+              minuteInterval={15}
+              onChange={(event, time) => {
+                setShowTimePicker(false);
+                if (time) setScheduledTime(time);
+              }}
+            />
           )}
 
           {/* Duration */}
@@ -835,6 +869,17 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.base,
     marginBottom: spacing.base,
     overflow: 'hidden',
+  },
+  pickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  pickerModalContent: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: borderRadius.lg,
+    borderTopRightRadius: borderRadius.lg,
+    paddingBottom: spacing.xl,
   },
   doneButton: {
     backgroundColor: colors.primary,

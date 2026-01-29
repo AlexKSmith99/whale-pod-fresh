@@ -1,0 +1,286 @@
+{
+  "description": "Foreign key relationships between tables",
+  "generated": "2025-01-19",
+  "relationships": [
+    {
+      "table": "board_tasks",
+      "column": "pursuit_id",
+      "references": { "table": "pursuits", "column": "id" }
+    },
+    {
+      "table": "board_tasks",
+      "column": "assigned_to",
+      "references": { "table": "profiles", "column": "id" }
+    },
+    {
+      "table": "board_tasks",
+      "column": "board_id",
+      "references": { "table": "team_boards", "column": "id" }
+    },
+    {
+      "table": "connections",
+      "column": "user_id_1",
+      "references": { "table": "profiles", "column": "id" }
+    },
+    {
+      "table": "connections",
+      "column": "user_id_2",
+      "references": { "table": "profiles", "column": "id" }
+    },
+    {
+      "table": "kick_proposals",
+      "column": "pursuit_id",
+      "references": { "table": "pursuits", "column": "id" }
+    },
+    {
+      "table": "kick_proposals",
+      "column": "created_by",
+      "references": { "table": "profiles", "column": "id" }
+    },
+    {
+      "table": "kick_proposals",
+      "column": "target_user_id",
+      "references": { "table": "profiles", "column": "id" }
+    },
+    {
+      "table": "kickoff_meetings",
+      "column": "pursuit_id",
+      "references": { "table": "pursuits", "column": "id" }
+    },
+    {
+      "table": "kickoff_meetings",
+      "column": "created_by",
+      "references": { "table": "profiles", "column": "id" }
+    },
+    {
+      "table": "kickoff_time_proposals",
+      "column": "pursuit_id",
+      "references": { "table": "pursuits", "column": "id" }
+    },
+    {
+      "table": "kickoff_time_proposals",
+      "column": "user_id",
+      "references": { "table": "profiles", "column": "id" }
+    },
+    {
+      "table": "meeting_agenda_items",
+      "column": "meeting_id",
+      "references": { "table": "meetings", "column": "id" }
+    },
+    {
+      "table": "meeting_contributions",
+      "column": "user_id",
+      "references": { "table": "profiles", "column": "id" }
+    },
+    {
+      "table": "meeting_contributions",
+      "column": "pursuit_id",
+      "references": { "table": "pursuits", "column": "id" }
+    },
+    {
+      "table": "meeting_notes",
+      "column": "created_by",
+      "references": { "table": "profiles", "column": "id" }
+    },
+    {
+      "table": "meeting_notes",
+      "column": "pursuit_id",
+      "references": { "table": "pursuits", "column": "id" }
+    },
+    {
+      "table": "meeting_participants",
+      "column": "meeting_id",
+      "references": { "table": "meetings", "column": "id" }
+    },
+    {
+      "table": "meetings",
+      "column": "pursuit_id",
+      "references": { "table": "pursuits", "column": "id" }
+    },
+    {
+      "table": "member_roles",
+      "column": "pursuit_id",
+      "references": { "table": "pursuits", "column": "id" }
+    },
+    {
+      "table": "member_roles",
+      "column": "user_id",
+      "references": { "table": "profiles", "column": "id" }
+    },
+    {
+      "table": "messages",
+      "column": "recipient_id",
+      "references": { "table": "profiles", "column": "id" }
+    },
+    {
+      "table": "messages",
+      "column": "pursuit_id",
+      "references": { "table": "pursuits", "column": "id" }
+    },
+    {
+      "table": "messages",
+      "column": "sender_id",
+      "references": { "table": "profiles", "column": "id" }
+    },
+    {
+      "table": "notifications",
+      "column": "user_id",
+      "references": { "table": "profiles", "column": "id" }
+    },
+    {
+      "table": "pod_agenda_documents",
+      "column": "pod_id",
+      "references": { "table": "pursuits", "column": "id" }
+    },
+    {
+      "table": "pod_chat_messages",
+      "column": "sender_id",
+      "references": { "table": "profiles", "column": "id" }
+    },
+    {
+      "table": "pod_chat_messages",
+      "column": "pursuit_id",
+      "references": { "table": "pursuits", "column": "id" }
+    },
+    {
+      "table": "pod_chat_read_status",
+      "column": "pursuit_id",
+      "references": { "table": "pursuits", "column": "id" }
+    },
+    {
+      "table": "pod_chat_read_status",
+      "column": "user_id",
+      "references": { "table": "profiles", "column": "id" }
+    },
+    {
+      "table": "pod_chat_settings",
+      "column": "pursuit_id",
+      "references": { "table": "pursuits", "column": "id" }
+    },
+    {
+      "table": "pod_docs",
+      "column": "pod_id",
+      "references": { "table": "pursuits", "column": "id" }
+    },
+    {
+      "table": "pod_meeting_agenda_items",
+      "column": "meeting_page_id",
+      "references": { "table": "pod_meeting_pages", "column": "id" }
+    },
+    {
+      "table": "pod_meeting_materials",
+      "column": "meeting_page_id",
+      "references": { "table": "pod_meeting_pages", "column": "id" }
+    },
+    {
+      "table": "pod_meeting_notes",
+      "column": "meeting_page_id",
+      "references": { "table": "pod_meeting_pages", "column": "id" }
+    },
+    {
+      "table": "pod_meeting_pages",
+      "column": "pod_id",
+      "references": { "table": "pursuits", "column": "id" }
+    },
+    {
+      "table": "pod_meeting_recap_items",
+      "column": "meeting_page_id",
+      "references": { "table": "pod_meeting_pages", "column": "id" }
+    },
+    {
+      "table": "pod_rules",
+      "column": "pod_id",
+      "references": { "table": "pursuits", "column": "id" }
+    },
+    {
+      "table": "pursuit_applications",
+      "column": "pursuit_id",
+      "references": { "table": "pursuits", "column": "id" }
+    },
+    {
+      "table": "pursuit_applications",
+      "column": "interview_meeting_id",
+      "references": { "table": "meetings", "column": "id" }
+    },
+    {
+      "table": "pursuit_applications",
+      "column": "applicant_id",
+      "references": { "table": "profiles", "column": "id" }
+    },
+    {
+      "table": "pursuits",
+      "column": "creator_id",
+      "references": { "table": "profiles", "column": "id" }
+    },
+    {
+      "table": "reviews",
+      "column": "pursuit_id",
+      "references": { "table": "pursuits", "column": "id" }
+    },
+    {
+      "table": "shared_media",
+      "column": "user_id",
+      "references": { "table": "profiles", "column": "id" }
+    },
+    {
+      "table": "shared_media",
+      "column": "pursuit_id",
+      "references": { "table": "pursuits", "column": "id" }
+    },
+    {
+      "table": "team_boards",
+      "column": "pursuit_id",
+      "references": { "table": "pursuits", "column": "id" }
+    },
+    {
+      "table": "team_gallery",
+      "column": "pursuit_id",
+      "references": { "table": "pursuits", "column": "id" }
+    },
+    {
+      "table": "team_gallery",
+      "column": "uploaded_by",
+      "references": { "table": "profiles", "column": "id" }
+    },
+    {
+      "table": "team_members",
+      "column": "user_id",
+      "references": { "table": "profiles", "column": "id" }
+    },
+    {
+      "table": "team_members",
+      "column": "pursuit_id",
+      "references": { "table": "pursuits", "column": "id" }
+    },
+    {
+      "table": "time_slot_proposals",
+      "column": "user_id",
+      "references": { "table": "profiles", "column": "id" }
+    },
+    {
+      "table": "time_slot_proposals",
+      "column": "pursuit_id",
+      "references": { "table": "pursuits", "column": "id" }
+    },
+    {
+      "table": "votes",
+      "column": "created_by",
+      "references": { "table": "profiles", "column": "id" }
+    },
+    {
+      "table": "votes",
+      "column": "pursuit_id",
+      "references": { "table": "pursuits", "column": "id" }
+    }
+  ],
+  "summary": {
+    "total_relationships": 54,
+    "core_tables": {
+      "pursuits": "Central table - 22 tables reference it",
+      "profiles": "User data - 20 tables reference it",
+      "meetings": "2 tables reference it",
+      "pod_meeting_pages": "4 tables reference it",
+      "team_boards": "1 table references it"
+    }
+  }
+}

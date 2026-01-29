@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { reviewService } from '../services/reviewService';
 import { useAuth } from '../contexts/AuthContext';
+import { colors } from '../theme/designSystem';
 
 interface ReviewScreenProps {
   revieweeId: string;
@@ -62,10 +63,7 @@ export default function ReviewScreen({
 
     setSubmitting(true);
     try {
-      await reviewService.submitReview(user.id, revieweeId, pursuitId, {
-        ...ratings,
-        comment: comment.trim() || undefined,
-      } as any);
+      await reviewService.submitReview(user.id, revieweeId, pursuitId, comment.trim() || '', ratings as any);
 
       Alert.alert('Success', 'Review submitted!', [{ text: 'OK', onPress: onBack }]);
     } catch (error: any) {
@@ -141,7 +139,7 @@ export default function ReviewScreen({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  container: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

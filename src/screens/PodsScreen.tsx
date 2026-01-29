@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
+import { useFonts, NothingYouCouldDo_400Regular } from '@expo-google-fonts/nothing-you-could-do';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
 import { notificationService } from '../services/notificationService';
+import { colors } from '../theme/designSystem';
 
 interface Pod {
   id: string;
@@ -21,10 +23,7 @@ interface Application {
   id: string;
   pursuit_id: string;
   status: string;
-  pursuits: {
-    title: string;
-    description: string;
-  };
+  pursuits: any;
 }
 
 type FilterType = 'active' | 'past' | 'pending';
@@ -37,6 +36,9 @@ interface PodsScreenProps {
 
 export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenInterviewProposal }: PodsScreenProps) {
   const { user } = useAuth();
+  const [fontsLoaded] = useFonts({
+    NothingYouCouldDo_400Regular,
+  });
   const [pods, setPods] = useState<Pod[]>([]);
   const [pastPods, setPastPods] = useState<Pod[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
@@ -371,7 +373,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>🐋 My Pods</Text>
+        <Text style={[styles.title, fontsLoaded && { fontFamily: 'NothingYouCouldDo_400Regular' }]}>My Pods</Text>
         <Text style={styles.subtitle}>Your teams & applications</Text>
       </View>
 
@@ -390,7 +392,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  container: { flex: 1, backgroundColor: colors.background },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { backgroundColor: '#fff', padding: 20, paddingTop: 60, borderBottomWidth: 0 },
   title: { fontSize: 28, fontWeight: 'bold', color: '#8b5cf6' },

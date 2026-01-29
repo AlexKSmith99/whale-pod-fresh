@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { View, ActivityIndicator, TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
+import { View, ActivityIndicator, TouchableOpacity, Text, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { notificationService } from './src/services/notificationService';
 import { messageService } from './src/services/messageService';
+import { podChatService } from './src/services/podChatService';
+import { hapticService } from './src/services/hapticService';
 import { supabase } from './src/config/supabase';
 import NotificationToast from './src/components/NotificationToast';
 import LoginScreen from './src/screens/LoginScreen';
+import VerifyEmailScreen from './src/screens/VerifyEmailScreen';
 import FeedScreen from './src/screens/FeedScreen';
 import CreateScreen from './src/screens/CreateScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
@@ -36,6 +39,8 @@ function AppContent() {
   const [currentScreen, setCurrentScreen] = useState('Feed');
   const [chatPartnerId, setChatPartnerId] = useState<string | null>(null);
   const [chatPartnerEmail, setChatPartnerEmail] = useState<string | null>(null);
+  const [chatOpenedFromUserId, setChatOpenedFromUserId] = useState<string | null>(null);
+  const [podDetailOpenedFromUserId, setPodDetailOpenedFromUserId] = useState<string | null>(null);
   const [teamBoardPursuitId, setTeamBoardPursuitId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [showCreateMeeting, setShowCreateMeeting] = useState(false);
@@ -45,6 +50,7 @@ function AppContent() {
   const [showConnections, setShowConnections] = useState(false);
   const [viewingPodDetail, setViewingPodDetail] = useState<any | null>(null);
   const [podDetailSubScreen, setPodDetailSubScreen] = useState<string | null>(null);
+  const [podDetailFromNotifications, setPodDetailFromNotifications] = useState<boolean>(false);
   const [videoCallChannel, setVideoCallChannel] = useState<string | null>(null);
   const [videoCallPodTitle, setVideoCallPodTitle] = useState<string>('');
   const [viewingRemovalReason, setViewingRemovalReason] = useState<{
@@ -323,6 +329,7 @@ function AppContent() {
           (payload) => {
             console.log('💬 NEW MESSAGE RECEIVED:', payload);
             // Refresh unread count when a new message arrives
+            // No toast here - toast only shows on login for unread messages
             loadUnreadMessageCount();
           }
         )
@@ -391,10 +398,103 @@ function AppContent() {
           body: mostRecent.body,
           type: mostRecent.type,
           id: mostRecent.id,
+          data: mostRecent.data,
         });
+      } else {
+        // No regular notifications, check for unread messages
+        await checkForUnreadMessages();
       }
     } catch (error) {
       console.error('Error checking for unread notifications:', error);
+    }
+  };
+
+  const checkForUnreadMessages = async () => {
+    if (!auth.user) return;
+
+    try {
+      // Get unread direct message count
+      const unreadDmCount = await messageService.getUnreadCount(auth.user.id);
+      
+      // Get unread pod chat count
+      let unreadPodChatCount = 0;
+      let mostRecentPodChat: any = null;
+      try {
+        const podChats = await podChatService.getUserPodChats(auth.user.id);
+        const unreadPodChats = podChats.filter(pc => pc.unread_count > 0);
+        unreadPodChatCount = unreadPodChats.reduce((sum, pc) => sum + pc.unread_count, 0);
+        
+        // Get the most recent unread pod chat
+        if (unreadPodChats.length > 0) {
+          mostRecentPodChat = unreadPodChats.sort((a, b) => {
+            const timeA = a.last_message_time ? new Date(a.last_message_time).getTime() : 0;
+            const timeB = b.last_message_time ? new Date(b.last_message_time).getTime() : 0;
+            return timeB - timeA;
+          })[0];
+        }
+      } catch (podChatError) {
+        console.error('Error checking pod chats:', podChatError);
+      }
+      
+      const totalUnread = unreadDmCount + unreadPodChatCount;
+      
+      if (totalUnread > 0) {
+        console.log('💬 Found unread messages on login:', { dm: unreadDmCount, podChat: unreadPodChatCount });
+        
+        // Get the most recent unread direct message
+        const { data: recentMessages, error } = await supabase
+          .from('messages')
+          .select('*, sender:profiles!sender_id(name, email)')
+          .eq('recipient_id', auth.user.id)
+          .or('is_read.eq.false,is_read.is.null')
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        const recentDm = (!error && recentMessages && recentMessages.length > 0) ? recentMessages[0] : null;
+        
+        // Determine which is more recent: DM or pod chat
+        const dmTime = recentDm ? new Date(recentDm.created_at).getTime() : 0;
+        const podChatTime = mostRecentPodChat?.last_message_time 
+          ? new Date(mostRecentPodChat.last_message_time).getTime() 
+          : 0;
+        
+        if (dmTime >= podChatTime && recentDm) {
+          // Show DM toast
+          const senderProfile = recentDm.sender as any;
+          const senderName = senderProfile?.name || senderProfile?.email?.split('@')[0] || 'Someone';
+          const messagePreview = recentDm.content?.length > 50 
+            ? recentDm.content.substring(0, 50) + '...' 
+            : recentDm.content;
+
+          setCurrentToast({
+            title: `New chat from ${senderName}`,
+            body: messagePreview,
+            type: 'new_message',
+            id: recentDm.id,
+            data: {
+              conversationId: recentDm.sender_id,
+            },
+          });
+        } else if (mostRecentPodChat) {
+          // Show pod chat toast
+          const chatName = mostRecentPodChat.custom_name || mostRecentPodChat.pursuit_title;
+          const messagePreview = mostRecentPodChat.last_message?.length > 50 
+            ? mostRecentPodChat.last_message.substring(0, 50) + '...' 
+            : mostRecentPodChat.last_message || 'New message';
+
+          setCurrentToast({
+            title: `New chat in ${chatName}`,
+            body: messagePreview,
+            type: 'pod_chat_message',
+            id: mostRecentPodChat.pursuit_id,
+            data: {
+              pursuitId: mostRecentPodChat.pursuit_id,
+            },
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error checking for unread messages:', error);
     }
   };
 
@@ -501,6 +601,24 @@ function AppContent() {
     );
   }
 
+  // Show verification screen if signup is pending email verification
+  if (auth.pendingVerificationEmail) {
+    return (
+      <VerifyEmailScreen
+        email={auth.pendingVerificationEmail}
+        onVerify={async (code) => {
+          await auth.verifyEmail(auth.pendingVerificationEmail!, code);
+        }}
+        onResendCode={async () => {
+          await auth.sendVerificationCode(auth.pendingVerificationEmail!);
+        }}
+        onBack={() => {
+          auth.clearPendingVerification();
+        }}
+      />
+    );
+  }
+
   if (!auth.user) {
     return <LoginScreen />;
   }
@@ -514,8 +632,11 @@ function AppContent() {
       } else if (screen === 'Connections') {
         setShowConnections(true);
       } else if (screen === 'Chat' && params?.partnerId) {
+        // Remember if we came from a user profile so we can go back to it
+        setChatOpenedFromUserId(viewingUserId);
         setChatPartnerId(params.partnerId);
         setChatPartnerEmail(params.partnerEmail || 'User');
+        setViewingUserId(null); // Clear profile view so chat takes priority
         setCurrentScreen('Messages');
       } else if (screen === 'Profile') {
         setCurrentScreen('Profile');
@@ -523,7 +644,37 @@ function AppContent() {
       } else if (screen === 'PodDetail' && params?.pod) {
         setViewingPodDetail(params.pod);
         setPodDetailSubScreen(params.subScreen || null);
+        setPodDetailFromNotifications(params.fromNotifications || false);
         setCurrentScreen('Pods');
+      } else if (screen === 'PursuitDetail' && params?.pursuitId) {
+        // Track where we came from so we can return
+        if (viewingUserId) {
+          setPodDetailOpenedFromUserId(viewingUserId);
+          setViewingUserId(null);
+        }
+        // Set a loading placeholder immediately to trigger navigation
+        setViewingPodDetail({ id: params.pursuitId, _loading: true });
+        setPodDetailSubScreen(null);
+        setPodDetailFromNotifications(false);
+        // Fetch the full pursuit data
+        (async () => {
+          try {
+            const { data: pursuit, error } = await supabase
+              .from('pursuits')
+              .select('*')
+              .eq('id', params.pursuitId)
+              .single();
+            
+            if (error) throw error;
+            if (pursuit) {
+              setViewingPodDetail(pursuit);
+            }
+          } catch (error) {
+            console.error('Error loading pursuit:', error);
+            // Clear the loading state on error
+            setViewingPodDetail(null);
+          }
+        })();
       } else if (screen === 'TeamBoard' && params?.pursuitId) {
         setTeamBoardPursuitId(params.pursuitId);
       } else if (screen === 'Pods') {
@@ -553,17 +704,12 @@ function AppContent() {
       } else if (screen === 'InterviewScheduling' && params?.applicationId) {
         // Need to fetch pursuit and applicant info for the interview scheduling screen
         fetchInterviewSchedulingData(params.applicationId, params.pursuitId);
-      } else if (screen === 'WriteReview') {
-        console.log('🖊️ Navigating to WriteReview with params:', params);
-        if (params?.revieweeId) {
-          setViewingWriteReview({
-            revieweeId: params.revieweeId,
-            revieweeName: params.revieweeName || 'User',
-            revieweePhoto: params.revieweePhoto,
-          });
-        } else {
-          Alert.alert('Error', 'Cannot write review - user ID missing');
-        }
+      } else if (screen === 'WriteReview' && params?.revieweeId) {
+        setViewingWriteReview({
+          revieweeId: params.revieweeId,
+          revieweeName: params.revieweeName || 'User',
+          revieweePhoto: params.revieweePhoto,
+        });
       }
     },
     goBack: () => {
@@ -723,7 +869,7 @@ if (viewingInterviewProposal) {
       }}
       onSubmitted={() => {
         setViewingInterviewProposal(null);
-        setCurrentScreen('Feed');
+        setCurrentScreen('Pods');
       }}
     />
   );
@@ -752,7 +898,6 @@ if (viewingInterviewScheduling) {
 
 // Show Write Review screen
 if (viewingWriteReview) {
-  console.log('🖊️ Rendering WriteReviewScreen with:', viewingWriteReview);
   return (
     <WriteReviewScreen
       route={{ params: viewingWriteReview }}
@@ -771,7 +916,6 @@ if (viewingUserId) {
       route={{ params: { userId: viewingUserId } }}
       navigation={navigation}
       onWriteReview={(revieweeId: string, revieweeName: string, revieweePhoto?: string) => {
-        Alert.alert('Debug', `Writing review for ${revieweeName} (${revieweeId})`);
         setViewingWriteReview({
           revieweeId,
           revieweeName,
@@ -790,15 +934,26 @@ if (showConnections) {
 // Show chat screen if a conversation is selected
 if (chatPartnerId && chatPartnerEmail) {
   return (
-    <ChatScreen
-      partnerId={chatPartnerId}
-      partnerEmail={chatPartnerEmail}
-      navigation={navigation}
-      onBack={() => {
-        setChatPartnerId(null);
+    <KeyboardAvoidingView 
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+    >
+      <ChatScreen
+        partnerId={chatPartnerId}
+        partnerEmail={chatPartnerEmail}
+        navigation={navigation}
+        onBack={() => {
+          // If we came from a user profile, go back to it
+          if (chatOpenedFromUserId) {
+            setViewingUserId(chatOpenedFromUserId);
+            setChatOpenedFromUserId(null);
+          }
+          setChatPartnerId(null);
         setChatPartnerEmail(null);
       }}
     />
+    </KeyboardAvoidingView>
   );
 }
 
@@ -808,9 +963,22 @@ if (viewingPodDetail) {
     <PursuitDetailScreen
       pursuit={viewingPodDetail}
       initialSubScreen={podDetailSubScreen}
+      fromNotifications={podDetailFromNotifications}
+      onBackToNotifications={() => {
+        setViewingPodDetail(null);
+        setPodDetailSubScreen(null);
+        setPodDetailFromNotifications(false);
+        setCurrentScreen('Notifications');
+      }}
       onBack={() => {
         setViewingPodDetail(null);
         setPodDetailSubScreen(null);
+        setPodDetailFromNotifications(false);
+        // If we came from a user profile, return to it
+        if (podDetailOpenedFromUserId) {
+          setViewingUserId(podDetailOpenedFromUserId);
+          setPodDetailOpenedFromUserId(null);
+        }
       }}
       isOwner={viewingPodDetail.creator_id === auth.user?.id || viewingPodDetail.is_creator}
       onEdit={() => {
@@ -896,43 +1064,185 @@ if (teamBoardPursuitId) {
       <NotificationToast
         notification={currentToast}
         onPress={async () => {
-          // Handle navigation based on notification type
-          if (currentToast?.type === 'interview_scheduling_requested' && currentToast?.id) {
-            // Applicant taps toast - navigate to interview proposal screen
-            try {
-              const { data: appData } = await supabase
-                .from('pursuit_applications')
-                .select('pursuit_id, pursuits(title)')
-                .eq('id', currentToast.id)
+          // Handle navigation based on notification type - matching NotificationsScreen behavior
+          const type = currentToast?.type;
+          const data = currentToast?.data;
+          const relatedId = data?.pursuitId || data?.applicationId || data?.meetingId;
+
+          try {
+            // Helper to navigate to pod detail
+            const navigateToPod = async (pursuitId: string, subScreen?: string) => {
+              const { data: pursuit, error } = await supabase
+                .from('pursuits')
+                .select('*')
+                .eq('id', pursuitId)
                 .single();
 
-              if (appData) {
-                const pursuitData = appData.pursuits as any;
-                setViewingInterviewProposal({
-                  applicationId: currentToast.id,
-                  pursuitId: appData.pursuit_id,
-                  pursuitTitle: pursuitData?.title || 'Pursuit',
-                });
+              if (!error && pursuit) {
+                setViewingPodDetail(pursuit);
+                setPodDetailSubScreen(subScreen || null);
+                setPodDetailFromNotifications(true);
+              } else {
+                setCurrentScreen('Pods');
               }
-            } catch (error) {
-              console.error('Error navigating to interview proposal:', error);
-              setCurrentScreen('Notifications');
+            };
+
+            switch (type) {
+              case 'new_message':
+                // Navigate to chat with that person
+                if (data?.conversationId) {
+                  const { data: senderData } = await supabase
+                    .from('profiles')
+                    .select('email')
+                    .eq('id', data.conversationId)
+                    .single();
+
+                  setChatPartnerId(data.conversationId);
+                  setChatPartnerEmail(senderData?.email || 'User');
+                  setCurrentScreen('Messages');
+                } else {
+                  setCurrentScreen('Messages');
+                }
+                break;
+
+              case 'pod_chat_message':
+                setCurrentScreen('Messages');
+                break;
+
+              case 'connection_request':
+              case 'connection_accepted':
+                setShowConnections(true);
+                break;
+
+              case 'application_received':
+                if (data?.pursuitId) {
+                  await navigateToPod(data.pursuitId, 'applications');
+                } else {
+                  setCurrentScreen('Pods');
+                }
+                break;
+
+              case 'time_proposal':
+              case 'all_proposals_submitted':
+                if (data?.pursuitId) {
+                  await navigateToPod(data.pursuitId, 'kickoff');
+                } else {
+                  setCurrentScreen('Pods');
+                }
+                break;
+
+              case 'kickoff_activated':
+                // Check if user is creator to determine which sub-screen
+                if (data?.pursuitId) {
+                  const { data: pursuit } = await supabase
+                    .from('pursuits')
+                    .select('creator_id')
+                    .eq('id', data.pursuitId)
+                    .single();
+
+                  const isCreator = pursuit?.creator_id === auth.user?.id;
+                  await navigateToPod(data.pursuitId, isCreator ? 'kickoff' : 'propose_times');
+                } else {
+                  setCurrentScreen('Pods');
+                }
+                break;
+
+              case 'team_board_update':
+                if (data?.pursuitId) {
+                  setTeamBoardPursuitId(data.pursuitId);
+                } else {
+                  setCurrentScreen('Pods');
+                }
+                break;
+
+              case 'pursuit_created':
+              case 'application_accepted':
+              case 'application_rejected':
+              case 'min_team_size_reached':
+              case 'kickoff_scheduled':
+              case 'kickoff_scheduled_creator':
+              case 'kickoff_scheduled_team':
+                if (data?.pursuitId) {
+                  await navigateToPod(data.pursuitId);
+                } else {
+                  setCurrentScreen('Pods');
+                }
+                break;
+
+              case 'meeting':
+              case 'new_meeting':
+              case 'interview_scheduled':
+                setCurrentScreen('Calendar');
+                break;
+
+              case 'meeting_invitation':
+                if (data?.meetingId) {
+                  setViewingMeetingInvitation(data.meetingId);
+                } else {
+                  setCurrentScreen('Calendar');
+                }
+                break;
+
+              case 'interview_scheduling_requested':
+                // Applicant taps toast - navigate to interview proposal screen
+                if (currentToast?.id || data?.applicationId) {
+                  const applicationId = data?.applicationId || currentToast?.id;
+                  const { data: appData } = await supabase
+                    .from('pursuit_applications')
+                    .select('pursuit_id, pursuits(title)')
+                    .eq('id', applicationId)
+                    .single();
+
+                  if (appData) {
+                    const pursuitData = appData.pursuits as any;
+                    setViewingInterviewProposal({
+                      applicationId,
+                      pursuitId: appData.pursuit_id,
+                      pursuitTitle: pursuitData?.title || 'Pursuit',
+                    });
+                  } else {
+                    setCurrentScreen('Notifications');
+                  }
+                } else {
+                  setCurrentScreen('Notifications');
+                }
+                break;
+
+              case 'interview_times_submitted':
+                // Creator taps toast - navigate to interview scheduling screen
+                if (data?.applicationId && data?.pursuitId) {
+                  await fetchInterviewSchedulingData(data.applicationId, data.pursuitId);
+                } else {
+                  setCurrentScreen('Notifications');
+                }
+                break;
+
+              case 'member_removed':
+                setViewingRemovalReason({
+                  pursuitTitle: data?.pursuitTitle || 'Unknown Pursuit',
+                  reason: data?.removalReason || 'No reason provided',
+                  removedAt: data?.removedAt || new Date().toISOString(),
+                });
+                break;
+
+              case 'member_left':
+                setViewingMemberLeft({
+                  pursuitTitle: data?.pursuitTitle || 'Unknown Pursuit',
+                  memberName: data?.memberName || 'A team member',
+                  reason: data?.leaveReason || 'No reason provided',
+                  leftAt: data?.leftAt || new Date().toISOString(),
+                });
+                break;
+
+              default:
+                // Default: navigate to notifications tab
+                setCurrentScreen('Notifications');
             }
-          } else if (currentToast?.type === 'interview_times_submitted' && currentToast?.data?.applicationId) {
-            // Creator taps toast - navigate to interview scheduling screen
-            try {
-              const applicationId = currentToast.data.applicationId;
-              const pursuitId = currentToast.data.pursuitId;
-              console.log('🎤 Navigating to interview scheduling:', { applicationId, pursuitId });
-              await fetchInterviewSchedulingData(applicationId, pursuitId);
-            } catch (error) {
-              console.error('Error navigating to interview scheduling:', error);
-              setCurrentScreen('Notifications');
-            }
-          } else {
-            // Default: navigate to notifications tab
+          } catch (error) {
+            console.error('Error navigating from toast:', error);
             setCurrentScreen('Notifications');
           }
+
           setCurrentToast(null);
         }}
         onDismiss={() => setCurrentToast(null)}
@@ -985,20 +1295,24 @@ if (teamBoardPursuitId) {
       {currentScreen === 'Profile' && <ProfileScreen navigation={navigation} />}
 
       <View style={styles.tabBar}>
-        <TouchableOpacity style={styles.tab} onPress={() => setCurrentScreen('Feed')}>
-          <Text style={[styles.tabText, currentScreen === 'Feed' && styles.tabTextActive]}>
-            🏠 Feed
+        <TouchableOpacity style={styles.tab} onPress={() => {
+          hapticService.lightTap();
+          setCurrentScreen('Feed');
+        }}>
+          <Text style={[styles.tabIcon, currentScreen === 'Feed' && styles.tabIconActive]}>
+            🌊
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.tab}
           onPress={() => {
+            hapticService.lightTap();
             setCurrentScreen('Messages');
           }}
         >
           <View style={styles.tabContent}>
-            <Text style={[styles.tabText, currentScreen === 'Messages' && styles.tabTextActive]}>
-              💬 Messages
+            <Text style={[styles.tabIcon, currentScreen === 'Messages' && styles.tabIconActive]}>
+              🫧
             </Text>
             {(() => {
               // Adjust unread count by subtracting locally-read conversations
@@ -1014,13 +1328,14 @@ if (teamBoardPursuitId) {
         <TouchableOpacity
           style={styles.tab}
           onPress={() => {
+            hapticService.lightTap();
             setCurrentScreen('Pods');
             clearBadgeForTab('Pods');
           }}
         >
           <View style={styles.tabContent}>
-            <Text style={[styles.tabText, currentScreen === 'Pods' && styles.tabTextActive]}>
-              🐋 My Pods
+            <Text style={[styles.tabIcon, currentScreen === 'Pods' && styles.tabIconActive]}>
+              🐳
             </Text>
             {badgeCounts.pods > 0 && (
               <View style={styles.badge}>
@@ -1032,13 +1347,14 @@ if (teamBoardPursuitId) {
         <TouchableOpacity
           style={styles.tab}
           onPress={() => {
+            hapticService.lightTap();
             setCurrentScreen('Calendar');
             clearBadgeForTab('Calendar');
           }}
         >
           <View style={styles.tabContent}>
-            <Text style={[styles.tabText, currentScreen === 'Calendar' && styles.tabTextActive]}>
-              📅 Calendar
+            <Text style={[styles.tabIcon, currentScreen === 'Calendar' && styles.tabIconActive]}>
+              🌙
             </Text>
             {badgeCounts.calendar > 0 && (
               <View style={styles.badge}>
@@ -1050,12 +1366,13 @@ if (teamBoardPursuitId) {
         <TouchableOpacity
           style={styles.tab}
           onPress={() => {
+            hapticService.lightTap();
             setCurrentScreen('Notifications');
           }}
         >
           <View style={styles.tabContent}>
-            <Text style={[styles.tabText, currentScreen === 'Notifications' && styles.tabTextActive]}>
-              🔔 Alerts
+            <Text style={[styles.tabIcon, currentScreen === 'Notifications' && styles.tabIconActive]}>
+              ✦
             </Text>
             {badgeCounts.notifications > 0 && (
               <View style={styles.badge}>
@@ -1065,15 +1382,16 @@ if (teamBoardPursuitId) {
           </View>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.tab}
+          style={[styles.tab, { borderRightWidth: 0 }]}
           onPress={() => {
+            hapticService.lightTap();
             setCurrentScreen('Profile');
             clearBadgeForTab('Profile');
           }}
         >
           <View style={styles.tabContent}>
-            <Text style={[styles.tabText, currentScreen === 'Profile' && styles.tabTextActive]}>
-              👤 Profile
+            <Text style={[styles.tabIcon, currentScreen === 'Profile' && styles.tabIconActive]}>
+              🪷
             </Text>
             {badgeCounts.connections > 0 && (
               <View style={styles.badge}>
@@ -1113,38 +1431,40 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: '#fff',
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: '#e5e7eb',
     paddingBottom: 20,
-    paddingTop: 10,
+    paddingTop: 8,
   },
   tab: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 10,
+    justifyContent: 'center',
+    paddingVertical: 6,
+    borderRightWidth: 1,
+    borderRightColor: '#f0f0f0',
   },
   tabContent: {
     position: 'relative',
     alignItems: 'center',
   },
-  tabText: {
-    fontSize: 14,
-    color: '#999',
+  tabIcon: {
+    fontSize: 26,
+    opacity: 0.4,
   },
-  tabTextActive: {
-    color: '#0ea5e9',
-    fontWeight: 'bold',
+  tabIconActive: {
+    opacity: 1,
   },
   badge: {
     position: 'absolute',
-    top: -8,
-    right: -12,
+    top: -6,
+    right: -10,
     backgroundColor: '#ef4444',
     borderRadius: 10,
-    minWidth: 20,
-    height: 20,
+    minWidth: 18,
+    height: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 5,
+    paddingHorizontal: 4,
   },
   badgeText: {
     color: '#fff',
@@ -1153,8 +1473,8 @@ const styles = StyleSheet.create({
   },
   closeCreateButton: {
     position: 'absolute',
-    top: 50,
-    left: 20,
+    top: 55,
+    right: 20,
     backgroundColor: '#ef4444',
     paddingHorizontal: 16,
     paddingVertical: 10,

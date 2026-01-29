@@ -1,9 +1,18 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Switch, Modal, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useFonts, NothingYouCouldDo_400Regular } from '@expo-google-fonts/nothing-you-could-do';
 import { useAuth } from '../contexts/AuthContext';
 import { pursuitService } from '../services/pursuitService';
+import { colors } from '../theme/designSystem';
 
-const PURSUIT_TYPES = ['Education', 'Friends', 'Problem', 'Business', 'Lifestyle', 'Hobby', 'Fitness', 'Side Hustle', 'Travel', 'Discussion', 'New Endeavor', 'Accountability', 'Networking', 'Health', 'Medical', 'Support', 'Personal Growth', 'Career Growth', 'Hangout', 'Socialize', 'Explore', 'Nature', 'Social Media', 'Spiritual', 'Religion', 'Mental Health', 'Art', 'Music', 'Sport'];
+const PURSUIT_TYPES = [
+  'Accountability', 'Art', 'Business', 'Career Development', 'Co-founders', 'Discussion',
+  'Education', 'Explore', 'Fitness', 'Friends', 'Fun', 'Games', 'Hangout', 'Health',
+  'Hobby', 'Lifestyle', 'Medical', 'Mental Health', 'Music', 'Nature', 'Networking',
+  'New Endeavor', 'Personal Growth', 'Problem', 'Relax', 'Religion', 'Side Hustle',
+  'Social Media', 'Socialize', 'Spiritual', 'Sport', 'Support', 'Technology', 'Travel'
+].sort();
 const DECISION_SYSTEMS = ['Standard Vote', 'Admin Has Ultimate Say', 'Delegated', 'Weighted Voting'];
 const ATTENDANCE_STYLES = ['Mandatory', 'Optional', 'Frequent'];
 
@@ -99,7 +108,10 @@ interface Props {
 
 export default function CreateScreen({ onClose }: Props = {}) {
   const { user } = useAuth();
-  
+  const [fontsLoaded] = useFonts({
+    NothingYouCouldDo_400Regular,
+  });
+
   // Basic Info
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -117,6 +129,8 @@ export default function CreateScreen({ onClose }: Props = {}) {
   // Types & Categories
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [categories, setCategories] = useState('');
+  const [showPursuitTypeModal, setShowPursuitTypeModal] = useState(false);
+  const [pursuitTypeSearch, setPursuitTypeSearch] = useState('');
   
   // Business
   const [ownershipStructure, setOwnershipStructure] = useState('');
@@ -367,7 +381,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
       <View style={styles.header}>
-        <Text style={styles.title}>Create a Pursuit</Text>
+        <Text style={[styles.title, fontsLoaded && { fontFamily: 'NothingYouCouldDo_400Regular' }]}>Create a Pursuit</Text>
         <Text style={styles.subtitle}>* = Required fields</Text>
       </View>
 
@@ -504,19 +518,31 @@ export default function CreateScreen({ onClose }: Props = {}) {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>🎯 Pursuit Type * (Select 1-3)</Text>
             <Text style={styles.hint}>Selected: {selectedTypes.length}/3</Text>
-            <View style={styles.chipContainer}>
-              {PURSUIT_TYPES.map((type) => (
-                <TouchableOpacity
-                  key={type}
-                  style={[styles.chip, selectedTypes.includes(type) && styles.chipSelected]}
-                  onPress={() => toggleType(type)}
-                >
-                  <Text style={[styles.chipText, selectedTypes.includes(type) && styles.chipTextSelected]}>
-                    {type}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+
+            {/* Selected types display */}
+            {selectedTypes.length > 0 && (
+              <View style={styles.selectedTypesContainer}>
+                {selectedTypes.map((type) => (
+                  <View key={type} style={styles.selectedTypeChip}>
+                    <Text style={styles.selectedTypeText}>{type}</Text>
+                    <TouchableOpacity onPress={() => setSelectedTypes(selectedTypes.filter(t => t !== type))}>
+                      <Ionicons name="close-circle" size={18} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Dropdown button */}
+            <TouchableOpacity
+              style={styles.dropdownButton}
+              onPress={() => setShowPursuitTypeModal(true)}
+            >
+              <Text style={styles.dropdownButtonText}>
+                {selectedTypes.length === 0 ? 'Select pursuit types...' : 'Add more types...'}
+              </Text>
+              <Ionicons name="chevron-down" size={20} color="#666" />
+            </TouchableOpacity>
           </View>
 
           {/* CATEGORIES */}
@@ -675,7 +701,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
             </View>
 
             <View style={styles.switchRow}>
-              <Text style={styles.label}>Require interview?</Text>
+              <Text style={styles.label}>Include interview option?</Text>
               <Switch value={requiresInterview} onValueChange={setRequiresInterview} />
             </View>
 
@@ -684,16 +710,32 @@ export default function CreateScreen({ onClose }: Props = {}) {
               <Switch value={requiresResume} onValueChange={setRequiresResume} />
             </View>
 
-            <Text style={styles.label}>Application Questions (optional)</Text>
-            <Text style={styles.hint}>One question per line</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Why are you a good team fit?&#10;Where do you hope to see this go?"
-              value={applicationQuestions}
-              onChangeText={setApplicationQuestions}
-              multiline
-              numberOfLines={4}
-            />
+            {/* Application Questions Section */}
+            <View style={styles.questionsSection}>
+              <Text style={styles.questionsSectionTitle}>📝 Application Questions</Text>
+              <Text style={styles.questionsSectionSubtitle}>
+                Use the default questions below or personalize your own
+              </Text>
+              
+              <View style={styles.defaultQuestionsBox}>
+                <Text style={styles.defaultQuestionsLabel}>Default Questions:</Text>
+                <Text style={styles.defaultQuestion}>• Why are you a good team fit?</Text>
+                <Text style={styles.defaultQuestion}>• Where do you hope to see this go?</Text>
+              </View>
+              
+              <Text style={styles.customizeHint}>
+                ✏️ Tap below to edit or add your own questions (one per line)
+              </Text>
+              
+              <TextInput
+                style={[styles.input, styles.textArea, styles.questionsInput]}
+                placeholder="Why are you a good team fit?&#10;Where do you hope to see this go?"
+                value={applicationQuestions}
+                onChangeText={setApplicationQuestions}
+                multiline
+                numberOfLines={4}
+              />
+            </View>
           </View>
 
           <TouchableOpacity 
@@ -753,12 +795,113 @@ export default function CreateScreen({ onClose }: Props = {}) {
           </View>
         </View>
       </Modal>
+
+      {/* Pursuit Type Picker Modal */}
+      <Modal
+        visible={showPursuitTypeModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowPursuitTypeModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Pursuit Types</Text>
+              <TouchableOpacity onPress={() => {
+                setShowPursuitTypeModal(false);
+                setPursuitTypeSearch('');
+              }}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Search input */}
+            <View style={styles.searchContainer}>
+              <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search pursuit types..."
+                value={pursuitTypeSearch}
+                onChangeText={setPursuitTypeSearch}
+                autoCapitalize="none"
+              />
+              {pursuitTypeSearch.length > 0 && (
+                <TouchableOpacity onPress={() => setPursuitTypeSearch('')}>
+                  <Ionicons name="close-circle" size={20} color="#999" />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Selected count */}
+            <Text style={styles.selectedCount}>
+              {selectedTypes.length}/3 selected
+              {selectedTypes.length >= 3 && ' (max reached)'}
+            </Text>
+
+            {/* Pursuit types list */}
+            <FlatList
+              data={PURSUIT_TYPES.filter(type =>
+                type.toLowerCase().includes(pursuitTypeSearch.toLowerCase())
+              )}
+              keyExtractor={(item) => item}
+              renderItem={({ item }) => {
+                const isSelected = selectedTypes.includes(item);
+                const isDisabled = !isSelected && selectedTypes.length >= 3;
+                return (
+                  <TouchableOpacity
+                    style={[
+                      styles.pursuitTypeItem,
+                      isSelected && styles.pursuitTypeItemSelected,
+                      isDisabled && styles.pursuitTypeItemDisabled
+                    ]}
+                    onPress={() => {
+                      if (isSelected) {
+                        setSelectedTypes(selectedTypes.filter(t => t !== item));
+                      } else if (selectedTypes.length < 3) {
+                        setSelectedTypes([...selectedTypes, item]);
+                      }
+                    }}
+                    disabled={isDisabled}
+                  >
+                    <Text style={[
+                      styles.pursuitTypeText,
+                      isSelected && styles.pursuitTypeTextSelected,
+                      isDisabled && styles.pursuitTypeTextDisabled
+                    ]}>
+                      {item}
+                    </Text>
+                    {isSelected && (
+                      <Ionicons name="checkmark-circle" size={22} color="#0ea5e9" />
+                    )}
+                  </TouchableOpacity>
+                );
+              }}
+              ListEmptyComponent={
+                <View style={styles.emptyStateContainer}>
+                  <Text style={styles.emptyStateText}>No matching pursuit types</Text>
+                </View>
+              }
+            />
+
+            {/* Done button */}
+            <TouchableOpacity
+              style={styles.doneButton}
+              onPress={() => {
+                setShowPursuitTypeModal(false);
+                setPursuitTypeSearch('');
+              }}
+            >
+              <Text style={styles.doneButtonText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  container: { flex: 1, backgroundColor: colors.background },
   header: { 
     backgroundColor: '#fff', 
     padding: 20, 
@@ -941,6 +1084,153 @@ const styles = StyleSheet.create({
   clearButtonText: {
     color: '#dc2626',
     fontSize: 14,
+    fontWeight: '600',
+  },
+  questionsSection: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  questionsSectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    marginBottom: 4,
+  },
+  questionsSectionSubtitle: {
+    fontSize: 13,
+    color: '#64748b',
+    marginBottom: 12,
+  },
+  defaultQuestionsBox: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  defaultQuestionsLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#374151',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  defaultQuestion: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 4,
+    lineHeight: 20,
+  },
+  customizeHint: {
+    fontSize: 13,
+    color: '#059669',
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  questionsInput: {
+    backgroundColor: '#fff',
+    borderColor: '#d1d5db',
+  },
+  selectedTypesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  selectedTypeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0ea5e9',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 6,
+  },
+  selectedTypeText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  dropdownButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#fafafa',
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
+    borderRadius: 8,
+    padding: 12,
+  },
+  dropdownButtonText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    marginHorizontal: 16,
+    marginVertical: 12,
+    paddingHorizontal: 12,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 12,
+    fontSize: 14,
+  },
+  selectedCount: {
+    fontSize: 12,
+    color: '#666',
+    marginHorizontal: 16,
+    marginBottom: 8,
+  },
+  pursuitTypeItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  pursuitTypeItemSelected: {
+    backgroundColor: '#e0f2fe',
+  },
+  pursuitTypeItemDisabled: {
+    opacity: 0.5,
+  },
+  pursuitTypeText: {
+    fontSize: 15,
+    color: '#333',
+  },
+  pursuitTypeTextSelected: {
+    color: '#0ea5e9',
+    fontWeight: '600',
+  },
+  pursuitTypeTextDisabled: {
+    color: '#999',
+  },
+  doneButton: {
+    backgroundColor: '#0ea5e9',
+    margin: 16,
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  doneButtonText: {
+    color: '#fff',
+    fontSize: 16,
     fontWeight: '600',
   },
 });

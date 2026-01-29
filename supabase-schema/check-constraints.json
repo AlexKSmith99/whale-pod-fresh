@@ -1,0 +1,73 @@
+{
+  "description": "CHECK constraints that validate data values",
+  "generated": "2025-01-19",
+  "constraints": {
+    "meeting_contributions": {
+      "contribution_type_check": {
+        "allowed_values": ["pre-meeting agenda", "question", "comment", "meeting notes", "task"]
+      },
+      "media_type_check": {
+        "allowed_values": ["image", "video"]
+      }
+    },
+    "meeting_participants": {
+      "status_check": {
+        "allowed_values": ["invited", "accepted", "declined", "maybe"]
+      }
+    },
+    "meetings": {
+      "meeting_type_check": {
+        "allowed_values": ["in_person", "video", "hybrid"]
+      },
+      "status_check": {
+        "allowed_values": ["scheduled", "in_progress", "completed", "cancelled"]
+      }
+    },
+    "pod_meeting_recap_items": {
+      "category_check": {
+        "allowed_values": ["accomplished", "metrics"]
+      }
+    },
+    "privacy_preferences": {
+      "valid_profile_access_allowlist": "check_valid_allowlist(profile_access_allowlist)",
+      "valid_socials_allowlist": "check_valid_allowlist(socials_allowlist)",
+      "valid_reviews_allowlist": "check_valid_allowlist(reviews_allowlist)",
+      "valid_pods_tab_allowlist": "check_valid_allowlist(pods_tab_allowlist)",
+      "valid_connections_allowlist": "check_valid_allowlist(connections_allowlist)",
+      "allowlist_valid_values": ["none", "connections", "pod_members", "pod_creator_when_applying", "everyone"]
+    },
+    "pursuits": {
+      "status_check": {
+        "allowed_values": ["awaiting_kickoff", "collecting_proposals", "active", "completed", "archived"]
+      }
+    },
+    "reviews": {
+      "rating_constraints": {
+        "range": "0-10",
+        "fields": [
+          "work_ethic",
+          "quality_of_work",
+          "punctuality",
+          "reliability",
+          "collaboration",
+          "responsiveness",
+          "leadership",
+          "technical_competence",
+          "intensity",
+          "kindness",
+          "overall_satisfaction"
+        ]
+      }
+    },
+    "shared_media": {
+      "media_type_check": {
+        "allowed_values": ["image", "video"]
+      }
+    },
+    "team_members": {
+      "status_check": {
+        "allowed_values": ["active", "accepted", "invited", "removed"]
+      }
+    }
+  }
+}

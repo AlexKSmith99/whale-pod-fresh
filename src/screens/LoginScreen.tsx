@@ -92,7 +92,7 @@ export default function LoginScreen() {
     try {
       if (isSignup) {
         await signUp(email, password);
-        Alert.alert('Success', 'Check your email to verify your account!');
+        // Verification screen will be shown automatically by App.tsx
       } else {
         await signIn(email, password);
 
@@ -133,16 +133,16 @@ export default function LoginScreen() {
       <View style={styles.decorativeCircle2} />
       <View style={styles.decorativeCircle3} />
 
-      <KeyboardAvoidingView
+    <KeyboardAvoidingView
         style={styles.keyboardView}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
             {/* Logo Section */}
             <Animated.View
               style={[
@@ -189,15 +189,15 @@ export default function LoginScreen() {
                     color={emailFocused ? loginColors.accent : colors.textTertiary}
                     style={styles.inputIcon}
                   />
-                  <TextInput
-                    style={styles.input}
+          <TextInput
+            style={styles.input}
                     placeholder="Enter your email"
                     placeholderTextColor={colors.textTertiary}
-                    value={email}
-                    onChangeText={setEmail}
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                    returnKeyType="next"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            returnKeyType="next"
                     onFocus={() => setEmailFocused(true)}
                     onBlur={() => setEmailFocused(false)}
                   />
@@ -218,16 +218,16 @@ export default function LoginScreen() {
                     size={20}
                     color={passwordFocused ? loginColors.accent : colors.textTertiary}
                     style={styles.inputIcon}
-                  />
-                  <TextInput
-                    style={styles.input}
+          />
+          <TextInput
+            style={styles.input}
                     placeholder="Enter your password"
                     placeholderTextColor={colors.textTertiary}
-                    value={password}
-                    onChangeText={setPassword}
+            value={password}
+            onChangeText={setPassword}
                     secureTextEntry={!showPassword}
-                    returnKeyType="done"
-                    onSubmitEditing={handleSubmit}
+            returnKeyType="done"
+            onSubmitEditing={handleSubmit}
                     onFocus={() => setPasswordFocused(true)}
                     onBlur={() => setPasswordFocused(false)}
                   />
@@ -246,12 +246,12 @@ export default function LoginScreen() {
               </View>
 
               {/* Remember Me - Only on Login */}
-              {!isSignup && (
-                <TouchableOpacity
+          {!isSignup && (
+            <TouchableOpacity
                   style={styles.rememberMeContainer}
-                  onPress={() => setRememberMe(!rememberMe)}
-                  activeOpacity={0.7}
-                >
+              onPress={() => setRememberMe(!rememberMe)}
+              activeOpacity={0.7}
+            >
                   <View
                     style={[
                       styles.checkbox,
@@ -261,10 +261,10 @@ export default function LoginScreen() {
                     {rememberMe && (
                       <Ionicons name="checkmark" size={14} color="#fff" />
                     )}
-                  </View>
+              </View>
                   <Text style={styles.rememberMeText}>Remember me</Text>
-                </TouchableOpacity>
-              )}
+            </TouchableOpacity>
+          )}
 
               {/* Submit Button */}
               <TouchableOpacity
@@ -281,7 +281,7 @@ export default function LoginScreen() {
                   color="#fff"
                   style={styles.submitButtonIcon}
                 />
-              </TouchableOpacity>
+          </TouchableOpacity>
 
               {/* Divider */}
               <View style={styles.dividerContainer}>
@@ -303,8 +303,8 @@ export default function LoginScreen() {
                   <Text style={styles.toggleTextBold}>
                     {isSignup ? 'Sign In' : 'Sign Up'}
                   </Text>
-                </Text>
-              </TouchableOpacity>
+            </Text>
+          </TouchableOpacity>
             </Animated.View>
 
             {/* Footer */}
@@ -313,9 +313,9 @@ export default function LoginScreen() {
                 By continuing, you agree to our Terms of Service
               </Text>
             </Animated.View>
-          </ScrollView>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
+        </ScrollView>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
     </View>
   );
 }

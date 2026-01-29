@@ -24,7 +24,16 @@ import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { galleryService, GalleryPhoto } from '../../services/galleryService';
 import { notificationService } from '../../services/notificationService';
+import { 
+  podDocService, 
+  podRulesService, 
+  DEFAULT_RULES_TEMPLATE, 
+  PodDoc, 
+  PodRules,
+} from '../../services/podContentService';
 import UserProfileScreen from '../UserProfileScreen';
+import WriteReviewScreen from '../WriteReviewScreen';
+import WebRichTextEditor from '../../components/WebRichTextEditor';
 
 // Modern dark theme colors
 const theme = {
@@ -63,7 +72,7 @@ interface Props {
   initialPursuitId?: string;
 }
 
-type SubTab = 'agenda' | 'roles' | 'media';
+type SubTab = 'agenda' | 'roles' | 'media' | 'doc' | 'rules';
 
 interface DocumentEdit {
   id: string;
@@ -122,13 +131,46 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
   const [savingImage, setSavingImage] = useState(false);
   const imageViewerRef = useRef<FlatList>(null);
 
+  // Pod Doc state
+  const [podDoc, setPodDoc] = useState<PodDoc | null>(null);
+  const [docMission, setDocMission] = useState('');
+  const [docNorthstar, setDocNorthstar] = useState('');
+  const [docReference, setDocReference] = useState('');
+  const [docSaving, setDocSaving] = useState(false);
+
+  // Pod Rules state
+  const [podRules, setPodRulesState] = useState<PodRules | null>(null);
+  const [rulesContent, setRulesContent] = useState('');
+  const [rulesSaving, setRulesSaving] = useState(false);
+
+  // Pod Meetings state (for automatic section headers)
+  const [podMeetings, setPodMeetings] = useState<any[]>([]);
+
+  // Rich text agenda document state
+  const [agendaDocumentHtml, setAgendaDocumentHtml] = useState<string>('');
+  const [agendaDocumentLoading, setAgendaDocumentLoading] = useState(false);
+  const [agendaDocumentSaving, setAgendaDocumentSaving] = useState(false);
+
   // User profile state
   const [showUserProfile, setShowUserProfile] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  
+  // Write review state
+  const [showWriteReview, setShowWriteReview] = useState(false);
+  const [revieweeInfo, setRevieweeInfo] = useState<{
+    revieweeId: string;
+    revieweeName: string;
+    revieweePhoto?: string;
+  } | null>(null);
 
   const handleViewProfile = (userId: string) => {
     setSelectedUserId(userId);
     setShowUserProfile(true);
+  };
+  
+  const handleWriteReview = (revieweeId: string, revieweeName: string, revieweePhoto?: string) => {
+    setRevieweeInfo({ revieweeId, revieweeName, revieweePhoto });
+    setShowWriteReview(true);
   };
 
   const toggleSidebar = () => {
@@ -264,11 +306,16 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
       setTeamMembers(uniqueMembers);
 
       if (activeSubTab === 'agenda') {
-        await loadContributions();
+        await loadAgendaDocument();
+        await loadPodMeetings();
       } else if (activeSubTab === 'roles') {
         await loadRoles();
       } else if (activeSubTab === 'media') {
         await loadMedia();
+      } else if (activeSubTab === 'doc') {
+        await loadPodDoc();
+      } else if (activeSubTab === 'rules') {
+        await loadPodRulesData();
       }
     } catch (error) {
       console.error('Error loading pod data:', error);
@@ -332,6 +379,157 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
     }
   };
 
+  const loadPodDoc = async () => {
+    if (!selectedPodId) return;
+
+    try {
+      const doc = await podDocService.getDoc(selectedPodId);
+      setPodDoc(doc);
+      setDocMission(doc?.mission_rich || '');
+      setDocNorthstar(doc?.northstar_rich || '');
+      setDocReference(doc?.reference_rich || '');
+    } catch (error) {
+      console.error('Error loading pod doc:', error);
+    }
+  };
+
+  const loadPodRulesData = async () => {
+    if (!selectedPodId) return;
+
+    try {
+      const rules = await podRulesService.getRules(selectedPodId);
+      setPodRulesState(rules);
+      setRulesContent(rules?.rules_rich || '');
+    } catch (error) {
+      console.error('Error loading pod rules:', error);
+    }
+  };
+
+  const handleSavePodDoc = async () => {
+    if (!selectedPodId) return;
+    setDocSaving(true);
+    try {
+      await podDocService.saveDoc(selectedPodId, {
+        mission_rich: docMission,
+        northstar_rich: docNorthstar,
+        reference_rich: docReference,
+      });
+      Alert.alert('Saved', 'Pod Doc saved successfully');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save Pod Doc');
+    } finally {
+      setDocSaving(false);
+    }
+  };
+
+  const handleSavePodRules = async () => {
+    if (!selectedPodId) return;
+    setRulesSaving(true);
+    try {
+      await podRulesService.saveRules(selectedPodId, rulesContent);
+      Alert.alert('Saved', 'Pod Rules saved successfully');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to save Pod Rules');
+    } finally {
+      setRulesSaving(false);
+    }
+  };
+
+  const handleUseRulesTemplate = () => {
+    Alert.alert(
+      'Use Template',
+      'This will replace your current rules with the default template. Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Use Template', onPress: () => setRulesContent(DEFAULT_RULES_TEMPLATE) },
+      ]
+    );
+  };
+
+  // ==========================================================================
+  // POD MEETINGS FUNCTIONS (for automatic section headers)
+  // ==========================================================================
+
+  const loadPodMeetings = async () => {
+    if (!selectedPodId) return;
+    try {
+      const { data, error } = await supabase
+        .from('meetings')
+        .select('id, title, scheduled_time, status')
+        .eq('pursuit_id', selectedPodId)
+        .order('scheduled_time', { ascending: false });
+
+      if (error) throw error;
+      setPodMeetings(data || []);
+    } catch (error) {
+      console.error('Error loading pod meetings:', error);
+    }
+  };
+
+  const loadAgendaDocument = async () => {
+    if (!selectedPodId) return;
+    setAgendaDocumentLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('pod_agenda_documents')
+        .select('content_html')
+        .eq('pod_id', selectedPodId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+      
+      setAgendaDocumentHtml(data?.content_html || '');
+    } catch (error) {
+      console.error('Error loading agenda document:', error);
+    } finally {
+      setAgendaDocumentLoading(false);
+    }
+  };
+
+  const saveAgendaDocument = async () => {
+    if (!selectedPodId || !user) return;
+    setAgendaDocumentSaving(true);
+    try {
+      const { error } = await supabase
+        .from('pod_agenda_documents')
+        .upsert({
+          pod_id: selectedPodId,
+          content_html: agendaDocumentHtml,
+          last_edited_by: user.id,
+        }, {
+          onConflict: 'pod_id'
+        });
+
+      if (error) throw error;
+      
+      setIsInEditMode(false);
+      Alert.alert('Saved', 'Document saved successfully');
+    } catch (error) {
+      console.error('Error saving agenda document:', error);
+      Alert.alert('Error', 'Failed to save document');
+    } finally {
+      setAgendaDocumentSaving(false);
+    }
+  };
+
+  const handleAgendaContentChange = (html: string) => {
+    setAgendaDocumentHtml(html);
+  };
+
+  const formatMeetingDateTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      month: 'long', 
+      day: 'numeric', 
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit'
+    });
+  };
+
   const handleDocumentBlur = async () => {
     setIsEditingDocument(false);
 
@@ -370,7 +568,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
       const currentPod = pods.find((p) => p.id === selectedPodId);
       if (otherMemberIds.length > 0 && currentPod) {
         const currentUserProfile = teamMembers.find(m => m.id === user.id);
-        const userName = currentUserProfile?.name || 'A teammate';
+        const userName = currentUserProfile?.name || currentUserProfile?.email?.split('@')[0] || 'A teammate';
         await notificationService.notifyTeamBoardUpdate(
           otherMemberIds,
           selectedPodId,
@@ -388,12 +586,55 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
   };
 
   const enterEditMode = () => {
-    // Combine all contributions into one text for editing
+    // Build document text with meeting headers included
+    const now = new Date();
+    const upcomingMeetings = podMeetings.filter(m => new Date(m.scheduled_time) >= now);
+    const pastMeetings = podMeetings.filter(m => new Date(m.scheduled_time) < now);
+    
+    let documentParts: string[] = [];
+    
+    // Add upcoming meetings section
+    if (upcomingMeetings.length > 0) {
+      documentParts.push('═══════════════════════════════════════');
+      documentParts.push('📅 UPCOMING MEETINGS');
+      documentParts.push('═══════════════════════════════════════');
+      documentParts.push('');
+      upcomingMeetings.forEach(meeting => {
+        documentParts.push(`▸ ${meeting.title}`);
+        documentParts.push(`  ${formatMeetingDateTime(meeting.scheduled_time)}`);
+        documentParts.push('');
+      });
+    }
+    
+    // Add past meetings section
+    if (pastMeetings.length > 0) {
+      documentParts.push('═══════════════════════════════════════');
+      documentParts.push('📋 PAST MEETINGS');
+      documentParts.push('═══════════════════════════════════════');
+      documentParts.push('');
+      pastMeetings.forEach(meeting => {
+        documentParts.push(`▸ ${meeting.title}`);
+        documentParts.push(`  ${formatMeetingDateTime(meeting.scheduled_time)}`);
+        documentParts.push('');
+      });
+    }
+    
+    // Add notes section
+    if (podMeetings.length > 0) {
+      documentParts.push('═══════════════════════════════════════');
+      documentParts.push('📝 NOTES & CONTRIBUTIONS');
+      documentParts.push('═══════════════════════════════════════');
+      documentParts.push('');
+    }
+    
+    // Add contributions
     const sortedContribs = [...contributions].sort(
       (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     );
-    const combinedText = sortedContribs.map(c => c.content).join('\n\n');
-    setFullDocumentText(combinedText);
+    const contributionsText = sortedContribs.map(c => c.content).join('\n\n');
+    documentParts.push(contributionsText);
+    
+    setFullDocumentText(documentParts.join('\n'));
     setIsInEditMode(true);
     setIsEditingDocument(true);
     setShowDocMenu(false);
@@ -449,7 +690,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
         const currentPod = pods.find((p) => p.id === selectedPodId);
         if (otherMemberIds.length > 0 && currentPod) {
           const currentUserProfile = teamMembers.find(m => m.id === user.id);
-          const userName = currentUserProfile?.name || 'A teammate';
+          const userName = currentUserProfile?.name || currentUserProfile?.email?.split('@')[0] || 'A teammate';
           await notificationService.notifyTeamBoardUpdate(
             otherMemberIds,
             selectedPodId,
@@ -662,7 +903,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
       const currentPod = pods.find((p) => p.id === selectedPodId);
       if (otherMemberIds.length > 0 && currentPod) {
         const currentUserProfile = teamMembers.find(m => m.id === user.id);
-        const userName = currentUserProfile?.name || 'A teammate';
+        const userName = currentUserProfile?.name || currentUserProfile?.email?.split('@')[0] || 'A teammate';
         await notificationService.notifyTeamBoardUpdate(
           otherMemberIds,
           selectedPodId,
@@ -788,7 +1029,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
       const currentPod = pods.find((p) => p.id === selectedPodId);
       if (otherMemberIds.length > 0 && currentPod && user) {
         const currentUserProfile = teamMembers.find(m => m.id === user.id);
-        const userName = currentUserProfile?.name || 'A teammate';
+        const userName = currentUserProfile?.name || currentUserProfile?.email?.split('@')[0] || 'A teammate';
         await notificationService.notifyTeamBoardUpdate(
           otherMemberIds,
           selectedPodId,
@@ -841,196 +1082,300 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
     );
   };
 
-  const renderAgendaTab = () => {
+  // Build document content with meeting headers
+  const renderFormattedDocumentWithMeetings = () => {
+    const now = new Date();
+    
+    // Separate upcoming and past meetings
+    const upcomingMeetings = podMeetings.filter(m => new Date(m.scheduled_time) >= now);
+    const pastMeetings = podMeetings.filter(m => new Date(m.scheduled_time) < now);
+    
+    // Get document text from contributions
+    const documentText = getFullDocumentText();
+    
     return (
-      <View style={styles.documentContainer}>
-        {/* Document Header with Menu */}
-        <View style={styles.documentHeader}>
-          <View style={styles.documentHeaderLeft}>
-            {savingDocument && (
-              <View style={styles.savingIndicator}>
-                <ActivityIndicator size="small" color={theme.accent} />
-                <Text style={styles.savingText}>Saving...</Text>
-              </View>
-            )}
-            {showEditHistory && (
-              <View style={styles.modeBadge}>
-                <Text style={styles.modeBadgeText}>Edit History</Text>
-              </View>
-            )}
+      <View>
+        {/* Upcoming Meetings Section */}
+        {upcomingMeetings.length > 0 && (
+          <View style={styles.meetingSectionHeader}>
+            <Text style={styles.meetingsSectionLabel}>📅 UPCOMING MEETINGS</Text>
           </View>
+        )}
+        {upcomingMeetings.map((meeting) => (
+          <View key={meeting.id} style={styles.meetingHeaderBlock}>
+            <View style={styles.meetingHeaderBar} />
+            <Text style={styles.meetingHeaderTitle}>{meeting.title}</Text>
+            <Text style={styles.meetingHeaderDate}>{formatMeetingDateTime(meeting.scheduled_time)}</Text>
+            <Text style={styles.meetingHeaderStatus}>
+              {meeting.status === 'scheduled' ? '🟢 Scheduled' : meeting.status}
+            </Text>
+          </View>
+        ))}
+
+        {/* Past Meetings Section */}
+        {pastMeetings.length > 0 && (
+          <View style={[styles.meetingSectionHeader, { marginTop: upcomingMeetings.length > 0 ? 24 : 0 }]}>
+            <Text style={styles.meetingsSectionLabel}>📋 PAST MEETINGS</Text>
+          </View>
+        )}
+        {pastMeetings.map((meeting) => (
+          <View key={meeting.id} style={[styles.meetingHeaderBlock, styles.pastMeetingHeaderBlock]}>
+            <View style={[styles.meetingHeaderBar, styles.pastMeetingHeaderBar]} />
+            <Text style={styles.meetingHeaderTitle}>{meeting.title}</Text>
+            <Text style={styles.meetingHeaderDate}>{formatMeetingDateTime(meeting.scheduled_time)}</Text>
+            <Text style={styles.meetingHeaderStatus}>
+              {meeting.status === 'completed' ? '✅ Completed' : meeting.status === 'cancelled' ? '❌ Cancelled' : '⏰ Past'}
+            </Text>
+          </View>
+        ))}
+
+        {/* Document Content */}
+        {podMeetings.length > 0 && (
+          <View style={styles.notesAreaDivider}>
+            <Text style={styles.notesAreaLabel}>📝 NOTES & CONTRIBUTIONS</Text>
+          </View>
+        )}
+        
+        {documentText.length > 0 ? (
+          <Text style={styles.documentText}>{documentText}</Text>
+        ) : (
+          <Text style={styles.emptyDocumentText}>
+            {podMeetings.length > 0 
+              ? 'Start adding notes and contributions below the meeting headers...'
+              : 'No meetings scheduled yet. Schedule a meeting to see it appear here automatically.\n\nYou can still add notes and contributions below.'}
+          </Text>
+        )}
+      </View>
+    );
+  };
+
+  const renderAgendaTab = () => {
+    // Full-screen rich text edit mode
+    if (isInEditMode) {
+      return (
+        <WebRichTextEditor
+          initialContent={agendaDocumentHtml}
+          onChange={handleAgendaContentChange}
+          onSave={saveAgendaDocument}
+          onCancel={() => {
+            setIsInEditMode(false);
+            // Reload to discard changes
+            loadAgendaDocument();
+          }}
+          placeholder="Start typing your meeting notes..."
+          editable={true}
+        />
+      );
+    }
+
+    // Loading state
+    if (agendaDocumentLoading) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.accent} />
+        </View>
+      );
+    }
+
+    // Read mode - show HTML content rendered or empty state
+    return (
+      <View style={styles.documentContainerCompact}>
+        {/* Document Header with Edit Button */}
+        <View style={styles.documentHeaderCompact}>
+          <Text style={styles.agendaTitle}>Meeting Agenda & Notes</Text>
           <TouchableOpacity
-            style={styles.docMenuButton}
-            onPress={() => setShowDocMenu(true)}
+            style={styles.editButton}
+            onPress={() => setIsInEditMode(true)}
           >
-            <Ionicons name="ellipsis-vertical" size={20} color={theme.textSecondary} />
+            <Ionicons name="create-outline" size={18} color={theme.accent} />
+            <Text style={styles.editButtonText}>Edit</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Search Bar */}
-        {showSearch && (
-          <View style={styles.searchBar}>
-            <View style={styles.searchInputContainer}>
-              <Ionicons name="search" size={18} color={theme.textMuted} />
-              <TextInput
-                style={styles.searchInput}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholder="Search document..."
-                placeholderTextColor={theme.textMuted}
-                autoFocus
-              />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => setSearchQuery('')}>
-                  <Ionicons name="close-circle" size={18} color={theme.textMuted} />
-                </TouchableOpacity>
-              )}
-            </View>
-            {searchMatches.length > 0 && (
-              <View style={styles.searchNav}>
-                <Text style={styles.searchCount}>
-                  {currentMatchIndex + 1} of {searchMatches.length}
-                </Text>
-                <TouchableOpacity
-                  style={styles.searchNavBtn}
-                  onPress={() => navigateSearch('prev')}
-                >
-                  <Ionicons name="chevron-up" size={20} color={theme.text} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.searchNavBtn}
-                  onPress={() => navigateSearch('next')}
-                >
-                  <Ionicons name="chevron-down" size={20} color={theme.text} />
-                </TouchableOpacity>
-              </View>
-            )}
-            <TouchableOpacity
-              style={styles.searchCloseBtn}
-              onPress={() => {
-                setShowSearch(false);
-                setSearchQuery('');
-              }}
-            >
-              <Ionicons name="close" size={22} color={theme.text} />
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Edit Mode Action Buttons */}
-        {isInEditMode && (
-          <View style={styles.editModeActions}>
-            <TouchableOpacity
-              style={styles.editModeCancelBtn}
-              onPress={cancelEditMode}
-            >
-              <Text style={styles.editModeCancelText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.editModeSaveBtn, savingDocument && styles.editModeSaveBtnDisabled]}
-              onPress={saveEditedDocument}
-              disabled={savingDocument}
-            >
-              {savingDocument ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Text style={styles.editModeSaveText}>Save</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        )}
-
         {/* Document Content */}
         <ScrollView
-          ref={documentScrollRef}
-          style={styles.documentScroll}
+          style={styles.documentScrollCompact}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="always"
         >
-          <View style={styles.documentPage}>
-            {showEditHistory ? (
-              // Edit History Mode
-              renderEditHistoryContent()
-            ) : isInEditMode ? (
-              // Full Document Edit Mode - single TextInput for entire document
-              <TextInput
-                ref={documentInputRef}
-                style={[styles.documentInput, styles.fullDocumentEdit]}
-                value={fullDocumentText}
-                onChangeText={setFullDocumentText}
-                multiline
-                autoFocus
-                selectionColor={theme.accent}
-                placeholder="Start typing..."
-                placeholderTextColor={theme.textMuted}
-              />
+          {/* Meeting Headers */}
+          {podMeetings.length > 0 && (
+            <View style={styles.meetingHeadersSection}>
+              {podMeetings.filter(m => new Date(m.scheduled_time) >= new Date()).length > 0 && (
+                <>
+                  <Text style={styles.meetingsSectionLabel}>📅 UPCOMING MEETINGS</Text>
+                  {podMeetings
+                    .filter(m => new Date(m.scheduled_time) >= new Date())
+                    .map((meeting) => (
+                      <View key={meeting.id} style={styles.meetingHeaderBlock}>
+                        <Text style={styles.meetingHeaderTitle}>{meeting.title}</Text>
+                        <Text style={styles.meetingHeaderDate}>{formatMeetingDateTime(meeting.scheduled_time)}</Text>
+                      </View>
+                    ))}
+                </>
+              )}
+              {podMeetings.filter(m => new Date(m.scheduled_time) < new Date()).length > 0 && (
+                <>
+                  <Text style={[styles.meetingsSectionLabel, { marginTop: 16 }]}>📋 PAST MEETINGS</Text>
+                  {podMeetings
+                    .filter(m => new Date(m.scheduled_time) < new Date())
+                    .slice(0, 5)
+                    .map((meeting) => (
+                      <View key={meeting.id} style={[styles.meetingHeaderBlock, { opacity: 0.7 }]}>
+                        <Text style={styles.meetingHeaderTitle}>{meeting.title}</Text>
+                        <Text style={styles.meetingHeaderDate}>{formatMeetingDateTime(meeting.scheduled_time)}</Text>
+                      </View>
+                    ))}
+                </>
+              )}
+            </View>
+          )}
+
+          {/* Document Content */}
+          <View style={styles.documentContentSection}>
+            <Text style={styles.meetingsSectionLabel}>📝 NOTES</Text>
+            {agendaDocumentHtml ? (
+              <View style={styles.htmlContentContainer}>
+                <Text style={styles.htmlContentPlaceholder}>
+                  {/* Extract plain text from JSON document for preview */}
+                  {(() => {
+                    try {
+                      const doc = JSON.parse(agendaDocumentHtml);
+                      const text = doc.paragraphs?.map((p: any) => 
+                        p.spans?.map((s: any) => s.text || '').join('')
+                      ).join('\n') || '';
+                      return text.substring(0, 500) || 'Tap Edit to view and modify your notes...';
+                    } catch {
+                      // Fallback for plain text or HTML
+                      const text = agendaDocumentHtml.replace(/<[^>]*>/g, '');
+                      return text.substring(0, 500) || 'Tap Edit to view and modify your notes...';
+                    }
+                  })()}
+                </Text>
+              </View>
             ) : (
-              // Read Mode (with search highlighting if active)
-              <View style={styles.documentTouchable}>
-                {showSearch && searchQuery.length > 0 ? (
-                  renderHighlightedText()
-                ) : (
-                  renderFormattedDocument()
-                )}
+              <View style={styles.emptyDocContainer}>
+                <Ionicons name="document-text-outline" size={48} color={theme.textMuted} />
+                <Text style={styles.emptyDocText}>No notes yet</Text>
+                <Text style={styles.emptyDocSubtext}>Tap Edit to start adding meeting notes</Text>
               </View>
             )}
           </View>
-          <View style={{ height: 200 }} />
+          <View style={{ height: 100 }} />
         </ScrollView>
-
-        {/* Document Menu Modal */}
-        <Modal visible={showDocMenu} transparent animationType="fade">
-          <TouchableOpacity
-            style={styles.menuOverlay}
-            activeOpacity={1}
-            onPress={() => setShowDocMenu(false)}
-          >
-            <View style={styles.menuContainer}>
-              <TouchableOpacity
-                style={styles.menuItem}
-                onPress={enterEditMode}
-              >
-                <Ionicons name="create-outline" size={22} color={theme.accent} />
-                <Text style={[styles.menuItemText, styles.menuItemTextActive]}>Edit</Text>
-              </TouchableOpacity>
-              <View style={styles.menuDivider} />
-              <TouchableOpacity
-                style={styles.menuItem}
-                onPress={() => {
-                  setShowEditHistory(!showEditHistory);
-                  setShowSearch(false);
-                  setSearchQuery('');
-                  setShowDocMenu(false);
-                }}
-              >
-                <Ionicons
-                  name={showEditHistory ? "checkmark-circle" : "time-outline"}
-                  size={22}
-                  color={showEditHistory ? theme.accent : theme.text}
-                />
-                <Text style={[styles.menuItemText, showEditHistory && styles.menuItemTextActive]}>
-                  Edit History
-                </Text>
-                {showEditHistory && (
-                  <Ionicons name="checkmark" size={18} color={theme.accent} />
-                )}
-              </TouchableOpacity>
-              <View style={styles.menuDivider} />
-              <TouchableOpacity
-                style={styles.menuItem}
-                onPress={() => {
-                  setShowSearch(true);
-                  setShowEditHistory(false);
-                  setShowDocMenu(false);
-                }}
-              >
-                <Ionicons name="search-outline" size={22} color={theme.text} />
-                <Text style={styles.menuItemText}>Search</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        </Modal>
       </View>
+    );
+  };
+
+  const renderPodDocTab = () => {
+    return (
+      <ScrollView style={styles.documentContainer}>
+        <View style={styles.podDocHeader}>
+          <Text style={styles.podDocTitle}>📄 Pod Doc</Text>
+          <TouchableOpacity
+            style={[styles.saveDocButton, docSaving && styles.saveDocButtonDisabled]}
+            onPress={handleSavePodDoc}
+            disabled={docSaving}
+          >
+            {docSaving ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.saveDocButtonText}>Save</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.podDocSection}>
+          <Text style={styles.podDocSectionTitle}>🎯 Pod Mission</Text>
+          <Text style={styles.podDocSectionHint}>What is the core purpose of this pod?</Text>
+          <TextInput
+            style={styles.podDocInput}
+            value={docMission}
+            onChangeText={setDocMission}
+            placeholder="Define your pod's mission..."
+            placeholderTextColor={theme.textMuted}
+            multiline
+            textAlignVertical="top"
+          />
+        </View>
+
+        <View style={styles.podDocSection}>
+          <Text style={styles.podDocSectionTitle}>⭐ Northstar Vision</Text>
+          <Text style={styles.podDocSectionHint}>What does success look like for this pod?</Text>
+          <TextInput
+            style={styles.podDocInput}
+            value={docNorthstar}
+            onChangeText={setDocNorthstar}
+            placeholder="Describe your vision of success..."
+            placeholderTextColor={theme.textMuted}
+            multiline
+            textAlignVertical="top"
+          />
+        </View>
+
+        <View style={styles.podDocSection}>
+          <Text style={styles.podDocSectionTitle}>📚 Shared Reference Notes</Text>
+          <Text style={styles.podDocSectionHint}>Important links, resources, and ongoing notes</Text>
+          <TextInput
+            style={[styles.podDocInput, { minHeight: 200 }]}
+            value={docReference}
+            onChangeText={setDocReference}
+            placeholder="Add links, resources, or reference notes..."
+            placeholderTextColor={theme.textMuted}
+            multiline
+            textAlignVertical="top"
+          />
+        </View>
+      </ScrollView>
+    );
+  };
+
+  const renderPodRulesTab = () => {
+    return (
+      <ScrollView style={styles.documentContainer}>
+        <View style={styles.podDocHeader}>
+          <Text style={styles.podDocTitle}>📜 Pod Rules</Text>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity
+              style={styles.templateButton}
+              onPress={handleUseRulesTemplate}
+            >
+              <Text style={styles.templateButtonText}>Use Template</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.saveDocButton, rulesSaving && styles.saveDocButtonDisabled]}
+              onPress={handleSavePodRules}
+              disabled={rulesSaving}
+            >
+              {rulesSaving ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.saveDocButtonText}>Save</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <Text style={styles.rulesHint}>
+          Define the rules, guidelines, and expectations for this pod
+        </Text>
+
+        <TextInput
+          style={[styles.podDocInput, { minHeight: 400 }]}
+          value={rulesContent}
+          onChangeText={setRulesContent}
+          placeholder="Add your pod rules and guidelines...
+
+Example:
+**Pod Guidelines**
+1. Be respectful and supportive
+2. Communicate schedule changes early
+3. Come prepared to meetings
+4. Keep discussions focused"
+          placeholderTextColor={theme.textMuted}
+          multiline
+          textAlignVertical="top"
+        />
+      </ScrollView>
     );
   };
 
@@ -1184,6 +1529,21 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
     );
   }
 
+  // Show write review screen
+  if (showWriteReview && revieweeInfo) {
+    return (
+      <WriteReviewScreen
+        route={{ params: revieweeInfo }}
+        navigation={{
+          goBack: () => {
+            setShowWriteReview(false);
+            setRevieweeInfo(null);
+          },
+        }}
+      />
+    );
+  }
+
   // Show user profile screen
   if (showUserProfile && selectedUserId) {
     const navigation = {
@@ -1202,6 +1562,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
       <UserProfileScreen
         route={{ params: { userId: selectedUserId } }}
         navigation={navigation}
+        onWriteReview={handleWriteReview}
       />
     );
   }
@@ -1288,23 +1649,27 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
         <View style={styles.content}>
           {selectedPod && (
             <>
-              {/* Segmented Tabs */}
-              <View style={styles.tabBar}>
-                {(['agenda', 'roles', 'media'] as SubTab[]).map((tab) => (
-                  <TouchableOpacity
-                    key={tab}
-                    style={[styles.tab, activeSubTab === tab && styles.tabActive]}
-                    onPress={() => setActiveSubTab(tab)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[styles.tabText, activeSubTab === tab && styles.tabTextActive]}>
-                      {tab === 'agenda' ? 'Agenda' : tab === 'roles' ? 'Roles' : 'Media'}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+              {/* Segmented Tabs - Hidden when in edit mode on agenda tab */}
+              {!(isInEditMode && activeSubTab === 'agenda') && (
+                <View style={styles.tabBar}>
+                  {(['agenda', 'doc', 'rules', 'roles', 'media'] as SubTab[]).map((tab) => (
+                    <TouchableOpacity
+                      key={tab}
+                      style={[styles.tab, activeSubTab === tab && styles.tabActive]}
+                      onPress={() => setActiveSubTab(tab)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.tabText, activeSubTab === tab && styles.tabTextActive]}>
+                        {tab === 'agenda' ? 'Agenda & Notes' : tab === 'doc' ? 'Pod Doc' : tab === 'rules' ? 'Rules' : tab === 'roles' ? 'Roles' : 'Media'}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
 
               {activeSubTab === 'agenda' && renderAgendaTab()}
+              {activeSubTab === 'doc' && renderPodDocTab()}
+              {activeSubTab === 'rules' && renderPodRulesTab()}
               {activeSubTab === 'roles' && renderRolesTab()}
               {activeSubTab === 'media' && renderMediaTab()}
             </>
@@ -2311,5 +2676,420 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#999',
     marginTop: 16,
+  },
+
+  // Pod Doc & Rules styles
+  podDocHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.divider,
+  },
+  podDocTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: theme.text,
+  },
+  saveDocButton: {
+    backgroundColor: '#10b981',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  saveDocButtonDisabled: {
+    opacity: 0.5,
+  },
+  saveDocButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  templateButton: {
+    backgroundColor: theme.bgElevated,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  templateButtonText: {
+    color: theme.textSecondary,
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  podDocSection: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.divider,
+  },
+  podDocSectionTitle: {
+    fontSize: 17,
+    fontWeight: 'bold',
+    color: theme.text,
+    marginBottom: 4,
+  },
+  podDocSectionHint: {
+    fontSize: 13,
+    color: theme.textMuted,
+    marginBottom: 12,
+  },
+  podDocInput: {
+    backgroundColor: theme.bgElevated,
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
+    color: theme.text,
+    minHeight: 120,
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  rulesHint: {
+    fontSize: 14,
+    color: theme.textSecondary,
+    padding: 16,
+    paddingBottom: 8,
+  },
+
+  // Meeting Headers in Document Styles
+  meetingSectionHeader: {
+    marginBottom: 12,
+  },
+  meetingsSectionLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.accent,
+    letterSpacing: 1,
+  },
+  meetingHeaderBlock: {
+    backgroundColor: theme.bgElevated,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: theme.accent,
+  },
+  pastMeetingHeaderBlock: {
+    opacity: 0.7,
+  },
+  meetingHeaderBar: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3,
+    backgroundColor: theme.accent,
+    borderTopLeftRadius: 8,
+    borderBottomLeftRadius: 8,
+  },
+  pastMeetingHeaderBar: {
+    backgroundColor: theme.textMuted,
+  },
+  meetingHeaderTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.text,
+    marginBottom: 4,
+  },
+  meetingHeaderDate: {
+    fontSize: 13,
+    color: theme.textSecondary,
+  },
+  meetingHeaderStatus: {
+    fontSize: 11,
+    color: theme.textMuted,
+    marginTop: 4,
+  },
+  notesAreaDivider: {
+    marginTop: 20,
+    marginBottom: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: theme.divider,
+  },
+  notesAreaLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.textSecondary,
+    letterSpacing: 1,
+  },
+  emptyDocumentText: {
+    fontSize: 14,
+    color: theme.textMuted,
+    fontStyle: 'italic',
+    lineHeight: 22,
+  },
+
+  // Formatting Toolbar Styles
+  formattingToolbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.bgElevated,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  formattingGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  formattingDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: theme.border,
+    marginHorizontal: 10,
+  },
+  formatBtnTextBold: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: theme.text,
+  },
+  formatBtnTextItalic: {
+    fontSize: 16,
+    fontStyle: 'italic',
+    color: theme.text,
+  },
+  formatBtnTextUnderline: {
+    fontSize: 16,
+    textDecorationLine: 'underline',
+    color: theme.text,
+  },
+  textSettingsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: theme.bgHover,
+    gap: 4,
+  },
+  textSettingsBtnText: {
+    fontSize: 14,
+    color: theme.text,
+    fontWeight: '500',
+  },
+  textSettingsOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  textSettingsContainer: {
+    backgroundColor: theme.bgCard,
+    borderRadius: 16,
+    padding: 20,
+    width: '80%',
+    maxWidth: 320,
+  },
+  textSettingsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: theme.text,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  textSettingsLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: theme.textSecondary,
+    marginBottom: 8,
+    marginTop: 12,
+  },
+  textSettingsOptions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  textSettingsOption: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: theme.bgElevated,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  textSettingsOptionActive: {
+    borderColor: theme.accent,
+    backgroundColor: theme.accentLight,
+  },
+  textSettingsOptionText: {
+    fontSize: 14,
+    color: theme.textSecondary,
+  },
+  textSettingsOptionTextActive: {
+    color: theme.accent,
+    fontWeight: '600',
+  },
+
+  // Compact Edit Mode Styles
+  editModeContainer: {
+    flex: 1,
+    backgroundColor: theme.bg,
+  },
+  editModeHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.divider,
+  },
+  editModeBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  editModeTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.textSecondary,
+  },
+  compactToolbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    backgroundColor: theme.bgElevated,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.border,
+  },
+  compactFormatBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  compactFormatBtnActive: {
+    backgroundColor: theme.accentLight,
+  },
+  compactFormatBtnBold: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: theme.text,
+  },
+  compactFormatBtnItalic: {
+    fontSize: 14,
+    fontStyle: 'italic',
+    color: theme.text,
+  },
+  compactFormatBtnUnderline: {
+    fontSize: 14,
+    textDecorationLine: 'underline',
+    color: theme.text,
+  },
+  compactDivider: {
+    width: 1,
+    height: 20,
+    backgroundColor: theme.border,
+    marginHorizontal: 6,
+  },
+  compactTextSettingsBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    backgroundColor: theme.bgHover,
+  },
+  compactTextSettingsBtnText: {
+    fontSize: 13,
+    color: theme.text,
+    fontWeight: '500',
+  },
+  fullScreenEditor: {
+    flex: 1,
+    padding: 12,
+    color: theme.text,
+    textAlignVertical: 'top',
+  },
+
+  // Compact Read Mode Styles
+  documentContainerCompact: {
+    flex: 1,
+    backgroundColor: theme.bgDocument,
+  },
+  documentHeaderCompact: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  searchBarCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: theme.bgElevated,
+    gap: 8,
+  },
+  searchCountCompact: {
+    fontSize: 12,
+    color: theme.textMuted,
+  },
+  documentScrollCompact: {
+    flex: 1,
+  },
+  documentPageCompact: {
+    padding: 12,
+  },
+  agendaTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.text,
+  },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: theme.accentLight,
+    borderRadius: 6,
+  },
+  editButtonText: {
+    fontSize: 14,
+    color: theme.accent,
+    fontWeight: '500',
+  },
+  meetingHeadersSection: {
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.divider,
+  },
+  documentContentSection: {
+    padding: 12,
+  },
+  htmlContentContainer: {
+    backgroundColor: theme.bgElevated,
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 8,
+  },
+  htmlContentPlaceholder: {
+    fontSize: 14,
+    color: theme.textSecondary,
+    lineHeight: 20,
+  },
+  emptyDocContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyDocText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.text,
+    marginTop: 12,
+  },
+  emptyDocSubtext: {
+    fontSize: 14,
+    color: theme.textMuted,
+    marginTop: 4,
   },
 });

@@ -1,24 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Linking, Image, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Linking, Image, Alert, Modal, TextInput, KeyboardAvoidingView, Platform, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFonts, NothingYouCouldDo_400Regular } from '@expo-google-fonts/nothing-you-could-do';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
 import { connectionService } from '../services/connectionService';
 import { reviewService } from '../services/reviewService';
+import { privacyService } from '../services/privacyService';
 import EditProfileScreen from './EditProfileScreen';
 import PrivacyPreferencesScreen from './PrivacyPreferencesScreen';
 import ReviewScreen from './ReviewScreen';
+import PodMemberCollage from '../components/PodMemberCollage';
+import { colors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
 
 export default function ProfileScreen({ navigation }: any) {
   const { user, signOut } = useAuth();
+  const [fontsLoaded] = useFonts({
+    NothingYouCouldDo_400Regular,
+  });
   const [profile, setProfile] = useState<any>(null);
   const [activeTeams, setActiveTeams] = useState<any[]>([]);
   const [pendingApplications, setPendingApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showEdit, setShowEdit] = useState(false);
-const [activeTab, setActiveTab] = useState<'info' | 'received' | 'give' | 'connections'>('info');
+const [activeTab, setActiveTab] = useState<'info' | 'received' | 'give' | 'connections' | 'pods'>('info');
 const [connections, setConnections] = useState<any[]>([]);
 const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+const [connectionSearchQuery, setConnectionSearchQuery] = useState('');
 const [reviews, setReviews] = useState<any[]>([]);
 const [averageRatings, setAverageRatings] = useState<any>(null);
 const [reviewableTeammates, setReviewableTeammates] = useState<any[]>([]);
@@ -26,6 +34,8 @@ const [showReviewScreen, setShowReviewScreen] = useState(false);
 const [selectedReviewee, setSelectedReviewee] = useState<any>(null);
 const [showMenu, setShowMenu] = useState(false);
 const [showPrivacyPreferences, setShowPrivacyPreferences] = useState(false);
+const [userPods, setUserPods] = useState<any[]>([]);
+const [podsLoading, setPodsLoading] = useState(false);
 
   useEffect(() => {
   loadProfile();
@@ -34,6 +44,7 @@ const [showPrivacyPreferences, setShowPrivacyPreferences] = useState(false);
   loadReviews();
   loadReviewableTeammates();
   loadConnections();
+  loadUserPods();
 }, []);
 
   const loadProfile = async () => {
@@ -194,6 +205,19 @@ const loadConnections = async () => {
   }
 };
 
+const loadUserPods = async () => {
+  if (!user) return;
+  setPodsLoading(true);
+  try {
+    const pods = await privacyService.getUserPods(user.id);
+    setUserPods(pods);
+  } catch (error) {
+    console.error('Error loading user pods:', error);
+  } finally {
+    setPodsLoading(false);
+  }
+};
+
 const handleAcceptConnection = async (connectionId: string) => {
   try {
     await connectionService.acceptConnection(connectionId);
@@ -253,13 +277,23 @@ const handleRejectConnection = async (connectionId: string) => {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
+
+      {/* Modern Header - matches FeedScreen */}
       <View style={styles.header}>
-        <Text style={styles.title}>My Profile</Text>
-        <TouchableOpacity onPress={() => setShowMenu(true)} style={styles.menuButton}>
-          <Ionicons name="menu" size={28} color="#1f2937" />
-        </TouchableOpacity>
+        <View style={styles.headerTop}>
+          <View>
+            <Text style={styles.headerGreeting}>Your</Text>
+            <Text style={[styles.headerTitle, fontsLoaded && { fontFamily: 'NothingYouCouldDo_400Regular' }]}>Profile</Text>
+          </View>
+          <TouchableOpacity onPress={() => setShowMenu(true)} style={styles.menuButton}>
+            <Ionicons name="settings-outline" size={24} color={colors.textPrimary} />
+          </TouchableOpacity>
+        </View>
       </View>
+
+      <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
       {/* Settings Menu Modal */}
       <Modal
@@ -332,77 +366,83 @@ const handleRejectConnection = async (connectionId: string) => {
           <Text style={styles.name}>{profile?.name || 'No name set'}</Text>
           <Text style={styles.email}>{profile?.email}</Text>
         </View>
-{/* Tabs */}
-        <View style={styles.tabsContainer}>
+{/* Modern Pill Tabs */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.tabsScrollView}
+          contentContainerStyle={styles.tabsContainer}
+        >
           <TouchableOpacity
-            style={[styles.profileTab, activeTab === 'info' && styles.profileTabActive]}
+            style={[styles.tabPill, activeTab === 'info' && styles.tabPillActive]}
             onPress={() => setActiveTab('info')}
           >
-            <Text style={[styles.profileTabText, activeTab === 'info' && styles.profileTabTextActive]}>
+            <Ionicons
+              name="person-outline"
+              size={16}
+              color={activeTab === 'info' ? colors.white : colors.textSecondary}
+            />
+            <Text style={[styles.tabPillText, activeTab === 'info' && styles.tabPillTextActive]}>
               Info
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.profileTab, activeTab === 'received' && styles.profileTabActive]}
+            style={[styles.tabPill, activeTab === 'received' && styles.tabPillActive]}
             onPress={() => setActiveTab('received')}
           >
-            <Text style={[styles.profileTabText, activeTab === 'received' && styles.profileTabTextActive]}>
-              Reviews ({reviews.length})
+            <Ionicons
+              name="star-outline"
+              size={16}
+              color={activeTab === 'received' ? colors.white : colors.textSecondary}
+            />
+            <Text style={[styles.tabPillText, activeTab === 'received' && styles.tabPillTextActive]}>
+              Reviews
+            </Text>
+            {reviews.length > 0 && (
+              <View style={[styles.tabBadge, activeTab === 'received' && styles.tabBadgeActive]}>
+                <Text style={[styles.tabBadgeText, activeTab === 'received' && styles.tabBadgeTextActive]}>
+                  {reviews.length}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tabPill, activeTab === 'connections' && styles.tabPillActive]}
+            onPress={() => setActiveTab('connections')}
+          >
+            <Ionicons
+              name="people-outline"
+              size={16}
+              color={activeTab === 'connections' ? colors.white : colors.textSecondary}
+            />
+            <Text style={[styles.tabPillText, activeTab === 'connections' && styles.tabPillTextActive]}>
+              Connections
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.profileTab, activeTab === 'give' && styles.profileTabActive]}
-            onPress={() => setActiveTab('give')}
+            style={[styles.tabPill, activeTab === 'pods' && styles.tabPillActive]}
+            onPress={() => setActiveTab('pods')}
           >
-            <Text style={[styles.profileTabText, activeTab === 'give' && styles.profileTabTextActive]}>
-              Give Review
+            <Ionicons
+              name="rocket-outline"
+              size={16}
+              color={activeTab === 'pods' ? colors.white : colors.textSecondary}
+            />
+            <Text style={[styles.tabPillText, activeTab === 'pods' && styles.tabPillTextActive]}>
+              Pods
             </Text>
+            {userPods.length > 0 && (
+              <View style={[styles.tabBadge, activeTab === 'pods' && styles.tabBadgeActive]}>
+                <Text style={[styles.tabBadgeText, activeTab === 'pods' && styles.tabBadgeTextActive]}>
+                  {userPods.length}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
-<TouchableOpacity
-            style={[styles.profileTab, activeTab === 'connections' && styles.profileTabActive]}
-            onPress={() => setActiveTab('connections')}
-          >
-            <Text style={[styles.profileTabText, activeTab === 'connections' && styles.profileTabTextActive]}>
-              Connections ({connections.length})
-            </Text>
-          </TouchableOpacity>
-        </View>
+        </ScrollView>
 
 {activeTab === 'info' && (
           <>      
-{activeTeams.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Active Teams ({activeTeams.length})</Text>
-            {activeTeams.map((team) => (
-              <View key={team.id} style={styles.teamRow}>
-                <Text style={styles.teamTitle}>{team.title}</Text>
-                <View style={[
-                  styles.teamStatus,
-                  team.status === 'active' ? styles.statusActive : styles.statusPending
-                ]}>
-                  <Text style={styles.teamStatusText}>
-                    {team.status === 'active' ? 'Active' : 'Awaiting Kickoff'}
-                  </Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {pendingApplications.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Pending Applications ({pendingApplications.length})</Text>
-            {pendingApplications.map((app) => (
-              <View key={app.id} style={styles.applicationRow}>
-                <Text style={styles.applicationTitle}>{app.pursuits?.title}</Text>
-                <View style={styles.pendingBadge}>
-                  <Text style={styles.pendingText}>Pending</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
-
         {(profile?.age || profile?.gender || profile?.hometown) && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Basic Info</Text>
@@ -475,39 +515,6 @@ const handleRejectConnection = async (connectionId: string) => {
           </View>
         )}
 
-  {/* Calendar Integration */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📅 Calendar Integration</Text>
-          <View style={styles.calendarRow}>
-            <View style={styles.calendarInfo}>
-              <Text style={styles.calendarLabel}>Google Calendar</Text>
-              <Text style={styles.calendarStatus}>
-                {profile?.calendar_connected ? '✓ Connected' : 'Not connected'}
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={[
-                styles.calendarButton,
-                profile?.calendar_connected && styles.calendarButtonConnected
-              ]}
-              onPress={() => {
-                Alert.alert(
-                  'Coming Soon',
-                  'Google Calendar integration will be available soon! This will create shared team calendars for your pursuits.',
-                  [{ text: 'OK' }]
-                );
-              }}
-            >
-              <Text style={styles.calendarButtonText}>
-                {profile?.calendar_connected ? 'Disconnect' : 'Connect'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.calendarHint}>
-            Connect to automatically sync meeting dates to a shared team calendar
-          </Text>
-        </View>
-
         {!profile?.name && (
           <View style={styles.warningBox}>
             <Text style={styles.warningText}>⚠️ Please add your name to complete your profile</Text>
@@ -520,8 +527,35 @@ const handleRejectConnection = async (connectionId: string) => {
 </>
         )}
  {activeTab === 'connections' && (
-          <ScrollView style={styles.tabContent}>
-            {pendingRequests.length > 0 && (
+          <KeyboardAvoidingView 
+            style={{ flex: 1 }} 
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+          >
+          <ScrollView 
+            style={styles.tabContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Search Bar */}
+            <View style={styles.connectionSearchContainer}>
+              <Ionicons name="search" size={18} color="#9ca3af" style={styles.connectionSearchIcon} />
+              <TextInput
+                style={styles.connectionSearchInput}
+                placeholder="Search connections..."
+                placeholderTextColor="#9ca3af"
+                value={connectionSearchQuery}
+                onChangeText={setConnectionSearchQuery}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              {connectionSearchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setConnectionSearchQuery('')}>
+                  <Ionicons name="close-circle" size={18} color="#9ca3af" />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {pendingRequests.length > 0 && !connectionSearchQuery && (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Pending Requests ({pendingRequests.length})</Text>
                 {pendingRequests.map((request: any) => (
@@ -568,7 +602,17 @@ const handleRejectConnection = async (connectionId: string) => {
               </View>
             ) : (
               <>
-                {connections.map((conn: any) => (
+                {connections
+                  .filter((conn: any) => {
+                    if (!connectionSearchQuery) return true;
+                    const name = (conn.profile?.name || '').toLowerCase();
+                    const query = connectionSearchQuery.toLowerCase();
+                    // Check if full name starts with query OR any word starts with query
+                    if (name.startsWith(query)) return true;
+                    const nameParts = name.split(' ');
+                    return nameParts.some((part: string) => part.startsWith(query));
+                  })
+                  .map((conn: any) => (
   <TouchableOpacity 
     key={conn.id} 
     style={styles.connectionCard}
@@ -589,31 +633,172 @@ const handleRejectConnection = async (connectionId: string) => {
     </View>
   </TouchableOpacity>
 ))}
+                {connectionSearchQuery && connections.filter((conn: any) => {
+                  const name = (conn.profile?.name || '').toLowerCase();
+                  const query = connectionSearchQuery.toLowerCase();
+                  if (name.startsWith(query)) return true;
+                  const nameParts = name.split(' ');
+                  return nameParts.some((part: string) => part.startsWith(query));
+                }).length === 0 && (
+                  <View style={styles.emptyReviews}>
+                    <Text style={styles.emptyReviewsText}>No matches found</Text>
+                    <Text style={styles.emptyReviewsHint}>Try a different search term</Text>
+                  </View>
+                )}
+              </>
+            )}
+          </ScrollView>
+          </KeyboardAvoidingView>
+        )}
+
+        {/* Pods Tab */}
+        {activeTab === 'pods' && (
+          <ScrollView style={styles.tabContent}>
+            {podsLoading ? (
+              <View style={styles.emptyReviews}>
+                <ActivityIndicator size="large" color="#0ea5e9" />
+                <Text style={styles.emptyReviewsHint}>Loading your pods...</Text>
+              </View>
+            ) : userPods.length === 0 ? (
+              <View style={styles.emptyReviews}>
+                <Text style={styles.emptyReviewsEmoji}>🎯</Text>
+                <Text style={styles.emptyReviewsText}>No pods yet</Text>
+                <Text style={styles.emptyReviewsHint}>
+                  Join or create a pod to get started
+                </Text>
+              </View>
+            ) : (
+              <>
+                {/* Current Pods */}
+                {userPods.filter(p => !p.status || ['awaiting_kickoff', 'collecting_proposals', 'active'].includes(p.status) || ['active', 'accepted'].includes(p.membership_status)).length > 0 && (
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Current Pods</Text>
+                    {userPods
+                      .filter(p => !p.status || ['awaiting_kickoff', 'collecting_proposals', 'active'].includes(p.status) || ['active', 'accepted'].includes(p.membership_status))
+                      .map((pod) => (
+                        <TouchableOpacity
+                          key={pod.id}
+                          style={styles.podCard}
+                          onPress={() => navigation.navigate('PursuitDetail', { pursuitId: pod.id })}
+                        >
+                          {pod.default_picture ? (
+                            <Image source={{ uri: pod.default_picture }} style={styles.podCardImage} />
+                          ) : (
+                            <PodMemberCollage members={pod.members || []} size={50} borderRadius={10} />
+                          )}
+                          <View style={styles.podCardInfo}>
+                            <Text style={styles.podCardTitle}>{pod.title}</Text>
+                            <View style={styles.podCardMeta}>
+                              {pod.isCreator && (
+                                <View style={styles.podCreatorBadge}>
+                                  <Ionicons name="star" size={10} color="#f59e0b" />
+                                  <Text style={styles.podCreatorBadgeText}>Creator</Text>
+                                </View>
+                              )}
+                              <Text style={styles.podCardMembers}>
+                                {pod.current_members_count || 1} member{(pod.current_members_count || 1) !== 1 ? 's' : ''}
+                              </Text>
+                            </View>
+                          </View>
+                          <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                        </TouchableOpacity>
+                      ))}
+                  </View>
+                )}
+
+                {/* Past Pods */}
+                {userPods.filter(p => ['completed', 'archived'].includes(p.status) || ['left', 'removed'].includes(p.membership_status)).length > 0 && (
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Past Pods</Text>
+                    {userPods
+                      .filter(p => ['completed', 'archived'].includes(p.status) || ['left', 'removed'].includes(p.membership_status))
+                      .map((pod) => (
+                        <TouchableOpacity
+                          key={pod.id}
+                          style={[styles.podCard, styles.podCardPast]}
+                          onPress={() => navigation.navigate('PursuitDetail', { pursuitId: pod.id })}
+                        >
+                          {pod.default_picture ? (
+                            <Image source={{ uri: pod.default_picture }} style={[styles.podCardImage, styles.podCardImagePast]} />
+                          ) : (
+                            <View style={styles.podCardImagePast}>
+                              <PodMemberCollage members={pod.members || []} size={50} borderRadius={10} />
+                            </View>
+                          )}
+                          <View style={styles.podCardInfo}>
+                            <Text style={[styles.podCardTitle, styles.podCardTitlePast]}>{pod.title}</Text>
+                            <View style={styles.podCardMeta}>
+                              {pod.isCreator && (
+                                <View style={[styles.podCreatorBadge, styles.podCreatorBadgePast]}>
+                                  <Ionicons name="star" size={10} color="#9ca3af" />
+                                  <Text style={styles.podCreatorBadgeTextPast}>Creator</Text>
+                                </View>
+                              )}
+                              <Text style={styles.podCardStatus}>
+                                {pod.membership_status === 'left' ? 'Left' : pod.membership_status === 'removed' ? 'Removed' : 'Closed'}
+                              </Text>
+                            </View>
+                          </View>
+                          <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
+                        </TouchableOpacity>
+                      ))}
+                  </View>
+                )}
               </>
             )}
           </ScrollView>
         )}
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { 
-    backgroundColor: '#fff', 
-    padding: 20, 
-    paddingTop: 60, 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#eee',
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+  },
+
+  // Header - matches FeedScreen
+  header: {
+    backgroundColor: colors.white,
+    paddingTop: 50,
+    paddingBottom: spacing.base,
+    ...shadows.sm,
+  },
+  headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingHorizontal: spacing.lg,
+  },
+  headerGreeting: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textSecondary,
+    fontWeight: typography.fontWeight.medium,
+    marginBottom: spacing.xs,
+  },
+  headerTitle: {
+    fontSize: typography.fontSize['3xl'],
+    fontWeight: typography.fontWeight.bold,
+    color: colors.textPrimary,
+  },
+  menuButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  title: { fontSize: 28, fontWeight: 'bold', color: '#0ea5e9' },
-  menuButton: { 
-    padding: 8,
+
+  scrollContent: {
+    flex: 1,
   },
   // Menu Modal Styles
   menuOverlay: {
@@ -679,38 +864,113 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9ca3af',
   },
-  content: { padding: 20, paddingBottom: 100 },
-  avatarContainer: { alignItems: 'center', marginBottom: 20 },
+  content: {
+    padding: spacing.lg,
+    paddingBottom: 100,
+  },
+  avatarContainer: {
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+    marginTop: spacing.lg,
+  },
   avatar: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#0ea5e9',
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   avatarImage: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
-  avatarText: { fontSize: 40, color: '#fff', fontWeight: 'bold' },
-  name: { fontSize: 20, color: '#1f2937', fontWeight: 'bold', marginBottom: 4 },
-  email: { fontSize: 14, color: '#9ca3af', fontWeight: '500' },
-  section: { 
-    backgroundColor: '#fff', 
-    borderRadius: 12, 
-    padding: 16, 
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
+  avatarText: {
+    fontSize: 40,
+    color: colors.white,
+    fontWeight: typography.fontWeight.bold,
   },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#1f2937', marginBottom: 12 },
+  name: {
+    fontSize: typography.fontSize.xl,
+    color: colors.textPrimary,
+    fontWeight: typography.fontWeight.bold,
+    marginBottom: spacing.xs,
+  },
+  email: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textTertiary,
+    fontWeight: typography.fontWeight.medium,
+  },
+  section: {
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.lg,
+    padding: spacing.base,
+    marginBottom: spacing.base,
+    ...shadows.sm,
+  },
+  sectionTitle: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.textPrimary,
+    marginBottom: spacing.md,
+  },
+
+  // Modern Pill Tabs - matches FeedScreen filter buttons
+  tabsScrollView: {
+    backgroundColor: colors.white,
+    paddingVertical: spacing.md,
+  },
+  tabsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: spacing.lg,
+    gap: spacing.sm,
+  },
+  tabPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.backgroundSecondary,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    gap: spacing.xs,
+  },
+  tabPillActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  tabPillText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.medium,
+    color: colors.textSecondary,
+  },
+  tabPillTextActive: {
+    color: colors.white,
+  },
+  tabBadge: {
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.full,
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: spacing.xs,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tabBadgeActive: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  tabBadgeText: {
+    fontSize: typography.fontSize.xs,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.primary,
+  },
+  tabBadgeTextActive: {
+    color: colors.white,
+  },
   teamRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -759,38 +1019,17 @@ const styles = StyleSheet.create({
   },
   warningText: { fontSize: 14, color: '#92400e', fontWeight: '600', textAlign: 'center' },
   signOutButton: {
-    backgroundColor: '#ef4444',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors.error,
+    borderRadius: borderRadius.lg,
+    padding: spacing.base,
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: spacing.lg,
   },
-  signOutText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },tabsContainer: {
-  flexDirection: 'row',
-  backgroundColor: '#fff',
-  borderBottomWidth: 1,
-  borderBottomColor: '#e5e7eb',
-  marginTop: 16,
-},
-profileTab: {
-  flex: 1,
-  paddingVertical: 12,
-  alignItems: 'center',
-  borderBottomWidth: 2,
-  borderBottomColor: 'transparent',
-},
-profileTabActive: {
-  borderBottomColor: '#0ea5e9',
-},
-profileTabText: {
-  fontSize: 14,
-  color: '#6b7280',
-  fontWeight: '500',
-},
-profileTabTextActive: {
-  color: '#0ea5e9',
-  fontWeight: 'bold',
-},
+  signOutText: {
+    color: colors.white,
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.bold,
+  },
 tabContent: {
   flex: 1,
   padding: 16,
@@ -970,6 +1209,24 @@ connectionEmail: {
   fontSize: 13,
   color: '#6b7280',
 },
+connectionSearchContainer: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: '#f3f4f6',
+  borderRadius: 10,
+  paddingHorizontal: 12,
+  paddingVertical: 10,
+  marginBottom: 16,
+},
+connectionSearchIcon: {
+  marginRight: 8,
+},
+connectionSearchInput: {
+  flex: 1,
+  fontSize: 15,
+  color: '#1f2937',
+  padding: 0,
+},
 requestActions: {
   flexDirection: 'row',
   gap: 8,
@@ -1033,6 +1290,87 @@ calendarButtonText: {
   fontWeight: '600',
 },
 calendarHint: {
+  fontSize: 12,
+  color: '#9ca3af',
+  fontStyle: 'italic',
+},
+// Pod card styles
+podCard: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: '#fff',
+  borderRadius: 12,
+  padding: 12,
+  marginBottom: 10,
+  borderWidth: 1,
+  borderColor: '#e5e7eb',
+},
+podCardPast: {
+  backgroundColor: '#f9fafb',
+  borderColor: '#e5e7eb',
+},
+podCardImage: {
+  width: 50,
+  height: 50,
+  borderRadius: 10,
+},
+podCardImagePast: {
+  opacity: 0.6,
+},
+podCardImagePlaceholder: {
+  width: 50,
+  height: 50,
+  borderRadius: 10,
+  backgroundColor: '#f3f4f6',
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+podCardImagePlaceholderPast: {
+  backgroundColor: '#e5e7eb',
+},
+podCardInfo: {
+  flex: 1,
+  marginLeft: 12,
+},
+podCardTitle: {
+  fontSize: 15,
+  fontWeight: '600',
+  color: '#1f2937',
+},
+podCardTitlePast: {
+  color: '#6b7280',
+},
+podCardMeta: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  marginTop: 4,
+  gap: 8,
+},
+podCreatorBadge: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: '#fef3c7',
+  paddingHorizontal: 6,
+  paddingVertical: 2,
+  borderRadius: 4,
+  gap: 2,
+},
+podCreatorBadgePast: {
+  backgroundColor: '#f3f4f6',
+},
+podCreatorBadgeText: {
+  fontSize: 10,
+  fontWeight: '600',
+  color: '#d97706',
+},
+podCreatorBadgeTextPast: {
+  color: '#9ca3af',
+},
+podCardMembers: {
+  fontSize: 13,
+  color: '#6b7280',
+},
+podCardStatus: {
   fontSize: 12,
   color: '#9ca3af',
   fontStyle: 'italic',

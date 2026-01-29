@@ -6,8 +6,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
   Image,
   Modal,
   Alert,
@@ -15,8 +13,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
+import PodMemberCollage from '../components/PodMemberCollage';
 import { podChatService, PodChatMessage } from '../services/podChatService';
+import { notificationService } from '../services/notificationService';
 import { supabase } from '../config/supabase';
+import { colors } from '../theme/designSystem';
 
 interface Props {
   pursuitId: string;
@@ -44,6 +45,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
   const flatListRef = useRef<FlatList>(null);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const [myProfile, setMyProfile] = useState<any>(null);
+  const [expandedMessageId, setExpandedMessageId] = useState<string | null>(null);
 
   // Update chatName when props change (e.g., when switching to a different chat)
   useEffect(() => {
@@ -141,10 +143,26 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
     try {
       await podChatService.sendMessage(pursuitId, user.id, messageText);
       await loadMessages();
-      // Scroll to bottom after sending
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+      // With inverted FlatList, newest messages are already at position 0 (bottom visually)
+      
+      // Send push notification to all other pod members (push only, no Alerts tab)
+      const senderName = myProfile?.name || user.email || 'Someone';
+      const messagePreview = messageText.length > 50 ? messageText.substring(0, 50) + '...' : messageText;
+      const otherMemberIds = members
+        .filter(m => m.user_id !== user.id)
+        .map(m => m.user_id);
+      
+      if (otherMemberIds.length > 0) {
+        await notificationService.sendPushOnly(
+          otherMemberIds,
+          `${senderName} in ${chatName}`,
+          messagePreview,
+          {
+            type: 'pod_chat_message',
+            pursuitId,
+          }
+        );
+      }
     } catch (error) {
       console.error('Error sending message:', error);
       Alert.alert('Error', 'Failed to send message');
@@ -165,81 +183,171 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
     }
   };
 
-  const renderMessage = ({ item }: { item: PodChatMessage }) => {
+  // Check if there's more than 1 hour gap between two messages
+  const hasTimeGap = (currentTime: string, previousTime: string | null): boolean => {
+    if (!previousTime) return true; // First message always shows timestamp
+    const current = new Date(currentTime).getTime();
+    const previous = new Date(previousTime).getTime();
+    const hourInMs = 60 * 60 * 1000;
+    return (current - previous) >= hourInMs;
+  };
+
+  // Check if this is the first message in a consecutive thread from the same sender
+  const isFirstInThread = (index: number): boolean => {
+    if (index === 0) return true;
+    const currentMessage = messages[index];
+    const previousMessage = messages[index - 1];
+    
+    // Different sender = start of new thread
+    if (currentMessage.sender_id !== previousMessage.sender_id) return true;
+    
+    // More than 1 hour gap = start of new thread
+    if (hasTimeGap(currentMessage.created_at, previousMessage.created_at)) return true;
+    
+    return false;
+  };
+
+  // Format timestamp for the separator
+  const formatTimeSeparator = (dateString: string): string => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday = date.toDateString() === yesterday.toDateString();
+
+    const timeStr = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    
+    if (isToday) {
+      return `Today at ${timeStr}`;
+    } else if (isYesterday) {
+      return `Yesterday at ${timeStr}`;
+    } else {
+      return date.toLocaleDateString([], { 
+        month: 'short', 
+        day: 'numeric',
+        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined 
+      }) + ` at ${timeStr}`;
+    }
+  };
+
+  const renderMessage = ({ item, index }: { item: PodChatMessage; index: number }) => {
     const isMyMessage = item.sender_id === user?.id;
     const sender = item.sender;
+    const showTimeSeparator = hasTimeGap(item.created_at, index > 0 ? messages[index - 1]?.created_at : null);
+    const showHeaderAndAvatar = isFirstInThread(index);
+
+    // Avatar component for reuse
+    const renderAvatar = (profile: any, isClickable: boolean = false) => {
+      const avatarContent = profile?.profile_picture ? (
+        <Image
+          source={{ uri: profile.profile_picture }}
+          style={styles.messageAvatar}
+        />
+      ) : (
+        <View style={styles.messageAvatar}>
+          <Text style={styles.messageAvatarText}>
+            {profile?.name?.charAt(0).toUpperCase() ||
+             profile?.email?.charAt(0).toUpperCase() || '?'}
+          </Text>
+        </View>
+      );
+
+      if (isClickable) {
+        return (
+          <TouchableOpacity onPress={() => navigation?.navigate('UserProfile', { userId: item.sender_id })}>
+            {avatarContent}
+          </TouchableOpacity>
+        );
+      }
+      return avatarContent;
+    };
 
     return (
-      <View
-        style={[
-          styles.messageContainer,
-          isMyMessage ? styles.myMessageContainer : styles.theirMessageContainer,
-        ]}
-      >
-        {!isMyMessage && (
-          <TouchableOpacity
-            onPress={() => navigation?.navigate('UserProfile', { userId: item.sender_id })}
-          >
-            {sender?.profile_picture ? (
-              <Image
-                source={{ uri: sender.profile_picture }}
-                style={styles.messageAvatar}
-              />
-            ) : (
-              <View style={styles.messageAvatar}>
-                <Text style={styles.messageAvatarText}>
-                  {sender?.name?.charAt(0).toUpperCase() ||
-                   sender?.email?.charAt(0).toUpperCase() || '?'}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        )}
-        <View style={isMyMessage ? styles.myMessageContent : styles.theirMessageContent}>
-          {!isMyMessage && (
-            <Text style={styles.senderName}>
-              {sender?.name || 'User'}
-            </Text>
-          )}
-          <View
-            style={[
-              styles.messageBubble,
-              isMyMessage ? styles.myMessageBubble : styles.theirMessageBubble,
-            ]}
-          >
-            <Text style={[styles.messageText, isMyMessage && styles.myMessageText]}>
-              {item.content}
-            </Text>
-            <Text style={[styles.timestamp, isMyMessage && styles.myTimestamp]}>
-              {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+      <View>
+        {/* Time separator - shown when 1+ hour gap */}
+        {showTimeSeparator && (
+          <View style={styles.timeSeparator}>
+            <Text style={styles.timeSeparatorText}>
+              {formatTimeSeparator(item.created_at)}
             </Text>
           </View>
-        </View>
-        {isMyMessage && (
-          myProfile?.profile_picture ? (
-            <Image
-              source={{ uri: myProfile.profile_picture }}
-              style={styles.messageAvatar}
-            />
-          ) : (
-            <View style={styles.messageAvatar}>
-              <Text style={styles.messageAvatarText}>
-                {myProfile?.name?.charAt(0).toUpperCase() ||
-                 myProfile?.email?.charAt(0).toUpperCase() || '?'}
-              </Text>
-            </View>
-          )
         )}
+
+        {/* Message */}
+        <View
+          style={[
+            styles.messageContainer,
+            isMyMessage ? styles.myMessageContainer : styles.theirMessageContainer,
+            !showHeaderAndAvatar && styles.consecutiveMessage,
+          ]}
+        >
+          {isMyMessage ? (
+            <>
+              <View style={styles.myMessageContent}>
+                {/* Sender name for my messages - only on first in thread */}
+                {showHeaderAndAvatar && (
+                  <Text style={[styles.senderName, styles.mySenderName]}>
+                    {myProfile?.name || 'You'}
+                  </Text>
+                )}
+                <View style={styles.bubbleWrapper}>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => setExpandedMessageId(expandedMessageId === item.id ? null : item.id)}
+                    style={[styles.messageBubble, styles.myMessageBubble]}
+                  >
+                    <Text style={[styles.messageText, styles.myMessageText]}>{item.content}</Text>
+                  </TouchableOpacity>
+                  {expandedMessageId === item.id && (
+                    <Text style={[styles.expandedTimestamp, styles.expandedTimestampRight]}>
+                      {new Date(item.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                    </Text>
+                  )}
+                </View>
+              </View>
+              {/* Avatar placeholder to maintain alignment */}
+              <View style={showHeaderAndAvatar ? undefined : styles.avatarPlaceholder}>
+                {showHeaderAndAvatar && renderAvatar(myProfile)}
+              </View>
+            </>
+          ) : (
+            <>
+              {/* Avatar placeholder to maintain alignment */}
+              <View style={showHeaderAndAvatar ? undefined : styles.avatarPlaceholder}>
+                {showHeaderAndAvatar && renderAvatar(sender, true)}
+              </View>
+              <View style={styles.theirMessageContent}>
+                {/* Sender name - only on first in thread */}
+                {showHeaderAndAvatar && (
+                  <Text style={styles.senderName}>
+                    {sender?.name || 'User'}
+                  </Text>
+                )}
+                <View style={styles.bubbleWrapper}>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => setExpandedMessageId(expandedMessageId === item.id ? null : item.id)}
+                    style={[styles.messageBubble, styles.theirMessageBubble]}
+                  >
+                    <Text style={styles.messageText}>{item.content}</Text>
+                  </TouchableOpacity>
+                  {expandedMessageId === item.id && (
+                    <Text style={[styles.expandedTimestamp, styles.expandedTimestampLeft]}>
+                      {new Date(item.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                    </Text>
+                  )}
+                </View>
+              </View>
+            </>
+          )}
+        </View>
       </View>
     );
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 140 : 0}
-    >
+    <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleMenuPress} style={styles.backButton}>
@@ -252,9 +360,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
           {podPicture ? (
             <Image source={{ uri: podPicture }} style={styles.groupImage} />
           ) : (
-            <View style={styles.groupIcon}>
-              <Ionicons name="people" size={20} color="#fff" />
-            </View>
+            <PodMemberCollage members={members} size={40} />
           )}
           <View style={styles.headerTextContainer}>
             <Text style={styles.headerTitle} numberOfLines={1}>
@@ -277,25 +383,29 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
       </View>
 
       {/* Messages */}
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        renderItem={renderMessage}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.messagesList}
-        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons name="chatbubbles-outline" size={48} color="#ccc" />
-            <Text style={styles.emptyText}>
-              {loading ? 'Loading...' : 'No messages yet'}
-            </Text>
-            <Text style={styles.emptySubtext}>
-              Start the conversation!
-            </Text>
-          </View>
-        }
-      />
+      <View style={{ flex: 1 }}>
+        <FlatList
+          ref={flatListRef}
+          data={[...messages].reverse()}
+          renderItem={({ item, index }) => renderMessage({ item, index: messages.length - 1 - index })}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.messagesList}
+          inverted={true}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Ionicons name="chatbubbles-outline" size={48} color="#ccc" />
+              <Text style={styles.emptyText}>
+                {loading ? 'Loading...' : 'No messages yet'}
+              </Text>
+              <Text style={styles.emptySubtext}>
+                Start the conversation!
+              </Text>
+            </View>
+          }
+        />
+      </View>
 
       {/* Input */}
       <View style={styles.inputContainer}>
@@ -434,14 +544,14 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
           </View>
         </TouchableOpacity>
       </Modal>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -492,14 +602,18 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   messagesList: {
-    padding: 15,
+    padding: 10,
     paddingBottom: 20,
+    flexGrow: 1,
   },
   messageContainer: {
-    marginBottom: 12,
+    marginBottom: 4,
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 8,
+    gap: 6,
+  },
+  consecutiveMessage: {
+    marginBottom: 2,
   },
   myMessageContainer: {
     justifyContent: 'flex-end',
@@ -535,8 +649,30 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     marginLeft: 4,
   },
-  messageBubble: {
+  mySenderName: {
+    textAlign: 'right',
+    marginRight: 4,
+    marginLeft: 0,
+  },
+  timeSeparator: {
+    alignItems: 'center',
+    marginVertical: 8,
+  },
+  timeSeparatorText: {
+    fontSize: 12,
+    color: '#999',
+    backgroundColor: '#f5f5f5',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  avatarPlaceholder: {
+    width: 32,
+    height: 32,
+  },
+  bubbleWrapper: {
     maxWidth: '80%',
+  },
+  messageBubble: {
     padding: 12,
     borderRadius: 16,
   },
@@ -547,6 +683,8 @@ const styles = StyleSheet.create({
   theirMessageBubble: {
     backgroundColor: '#fff',
     borderBottomLeftRadius: 4,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   messageText: {
     fontSize: 15,
@@ -555,13 +693,19 @@ const styles = StyleSheet.create({
   myMessageText: {
     color: '#fff',
   },
-  timestamp: {
+  expandedTimestamp: {
     fontSize: 11,
     color: '#999',
     marginTop: 4,
+    marginBottom: 2,
   },
-  myTimestamp: {
-    color: 'rgba(255, 255, 255, 0.7)',
+  expandedTimestampRight: {
+    textAlign: 'right',
+    marginRight: 4,
+  },
+  expandedTimestampLeft: {
+    textAlign: 'left',
+    marginLeft: 4,
   },
   inputContainer: {
     flexDirection: 'row',

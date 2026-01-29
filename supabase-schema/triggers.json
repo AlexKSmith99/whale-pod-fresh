@@ -1,0 +1,139 @@
+{
+  "description": "Database triggers for automatic timestamp updates",
+  "generated": "2025-01-19",
+  "triggers": [
+    {
+      "name": "update_tasks_updated_at",
+      "table": "board_tasks",
+      "event": "UPDATE",
+      "function": "update_updated_at_column()"
+    },
+    {
+      "name": "update_agenda_items_updated_at",
+      "table": "meeting_agenda_items",
+      "event": "UPDATE",
+      "function": "update_updated_at_column()"
+    },
+    {
+      "name": "update_notes_updated_at",
+      "table": "meeting_notes",
+      "event": "UPDATE",
+      "function": "update_updated_at_column()"
+    },
+    {
+      "name": "update_meetings_updated_at",
+      "table": "meetings",
+      "event": "UPDATE",
+      "function": "update_updated_at_column()"
+    },
+    {
+      "name": "update_pod_agenda_documents_timestamp",
+      "table": "pod_agenda_documents",
+      "event": "UPDATE",
+      "function": "update_pod_agenda_documents_updated_at()"
+    },
+    {
+      "name": "update_pod_docs_modtime",
+      "table": "pod_docs",
+      "event": "UPDATE",
+      "function": "update_modified_column()"
+    },
+    {
+      "name": "update_pod_meeting_agenda_items_modtime",
+      "table": "pod_meeting_agenda_items",
+      "event": "UPDATE",
+      "function": "update_modified_column()"
+    },
+    {
+      "name": "update_pod_meeting_notes_modtime",
+      "table": "pod_meeting_notes",
+      "event": "UPDATE",
+      "function": "update_modified_column()"
+    },
+    {
+      "name": "update_pod_meeting_pages_modtime",
+      "table": "pod_meeting_pages",
+      "event": "UPDATE",
+      "function": "update_modified_column()"
+    },
+    {
+      "name": "update_pod_meeting_recap_items_modtime",
+      "table": "pod_meeting_recap_items",
+      "event": "UPDATE",
+      "function": "update_modified_column()"
+    },
+    {
+      "name": "update_pod_rules_modtime",
+      "table": "pod_rules",
+      "event": "UPDATE",
+      "function": "update_modified_column()"
+    },
+    {
+      "name": "privacy_preferences_updated_at",
+      "table": "privacy_preferences",
+      "event": "UPDATE",
+      "function": "update_privacy_preferences_updated_at()"
+    },
+    {
+      "name": "update_profiles_updated_at",
+      "table": "profiles",
+      "event": "UPDATE",
+      "function": "update_updated_at_column()"
+    },
+    {
+      "name": "update_applications_updated_at",
+      "table": "pursuit_applications",
+      "event": "UPDATE",
+      "function": "update_updated_at_column()"
+    },
+    {
+      "name": "update_pursuits_updated_at",
+      "table": "pursuits",
+      "event": "UPDATE",
+      "function": "update_updated_at_column()"
+    },
+    {
+      "name": "update_reviews_updated_at",
+      "table": "reviews",
+      "event": "UPDATE",
+      "function": "update_updated_at_column()"
+    },
+    {
+      "name": "update_boards_updated_at",
+      "table": "team_boards",
+      "event": "UPDATE",
+      "function": "update_updated_at_column()"
+    },
+    {
+      "name": "update_user_notion_connections_updated_at",
+      "table": "user_notion_connections",
+      "event": "UPDATE",
+      "function": "update_updated_at_column()"
+    }
+  ],
+  "summary": {
+    "total_triggers": 18,
+    "tables_with_triggers": 18,
+    "tables_missing_triggers": [
+      "connections",
+      "kick_proposals",
+      "kickoff_meetings",
+      "kickoff_time_proposals",
+      "meeting_contributions",
+      "meeting_participants",
+      "member_roles",
+      "messages",
+      "notifications",
+      "pod_chat_messages",
+      "pod_chat_read_status",
+      "pod_chat_settings",
+      "pod_meeting_materials",
+      "push_tokens",
+      "shared_media",
+      "team_gallery",
+      "team_members",
+      "time_slot_proposals",
+      "votes"
+    ]
+  }
+}

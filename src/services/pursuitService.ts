@@ -61,8 +61,13 @@ export const pursuitService = {
 
     if (filters.locationSearch && filters.locationSearch.length > 0) {
       // Multiple locations with OR logic (case-insensitive search)
+      // Escape special characters and wrap in quotes for PostgREST
       const locationConditions = filters.locationSearch
-        .map((loc: string) => `location.ilike.%${loc}%`)
+        .map((loc: string) => {
+          // Escape quotes and wrap value in double quotes to handle spaces/special chars
+          const escaped = loc.replace(/"/g, '\\"');
+          return `location.ilike."*${escaped}*"`;
+        })
         .join(',');
       query = query.or(locationConditions);
     }
@@ -83,12 +88,14 @@ export const pursuitService = {
     }
 
     if (filters.search) {
-      query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+      const escaped = filters.search.replace(/"/g, '\\"');
+      query = query.or(`title.ilike."*${escaped}*",description.ilike."*${escaped}*"`);
     }
 
     if (filters.keyword) {
       // Search across title, description, and subcategory
-      query = query.or(`title.ilike.%${filters.keyword}%,description.ilike.%${filters.keyword}%,subcategory.ilike.%${filters.keyword}%`);
+      const escaped = filters.keyword.replace(/"/g, '\\"');
+      query = query.or(`title.ilike."*${escaped}*",description.ilike."*${escaped}*",subcategory.ilike."*${escaped}*"`);
     }
 
     // Apply sorting
@@ -102,7 +109,7 @@ export const pursuitService = {
       }
     } else {
       // Default sort: newest first
-      query = query.order('created_at', { ascending: false });
+    query = query.order('created_at', { ascending: false });
     }
 
     const { data, error} = await query;

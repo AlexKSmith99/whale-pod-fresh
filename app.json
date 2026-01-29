@@ -11,7 +11,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#7FDBCA"
     },
     "ios": {
       "supportsTablet": true,
@@ -25,7 +25,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#7FDBCA"
       },
       "package": "com.whalepod.fresh",
       "permissions": [
@@ -45,7 +45,8 @@
         {
           "cameraPermission": "Whale Pod needs access to your camera for video calls with your pod team."
         }
-      ]
+      ],
+      "expo-font"
     ],
     "extra": {
       "eas": {

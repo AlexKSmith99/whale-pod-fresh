@@ -13,6 +13,12 @@ export interface PodChatMessage {
   };
 }
 
+export interface PodChatMember {
+  id: string;
+  name?: string;
+  profile_picture?: string;
+}
+
 export interface PodChat {
   pursuit_id: string;
   pursuit_title: string;
@@ -22,6 +28,7 @@ export interface PodChat {
   last_message_time?: string;
   unread_count: number;
   member_count: number;
+  members: PodChatMember[];
 }
 
 export const podChatService = {
@@ -154,6 +161,14 @@ export const podChatService = {
           .eq('pursuit_id', pursuit.id)
           .in('status', ['active', 'accepted']);
 
+        // Get member profile pictures for collage
+        const members = await this.getPodMembers(pursuit.id);
+        const memberData: PodChatMember[] = members.map(m => ({
+          id: m.id,
+          name: m.name,
+          profile_picture: m.profile_picture,
+        }));
+
         return {
           pursuit_id: pursuit.id,
           pursuit_title: pursuit.title,
@@ -163,6 +178,7 @@ export const podChatService = {
           last_message_time: lastMsg?.created_at,
           unread_count: unreadCount,
           member_count: (memberCount || 0) + 1, // +1 for creator
+          members: memberData,
         };
       })
     );

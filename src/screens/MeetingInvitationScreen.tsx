@@ -205,7 +205,7 @@ export default function MeetingInvitationScreen({ meetingId, onBack, onResponded
         <View style={styles.organizerRow}>
           <Text style={styles.organizerLabel}>Organized by </Text>
           <Text style={styles.organizerName}>
-            {meeting.creator?.name || 'The organizer'}
+            {meeting.creator?.name || meeting.creator?.email?.split('@')[0] || 'The organizer'}
           </Text>
         </View>
 

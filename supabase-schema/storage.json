@@ -1,0 +1,127 @@
+{
+  "description": "Supabase Storage buckets and policies",
+  "generated": "2025-01-19",
+  "buckets": [
+    {
+      "id": "profile-pictures",
+      "name": "profile-pictures",
+      "public": true,
+      "file_size_limit": null,
+      "allowed_mime_types": null
+    },
+    {
+      "id": "team-gallery",
+      "name": "team-gallery",
+      "public": true,
+      "file_size_limit": null,
+      "allowed_mime_types": null
+    },
+    {
+      "id": "resumes",
+      "name": "resumes",
+      "public": true,
+      "file_size_limit": null,
+      "allowed_mime_types": null
+    }
+  ],
+  "policies": [
+    {
+      "bucket": "profile-pictures",
+      "name": "Anyone can view profile pictures",
+      "operation": "SELECT",
+      "definition": "bucket_id = 'profile-pictures'"
+    },
+    {
+      "bucket": "profile-pictures",
+      "name": "Public Access",
+      "operation": "SELECT",
+      "definition": "bucket_id = 'profile-pictures'",
+      "note": "DUPLICATE - should remove"
+    },
+    {
+      "bucket": "profile-pictures",
+      "name": "Users can upload own profile picture",
+      "operation": "INSERT",
+      "definition": "bucket_id = 'profile-pictures' AND auth.uid()::text = storage.foldername(name)[1]"
+    },
+    {
+      "bucket": "profile-pictures",
+      "name": "Users can upload their own profile picture",
+      "operation": "INSERT",
+      "definition": "bucket_id = 'profile-pictures' AND auth.uid()::text = storage.foldername(name)[1]",
+      "note": "DUPLICATE - should remove"
+    },
+    {
+      "bucket": "profile-pictures",
+      "name": "Users can update own profile picture",
+      "operation": "UPDATE",
+      "definition": "bucket_id = 'profile-pictures' AND auth.uid()::text = storage.foldername(name)[1]"
+    },
+    {
+      "bucket": "profile-pictures",
+      "name": "Users can update their own profile picture",
+      "operation": "UPDATE",
+      "definition": "bucket_id = 'profile-pictures' AND auth.uid()::text = storage.foldername(name)[1]",
+      "note": "DUPLICATE - should remove"
+    },
+    {
+      "bucket": "profile-pictures",
+      "name": "Users can delete own profile picture",
+      "operation": "DELETE",
+      "definition": "bucket_id = 'profile-pictures' AND auth.uid()::text = storage.foldername(name)[1]"
+    },
+    {
+      "bucket": "team-gallery",
+      "name": "Team members can view gallery photos",
+      "operation": "SELECT",
+      "definition": "bucket_id = 'team-gallery'"
+    },
+    {
+      "bucket": "team-gallery",
+      "name": "Team members can upload photos",
+      "operation": "INSERT",
+      "definition": "bucket_id = 'team-gallery' AND auth.uid() IS NOT NULL"
+    },
+    {
+      "bucket": "team-gallery",
+      "name": "Users can delete own photos",
+      "operation": "DELETE",
+      "definition": "bucket_id = 'team-gallery' AND auth.uid() IS NOT NULL"
+    },
+    {
+      "bucket": "resumes",
+      "name": "Resumes are publicly readable",
+      "operation": "SELECT",
+      "definition": "bucket_id = 'resumes'",
+      "note": "SECURITY: Resumes visible to all - consider restricting"
+    },
+    {
+      "bucket": "resumes",
+      "name": "Users can upload their own resumes",
+      "operation": "INSERT",
+      "definition": "bucket_id = 'resumes' AND storage.foldername(name)[1] = auth.uid()::text"
+    },
+    {
+      "bucket": "resumes",
+      "name": "Users can update their own resumes",
+      "operation": "UPDATE",
+      "definition": "bucket_id = 'resumes' AND storage.foldername(name)[1] = auth.uid()::text"
+    },
+    {
+      "bucket": "resumes",
+      "name": "Users can delete their own resumes",
+      "operation": "DELETE",
+      "definition": "bucket_id = 'resumes' AND storage.foldername(name)[1] = auth.uid()::text"
+    }
+  ],
+  "issues": {
+    "duplicate_policies": [
+      "profile-pictures: 'Public Access' duplicates 'Anyone can view profile pictures'",
+      "profile-pictures: 'Users can upload their own profile picture' duplicates 'Users can upload own profile picture'",
+      "profile-pictures: 'Users can update their own profile picture' duplicates 'Users can update own profile picture'"
+    ],
+    "security_concerns": [
+      "resumes bucket: All resumes publicly readable - should restrict to pod creators reviewing applications"
+    ]
+  }
+}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '../contexts/AuthContext';
@@ -238,17 +238,46 @@ export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClos
                 </Text>
                 <Ionicons name={showDatePicker === index ? "chevron-up" : "chevron-down"} size={20} color={colors.textSecondary} />
               </TouchableOpacity>
-              {showDatePicker === index && (
-                <View style={styles.dateTimePickerContainer}>
-                  <DateTimePicker
-                    value={slot.date || new Date()}
-                    mode="date"
-                    display="spinner"
-                    onChange={(event, date) => handleDateChange(event, date, index)}
-                    minimumDate={new Date()}
-                    style={styles.datePicker}
-                  />
-                </View>
+              {showDatePicker === index && Platform.OS === 'ios' && (
+                <Modal transparent animationType="fade" visible={showDatePicker === index}>
+                  <TouchableOpacity 
+                    style={styles.pickerOverlay} 
+                    activeOpacity={1} 
+                    onPress={() => setShowDatePicker(null)}
+                  >
+                    <View style={styles.pickerModalContent}>
+                      <DateTimePicker
+                        value={slot.date || new Date()}
+                        mode="date"
+                        display="spinner"
+                        onChange={(event, date) => {
+                          if (date) {
+                            const newSlots = [...timeSlots];
+                            newSlots[index].date = date;
+                            setTimeSlots(newSlots);
+                          }
+                        }}
+                        minimumDate={new Date()}
+                        style={styles.datePicker}
+                      />
+                      <TouchableOpacity
+                        style={styles.doneButton}
+                        onPress={() => setShowDatePicker(null)}
+                      >
+                        <Text style={styles.doneButtonText}>Done</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </TouchableOpacity>
+                </Modal>
+              )}
+              {showDatePicker === index && Platform.OS === 'android' && (
+                <DateTimePicker
+                  value={slot.date || new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={(event, date) => handleDateChange(event, date, index)}
+                  minimumDate={new Date()}
+                />
               )}
 
               {/* Time Pickers Row */}
@@ -260,22 +289,51 @@ export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClos
                     onPress={() => setShowStartTimePicker(showStartTimePicker === index ? null : index)}
                   >
                     <Ionicons name="time-outline" size={20} color={colors.primary} />
-                    <Text style={[styles.pickerButtonText, styles.pickerButtonTextSelected]}>
+                    <Text style={[styles.pickerButtonText, styles.pickerButtonTextSelected]} numberOfLines={1} adjustsFontSizeToFit>
                       {formatTime(slot.startTime)}
                     </Text>
                     <Ionicons name={showStartTimePicker === index ? "chevron-up" : "chevron-down"} size={16} color={colors.textSecondary} />
                   </TouchableOpacity>
-                  {showStartTimePicker === index && (
-                    <View style={styles.dateTimePickerContainer}>
-                      <DateTimePicker
-                        value={slot.startTime || new Date()}
-                        mode="time"
-                        display="spinner"
-                        onChange={(event, time) => handleStartTimeChange(event, time, index)}
-                        minuteInterval={15}
-                        style={styles.timePicker}
-                      />
-                    </View>
+                  {showStartTimePicker === index && Platform.OS === 'ios' && (
+                    <Modal transparent animationType="fade" visible={showStartTimePicker === index}>
+                      <TouchableOpacity 
+                        style={styles.pickerOverlay} 
+                        activeOpacity={1} 
+                        onPress={() => setShowStartTimePicker(null)}
+                      >
+                        <View style={styles.pickerModalContent}>
+                          <DateTimePicker
+                            value={slot.startTime || new Date()}
+                            mode="time"
+                            display="spinner"
+                            onChange={(event, time) => {
+                              if (time) {
+                                const newSlots = [...timeSlots];
+                                newSlots[index].startTime = time;
+                                setTimeSlots(newSlots);
+                              }
+                            }}
+                            minuteInterval={15}
+                            style={styles.timePicker}
+                          />
+                          <TouchableOpacity
+                            style={styles.doneButton}
+                            onPress={() => setShowStartTimePicker(null)}
+                          >
+                            <Text style={styles.doneButtonText}>Done</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </TouchableOpacity>
+                    </Modal>
+                  )}
+                  {showStartTimePicker === index && Platform.OS === 'android' && (
+                    <DateTimePicker
+                      value={slot.startTime || new Date()}
+                      mode="time"
+                      display="default"
+                      onChange={(event, time) => handleStartTimeChange(event, time, index)}
+                      minuteInterval={15}
+                    />
                   )}
                 </View>
                 <View style={styles.timeInput}>
@@ -285,22 +343,51 @@ export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClos
                     onPress={() => setShowEndTimePicker(showEndTimePicker === index ? null : index)}
                   >
                     <Ionicons name="time-outline" size={20} color={colors.primary} />
-                    <Text style={[styles.pickerButtonText, styles.pickerButtonTextSelected]}>
+                    <Text style={[styles.pickerButtonText, styles.pickerButtonTextSelected]} numberOfLines={1} adjustsFontSizeToFit>
                       {formatTime(slot.endTime)}
                     </Text>
                     <Ionicons name={showEndTimePicker === index ? "chevron-up" : "chevron-down"} size={16} color={colors.textSecondary} />
                   </TouchableOpacity>
-                  {showEndTimePicker === index && (
-                    <View style={styles.dateTimePickerContainer}>
-                      <DateTimePicker
-                        value={slot.endTime || new Date()}
-                        mode="time"
-                        display="spinner"
-                        onChange={(event, time) => handleEndTimeChange(event, time, index)}
-                        minuteInterval={15}
-                        style={styles.timePicker}
-                      />
-                    </View>
+                  {showEndTimePicker === index && Platform.OS === 'ios' && (
+                    <Modal transparent animationType="fade" visible={showEndTimePicker === index}>
+                      <TouchableOpacity 
+                        style={styles.pickerOverlay} 
+                        activeOpacity={1} 
+                        onPress={() => setShowEndTimePicker(null)}
+                      >
+                        <View style={styles.pickerModalContent}>
+                          <DateTimePicker
+                            value={slot.endTime || new Date()}
+                            mode="time"
+                            display="spinner"
+                            onChange={(event, time) => {
+                              if (time) {
+                                const newSlots = [...timeSlots];
+                                newSlots[index].endTime = time;
+                                setTimeSlots(newSlots);
+                              }
+                            }}
+                            minuteInterval={15}
+                            style={styles.timePicker}
+                          />
+                          <TouchableOpacity
+                            style={styles.doneButton}
+                            onPress={() => setShowEndTimePicker(null)}
+                          >
+                            <Text style={styles.doneButtonText}>Done</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </TouchableOpacity>
+                    </Modal>
+                  )}
+                  {showEndTimePicker === index && Platform.OS === 'android' && (
+                    <DateTimePicker
+                      value={slot.endTime || new Date()}
+                      mode="time"
+                      display="default"
+                      onChange={(event, time) => handleEndTimeChange(event, time, index)}
+                      minuteInterval={15}
+                    />
                   )}
                 </View>
               </View>
@@ -477,6 +564,27 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.base,
     marginTop: spacing.xs,
     overflow: 'hidden',
+  },
+  pickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  pickerModalContent: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: borderRadius.lg,
+    borderTopRightRadius: borderRadius.lg,
+    paddingBottom: spacing.xl,
+  },
+  doneButton: {
+    backgroundColor: colors.primary,
+    padding: spacing.sm,
+    alignItems: 'center',
+  },
+  doneButtonText: {
+    color: colors.white,
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semibold as any,
   },
   datePicker: {
     height: 150,

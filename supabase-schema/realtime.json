@@ -1,0 +1,76 @@
+{
+  "description": "Tables enabled for Supabase Realtime subscriptions",
+  "generated": "2025-01-19",
+  "publication": "supabase_realtime",
+  "enabled_tables": [
+    {
+      "table": "pursuit_applications",
+      "columns": [
+        "id",
+        "pursuit_id",
+        "applicant_id",
+        "answers",
+        "status",
+        "created_at",
+        "updated_at",
+        "interview_proposed_times",
+        "interview_timezone",
+        "interview_meeting_id",
+        "interview_scheduled_time",
+        "resume_url",
+        "resume_filename"
+      ],
+      "row_filter": null,
+      "use_case": "Real-time application status updates, interview scheduling notifications"
+    },
+    {
+      "table": "notifications",
+      "columns": [
+        "id",
+        "user_id",
+        "type",
+        "title",
+        "body",
+        "related_id",
+        "read",
+        "created_at",
+        "related_type",
+        "action_url",
+        "data"
+      ],
+      "row_filter": null,
+      "use_case": "Real-time popup notifications, badge counts"
+    },
+    {
+      "table": "push_tokens",
+      "columns": [
+        "id",
+        "user_id",
+        "expo_push_token",
+        "device_id",
+        "created_at",
+        "updated_at"
+      ],
+      "row_filter": null,
+      "use_case": "Push token management"
+    }
+  ],
+  "tables_that_should_have_realtime": [
+    {
+      "table": "messages",
+      "reason": "Direct messages between users - currently using polling every 3 seconds"
+    },
+    {
+      "table": "pod_chat_messages",
+      "reason": "Pod group chat - currently using polling every 3 seconds"
+    },
+    {
+      "table": "meetings",
+      "reason": "Meeting updates, status changes"
+    },
+    {
+      "table": "team_members",
+      "reason": "Member joins/leaves pod"
+    }
+  ]
+}

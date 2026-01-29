@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,8 +6,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
   Image,
   Modal,
   Keyboard,
@@ -15,7 +13,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { messageService } from '../services/messageService';
+import { notificationService } from '../services/notificationService';
 import { supabase } from '../config/supabase';
+import { colors } from '../theme/designSystem';
 
 interface Props {
   partnerId: string;
@@ -29,12 +29,14 @@ interface Props {
 
 export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation, showMenuButton, onMenuPress, onDelete }: Props) {
   const { user } = useAuth();
+  const flatListRef = useRef<FlatList>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [otherUserProfile, setOtherUserProfile] = useState<any>(null);
   const [myProfile, setMyProfile] = useState<any>(null);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const [expandedMessageId, setExpandedMessageId] = useState<string | null>(null);
 
   const handleMenuPress = () => {
     if (showMenuButton && onMenuPress) {
@@ -132,92 +134,176 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
     try {
       await messageService.sendMessage(user.id, partnerId, messageText);
       await loadMessages();
+      // With inverted FlatList, newest messages are already at position 0 (bottom visually)
+      
+      // Send notification to recipient
+      const senderName = myProfile?.name || user.email || 'Someone';
+      const messagePreview = messageText.length > 50 ? messageText.substring(0, 50) + '...' : messageText;
+      await notificationService.notifyNewMessage(
+        partnerId,
+        senderName,
+        messagePreview,
+        partnerId // Using partnerId as conversationId
+      );
     } catch (error) {
       console.error('Error sending message:', error);
     }
   };
 
-  const renderMessage = ({ item }: any) => {
+  // Check if there's more than 1 hour gap between two messages
+  const hasTimeGap = (currentTime: string, previousTime: string | null): boolean => {
+    if (!previousTime) return true; // First message always shows timestamp
+    const current = new Date(currentTime).getTime();
+    const previous = new Date(previousTime).getTime();
+    const hourInMs = 60 * 60 * 1000;
+    return (current - previous) >= hourInMs;
+  };
+
+  // Check if this is the first message in a consecutive thread from the same sender
+  const isFirstInThread = (index: number, messages: any[]): boolean => {
+    if (index === 0) return true;
+    const currentMessage = messages[index];
+    const previousMessage = messages[index - 1];
+    
+    // Different sender = start of new thread
+    if (currentMessage.sender_id !== previousMessage.sender_id) return true;
+    
+    // More than 1 hour gap = start of new thread
+    if (hasTimeGap(currentMessage.created_at, previousMessage.created_at)) return true;
+    
+    return false;
+  };
+
+  // Format timestamp for the separator
+  const formatTimeSeparator = (dateString: string): string => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday = date.toDateString() === yesterday.toDateString();
+
+    const timeStr = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    
+    if (isToday) {
+      return `Today at ${timeStr}`;
+    } else if (isYesterday) {
+      return `Yesterday at ${timeStr}`;
+    } else {
+      return date.toLocaleDateString([], { 
+        month: 'short', 
+        day: 'numeric',
+        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined 
+      }) + ` at ${timeStr}`;
+    }
+  };
+
+  const renderMessage = ({ item, index }: { item: any; index: number }) => {
     const isMyMessage = item.sender_id === user?.id;
+    const showTimeSeparator = hasTimeGap(item.created_at, index > 0 ? messages[index - 1]?.created_at : null);
+    const showAvatar = isFirstInThread(index, messages);
+
+    // Avatar component for reuse
+    const renderAvatar = (profile: any, isClickable: boolean = false) => {
+      const avatarContent = profile?.profile_picture ? (
+        <Image
+          source={{ uri: profile.profile_picture }}
+          style={styles.messageAvatar}
+        />
+      ) : (
+        <View style={styles.messageAvatar}>
+          <Text style={styles.messageAvatarText}>
+            {profile?.name?.charAt(0).toUpperCase() ||
+             profile?.email?.charAt(0).toUpperCase() || '?'}
+          </Text>
+        </View>
+      );
+
+      if (isClickable) {
+        return (
+          <TouchableOpacity onPress={() => navigation?.navigate('UserProfile', { userId: partnerId })}>
+            {avatarContent}
+          </TouchableOpacity>
+        );
+      }
+      return avatarContent;
+    };
 
     return (
-      <View
-        style={[
-          styles.messageContainer,
-          isMyMessage ? styles.myMessageContainer : styles.theirMessageContainer,
-        ]}
-      >
-        {isMyMessage ? (
-          <>
-            <View
-              style={[
-                styles.messageBubble,
-                styles.myMessageBubble,
-              ]}
-            >
-              <Text style={styles.messageText}>{item.content}</Text>
-              <Text style={styles.timestamp}>
-                {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </Text>
-            </View>
-            <View>
-              {myProfile?.profile_picture ? (
-                <Image
-                  source={{ uri: myProfile.profile_picture }}
-                  style={styles.messageAvatar}
-                />
-              ) : (
-                <View style={styles.messageAvatar}>
-                  <Text style={styles.messageAvatarText}>
-                    {myProfile?.name?.charAt(0).toUpperCase() ||
-                     myProfile?.email?.charAt(0).toUpperCase() || '?'}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </>
-        ) : (
-          <>
-            <TouchableOpacity
-              onPress={() => navigation?.navigate('UserProfile', { userId: partnerId })}
-            >
-              {otherUserProfile?.profile_picture ? (
-                <Image
-                  source={{ uri: otherUserProfile.profile_picture }}
-                  style={styles.messageAvatar}
-                />
-              ) : (
-                <View style={styles.messageAvatar}>
-                  <Text style={styles.messageAvatarText}>
-                    {otherUserProfile?.name?.charAt(0).toUpperCase() ||
-                     otherUserProfile?.email?.charAt(0).toUpperCase() || '?'}
-                  </Text>
-                </View>
-              )}
-            </TouchableOpacity>
-            <View
-              style={[
-                styles.messageBubble,
-                styles.theirMessageBubble,
-              ]}
-            >
-              <Text style={styles.messageText}>{item.content}</Text>
-              <Text style={styles.timestamp}>
-                {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </Text>
-            </View>
-          </>
+      <View>
+        {/* Time separator - shown when 1+ hour gap */}
+        {showTimeSeparator && (
+          <View style={styles.timeSeparator}>
+            <Text style={styles.timeSeparatorText}>
+              {formatTimeSeparator(item.created_at)}
+            </Text>
+          </View>
         )}
+
+        {/* Message */}
+        <View
+          style={[
+            styles.messageContainer,
+            isMyMessage ? styles.myMessageContainer : styles.theirMessageContainer,
+            !showAvatar && styles.consecutiveMessage,
+          ]}
+        >
+          {isMyMessage ? (
+            <>
+              <View style={styles.bubbleWrapper}>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => setExpandedMessageId(expandedMessageId === item.id ? null : item.id)}
+                  style={[
+                    styles.messageBubble,
+                    styles.myMessageBubble,
+                  ]}
+                >
+                  <Text style={[styles.messageText, styles.myMessageText]}>{item.content}</Text>
+                </TouchableOpacity>
+                {expandedMessageId === item.id && (
+                  <Text style={[styles.expandedTimestamp, styles.expandedTimestampRight]}>
+                    {new Date(item.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                  </Text>
+                )}
+              </View>
+              {/* Avatar placeholder to maintain alignment, only visible on first message of thread */}
+              <View style={showAvatar ? undefined : styles.avatarPlaceholder}>
+                {showAvatar && renderAvatar(myProfile)}
+              </View>
+            </>
+          ) : (
+            <>
+              {/* Avatar placeholder to maintain alignment, only visible on first message of thread */}
+              <View style={showAvatar ? undefined : styles.avatarPlaceholder}>
+                {showAvatar && renderAvatar(otherUserProfile, true)}
+              </View>
+              <View style={styles.bubbleWrapper}>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => setExpandedMessageId(expandedMessageId === item.id ? null : item.id)}
+                  style={[
+                    styles.messageBubble,
+                    styles.theirMessageBubble,
+                  ]}
+                >
+                  <Text style={styles.messageText}>{item.content}</Text>
+                </TouchableOpacity>
+                {expandedMessageId === item.id && (
+                  <Text style={[styles.expandedTimestamp, styles.expandedTimestampLeft]}>
+                    {new Date(item.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                  </Text>
+                )}
+              </View>
+            </>
+          )}
+        </View>
       </View>
     );
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 140 : 0}
-    >
+    <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={handleMenuPress} style={styles.backButton}>
           <Ionicons name={showMenuButton ? "ellipsis-vertical" : "arrow-back"} size={24} color="#333" />
@@ -246,13 +332,18 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
         <View style={{ width: 24 }} />
       </View>
 
-      <FlatList
-        data={messages}
-        renderItem={renderMessage}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.messagesList}
-        inverted={false}
-      />
+      <View style={{ flex: 1 }}>
+        <FlatList
+          ref={flatListRef}
+          data={[...messages].reverse()}
+          renderItem={({ item, index }) => renderMessage({ item, index: messages.length - 1 - index })}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.messagesList}
+          inverted={true}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+        />
+      </View>
 
       <View style={styles.inputContainer}>
         <TextInput
@@ -298,14 +389,14 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
           </View>
         </TouchableOpacity>
       </Modal>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -346,13 +437,17 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   messagesList: {
-    padding: 15,
+    padding: 10,
+    flexGrow: 1,
   },
   messageContainer: {
-    marginBottom: 12,
+    marginBottom: 4,
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 8,
+    gap: 6,
+  },
+  consecutiveMessage: {
+    marginBottom: 2,
   },
   messageAvatar: {
     width: 32,
@@ -376,7 +471,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   messageBubble: {
-    maxWidth: '75%',
     padding: 12,
     borderRadius: 16,
   },
@@ -387,15 +481,47 @@ const styles = StyleSheet.create({
   theirMessageBubble: {
     backgroundColor: '#fff',
     borderBottomLeftRadius: 4,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   messageText: {
     fontSize: 15,
     color: '#333',
   },
-  timestamp: {
+  myMessageText: {
+    color: '#fff',
+  },
+  timeSeparator: {
+    alignItems: 'center',
+    marginVertical: 8,
+  },
+  timeSeparatorText: {
+    fontSize: 12,
+    color: '#999',
+    backgroundColor: '#f5f5f5',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  avatarPlaceholder: {
+    width: 32,
+    height: 32,
+  },
+  bubbleWrapper: {
+    maxWidth: '75%',
+  },
+  expandedTimestamp: {
     fontSize: 11,
     color: '#999',
     marginTop: 4,
+    marginBottom: 2,
+  },
+  expandedTimestampRight: {
+    textAlign: 'right',
+    marginRight: 4,
+  },
+  expandedTimestampLeft: {
+    textAlign: 'left',
+    marginLeft: 4,
   },
   inputContainer: {
     flexDirection: 'row',

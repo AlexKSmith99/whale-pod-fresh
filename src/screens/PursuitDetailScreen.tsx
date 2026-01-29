@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image, Modal, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { applicationService } from '../services/applicationService';
 import { meetingService } from '../services/meetingService';
 import { notificationService } from '../services/notificationService';
+import { privacyService } from '../services/privacyService';
 import { supabase } from '../config/supabase';
 import ApplicationScreen from './ApplicationScreen';
 import ApplicationsReviewScreen from './ApplicationsReviewScreen';
 import UserProfileScreen from './UserProfileScreen';
+import WriteReviewScreen from './WriteReviewScreen';
 import TimeSlotProposalScreen from './TimeSlotProposalScreen';
 import KickoffSchedulingScreen from './KickoffSchedulingScreen';
 import PodChatScreen from './PodChatScreen';
+import { colors } from '../theme/designSystem';
 
 interface Props {
   pursuit: any;
@@ -23,15 +27,30 @@ interface Props {
   onOpenTeamBoard?: (pursuitId: string) => void;
   onOpenMeetingNotes?: (pursuitId: string) => void;
   initialSubScreen?: string | null;
+  fromNotifications?: boolean;
+  onBackToNotifications?: () => void;
 }
 
-export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit, isOwner, onViewProfile, onSendMessage, onOpenTeamBoard, initialSubScreen }: Props) {
+export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit, isOwner, onViewProfile, onSendMessage, onOpenTeamBoard, initialSubScreen, fromNotifications, onBackToNotifications }: Props) {
   const { user } = useAuth();
   const [showApplicationForm, setShowApplicationForm] = useState(false);
   const [showApplicationsReview, setShowApplicationsReview] = useState(false);
   const [hasApplied, setHasApplied] = useState(false);
   const [showUserProfile, setShowUserProfile] = useState(false);
   const [creatorProfile, setCreatorProfile] = useState<any>(null);
+  
+  // Write review state
+  const [showWriteReview, setShowWriteReview] = useState(false);
+  const [revieweeInfo, setRevieweeInfo] = useState<{
+    revieweeId: string;
+    revieweeName: string;
+    revieweePhoto?: string;
+  } | null>(null);
+  
+  const handleWriteReview = (revieweeId: string, revieweeName: string, revieweePhoto?: string) => {
+    setRevieweeInfo({ revieweeId, revieweeName, revieweePhoto });
+    setShowWriteReview(true);
+  };
   const [nextMeeting, setNextMeeting] = useState<any>(null);
   const [canActivateKickoff, setCanActivateKickoff] = useState(false);
   const [showTimeSlotProposal, setShowTimeSlotProposal] = useState(false);
@@ -71,6 +90,9 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
   }, [initialSubScreen]);
 
   useEffect(() => {
+    // Skip loading data while pursuit is still being fetched
+    if (pursuit._loading) return;
+    
     checkIfApplied();
     loadCreatorProfile();
     loadNextMeeting();
@@ -79,7 +101,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
     checkTeamMembership();
     loadTeamMembers();
     loadInitialKickoffDate();
-  }, []);
+  }, [pursuit._loading]);
 
   const checkIfApplied = async () => {
     if (user && !isOwner) {
@@ -174,7 +196,34 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
 
       if (error) throw error;
 
-      setTeamMembers(data || []);
+      // Fetch privacy preferences for each member
+      const membersWithPrivacy = await Promise.all(
+        (data || []).map(async (member) => {
+          const prefs = await privacyService.getPreferences(member.user_id);
+          return {
+            ...member,
+            privacyPrefs: prefs,
+          };
+        })
+      );
+
+      // Filter: Only show members who have roster visibility enabled
+      // Exception: Always show to pod creator/owner or fellow team members
+      const viewerIsOwner = isOwner;
+      const viewerIsTeamMember = isTeamMember || viewerIsOwner;
+      
+      const filteredMembers = membersWithPrivacy.filter(member => {
+        // Always show to self
+        if (member.user_id === user?.id) return true;
+        // Always show to owner (creator)
+        if (viewerIsOwner) return true;
+        // Always show to other team members internally
+        if (viewerIsTeamMember) return true;
+        // For public viewers, check roster visibility setting
+        return member.privacyPrefs?.pod_public_roster_listed !== false;
+      });
+
+      setTeamMembers(filteredMembers);
     } catch (error) {
       console.error('Error loading team members:', error);
     }
@@ -237,7 +286,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
 
                 if (teamMembers && teamMembers.length > 0) {
                   const teamMemberIds = teamMembers.map(tm => tm.user_id);
-                  const creatorName = user?.name || 'The pod creator';
+                  const creatorName = user?.name || user?.email?.split('@')[0] || 'The creator';
                   await notificationService.notifyKickoffActivated(
                     teamMemberIds,
                     pursuit.id,
@@ -390,11 +439,18 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
       // Send notification to creator if share with leader is checked
       if (shareWithLeader) {
         try {
-          const userName = user.name || 'A team member';
+          // Fetch user's full name from profile
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('name')
+            .eq('id', user.id)
+            .single();
+
+          const userName = profileData?.name || user.email?.split('@')[0] || 'A team member';
           await notificationService.sendPushNotification(
             [pursuit.creator_id],
             `${userName} left ${pursuit.title}`,
-            `A team member has left your pod.`,
+            `${userName} has left your pod.`,
             {
               type: 'member_left',
               pursuitId: pursuit.id,
@@ -430,12 +486,28 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
     }
   };
 
+  // Show loading state while fetching pursuit data
+  if (pursuit._loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#0ea5e9" />
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
+  }
+
   if (showKickoffScheduling) {
     return (
       <KickoffSchedulingScreen
         pursuitId={pursuit.id}
         pursuitTitle={pursuit.title}
-        onClose={() => setShowKickoffScheduling(false)}
+        onClose={() => {
+          if (fromNotifications && onBackToNotifications) {
+            onBackToNotifications();
+          } else {
+            setShowKickoffScheduling(false);
+          }
+        }}
         onScheduled={() => {
           setShowKickoffScheduling(false);
           onBack(); // Refresh the pursuit detail
@@ -449,10 +521,31 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
       <TimeSlotProposalScreen
         pursuitId={pursuit.id}
         pursuitTitle={pursuit.title}
-        onClose={() => setShowTimeSlotProposal(false)}
+        onClose={() => {
+          if (fromNotifications && onBackToNotifications) {
+            onBackToNotifications();
+          } else {
+            setShowTimeSlotProposal(false);
+          }
+        }}
         onSubmitted={() => {
           setHasSubmittedProposal(true);
           setShowTimeSlotProposal(false);
+        }}
+      />
+    );
+  }
+
+  // Show write review screen
+  if (showWriteReview && revieweeInfo) {
+    return (
+      <WriteReviewScreen
+        route={{ params: revieweeInfo }}
+        navigation={{
+          goBack: () => {
+            setShowWriteReview(false);
+            setRevieweeInfo(null);
+          },
         }}
       />
     );
@@ -484,6 +577,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
       <UserProfileScreen
         route={{ params: { userId: selectedMemberId || pursuit.creator_id } }}
         navigation={navigation}
+        onWriteReview={handleWriteReview}
       />
     );
   }
@@ -513,12 +607,18 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
 
   if (showPodChat) {
     return (
-      <PodChatScreen
-        pursuitId={pursuit.id}
-        pursuitTitle={pursuit.title}
-        podPicture={pursuit.default_picture}
-        onBack={() => setShowPodChat(false)}
-      />
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
+        <PodChatScreen
+          pursuitId={pursuit.id}
+          pursuitTitle={pursuit.title}
+          podPicture={pursuit.default_picture}
+          onBack={() => setShowPodChat(false)}
+        />
+      </KeyboardAvoidingView>
     );
   }
 
@@ -580,32 +680,67 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
               )}
             </View>
             <View style={styles.membersGrid}>
-              {teamMembers.map((member: any) => (
-                <TouchableOpacity
-                  key={member.user_id}
-                  style={styles.memberCard}
-                  onPress={() => {
-                    setSelectedMemberId(member.user_id);
-                    setShowUserProfile(true);
-                  }}
-                >
-                  {member.user?.profile_picture ? (
-                    <Image
-                      source={{ uri: member.user.profile_picture }}
-                      style={styles.memberImage}
-                    />
-                  ) : (
-                    <View style={styles.memberAvatar}>
-                      <Text style={styles.memberAvatarText}>
-                        {member.user?.name?.charAt(0).toUpperCase() || '?'}
+              {teamMembers.map((member: any) => {
+                // Check if profile is clickable
+                const isSelf = member.user_id === user?.id;
+                const isProfileClickable = isSelf || isOwner || isTeamMember || 
+                  member.privacyPrefs?.pod_public_roster_profile_clickable !== false;
+
+                if (isProfileClickable) {
+                  return (
+                    <TouchableOpacity
+                      key={member.user_id}
+                      style={styles.memberCard}
+                      onPress={() => {
+                        setSelectedMemberId(member.user_id);
+                        setShowUserProfile(true);
+                      }}
+                    >
+                      {member.user?.profile_picture ? (
+                        <Image
+                          source={{ uri: member.user.profile_picture }}
+                          style={styles.memberImage}
+                        />
+                      ) : (
+                        <View style={styles.memberAvatar}>
+                          <Text style={styles.memberAvatarText}>
+                            {member.user?.name?.charAt(0).toUpperCase() || '?'}
+                          </Text>
+                        </View>
+                      )}
+                      <Text style={styles.memberName} numberOfLines={2}>
+                        {member.user?.name || 'Team Member'}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                } else {
+                  // Non-clickable member card with lock indicator
+                  return (
+                    <View key={member.user_id} style={[styles.memberCard, styles.memberCardLocked]}>
+                      <View style={styles.memberAvatarLocked}>
+                        {member.user?.profile_picture ? (
+                          <Image
+                            source={{ uri: member.user.profile_picture }}
+                            style={[styles.memberImage, styles.memberImageLocked]}
+                          />
+                        ) : (
+                          <View style={[styles.memberAvatar, styles.memberAvatarLockedBg]}>
+                            <Text style={styles.memberAvatarText}>
+                              {member.user?.name?.charAt(0).toUpperCase() || '?'}
+                            </Text>
+                          </View>
+                        )}
+                        <View style={styles.lockBadge}>
+                          <Ionicons name="lock-closed" size={10} color="#fff" />
+                        </View>
+                      </View>
+                      <Text style={[styles.memberName, styles.memberNameLocked]} numberOfLines={2}>
+                        {member.user?.name || 'Team Member'}
                       </Text>
                     </View>
-                  )}
-                  <Text style={styles.memberName} numberOfLines={2}>
-                    {member.user?.name || 'Team Member'}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                  );
+                }
+              })}
             </View>
           </View>
         )}
@@ -1110,7 +1245,9 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  container: { flex: 1, backgroundColor: colors.background },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+  loadingText: { marginTop: 12, fontSize: 16, color: '#6b7280' },
   header: { backgroundColor: '#fff', padding: 20, paddingTop: 60, borderBottomWidth: 1, borderBottomColor: '#eee' },
   backButton: { marginBottom: 10 },
   backText: { fontSize: 16, color: '#0ea5e9', fontWeight: '600' },
@@ -1251,6 +1388,36 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
     textAlign: 'center',
+  },
+  // Locked member styles
+  memberCardLocked: {
+    backgroundColor: '#f9fafb',
+    borderColor: '#e5e7eb',
+  },
+  memberAvatarLocked: {
+    position: 'relative',
+  },
+  memberImageLocked: {
+    opacity: 0.6,
+  },
+  memberAvatarLockedBg: {
+    backgroundColor: '#9ca3af',
+  },
+  lockBadge: {
+    position: 'absolute',
+    bottom: 4,
+    right: -4,
+    backgroundColor: '#6b7280',
+    borderRadius: 10,
+    width: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#f9fafb',
+  },
+  memberNameLocked: {
+    color: '#9ca3af',
   },
   // Section header with Edit button
   sectionHeader: {

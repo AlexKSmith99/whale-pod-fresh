@@ -68,7 +68,7 @@ export const notificationService = {
 
       // Get the token
       const tokenData = await Notifications.getExpoPushTokenAsync({
-        projectId: 'your-project-id', // TODO: Replace with actual Expo project ID
+        projectId: '85d9f8fe-e5eb-4f70-80f6-e3094a1c557d',
       });
       const token = tokenData.data;
 
@@ -105,6 +105,58 @@ export const notificationService = {
     }
   },
 
+  // Send push notification ONLY (no database storage) - for messages/chats
+  // This sends a pop-up notification without storing in the Alerts tab
+  async sendPushOnly(
+    userIds: string[],
+    title: string,
+    body: string,
+    data?: NotificationData
+  ): Promise<void> {
+    try {
+      if (userIds.length === 0) {
+        console.log('No recipients supplied for push notification');
+        return;
+      }
+
+      // Get push tokens for users
+      const { data: tokens, error: tokenError } = await supabase
+        .from('push_tokens')
+        .select('expo_push_token, user_id')
+        .in('user_id', userIds);
+
+      if (tokenError || !tokens || tokens.length === 0) {
+        console.log('No push tokens found for users - skipping push notification');
+        return;
+      }
+
+      // Prepare messages for Expo Push API
+      const messages = tokens.map(token => ({
+        to: token.expo_push_token,
+        sound: 'default',
+        title,
+        body,
+        data: data || {},
+      }));
+
+      // Send notifications via Expo Push API
+      const response = await fetch('https://exp.host/--/api/v2/push/send', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Accept-encoding': 'gzip, deflate',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(messages),
+      });
+
+      const result = await response.json();
+      console.log('Push notification sent (no DB storage):', result);
+    } catch (error) {
+      console.error('Error sending push notification:', error);
+    }
+  },
+
   // Send push notification to specific users
   async sendPushNotification(
     userIds: string[],
@@ -132,18 +184,19 @@ export const notificationService = {
         return;
       }
 
-      console.log('💾 Inserting notifications into database:', notifications);
+      console.log('💾 Inserting notifications via RPC function:', notifications);
 
-      // Insert notifications directly - wrapped in try-catch to be non-blocking
+      // Use the SECURITY DEFINER RPC function to bypass RLS
+      // This function was created in migration 020 specifically for this purpose
       try {
         const { data: insertedData, error: historyError } = await supabase
-          .from('notifications')
-          .insert(notifications)
-          .select();
+          .rpc('create_notifications', {
+            input_notifications: notifications
+          });
 
         if (historyError) {
           // Log but don't throw - notification failure shouldn't block main flow
-          console.warn('⚠️ Could not store notification (RLS may be blocking):', historyError.message);
+          console.warn('⚠️ Could not store notification:', historyError.message);
         } else {
           console.log('✅ Notifications stored successfully:', insertedData);
         }
@@ -347,24 +400,22 @@ export const notificationService = {
     );
   },
 
-  // New message notification
+  // New message notification - push only, no database storage
+  // Messages show in Chats tab badge, not Alerts tab
   async notifyNewMessage(
     recipientId: string,
     senderName: string,
     messagePreview: string,
     conversationId: string
   ) {
-    await this.sendPushNotification(
+    await this.sendPushOnly(
       [recipientId],
       `${senderName} sent you a message`,
       messagePreview,
       {
         type: 'new_message',
         conversationId,
-      },
-      'message',
-      conversationId,
-      'conversation'
+      }
     );
   },
 
@@ -608,9 +659,13 @@ export const notificationService = {
 
     data?.forEach(notif => {
       switch (notif.type) {
+        // Messages are NOT stored in notifications table - they use direct message count
+        // These cases are kept for backward compatibility with any old data
         case 'message':
         case 'new_message':
-          counts.messages++;
+        case 'pod_chat':
+        case 'pod_chat_message':
+          // Don't count these in alerts - they show in Chats tab badge
           break;
         case 'connection_request':
         case 'connection_accepted':

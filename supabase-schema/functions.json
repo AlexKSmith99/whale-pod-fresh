@@ -1,0 +1,62 @@
+[
+  {
+    "name": "can_view_profile_section",
+    "type": "FUNCTION",
+    "description": "Checks if a viewer can see a specific profile section based on privacy preferences"
+  },
+  {
+    "name": "check_valid_allowlist",
+    "type": "FUNCTION",
+    "description": "Validates allowlist values for privacy preferences"
+  },
+  {
+    "name": "count_shared_completed_meetings",
+    "type": "FUNCTION",
+    "description": "Counts completed meetings shared between two users"
+  },
+  {
+    "name": "create_notifications",
+    "type": "FUNCTION",
+    "description": "SECURITY DEFINER function to create notifications (bypasses RLS)"
+  },
+  {
+    "name": "get_eligible_review_pursuits",
+    "type": "FUNCTION",
+    "description": "Gets pursuits where a user can review another user"
+  },
+  {
+    "name": "get_or_create_privacy_preferences",
+    "type": "FUNCTION",
+    "description": "Gets existing or creates default privacy preferences for a user"
+  },
+  {
+    "name": "handle_new_user",
+    "type": "FUNCTION",
+    "description": "Trigger function to create profile when new user signs up"
+  },
+  {
+    "name": "is_pod_member",
+    "type": "FUNCTION",
+    "description": "SECURITY DEFINER helper to check if user is member of a pod"
+  },
+  {
+    "name": "update_modified_column",
+    "type": "FUNCTION",
+    "description": "Trigger to update modified_at timestamp"
+  },
+  {
+    "name": "update_pod_agenda_documents_updated_at",
+    "type": "FUNCTION",
+    "description": "Trigger for pod_agenda_documents updated_at"
+  },
+  {
+    "name": "update_privacy_preferences_updated_at",
+    "type": "FUNCTION",
+    "description": "Trigger for privacy_preferences updated_at"
+  },
+  {
+    "name": "update_updated_at_column",
+    "type": "FUNCTION",
+    "description": "Generic trigger for updated_at columns"
+  }
+]

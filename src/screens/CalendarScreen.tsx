@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, LayoutChangeEvent } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFonts, NothingYouCouldDo_400Regular } from '@expo-google-fonts/nothing-you-could-do';
 import { meetingService } from '../services/meetingService';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
@@ -15,6 +16,9 @@ const FUTURE_DAYS = 60; // Number of future days to show
 
 export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props) {
   const { user } = useAuth();
+  const [fontsLoaded] = useFonts({
+    NothingYouCouldDo_400Regular,
+  });
   const [meetings, setMeetings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -166,7 +170,7 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Calendar</Text>
+        <Text style={[styles.headerTitle, fontsLoaded && { fontFamily: 'NothingYouCouldDo_400Regular' }]}>Calendar</Text>
         <TouchableOpacity
           style={styles.createButton}
           onPress={onCreateMeeting}

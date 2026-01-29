@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, StatusBar, TextInput, Modal, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFonts, NothingYouCouldDo_400Regular } from '@expo-google-fonts/nothing-you-could-do';
 import { pursuitService } from '../services/pursuitService';
 import { useAuth } from '../contexts/AuthContext';
 import PursuitDetailScreen from './PursuitDetailScreen';
@@ -40,6 +41,9 @@ interface Props {
 
 export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeetingNotes, onOpenCreate }: Props) {
   const { user } = useAuth();
+  const [fontsLoaded] = useFonts({
+    NothingYouCouldDo_400Regular,
+  });
   const [pursuits, setPursuits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPursuit, setSelectedPursuit] = useState<any>(null);
@@ -311,7 +315,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
         <View style={styles.headerTop}>
           <View>
             <Text style={styles.headerGreeting}>Discover</Text>
-            <Text style={styles.headerTitle}>Whale Pods</Text>
+            <Text style={[styles.headerTitle, fontsLoaded && { fontFamily: 'NothingYouCouldDo_400Regular' }]}>Whale Pods</Text>
           </View>
           <TouchableOpacity
             onPress={onOpenCreate}
@@ -820,35 +824,35 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
                 {/* Footer */}
                 <View style={styles.cardFooter}>
                   <View style={styles.footerTopRow}>
-                    <View style={styles.infoRow}>
-                      <View style={styles.infoItem}>
+                  <View style={styles.infoRow}>
+                    <View style={styles.infoItem}>
+                      <View style={styles.iconContainer}>
+                        <Ionicons name="people" size={14} color={colors.textSecondary} />
+                      </View>
+                      <Text style={styles.infoText}>
+                        {pursuit.current_members_count}/{pursuit.team_size_max}
+                      </Text>
+                    </View>
+
+                    {pursuit.location && (
+                      <View style={styles.infoItemFlex}>
                         <View style={styles.iconContainer}>
-                          <Ionicons name="people" size={14} color={colors.textSecondary} />
+                          <Ionicons name="location" size={14} color={colors.textSecondary} />
                         </View>
-                        <Text style={styles.infoText}>
-                          {pursuit.current_members_count}/{pursuit.team_size_max}
+                        <Text style={styles.infoTextFlex} numberOfLines={1}>
+                          {pursuit.location}
                         </Text>
                       </View>
+                    )}
 
-                      {pursuit.location && (
-                        <View style={styles.infoItemFlex}>
-                          <View style={styles.iconContainer}>
-                            <Ionicons name="location" size={14} color={colors.textSecondary} />
-                          </View>
-                          <Text style={styles.infoTextFlex} numberOfLines={1}>
-                            {pursuit.location}
-                          </Text>
+                    {pursuit.meeting_cadence && (
+                      <View style={styles.infoItemFlex}>
+                        <View style={styles.iconContainer}>
+                          <Ionicons name="calendar" size={14} color={colors.textSecondary} />
                         </View>
-                      )}
-
-                      {pursuit.meeting_cadence && (
-                        <View style={styles.infoItemFlex}>
-                          <View style={styles.iconContainer}>
-                            <Ionicons name="calendar" size={14} color={colors.textSecondary} />
-                          </View>
-                          <Text style={styles.infoTextFlex} numberOfLines={1}>
-                            {pursuit.meeting_cadence}
-                          </Text>
+                        <Text style={styles.infoTextFlex} numberOfLines={1}>
+                          {pursuit.meeting_cadence}
+                        </Text>
                         </View>
                       )}
                     </View>
