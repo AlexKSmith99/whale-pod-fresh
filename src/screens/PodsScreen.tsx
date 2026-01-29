@@ -5,6 +5,7 @@ import { supabase } from '../config/supabase';
 import { notificationService } from '../services/notificationService';
 import { colors as legacyColors } from '../theme/designSystem';
 import { useTheme } from '../theme/ThemeContext';
+import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
 
 interface Pod {
@@ -39,6 +40,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
   const { user } = useAuth();
   const { theme, isNewTheme } = useTheme();
   const colors = theme.colors;
+  const themedStyles = getThemedStyles(colors, isNewTheme);
   const [pods, setPods] = useState<Pod[]>([]);
   const [pastPods, setPastPods] = useState<Pod[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
@@ -158,37 +160,37 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
 
   if (loading) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+      <View style={[styles.loadingContainer, themedStyles.container]}>
         <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         {isNewTheme && <GrainTexture opacity={0.06} />}
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator size="large" color={themedStyles.accentIconColor} />
       </View>
     );
   }
 
   const renderFilterTabs = () => (
-    <View style={[styles.filterTabs, { backgroundColor: isNewTheme ? colors.surface : legacyColors.white, borderBottomColor: isNewTheme ? colors.border : '#eee' }]}>
+    <View style={[styles.filterTabs, themedStyles.surface, { borderBottomColor: colors.border }]}>
       <TouchableOpacity
-        style={[styles.filterTab, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f5f5f5' }, activeFilter === 'active' && styles.filterTabActive]}
+        style={[styles.filterTab, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f5f5f5' }, activeFilter === 'active' && { backgroundColor: themedStyles.accentIconColor }]}
         onPress={() => setActiveFilter('active')}
       >
-        <Text style={[styles.filterTabText, { color: colors.textSecondary }, activeFilter === 'active' && styles.filterTabTextActive]}>
+        <Text style={[styles.filterTabText, themedStyles.bodyText, { color: colors.textSecondary }, activeFilter === 'active' && styles.filterTabTextActive]}>
           Active ({pods.length})
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.filterTab, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f5f5f5' }, activeFilter === 'past' && styles.filterTabActive]}
+        style={[styles.filterTab, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f5f5f5' }, activeFilter === 'past' && { backgroundColor: themedStyles.accentIconColor }]}
         onPress={() => setActiveFilter('past')}
       >
-        <Text style={[styles.filterTabText, { color: colors.textSecondary }, activeFilter === 'past' && styles.filterTabTextActive]}>
+        <Text style={[styles.filterTabText, themedStyles.bodyText, { color: colors.textSecondary }, activeFilter === 'past' && styles.filterTabTextActive]}>
           Past ({pastPods.length})
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.filterTab, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f5f5f5' }, activeFilter === 'pending' && styles.filterTabActive]}
+        style={[styles.filterTab, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f5f5f5' }, activeFilter === 'pending' && { backgroundColor: themedStyles.accentIconColor }]}
         onPress={() => setActiveFilter('pending')}
       >
-        <Text style={[styles.filterTabText, { color: colors.textSecondary }, activeFilter === 'pending' && styles.filterTabTextActive]}>
+        <Text style={[styles.filterTabText, themedStyles.bodyText, { color: colors.textSecondary }, activeFilter === 'pending' && styles.filterTabTextActive]}>
           Pending ({applications.length + interviewPendingApps.length})
         </Text>
       </TouchableOpacity>
@@ -201,7 +203,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
     return (
     <TouchableOpacity
       key={pod.id}
-      style={[styles.podCard, { backgroundColor: isNewTheme ? colors.surface : legacyColors.white, borderColor: isNewTheme ? colors.border : '#f0f0f0' }, isPast && [styles.podCardPast, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f9fafb' }]]}
+      style={[styles.podCard, themedStyles.card, isPast && [styles.podCardPast, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f9fafb' }]]}
       onPress={() => !isPast && onOpenPodDetails(pod)}
       activeOpacity={isPast ? 1 : 0.7}
       disabled={isPast}
@@ -210,58 +212,59 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
         <View style={styles.podTitleRow}>
           <View style={styles.titleWithDot}>
             {hasNotifications && <View style={styles.notificationDot} />}
-            <Text style={[styles.podTitle, { color: colors.textPrimary }, isPast && { color: colors.textSecondary }]} numberOfLines={1}>{pod.title}</Text>
+            <Text style={[styles.podTitle, themedStyles.cardTitle, isPast && { color: colors.textSecondary }]} numberOfLines={1}>{pod.title}</Text>
           </View>
           {pod.is_creator && !isPast && (
-            <View style={[styles.creatorBadge, { backgroundColor: colors.primary }]}>
-              <Text style={styles.creatorBadgeText}>CREATOR</Text>
+            <View style={[styles.creatorBadge, themedStyles.tag, { backgroundColor: themedStyles.accentIconColor }]}>
+              <Text style={[styles.creatorBadgeText, themedStyles.tagText, { color: isNewTheme ? colors.background : '#fff' }]}>CREATOR</Text>
             </View>
           )}
           {isPast && (
             <View style={styles.removedBadge}>
-              <Text style={styles.removedBadgeText}>REMOVED</Text>
+              <Text style={[styles.removedBadgeText, themedStyles.tagText]}>REMOVED</Text>
             </View>
           )}
         </View>
         {!isPast && (
           <View style={[
             styles.statusBadge,
+            themedStyles.tag,
             pod.status === 'active' ? styles.statusActive : styles.statusPending
           ]}>
-            <Text style={[styles.statusText, { color: colors.textPrimary }]}>
+            <Text style={[styles.statusText, themedStyles.tagText]}>
               {pod.status === 'awaiting_kickoff' ? 'Awaiting Kickoff' : 'Active'}
             </Text>
           </View>
         )}
       </View>
 
-      <Text style={[styles.podDescription, { color: colors.textSecondary }, isPast && { color: colors.textSecondary }]} numberOfLines={2}>
+      <Text style={[styles.podDescription, themedStyles.cardDescription]} numberOfLines={2}>
         {pod.description}
       </Text>
 
       {!isPast ? (
         <>
-          <View style={[styles.podInfo, { borderTopColor: isNewTheme ? colors.border : '#f5f5f5' }]}>
+          <View style={[styles.podInfo, { borderTopColor: colors.border }]}>
             <View style={styles.infoItem}>
               <Text style={styles.infoIcon}>👥</Text>
-              <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+              <Text style={[styles.infoText, themedStyles.cardSmallText]}>
                 {pod.current_members_count}/{pod.team_size_max} members
               </Text>
             </View>
             <View style={styles.infoItem}>
               <Text style={styles.infoIcon}>📅</Text>
-              <Text style={[styles.infoText, { color: colors.textSecondary }]} numberOfLines={1}>
+              <Text style={[styles.infoText, themedStyles.cardSmallText]} numberOfLines={1}>
                 {pod.meeting_cadence}
               </Text>
             </View>
           </View>
           <View style={styles.podFooter}>
-            <Text style={[styles.tapHint, { color: colors.primary }]}>Tap to view details →</Text>
+            <Text style={[styles.tapHint, themedStyles.textAccent]}>Tap to view details →</Text>
           </View>
         </>
       ) : (
-        <View style={[styles.pastPodInfo, { borderTopColor: isNewTheme ? colors.border : '#f0f0f0' }]}>
-          <Text style={[styles.pastPodDate, { color: colors.textSecondary }]}>
+        <View style={[styles.pastPodInfo, { borderTopColor: colors.border }]}>
+          <Text style={[styles.pastPodDate, themedStyles.cardSmallText]}>
             No longer a member
           </Text>
         </View>
@@ -289,8 +292,8 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
       ) : (
         <View style={styles.emptyState}>
           <Text style={styles.emptyEmoji}>🌊</Text>
-          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No active pods</Text>
-          <Text style={[styles.emptyHint, { color: colors.textSecondary }]}>Create a pursuit or apply to join a team</Text>
+          <Text style={[styles.emptyText, themedStyles.emptyText]}>No active pods</Text>
+          <Text style={[styles.emptyHint, themedStyles.emptySubtext]}>Create a pursuit or apply to join a team</Text>
         </View>
       )}
     </View>
@@ -304,8 +307,8 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
       ) : (
         <View style={styles.emptyState}>
           <Text style={styles.emptyEmoji}>📭</Text>
-          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No past pods</Text>
-          <Text style={[styles.emptyHint, { color: colors.textSecondary }]}>Pods you've been removed from will appear here</Text>
+          <Text style={[styles.emptyText, themedStyles.emptyText]}>No past pods</Text>
+          <Text style={[styles.emptyHint, themedStyles.emptySubtext]}>Pods you've been removed from will appear here</Text>
         </View>
       )}
     </View>
@@ -316,26 +319,26 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
       {/* Interview Requests - show first with action required */}
       {interviewPendingApps.length > 0 && (
         <>
-          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Interview Requests</Text>
+          <Text style={[styles.sectionLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined, textTransform: 'uppercase', letterSpacing: isNewTheme ? 1 : 0.5 }]}>Interview Requests</Text>
           {interviewPendingApps.map((app) => (
-            <View key={app.id} style={[styles.applicationCard, styles.interviewCard, { backgroundColor: isNewTheme ? colors.surface : '#faf5ff' }]}>
+            <View key={app.id} style={[styles.applicationCard, styles.interviewCard, themedStyles.card, { borderColor: themedStyles.accentIconColor, borderWidth: 2 }]}>
               <View style={styles.applicationHeader}>
-                <Text style={[styles.applicationTitle, { color: colors.textPrimary }]}>{app.pursuits?.title}</Text>
-                <View style={[styles.interviewBadge, { backgroundColor: colors.primary }]}>
-                  <Text style={styles.interviewBadgeText}>INTERVIEW</Text>
+                <Text style={[styles.applicationTitle, themedStyles.cardTitle]}>{app.pursuits?.title}</Text>
+                <View style={[styles.interviewBadge, { backgroundColor: themedStyles.accentIconColor }]}>
+                  <Text style={[styles.interviewBadgeText, themedStyles.tagText, { color: isNewTheme ? colors.background : '#fff' }]}>INTERVIEW</Text>
                 </View>
               </View>
-              <Text style={[styles.applicationDescription, { color: colors.textSecondary }]} numberOfLines={2}>
+              <Text style={[styles.applicationDescription, themedStyles.cardDescription]} numberOfLines={2}>
                 {app.pursuits?.description}
               </Text>
-              <Text style={[styles.interviewPrompt, { color: colors.primary }]}>
+              <Text style={[styles.interviewPrompt, themedStyles.textAccent]}>
                 The creator wants to schedule an interview! Propose your available times.
               </Text>
               <TouchableOpacity
-                style={[styles.proposeTimesButton, { backgroundColor: colors.primary }]}
+                style={[styles.proposeTimesButton, themedStyles.buttonPrimary]}
                 onPress={() => onOpenInterviewProposal?.(app.id, app.pursuit_id, app.pursuits?.title || 'Pursuit')}
               >
-                <Text style={styles.proposeTimesButtonText}>Propose Interview Times</Text>
+                <Text style={[styles.proposeTimesButtonText, themedStyles.buttonPrimaryText]}>Propose Interview Times</Text>
               </TouchableOpacity>
             </View>
           ))}
@@ -345,16 +348,16 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
       {/* Regular pending applications */}
       {applications.length > 0 && (
         <>
-          {interviewPendingApps.length > 0 && <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Pending Review</Text>}
+          {interviewPendingApps.length > 0 && <Text style={[styles.sectionLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined, textTransform: 'uppercase', letterSpacing: isNewTheme ? 1 : 0.5 }]}>Pending Review</Text>}
           {applications.map((app) => (
-            <View key={app.id} style={[styles.applicationCard, { backgroundColor: isNewTheme ? colors.surface : legacyColors.white }]}>
+            <View key={app.id} style={[styles.applicationCard, themedStyles.card]}>
               <View style={styles.applicationHeader}>
-                <Text style={[styles.applicationTitle, { color: colors.textPrimary }]}>{app.pursuits?.title}</Text>
-                <View style={styles.pendingBadge}>
-                  <Text style={styles.pendingText}>PENDING</Text>
+                <Text style={[styles.applicationTitle, themedStyles.cardTitle]}>{app.pursuits?.title}</Text>
+                <View style={[styles.pendingBadge, themedStyles.tag, { backgroundColor: colors.warning }]}>
+                  <Text style={[styles.pendingText, themedStyles.tagText, { color: isNewTheme ? colors.background : '#fff' }]}>PENDING</Text>
                 </View>
               </View>
-              <Text style={[styles.applicationDescription, { color: colors.textSecondary }]} numberOfLines={2}>
+              <Text style={[styles.applicationDescription, themedStyles.cardDescription]} numberOfLines={2}>
                 {app.pursuits?.description}
               </Text>
             </View>
@@ -365,27 +368,27 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
       {applications.length === 0 && interviewPendingApps.length === 0 && (
         <View style={styles.emptyState}>
           <Text style={styles.emptyEmoji}>📝</Text>
-          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No pending applications</Text>
-          <Text style={[styles.emptyHint, { color: colors.textSecondary }]}>Apply to pursuits and track your applications here</Text>
+          <Text style={[styles.emptyText, themedStyles.emptyText]}>No pending applications</Text>
+          <Text style={[styles.emptyHint, themedStyles.emptySubtext]}>Apply to pursuits and track your applications here</Text>
         </View>
       )}
     </View>
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, themedStyles.container]}>
       <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       {isNewTheme && <GrainTexture opacity={0.06} />}
-      <View style={[styles.header, { backgroundColor: isNewTheme ? colors.surface : legacyColors.white }]}>
-        <Text style={[styles.title, { fontFamily: 'NothingYouCouldDo_400Regular', color: isNewTheme ? colors.accentGreen : '#8b5cf6' }]}>My Pods</Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>Your teams & applications</Text>
+      <View style={[styles.header, themedStyles.header]}>
+        <Text style={[styles.title, themedStyles.headerTitle]}>My Pods</Text>
+        <Text style={[styles.subtitle, themedStyles.cardDescription]}>Your teams & applications</Text>
       </View>
 
       {renderFilterTabs()}
 
       <ScrollView
         style={styles.scrollView}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={colors.primary} />}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={loadData} tintColor={themedStyles.refreshColor} />}
       >
         {activeFilter === 'active' && renderActiveContent()}
         {activeFilter === 'past' && renderPastContent()}

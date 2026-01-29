@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ActivityIndicator, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { notificationService } from '../services/notificationService';
 import { supabase } from '../config/supabase';
-import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+import { colors as legacyColors, typography, spacing } from '../theme/designSystem';
 import { useTheme } from '../theme/ThemeContext';
 import GrainTexture from '../components/ui/GrainTexture';
+import { getThemedStyles } from '../theme/themedStyles';
 
 export default function NotificationsScreen({ navigation }: any) {
   const { user } = useAuth();
   const { theme, isNewTheme } = useTheme();
   const colors = theme.colors;
+  const themedStyles = getThemedStyles(colors, isNewTheme);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -329,57 +331,57 @@ export default function NotificationsScreen({ navigation }: any) {
   const renderNotification = ({ item }: { item: any }) => (
     <TouchableOpacity
       style={[
+        themedStyles.card,
         styles.notificationCard,
-        { backgroundColor: isNewTheme ? colors.surface : legacyColors.white },
         !item.read && [styles.unreadCard, { backgroundColor: isNewTheme ? colors.surface : legacyColors.primaryLight, borderLeftColor: colors.primary }]
       ]}
       onPress={() => handleNotificationPress(item)}
     >
       <View style={[
+        themedStyles.iconContainer,
         styles.iconContainer,
-        { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.backgroundSecondary },
-        !item.read && { backgroundColor: colors.primary + '20' }
+        !item.read && { backgroundColor: isNewTheme ? colors.accentGreen + '20' : colors.primary + '20' }
       ]}>
         <Ionicons
           name={getNotificationIcon(item.type) as any}
           size={24}
-          color={!item.read ? colors.primary : colors.textSecondary}
+          color={!item.read ? themedStyles.accentIconColor : colors.textSecondary}
         />
       </View>
       <View style={styles.notificationContent}>
-        <Text style={[styles.notificationTitle, { color: colors.textPrimary }, !item.read && styles.unreadText]}>
+        <Text style={[themedStyles.cardTitle, styles.notificationTitle, !item.read && styles.unreadText]}>
           {item.title}
         </Text>
-        <Text style={[styles.notificationBody, { color: colors.textSecondary }]}>{item.body}</Text>
-        <Text style={[styles.timestamp, { color: colors.textTertiary }]}>{formatTimestamp(item.created_at)}</Text>
+        <Text style={[themedStyles.cardDescription, styles.notificationBody]}>{item.body}</Text>
+        <Text style={[themedStyles.cardSmallText, styles.timestamp]}>{formatTimestamp(item.created_at)}</Text>
       </View>
-      {!item.read && <View style={[styles.unreadDot, { backgroundColor: colors.primary }]} />}
+      {!item.read && <View style={[styles.unreadDot, { backgroundColor: themedStyles.accentIconColor }]} />}
     </TouchableOpacity>
   );
 
   if (loading) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+      <View style={[themedStyles.container, styles.centerContainer]}>
         <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         {isNewTheme && <GrainTexture opacity={0.06} />}
-        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading notifications...</Text>
+        <Text style={[themedStyles.bodyText, styles.loadingText]}>Loading notifications...</Text>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={themedStyles.container}>
       <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       {isNewTheme && <GrainTexture opacity={0.06} />}
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <Text style={[styles.headerTitle, { fontFamily: 'NothingYouCouldDo_400Regular', color: isNewTheme ? colors.accentGreen : colors.textPrimary }]}>Notifications</Text>
+      <View style={themedStyles.header}>
+        <Text style={themedStyles.headerTitle}>Notifications</Text>
       </View>
 
       {notifications.length === 0 ? (
-        <View style={styles.emptyContainer}>
+        <View style={themedStyles.emptyContainer}>
           <Ionicons name="notifications-off-outline" size={64} color={colors.textSecondary} />
-          <Text style={[styles.emptyText, { color: colors.textPrimary }]}>No notifications yet</Text>
-          <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>We'll notify you when something happens</Text>
+          <Text style={themedStyles.emptyText}>No notifications yet</Text>
+          <Text style={themedStyles.emptySubtext}>We'll notify you when something happens</Text>
         </View>
       ) : (
         <FlatList
@@ -387,7 +389,7 @@ export default function NotificationsScreen({ navigation }: any) {
           renderItem={renderNotification}
           keyExtractor={item => item.id}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={themedStyles.refreshColor} />
           }
           contentContainerStyle={styles.listContent}
         />
@@ -397,52 +399,19 @@ export default function NotificationsScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    paddingTop: 50,
-    paddingBottom: spacing.base,
-    paddingHorizontal: spacing.lg,
-    borderBottomWidth: 1,
-  },
-  headerTitle: {
-    fontSize: typography.fontSize.xl,
-    fontWeight: typography.fontWeight.bold,
-  },
   centerContainer: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingText: {
-    fontSize: typography.fontSize.base,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.xl,
-  },
-  emptyText: {
-    fontSize: typography.fontSize.lg,
-    fontWeight: typography.fontWeight.semibold,
-    marginTop: spacing.lg,
-  },
-  emptySubtext: {
-    fontSize: typography.fontSize.sm,
-    marginTop: spacing.xs,
-    textAlign: 'center',
+    // Additional styling beyond themedStyles.bodyText
   },
   listContent: {
     padding: spacing.base,
   },
   notificationCard: {
     flexDirection: 'row',
-    padding: spacing.base,
-    borderRadius: borderRadius.base,
-    marginBottom: spacing.sm,
-    ...shadows.base,
+    alignItems: 'flex-start',
   },
   unreadCard: {
     borderLeftWidth: 3,
@@ -451,28 +420,23 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
     marginRight: spacing.base,
   },
   notificationContent: {
     flex: 1,
   },
   notificationTitle: {
-    fontSize: typography.fontSize.base,
-    fontWeight: typography.fontWeight.semibold,
     marginBottom: spacing.xs,
   },
   unreadText: {
     fontWeight: typography.fontWeight.bold,
   },
   notificationBody: {
-    fontSize: typography.fontSize.sm,
     marginBottom: spacing.xs,
     lineHeight: 18,
   },
   timestamp: {
-    fontSize: typography.fontSize.xs,
+    // Additional styling beyond themedStyles.cardSmallText
   },
   unreadDot: {
     width: 10,

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { meetingService } from '../services/meetingService';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
+import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
 import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
 
@@ -19,6 +20,7 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
   const { user } = useAuth();
   const { theme, isNewTheme } = useTheme();
   const colors = theme.colors;
+  const themedStyles = getThemedStyles(colors, isNewTheme);
   const [meetings, setMeetings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -168,64 +170,47 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
 
   // Dynamic styles based on theme
   const dynamicStyles = {
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
+    container: themedStyles.container,
     header: {
+      ...themedStyles.header,
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
-      paddingTop: 50,
-      paddingBottom: spacing.base,
-      paddingHorizontal: spacing.lg,
-      backgroundColor: colors.surface,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
     },
-    headerTitle: {
-      fontSize: typography.fontSize['3xl'],
-      fontWeight: typography.fontWeight.bold as '700',
-      color: isNewTheme ? colors.accentGreen : colors.textPrimary,
-      fontFamily: 'NothingYouCouldDo_400Regular',
-    },
+    headerTitle: themedStyles.headerTitle,
     dateSection: {
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
     },
     dayName: {
+      ...themedStyles.textAccent,
       fontSize: typography.fontSize.xs,
       fontWeight: typography.fontWeight.semibold as '600',
       color: colors.textSecondary,
       marginBottom: spacing.xs,
-      letterSpacing: 0.5,
-      fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined,
     },
     dayNumber: {
       fontSize: typography.fontSize['2xl'],
       fontWeight: typography.fontWeight.medium as '500',
       color: colors.textPrimary,
+      fontFamily: themedStyles.bodyText.fontFamily,
     },
     meetingItem: {
+      ...themedStyles.card,
       flexDirection: 'row' as const,
-      backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.backgroundSecondary,
-      borderRadius: borderRadius.base,
       overflow: 'hidden' as const,
       marginBottom: spacing.sm,
+      padding: 0,
     },
     meetingTitle: {
+      ...themedStyles.cardTitle,
       flex: 1,
       fontSize: typography.fontSize.base,
-      fontWeight: typography.fontWeight.semibold as '600',
-      color: colors.textPrimary,
       marginRight: spacing.sm,
-      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
     },
     meetingTimeText: {
-      fontSize: typography.fontSize.sm,
-      color: colors.textSecondary,
+      ...themedStyles.cardSmallText,
       fontWeight: typography.fontWeight.medium as '500',
-      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
     },
   };
 
@@ -241,7 +226,7 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
           style={styles.createButton}
           onPress={onCreateMeeting}
         >
-          <Ionicons name="add-circle" size={32} color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
+          <Ionicons name="add-circle" size={32} color={themedStyles.accentIconColor} />
         </TouchableOpacity>
       </View>
 
@@ -252,7 +237,7 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
           <RefreshControl
             refreshing={loading}
             onRefresh={loadMeetings}
-            tintColor={isNewTheme ? colors.accentGreen : legacyColors.primary}
+            tintColor={themedStyles.refreshColor}
           />
         }
       >
@@ -275,10 +260,10 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
               {/* Date Header */}
               <View style={styles.dateHeaderContainer}>
                 <View style={styles.dateLeftSection}>
-                  <Text style={[dynamicStyles.dayName, isTodayDate && { color: isNewTheme ? colors.accentGreen : legacyColors.primary }]}>
+                  <Text style={[dynamicStyles.dayName, isTodayDate && { color: themedStyles.accentIconColor }]}>
                     {dateHeader.dayName.substring(0, 3).toUpperCase()}
                   </Text>
-                  <View style={[styles.dayNumberContainer, isTodayDate && { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]}>
+                  <View style={[styles.dayNumberContainer, isTodayDate && { backgroundColor: themedStyles.accentIconColor }]}>
                     <Text style={[dynamicStyles.dayNumber, isTodayDate && { color: isNewTheme ? colors.background : legacyColors.white, fontWeight: '700' as '700' }]}>
                       {dateHeader.dayNumber}
                     </Text>
@@ -328,11 +313,11 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
                               <View style={styles.meetingBottomRow}>
                                 <Text style={dynamicStyles.meetingTimeText}>{timeString}</Text>
                                 <Text style={[styles.meetingDivider, { color: colors.textTertiary }]}>•</Text>
-                                <Text style={[styles.meetingTypeText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{getMeetingTypeLabel(meeting.meeting_type)}</Text>
+                                <Text style={[styles.meetingTypeText, themedStyles.cardSmallText]}>{getMeetingTypeLabel(meeting.meeting_type)}</Text>
                                 {meeting.location && (
                                   <>
                                     <Text style={[styles.meetingDivider, { color: colors.textTertiary }]}>•</Text>
-                                    <Text style={[styles.meetingLocationText, { color: colors.textTertiary }]} numberOfLines={1}>{meeting.location}</Text>
+                                    <Text style={[styles.meetingLocationText, themedStyles.textTertiary]} numberOfLines={1}>{meeting.location}</Text>
                                   </>
                                 )}
                               </View>

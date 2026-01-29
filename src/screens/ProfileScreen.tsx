@@ -12,12 +12,14 @@ import ReviewScreen from './ReviewScreen';
 import PodMemberCollage from '../components/PodMemberCollage';
 import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
 import { useTheme } from '../theme/ThemeContext';
+import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
 
 export default function ProfileScreen({ navigation }: any) {
   const { user, signOut } = useAuth();
   const { theme, isNewTheme, toggleTheme } = useTheme();
   const colors = theme.colors;
+  const themedStyles = getThemedStyles(colors, isNewTheme);
   const [profile, setProfile] = useState<any>(null);
   const [activeTeams, setActiveTeams] = useState<any[]>([]);
   const [pendingApplications, setPendingApplications] = useState<any[]>([]);
@@ -270,26 +272,26 @@ const handleRejectConnection = async (connectionId: string) => {
 
   if (loading) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
+      <View style={[styles.loadingContainer, themedStyles.container]}>
+        <ActivityIndicator size="large" color={themedStyles.accentIconColor} />
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, themedStyles.container]}>
       <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       {isNewTheme && <GrainTexture opacity={0.06} />}
 
       {/* Modern Header - matches FeedScreen */}
-      <View style={[styles.header, { backgroundColor: isNewTheme ? colors.surface : legacyColors.white }]}>
+      <View style={[styles.header, themedStyles.surface]}>
         <View style={styles.headerTop}>
           <View>
-            <Text style={[styles.headerGreeting, { color: colors.textSecondary }]}>Your</Text>
-            <Text style={[styles.headerTitle, { color: colors.textPrimary, fontFamily: 'NothingYouCouldDo_400Regular' }]}>Profile</Text>
+            <Text style={[styles.headerGreeting, themedStyles.headerSubtitle]}>Your</Text>
+            <Text style={[styles.headerTitle, themedStyles.headerTitle]}>Profile</Text>
           </View>
           <TouchableOpacity onPress={() => setShowMenu(true)} style={styles.menuButton}>
-            <Ionicons name="settings-outline" size={24} color={colors.textPrimary} />
+            <Ionicons name="settings-outline" size={24} color={themedStyles.accentIconColor} />
           </TouchableOpacity>
         </View>
       </View>
@@ -308,61 +310,61 @@ const handleRejectConnection = async (connectionId: string) => {
           activeOpacity={1}
           onPress={() => setShowMenu(false)}
         >
-          <View style={[styles.menuContainer, { backgroundColor: isNewTheme ? colors.surface : legacyColors.white }]}>
+          <View style={[styles.menuContainer, themedStyles.surface]}>
             <View style={[styles.menuHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.menuTitle, { color: colors.textPrimary }]}>Settings</Text>
+              <Text style={[styles.menuTitle, themedStyles.cardTitle]}>Settings</Text>
               <TouchableOpacity onPress={() => setShowMenu(false)}>
-                <Ionicons name="close" size={24} color={colors.textSecondary} />
+                <Ionicons name="close" size={24} color={themedStyles.accentIconColor} />
               </TouchableOpacity>
             </View>
 
             <TouchableOpacity
-              style={[styles.menuItem, { borderBottomColor: colors.border }]}
+              style={[styles.menuItem, themedStyles.listItem]}
               onPress={() => {
                 setShowMenu(false);
                 setShowEdit(true);
               }}
             >
-              <View style={[styles.menuItemIcon, { backgroundColor: isNewTheme ? colors.primaryLight : '#f3f4f6' }]}>
-                <Ionicons name="person-outline" size={22} color={colors.primary} />
+              <View style={[styles.menuItemIcon, themedStyles.iconContainer]}>
+                <Ionicons name="person-outline" size={22} color={themedStyles.accentIconColor} />
               </View>
               <View style={styles.menuItemContent}>
-                <Text style={[styles.menuItemText, { color: colors.textPrimary }]}>Account Details</Text>
-                <Text style={[styles.menuItemSubtext, { color: colors.textSecondary }]}>Edit your profile information</Text>
+                <Text style={[styles.menuItemText, themedStyles.listItemTitle]}>Account Details</Text>
+                <Text style={[styles.menuItemSubtext, themedStyles.listItemSubtitle]}>Edit your profile information</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+              <Ionicons name="chevron-forward" size={20} color={themedStyles.accentIconColor} />
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.menuItem, { borderBottomColor: colors.border }]}
+              style={[styles.menuItem, themedStyles.listItem]}
               onPress={() => {
                 setShowMenu(false);
                 setShowPrivacyPreferences(true);
               }}
             >
-              <View style={[styles.menuItemIcon, { backgroundColor: isNewTheme ? colors.successLight : '#f3f4f6' }]}>
-                <Ionicons name="shield-outline" size={22} color={colors.success} />
+              <View style={[styles.menuItemIcon, themedStyles.iconContainer]}>
+                <Ionicons name="shield-outline" size={22} color={themedStyles.accentIconColor} />
               </View>
               <View style={styles.menuItemContent}>
-                <Text style={[styles.menuItemText, { color: colors.textPrimary }]}>Privacy Preferences</Text>
-                <Text style={[styles.menuItemSubtext, { color: colors.textSecondary }]}>Manage your privacy settings</Text>
+                <Text style={[styles.menuItemText, themedStyles.listItemTitle]}>Privacy Preferences</Text>
+                <Text style={[styles.menuItemSubtext, themedStyles.listItemSubtitle]}>Manage your privacy settings</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+              <Ionicons name="chevron-forward" size={20} color={themedStyles.accentIconColor} />
             </TouchableOpacity>
 
             {/* Dark Mode Toggle */}
-            <View style={[styles.menuItem, { borderBottomColor: colors.border }]}>
-              <View style={[styles.menuItemIcon, { backgroundColor: isNewTheme ? colors.secondaryLight : '#f3f4f6' }]}>
-                <Ionicons name="moon-outline" size={22} color={isNewTheme ? colors.secondary : '#6b7280'} />
+            <View style={[styles.menuItem, themedStyles.listItem]}>
+              <View style={[styles.menuItemIcon, themedStyles.iconContainer]}>
+                <Ionicons name="moon-outline" size={22} color={themedStyles.accentIconColor} />
               </View>
               <View style={styles.menuItemContent}>
-                <Text style={[styles.menuItemText, { color: colors.textPrimary }]}>Dark Mode</Text>
-                <Text style={[styles.menuItemSubtext, { color: colors.textSecondary }]}>Switch to {isNewTheme ? 'light' : 'dark'} theme</Text>
+                <Text style={[styles.menuItemText, themedStyles.listItemTitle]}>Dark Mode</Text>
+                <Text style={[styles.menuItemSubtext, themedStyles.listItemSubtitle]}>Switch to {isNewTheme ? 'light' : 'dark'} theme</Text>
               </View>
               <Switch
                 value={isNewTheme}
                 onValueChange={toggleTheme}
-                trackColor={{ false: '#d1d5db', true: colors.secondary }}
+                trackColor={{ false: '#d1d5db', true: isNewTheme ? colors.accentGreen : colors.secondary }}
                 thumbColor={isNewTheme ? colors.white : '#f4f3f4'}
               />
             </View>
@@ -375,83 +377,83 @@ const handleRejectConnection = async (connectionId: string) => {
           {profile?.profile_picture ? (
             <Image source={{ uri: profile.profile_picture }} style={styles.avatarImage} />
           ) : (
-            <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-              <Text style={styles.avatarText}>
+            <View style={[styles.avatar, themedStyles.avatar]}>
+              <Text style={[styles.avatarText, themedStyles.avatarText]}>
                 {profile?.name?.charAt(0).toUpperCase() || '?'}
               </Text>
             </View>
           )}
-          <Text style={[styles.name, { color: colors.textPrimary }]}>{profile?.name || 'No name set'}</Text>
-          <Text style={[styles.email, { color: colors.textTertiary }]}>{profile?.email}</Text>
+          <Text style={[styles.name, themedStyles.textPrimary, { fontSize: typography.fontSize.xl, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{profile?.name || 'No name set'}</Text>
+          <Text style={[styles.email, themedStyles.textTertiary]}>{profile?.email}</Text>
         </View>
 {/* Modern Pill Tabs */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={[styles.tabsScrollView, { backgroundColor: isNewTheme ? colors.surface : legacyColors.white }]}
+          style={[styles.tabsScrollView, themedStyles.surface]}
           contentContainerStyle={styles.tabsContainer}
         >
           <TouchableOpacity
-            style={[styles.tabPill, { backgroundColor: isNewTheme ? colors.backgroundSecondary : legacyColors.backgroundSecondary, borderColor: colors.borderLight }, activeTab === 'info' && [styles.tabPillActive, { backgroundColor: colors.primary, borderColor: colors.primary }]]}
+            style={[styles.tabPill, themedStyles.surfaceAlt, activeTab === 'info' && [styles.tabPillActive, { backgroundColor: isNewTheme ? colors.accentGreen : colors.primary, borderColor: isNewTheme ? colors.accentGreen : colors.primary }]]}
             onPress={() => setActiveTab('info')}
           >
             <Ionicons
               name="person-outline"
               size={16}
-              color={activeTab === 'info' ? colors.white : colors.textSecondary}
+              color={activeTab === 'info' ? (isNewTheme ? colors.background : colors.white) : colors.textSecondary}
             />
-            <Text style={[styles.tabPillText, { color: colors.textSecondary }, activeTab === 'info' && styles.tabPillTextActive]}>
+            <Text style={[styles.tabPillText, themedStyles.textSecondary, activeTab === 'info' && { color: isNewTheme ? colors.background : colors.white }]}>
               Info
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.tabPill, { backgroundColor: isNewTheme ? colors.backgroundSecondary : legacyColors.backgroundSecondary, borderColor: colors.borderLight }, activeTab === 'received' && [styles.tabPillActive, { backgroundColor: colors.primary, borderColor: colors.primary }]]}
+            style={[styles.tabPill, themedStyles.surfaceAlt, activeTab === 'received' && [styles.tabPillActive, { backgroundColor: isNewTheme ? colors.accentGreen : colors.primary, borderColor: isNewTheme ? colors.accentGreen : colors.primary }]]}
             onPress={() => setActiveTab('received')}
           >
             <Ionicons
               name="star-outline"
               size={16}
-              color={activeTab === 'received' ? colors.white : colors.textSecondary}
+              color={activeTab === 'received' ? (isNewTheme ? colors.background : colors.white) : colors.textSecondary}
             />
-            <Text style={[styles.tabPillText, { color: colors.textSecondary }, activeTab === 'received' && styles.tabPillTextActive]}>
+            <Text style={[styles.tabPillText, themedStyles.textSecondary, activeTab === 'received' && { color: isNewTheme ? colors.background : colors.white }]}>
               Reviews
             </Text>
             {reviews.length > 0 && (
               <View style={[styles.tabBadge, activeTab === 'received' && styles.tabBadgeActive]}>
-                <Text style={[styles.tabBadgeText, { color: colors.primary }, activeTab === 'received' && styles.tabBadgeTextActive]}>
+                <Text style={[styles.tabBadgeText, { color: themedStyles.accentIconColor }, activeTab === 'received' && { color: isNewTheme ? colors.background : colors.white }]}>
                   {reviews.length}
                 </Text>
               </View>
             )}
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.tabPill, { backgroundColor: isNewTheme ? colors.backgroundSecondary : legacyColors.backgroundSecondary, borderColor: colors.borderLight }, activeTab === 'connections' && [styles.tabPillActive, { backgroundColor: colors.primary, borderColor: colors.primary }]]}
+            style={[styles.tabPill, themedStyles.surfaceAlt, activeTab === 'connections' && [styles.tabPillActive, { backgroundColor: isNewTheme ? colors.accentGreen : colors.primary, borderColor: isNewTheme ? colors.accentGreen : colors.primary }]]}
             onPress={() => setActiveTab('connections')}
           >
             <Ionicons
               name="people-outline"
               size={16}
-              color={activeTab === 'connections' ? colors.white : colors.textSecondary}
+              color={activeTab === 'connections' ? (isNewTheme ? colors.background : colors.white) : colors.textSecondary}
             />
-            <Text style={[styles.tabPillText, { color: colors.textSecondary }, activeTab === 'connections' && styles.tabPillTextActive]}>
+            <Text style={[styles.tabPillText, themedStyles.textSecondary, activeTab === 'connections' && { color: isNewTheme ? colors.background : colors.white }]}>
               Connections
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.tabPill, { backgroundColor: isNewTheme ? colors.backgroundSecondary : legacyColors.backgroundSecondary, borderColor: colors.borderLight }, activeTab === 'pods' && [styles.tabPillActive, { backgroundColor: colors.primary, borderColor: colors.primary }]]}
+            style={[styles.tabPill, themedStyles.surfaceAlt, activeTab === 'pods' && [styles.tabPillActive, { backgroundColor: isNewTheme ? colors.accentGreen : colors.primary, borderColor: isNewTheme ? colors.accentGreen : colors.primary }]]}
             onPress={() => setActiveTab('pods')}
           >
             <Ionicons
               name="rocket-outline"
               size={16}
-              color={activeTab === 'pods' ? colors.white : colors.textSecondary}
+              color={activeTab === 'pods' ? (isNewTheme ? colors.background : colors.white) : colors.textSecondary}
             />
-            <Text style={[styles.tabPillText, { color: colors.textSecondary }, activeTab === 'pods' && styles.tabPillTextActive]}>
+            <Text style={[styles.tabPillText, themedStyles.textSecondary, activeTab === 'pods' && { color: isNewTheme ? colors.background : colors.white }]}>
               Pods
             </Text>
             {userPods.length > 0 && (
               <View style={[styles.tabBadge, activeTab === 'pods' && styles.tabBadgeActive]}>
-                <Text style={[styles.tabBadgeText, { color: colors.primary }, activeTab === 'pods' && styles.tabBadgeTextActive]}>
+                <Text style={[styles.tabBadgeText, { color: themedStyles.accentIconColor }, activeTab === 'pods' && { color: isNewTheme ? colors.background : colors.white }]}>
                   {userPods.length}
                 </Text>
               </View>
@@ -462,72 +464,72 @@ const handleRejectConnection = async (connectionId: string) => {
 {activeTab === 'info' && (
           <>
         {(profile?.age || profile?.gender || profile?.hometown) && (
-          <View style={[styles.section, { backgroundColor: isNewTheme ? colors.surface : legacyColors.white }]}>
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Basic Info</Text>
+          <View style={[styles.section, themedStyles.card]}>
+            <Text style={[styles.sectionTitle, themedStyles.cardTitle]}>Basic Info</Text>
             {profile?.age && (
               <View style={styles.infoRow}>
-                <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Age:</Text>
-                <Text style={[styles.infoValue, { color: colors.textPrimary }]}>{profile.age}</Text>
+                <Text style={[styles.infoLabel, themedStyles.labelText]}>Age:</Text>
+                <Text style={[styles.infoValue, themedStyles.bodyText]}>{profile.age}</Text>
               </View>
             )}
             {profile?.gender && (
               <View style={styles.infoRow}>
-                <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Gender:</Text>
-                <Text style={[styles.infoValue, { color: colors.textPrimary }]}>{profile.gender}</Text>
+                <Text style={[styles.infoLabel, themedStyles.labelText]}>Gender:</Text>
+                <Text style={[styles.infoValue, themedStyles.bodyText]}>{profile.gender}</Text>
               </View>
             )}
             {profile?.hometown && (
               <View style={styles.infoRow}>
-                <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Hometown:</Text>
-                <Text style={[styles.infoValue, { color: colors.textPrimary }]}>{profile.hometown}</Text>
+                <Text style={[styles.infoLabel, themedStyles.labelText]}>Hometown:</Text>
+                <Text style={[styles.infoValue, themedStyles.bodyText]}>{profile.hometown}</Text>
               </View>
             )}
           </View>
         )}
 
         {profile?.bio && (
-          <View style={[styles.section, { backgroundColor: isNewTheme ? colors.surface : legacyColors.white }]}>
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Bio</Text>
-            <Text style={[styles.bioText, { color: colors.textSecondary }]}>{profile.bio}</Text>
+          <View style={[styles.section, themedStyles.card]}>
+            <Text style={[styles.sectionTitle, themedStyles.cardTitle]}>Bio</Text>
+            <Text style={[styles.bioText, themedStyles.bodyText]}>{profile.bio}</Text>
           </View>
         )}
 
         {(profile?.instagram || profile?.linkedin || profile?.facebook || profile?.github || profile?.portfolio_website) && (
-          <View style={[styles.section, { backgroundColor: isNewTheme ? colors.surface : legacyColors.white }]}>
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Social Links</Text>
+          <View style={[styles.section, themedStyles.card]}>
+            <Text style={[styles.sectionTitle, themedStyles.cardTitle]}>Social Links</Text>
             {profile?.instagram && (
               <TouchableOpacity style={[styles.linkRow, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.instagram)}>
-                <Text style={styles.linkIcon}>📷</Text>
-                <Text style={[styles.linkText, { color: colors.textPrimary }]}>Instagram</Text>
-                <Text style={[styles.linkArrow, { color: colors.textTertiary }]}>→</Text>
+                <Ionicons name="logo-instagram" size={20} color={themedStyles.accentIconColor} style={styles.linkIconNew} />
+                <Text style={[styles.linkText, themedStyles.listItemTitle]}>Instagram</Text>
+                <Ionicons name="chevron-forward" size={16} color={themedStyles.accentIconColor} />
               </TouchableOpacity>
             )}
             {profile?.linkedin && (
               <TouchableOpacity style={[styles.linkRow, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.linkedin)}>
-                <Text style={styles.linkIcon}>💼</Text>
-                <Text style={[styles.linkText, { color: colors.textPrimary }]}>LinkedIn</Text>
-                <Text style={[styles.linkArrow, { color: colors.textTertiary }]}>→</Text>
+                <Ionicons name="logo-linkedin" size={20} color={themedStyles.accentIconColor} style={styles.linkIconNew} />
+                <Text style={[styles.linkText, themedStyles.listItemTitle]}>LinkedIn</Text>
+                <Ionicons name="chevron-forward" size={16} color={themedStyles.accentIconColor} />
               </TouchableOpacity>
             )}
             {profile?.facebook && (
               <TouchableOpacity style={[styles.linkRow, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.facebook)}>
-                <Text style={styles.linkIcon}>👤</Text>
-                <Text style={[styles.linkText, { color: colors.textPrimary }]}>Facebook</Text>
-                <Text style={[styles.linkArrow, { color: colors.textTertiary }]}>→</Text>
+                <Ionicons name="logo-facebook" size={20} color={themedStyles.accentIconColor} style={styles.linkIconNew} />
+                <Text style={[styles.linkText, themedStyles.listItemTitle]}>Facebook</Text>
+                <Ionicons name="chevron-forward" size={16} color={themedStyles.accentIconColor} />
               </TouchableOpacity>
             )}
             {profile?.github && (
               <TouchableOpacity style={[styles.linkRow, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.github)}>
-                <Text style={styles.linkIcon}>💻</Text>
-                <Text style={[styles.linkText, { color: colors.textPrimary }]}>GitHub</Text>
-                <Text style={[styles.linkArrow, { color: colors.textTertiary }]}>→</Text>
+                <Ionicons name="logo-github" size={20} color={themedStyles.accentIconColor} style={styles.linkIconNew} />
+                <Text style={[styles.linkText, themedStyles.listItemTitle]}>GitHub</Text>
+                <Ionicons name="chevron-forward" size={16} color={themedStyles.accentIconColor} />
               </TouchableOpacity>
             )}
             {profile?.portfolio_website && (
               <TouchableOpacity style={[styles.linkRow, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.portfolio_website)}>
-                <Text style={styles.linkIcon}>🌐</Text>
-                <Text style={[styles.linkText, { color: colors.textPrimary }]}>Portfolio</Text>
-                <Text style={[styles.linkArrow, { color: colors.textTertiary }]}>→</Text>
+                <Ionicons name="globe-outline" size={20} color={themedStyles.accentIconColor} style={styles.linkIconNew} />
+                <Text style={[styles.linkText, themedStyles.listItemTitle]}>Portfolio</Text>
+                <Ionicons name="chevron-forward" size={16} color={themedStyles.accentIconColor} />
               </TouchableOpacity>
             )}
           </View>
@@ -535,12 +537,12 @@ const handleRejectConnection = async (connectionId: string) => {
 
         {!profile?.name && (
           <View style={styles.warningBox}>
-            <Text style={styles.warningText}>Please add your name to complete your profile</Text>
+            <Text style={[styles.warningText, themedStyles.bodyText]}>Please add your name to complete your profile</Text>
           </View>
         )}
 
         <TouchableOpacity style={[styles.signOutButton, { backgroundColor: colors.error }]} onPress={signOut}>
-          <Text style={styles.signOutText}>Sign Out</Text>
+          <Text style={[styles.signOutText, themedStyles.buttonPrimaryText, { color: colors.white }]}>Sign Out</Text>
         </TouchableOpacity>
 </>
         )}
@@ -555,10 +557,10 @@ const handleRejectConnection = async (connectionId: string) => {
             keyboardShouldPersistTaps="handled"
           >
             {/* Search Bar */}
-            <View style={[styles.connectionSearchContainer, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f3f4f6' }]}>
-              <Ionicons name="search" size={18} color={colors.textTertiary} style={styles.connectionSearchIcon} />
+            <View style={[styles.connectionSearchContainer, themedStyles.searchContainer]}>
+              <Ionicons name="search" size={18} color={themedStyles.accentIconColor} style={styles.connectionSearchIcon} />
               <TextInput
-                style={[styles.connectionSearchInput, { color: colors.textPrimary }]}
+                style={[styles.connectionSearchInput, themedStyles.inputText]}
                 placeholder="Search connections..."
                 placeholderTextColor={colors.textTertiary}
                 value={connectionSearchQuery}
@@ -568,28 +570,28 @@ const handleRejectConnection = async (connectionId: string) => {
               />
               {connectionSearchQuery.length > 0 && (
                 <TouchableOpacity onPress={() => setConnectionSearchQuery('')}>
-                  <Ionicons name="close-circle" size={18} color={colors.textTertiary} />
+                  <Ionicons name="close-circle" size={18} color={themedStyles.accentIconColor} />
                 </TouchableOpacity>
               )}
             </View>
 
             {pendingRequests.length > 0 && !connectionSearchQuery && (
-              <View style={[styles.section, { backgroundColor: isNewTheme ? colors.surface : legacyColors.white }]}>
-                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Pending Requests ({pendingRequests.length})</Text>
+              <View style={[styles.section, themedStyles.card]}>
+                <Text style={[styles.sectionTitle, themedStyles.cardTitle]}>Pending Requests ({pendingRequests.length})</Text>
                 {pendingRequests.map((request: any) => (
                   <View key={request.id} style={[styles.connectionCard, { borderBottomColor: colors.border }]}>
                     {request.profile?.profile_picture ? (
                       <Image source={{ uri: request.profile.profile_picture }} style={styles.connectionAvatar} />
                     ) : (
-                      <View style={[styles.connectionAvatarPlaceholder, { backgroundColor: colors.primary }]}>
-                        <Text style={styles.connectionAvatarText}>
+                      <View style={[styles.connectionAvatarPlaceholder, themedStyles.avatar]}>
+                        <Text style={[styles.connectionAvatarText, themedStyles.avatarText]}>
                           {request.profile?.name?.charAt(0).toUpperCase() || '?'}
                         </Text>
                       </View>
                     )}
                     <View style={styles.connectionInfo}>
-                      <Text style={[styles.connectionName, { color: colors.textPrimary }]}>{request.profile?.name || 'Unknown'}</Text>
-                      <Text style={[styles.connectionEmail, { color: colors.textSecondary }]}>{request.profile?.email}</Text>
+                      <Text style={[styles.connectionName, themedStyles.listItemTitle]}>{request.profile?.name || 'Unknown'}</Text>
+                      <Text style={[styles.connectionEmail, themedStyles.listItemSubtitle]}>{request.profile?.email}</Text>
                     </View>
                     <View style={styles.requestActions}>
                       <TouchableOpacity
@@ -612,9 +614,9 @@ const handleRejectConnection = async (connectionId: string) => {
 
             {connections.length === 0 && pendingRequests.length === 0 ? (
               <View style={styles.emptyReviews}>
-                <Text style={styles.emptyReviewsEmoji}>🤝</Text>
-                <Text style={[styles.emptyReviewsText, { color: colors.textSecondary }]}>No connections yet</Text>
-                <Text style={[styles.emptyReviewsHint, { color: colors.textTertiary }]}>
+                <Ionicons name="people-outline" size={64} color={themedStyles.accentIconColor} style={{ marginBottom: 16 }} />
+                <Text style={[styles.emptyReviewsText, themedStyles.emptyText]}>No connections yet</Text>
+                <Text style={[styles.emptyReviewsHint, themedStyles.emptySubtext]}>
                   Connect with teammates to build your network
                 </Text>
               </View>
@@ -639,15 +641,15 @@ const handleRejectConnection = async (connectionId: string) => {
     {conn.profile?.profile_picture ? (
       <Image source={{ uri: conn.profile.profile_picture }} style={styles.connectionAvatar} />
     ) : (
-      <View style={[styles.connectionAvatarPlaceholder, { backgroundColor: colors.primary }]}>
-        <Text style={styles.connectionAvatarText}>
+      <View style={[styles.connectionAvatarPlaceholder, themedStyles.avatar]}>
+        <Text style={[styles.connectionAvatarText, themedStyles.avatarText]}>
           {conn.profile?.name?.charAt(0).toUpperCase() || '?'}
         </Text>
       </View>
     )}
     <View style={styles.connectionInfo}>
-      <Text style={[styles.connectionName, { color: colors.textPrimary }]}>{conn.profile?.name || 'Unknown'}</Text>
-      <Text style={[styles.connectionEmail, { color: colors.textSecondary }]}>{conn.profile?.email}</Text>
+      <Text style={[styles.connectionName, themedStyles.listItemTitle]}>{conn.profile?.name || 'Unknown'}</Text>
+      <Text style={[styles.connectionEmail, themedStyles.listItemSubtitle]}>{conn.profile?.email}</Text>
     </View>
   </TouchableOpacity>
 ))}
@@ -659,8 +661,8 @@ const handleRejectConnection = async (connectionId: string) => {
                   return nameParts.some((part: string) => part.startsWith(query));
                 }).length === 0 && (
                   <View style={styles.emptyReviews}>
-                    <Text style={[styles.emptyReviewsText, { color: colors.textSecondary }]}>No matches found</Text>
-                    <Text style={[styles.emptyReviewsHint, { color: colors.textTertiary }]}>Try a different search term</Text>
+                    <Text style={[styles.emptyReviewsText, themedStyles.emptyText]}>No matches found</Text>
+                    <Text style={[styles.emptyReviewsHint, themedStyles.emptySubtext]}>Try a different search term</Text>
                   </View>
                 )}
               </>
@@ -674,14 +676,14 @@ const handleRejectConnection = async (connectionId: string) => {
           <ScrollView style={styles.tabContent}>
             {podsLoading ? (
               <View style={styles.emptyReviews}>
-                <ActivityIndicator size="large" color={colors.primary} />
-                <Text style={[styles.emptyReviewsHint, { color: colors.textTertiary }]}>Loading your pods...</Text>
+                <ActivityIndicator size="large" color={themedStyles.accentIconColor} />
+                <Text style={[styles.emptyReviewsHint, themedStyles.emptySubtext]}>Loading your pods...</Text>
               </View>
             ) : userPods.length === 0 ? (
               <View style={styles.emptyReviews}>
-                <Text style={styles.emptyReviewsEmoji}>🎯</Text>
-                <Text style={[styles.emptyReviewsText, { color: colors.textSecondary }]}>No pods yet</Text>
-                <Text style={[styles.emptyReviewsHint, { color: colors.textTertiary }]}>
+                <Ionicons name="rocket-outline" size={64} color={themedStyles.accentIconColor} style={{ marginBottom: 16 }} />
+                <Text style={[styles.emptyReviewsText, themedStyles.emptyText]}>No pods yet</Text>
+                <Text style={[styles.emptyReviewsHint, themedStyles.emptySubtext]}>
                   Join or create a pod to get started
                 </Text>
               </View>
@@ -689,14 +691,14 @@ const handleRejectConnection = async (connectionId: string) => {
               <>
                 {/* Current Pods */}
                 {userPods.filter(p => !p.status || ['awaiting_kickoff', 'collecting_proposals', 'active'].includes(p.status) || ['active', 'accepted'].includes(p.membership_status)).length > 0 && (
-                  <View style={[styles.section, { backgroundColor: isNewTheme ? colors.surface : legacyColors.white }]}>
-                    <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Current Pods</Text>
+                  <View style={[styles.section, themedStyles.card]}>
+                    <Text style={[styles.sectionTitle, themedStyles.cardTitle]}>Current Pods</Text>
                     {userPods
                       .filter(p => !p.status || ['awaiting_kickoff', 'collecting_proposals', 'active'].includes(p.status) || ['active', 'accepted'].includes(p.membership_status))
                       .map((pod) => (
                         <TouchableOpacity
                           key={pod.id}
-                          style={[styles.podCard, { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.white, borderColor: colors.border }]}
+                          style={[styles.podCard, themedStyles.surfaceAlt]}
                           onPress={() => navigation.navigate('PursuitDetail', { pursuitId: pod.id })}
                         >
                           {pod.default_picture ? (
@@ -705,20 +707,20 @@ const handleRejectConnection = async (connectionId: string) => {
                             <PodMemberCollage members={pod.members || []} size={50} borderRadius={10} />
                           )}
                           <View style={styles.podCardInfo}>
-                            <Text style={[styles.podCardTitle, { color: colors.textPrimary }]}>{pod.title}</Text>
+                            <Text style={[styles.podCardTitle, themedStyles.listItemTitle]}>{pod.title}</Text>
                             <View style={styles.podCardMeta}>
                               {pod.isCreator && (
-                                <View style={[styles.podCreatorBadge, { backgroundColor: colors.warningLight }]}>
-                                  <Ionicons name="star" size={10} color={colors.warning} />
-                                  <Text style={[styles.podCreatorBadgeText, { color: colors.warning }]}>Creator</Text>
+                                <View style={[styles.podCreatorBadge, themedStyles.tag]}>
+                                  <Ionicons name="star" size={10} color={themedStyles.accentIconColor} />
+                                  <Text style={[styles.podCreatorBadgeText, themedStyles.tagText]}>Creator</Text>
                                 </View>
                               )}
-                              <Text style={[styles.podCardMembers, { color: colors.textSecondary }]}>
+                              <Text style={[styles.podCardMembers, themedStyles.listItemSubtitle]}>
                                 {pod.current_members_count || 1} member{(pod.current_members_count || 1) !== 1 ? 's' : ''}
                               </Text>
                             </View>
                           </View>
-                          <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+                          <Ionicons name="chevron-forward" size={20} color={themedStyles.accentIconColor} />
                         </TouchableOpacity>
                       ))}
                   </View>
@@ -726,14 +728,14 @@ const handleRejectConnection = async (connectionId: string) => {
 
                 {/* Past Pods */}
                 {userPods.filter(p => ['completed', 'archived'].includes(p.status) || ['left', 'removed'].includes(p.membership_status)).length > 0 && (
-                  <View style={[styles.section, { backgroundColor: isNewTheme ? colors.surface : legacyColors.white }]}>
-                    <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Past Pods</Text>
+                  <View style={[styles.section, themedStyles.card]}>
+                    <Text style={[styles.sectionTitle, themedStyles.cardTitle]}>Past Pods</Text>
                     {userPods
                       .filter(p => ['completed', 'archived'].includes(p.status) || ['left', 'removed'].includes(p.membership_status))
                       .map((pod) => (
                         <TouchableOpacity
                           key={pod.id}
-                          style={[styles.podCard, styles.podCardPast, { backgroundColor: isNewTheme ? colors.backgroundSecondary : '#f9fafb', borderColor: colors.border }]}
+                          style={[styles.podCard, styles.podCardPast, themedStyles.surfaceAlt, { opacity: 0.7 }]}
                           onPress={() => navigation.navigate('PursuitDetail', { pursuitId: pod.id })}
                         >
                           {pod.default_picture ? (
@@ -744,20 +746,20 @@ const handleRejectConnection = async (connectionId: string) => {
                             </View>
                           )}
                           <View style={styles.podCardInfo}>
-                            <Text style={[styles.podCardTitle, styles.podCardTitlePast, { color: colors.textSecondary }]}>{pod.title}</Text>
+                            <Text style={[styles.podCardTitle, styles.podCardTitlePast, themedStyles.textSecondary]}>{pod.title}</Text>
                             <View style={styles.podCardMeta}>
                               {pod.isCreator && (
-                                <View style={[styles.podCreatorBadge, styles.podCreatorBadgePast, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f3f4f6' }]}>
+                                <View style={[styles.podCreatorBadge, styles.podCreatorBadgePast, themedStyles.surfaceAlt]}>
                                   <Ionicons name="star" size={10} color={colors.textTertiary} />
-                                  <Text style={[styles.podCreatorBadgeTextPast, { color: colors.textTertiary }]}>Creator</Text>
+                                  <Text style={[styles.podCreatorBadgeTextPast, themedStyles.textTertiary]}>Creator</Text>
                                 </View>
                               )}
-                              <Text style={[styles.podCardStatus, { color: colors.textTertiary }]}>
+                              <Text style={[styles.podCardStatus, themedStyles.textTertiary]}>
                                 {pod.membership_status === 'left' ? 'Left' : pod.membership_status === 'removed' ? 'Removed' : 'Closed'}
                               </Text>
                             </View>
                           </View>
-                          <Ionicons name="chevron-forward" size={20} color={colors.disabled} />
+                          <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
                         </TouchableOpacity>
                       ))}
                   </View>
@@ -1025,6 +1027,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f3f4f6',
   },
   linkIcon: { fontSize: 20, marginRight: 12 },
+  linkIconNew: { marginRight: 12 },
   linkText: { flex: 1, fontSize: 15, color: '#1f2937', fontWeight: '500' },
   linkArrow: { fontSize: 16, color: '#9ca3af' },
   warningBox: {

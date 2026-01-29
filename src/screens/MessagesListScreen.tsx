@@ -23,6 +23,7 @@ import PodChatScreen from './PodChatScreen';
 import PodMemberCollage from '../components/PodMemberCollage';
 import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
 import { useTheme } from '../theme/ThemeContext';
+import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
 
 const SIDEBAR_WIDTH = 320;
@@ -88,6 +89,7 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
   const { user } = useAuth();
   const { theme, isNewTheme } = useTheme();
   const colors = theme.colors;
+  const themedStyles = getThemedStyles(colors, isNewTheme);
   const [individualChats, setIndividualChats] = useState<IndividualChat[]>([]);
   const [podChats, setPodChats] = useState<PodChatItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -390,8 +392,8 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
           key={`dm-${chat.partnerId}`}
           style={[
             styles.chatCard,
-            { backgroundColor: isNewTheme ? colors.surface : legacyColors.white, borderBottomColor: colors.border },
-            isSelected && { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.primaryLight, borderLeftWidth: 3, borderLeftColor: colors.primary }
+            themedStyles.listItem,
+            isSelected && { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.primaryLight, borderLeftWidth: 3, borderLeftColor: themedStyles.accentIconColor }
           ]}
           onPress={() => selectChat(chat)}
           activeOpacity={0.7}
@@ -403,31 +405,31 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
                 style={styles.avatar}
               />
             ) : (
-              <View style={[styles.avatarPlaceholder, styles.dmAvatar]}>
-                <Text style={styles.avatarText}>
+              <View style={[styles.avatarPlaceholder, themedStyles.avatar, { width: 52, height: 52, borderRadius: 26 }]}>
+                <Text style={[styles.avatarText, themedStyles.avatarText]}>
                   {(chat.partnerProfile?.name || chat.partnerEmail || '?')[0].toUpperCase()}
                 </Text>
               </View>
             )}
-            {hasUnread && <View style={styles.onlineIndicator} />}
+            {hasUnread && <View style={[styles.onlineIndicator, { backgroundColor: themedStyles.accentIconColor, borderColor: isNewTheme ? colors.surface : legacyColors.white }]} />}
           </View>
 
           <View style={styles.chatInfo}>
             <View style={styles.chatHeader}>
-              <Text style={[styles.chatName, { color: colors.textPrimary }, hasUnread && styles.chatNameUnread]} numberOfLines={1}>
+              <Text style={[styles.chatName, themedStyles.listItemTitle, hasUnread && styles.chatNameUnread]} numberOfLines={1}>
                 {chat.partnerProfile?.name || chat.partnerEmail || 'User'}
               </Text>
-              <Text style={[styles.chatTime, { color: colors.textTertiary }, hasUnread && { color: colors.primary }]}>
+              <Text style={[styles.chatTime, themedStyles.textTertiary, hasUnread && { color: themedStyles.accentIconColor }]}>
                 {formatTime(chat.lastMessageTime)}
               </Text>
             </View>
             <View style={styles.chatPreviewRow}>
-              <Text style={[styles.chatPreview, { color: colors.textSecondary }, hasUnread && { color: colors.textPrimary }]} numberOfLines={1}>
+              <Text style={[styles.chatPreview, themedStyles.listItemSubtitle, hasUnread && { color: colors.textPrimary }]} numberOfLines={1}>
                 {chat.lastMessage || 'Start a conversation'}
               </Text>
               {hasUnread && (
-                <View style={[styles.unreadBadge, { backgroundColor: colors.primary }]}>
-                  <Text style={styles.unreadBadgeText}>{chat.unreadCount}</Text>
+                <View style={[styles.unreadBadge, themedStyles.badge, { minWidth: 22, height: 22, borderRadius: 11 }]}>
+                  <Text style={[styles.unreadBadgeText, themedStyles.badgeText]}>{chat.unreadCount}</Text>
                 </View>
               )}
             </View>
@@ -441,8 +443,8 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
           key={`pod-${chat.pursuit_id}`}
           style={[
             styles.chatCard,
-            { backgroundColor: isNewTheme ? colors.surface : legacyColors.white, borderBottomColor: colors.border },
-            isSelected && { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.primaryLight, borderLeftWidth: 3, borderLeftColor: colors.primary }
+            themedStyles.listItem,
+            isSelected && { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.primaryLight, borderLeftWidth: 3, borderLeftColor: themedStyles.accentIconColor }
           ]}
           onPress={() => selectChat(chat)}
           activeOpacity={0.7}
@@ -456,30 +458,30 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
             ) : (
               <PodMemberCollage members={chat.members || []} size={52} />
             )}
-            {hasUnread && <View style={styles.onlineIndicator} />}
+            {hasUnread && <View style={[styles.onlineIndicator, { backgroundColor: themedStyles.accentIconColor, borderColor: isNewTheme ? colors.surface : legacyColors.white }]} />}
           </View>
 
           <View style={styles.chatInfo}>
             <View style={styles.chatHeader}>
               <View style={styles.chatNameRow}>
-                <Text style={[styles.chatName, { color: colors.textPrimary }, hasUnread && styles.chatNameUnread]} numberOfLines={1}>
+                <Text style={[styles.chatName, themedStyles.listItemTitle, hasUnread && styles.chatNameUnread]} numberOfLines={1}>
                   {chat.custom_name || chat.pursuit_title}
                 </Text>
-                <View style={[styles.podBadge, { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.primaryLight }]}>
-                  <Text style={[styles.podBadgeText, { color: colors.primary }]}>Pod</Text>
+                <View style={[styles.podBadge, themedStyles.tag]}>
+                  <Text style={[styles.podBadgeText, themedStyles.tagText]}>Pod</Text>
                 </View>
               </View>
-              <Text style={[styles.chatTime, { color: colors.textTertiary }, hasUnread && { color: colors.primary }]}>
+              <Text style={[styles.chatTime, themedStyles.textTertiary, hasUnread && { color: themedStyles.accentIconColor }]}>
                 {formatTime(chat.last_message_time)}
               </Text>
             </View>
             <View style={styles.chatPreviewRow}>
-              <Text style={[styles.chatPreview, { color: colors.textSecondary }, hasUnread && { color: colors.textPrimary }]} numberOfLines={1}>
+              <Text style={[styles.chatPreview, themedStyles.listItemSubtitle, hasUnread && { color: colors.textPrimary }]} numberOfLines={1}>
                 {chat.last_message || 'No messages yet'}
               </Text>
               {hasUnread && (
-                <View style={[styles.unreadBadge, { backgroundColor: colors.primary }]}>
-                  <Text style={styles.unreadBadgeText}>{chat.unread_count}</Text>
+                <View style={[styles.unreadBadge, themedStyles.badge, { minWidth: 22, height: 22, borderRadius: 11 }]}>
+                  <Text style={[styles.unreadBadgeText, themedStyles.badgeText]}>{chat.unread_count}</Text>
                 </View>
               )}
             </View>
@@ -491,12 +493,12 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
 
   if (loading) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+      <View style={[styles.loadingContainer, themedStyles.container]}>
         <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         {isNewTheme && <GrainTexture opacity={0.06} />}
         <View style={styles.loadingContent}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading conversations...</Text>
+          <ActivityIndicator size="large" color={themedStyles.refreshColor} />
+          <Text style={[styles.loadingText, themedStyles.textSecondary]}>Loading conversations...</Text>
         </View>
       </View>
     );
@@ -504,23 +506,23 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
 
   if (!selectedChat && individualChats.length === 0 && podChats.length === 0) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.container, themedStyles.container]}>
         <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         {isNewTheme && <GrainTexture opacity={0.06} />}
-        <View style={[styles.header, { backgroundColor: isNewTheme ? colors.surface : legacyColors.white }]}>
+        <View style={[styles.header, themedStyles.header]}>
           <View style={styles.headerTop}>
             <View>
-              <Text style={[styles.headerGreeting, { color: colors.textSecondary }]}>Your conversations</Text>
-              <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Chats</Text>
+              <Text style={[styles.headerGreeting, themedStyles.headerSubtitle]}>Your conversations</Text>
+              <Text style={[styles.headerTitle, themedStyles.headerTitle]}>Conversations</Text>
             </View>
           </View>
         </View>
         <View style={styles.emptyContainer}>
-          <View style={[styles.emptyIconContainer, { backgroundColor: isNewTheme ? colors.surface : legacyColors.backgroundSecondary }]}>
-            <Ionicons name="chatbubbles-outline" size={48} color={colors.textTertiary} />
+          <View style={[styles.emptyIconContainer, themedStyles.surfaceAlt]}>
+            <Ionicons name="chatbubbles-outline" size={48} color={themedStyles.accentIconColor} />
           </View>
-          <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>No conversations yet</Text>
-          <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
+          <Text style={[styles.emptyTitle, themedStyles.emptyText]}>No conversations yet</Text>
+          <Text style={[styles.emptySubtitle, themedStyles.emptySubtext]}>
             Start chatting with team members or join a pod to access group chats
           </Text>
         </View>
@@ -533,7 +535,7 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.background }]}
+      style={[styles.container, themedStyles.container]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={0}
     >
@@ -552,12 +554,12 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
 
       {/* Sidebar */}
       <Animated.View
-        style={[styles.sidebar, { transform: [{ translateX: sidebarTranslateX }], backgroundColor: isNewTheme ? colors.surface : legacyColors.white }]}
+        style={[styles.sidebar, { transform: [{ translateX: sidebarTranslateX }] }, themedStyles.surface]}
       >
         <View style={[styles.sidebarHeader, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.sidebarTitle, { fontFamily: 'NothingYouCouldDo_400Regular', color: isNewTheme ? colors.primary : colors.textPrimary }]}>Conversations</Text>
-          <TouchableOpacity onPress={toggleSidebar} style={[styles.sidebarCloseBtn, { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.backgroundSecondary }]}>
-            <Ionicons name="close" size={24} color={colors.textSecondary} />
+          <Text style={[styles.sidebarTitle, themedStyles.headerTitle]}>Conversations</Text>
+          <TouchableOpacity onPress={toggleSidebar} style={[styles.sidebarCloseBtn, themedStyles.iconContainer]}>
+            <Ionicons name="close" size={24} color={themedStyles.accentIconColor} />
           </TouchableOpacity>
         </View>
 
@@ -568,15 +570,15 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
               key={tab}
               style={[
                 styles.sidebarTab,
-                { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.backgroundSecondary },
-                activeTab === tab && { backgroundColor: colors.primary }
+                themedStyles.surfaceAlt,
+                activeTab === tab && { backgroundColor: themedStyles.accentIconColor }
               ]}
               onPress={() => setActiveTab(tab)}
             >
               <Text style={[
                 styles.sidebarTabText,
-                { color: colors.textSecondary },
-                activeTab === tab && { color: legacyColors.white }
+                themedStyles.textSecondary,
+                activeTab === tab && { color: isNewTheme ? colors.background : legacyColors.white }
               ]}>
                 {tab === 'all' ? 'All' : tab === 'direct' ? 'Direct' : 'Pods'}
               </Text>
@@ -587,8 +589,8 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
         <ScrollView style={styles.sidebarScroll} showsVerticalScrollIndicator={false}>
           {filteredChats.length === 0 ? (
             <View style={styles.sidebarEmpty}>
-              <Ionicons name="chatbubble-outline" size={32} color={colors.textTertiary} />
-              <Text style={[styles.sidebarEmptyText, { color: colors.textTertiary }]}>No conversations</Text>
+              <Ionicons name="chatbubble-outline" size={32} color={themedStyles.accentIconColor} />
+              <Text style={[styles.sidebarEmptyText, themedStyles.emptySubtext]}>No conversations</Text>
             </View>
           ) : (
             filteredChats.map(chat => renderChatCard(chat))
@@ -631,18 +633,18 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
             />
           )
         ) : (
-          <View style={[styles.noChatSelected, { backgroundColor: colors.background }]}>
+          <View style={[styles.noChatSelected, themedStyles.container]}>
             <View style={styles.noChatContent}>
-              <View style={[styles.noChatIconContainer, { backgroundColor: isNewTheme ? colors.surface : legacyColors.primaryLight }]}>
-                <Ionicons name="chatbubbles" size={40} color={colors.primary} />
+              <View style={[styles.noChatIconContainer, themedStyles.surfaceAlt]}>
+                <Ionicons name="chatbubbles" size={40} color={themedStyles.accentIconColor} />
               </View>
-              <Text style={[styles.noChatTitle, { color: colors.textPrimary }]}>Select a conversation</Text>
-              <Text style={[styles.noChatSubtitle, { color: colors.textSecondary }]}>
+              <Text style={[styles.noChatTitle, themedStyles.emptyText]}>Select a conversation</Text>
+              <Text style={[styles.noChatSubtitle, themedStyles.emptySubtext]}>
                 Choose from your existing chats or start a new conversation
               </Text>
-              <TouchableOpacity style={[styles.openSidebarButton, { backgroundColor: colors.primary }]} onPress={toggleSidebar}>
-                <Ionicons name="menu" size={20} color={legacyColors.white} />
-                <Text style={styles.openSidebarButtonText}>View All Chats</Text>
+              <TouchableOpacity style={[styles.openSidebarButton, themedStyles.buttonPrimary]} onPress={toggleSidebar}>
+                <Ionicons name="menu" size={20} color={isNewTheme ? colors.background : legacyColors.white} />
+                <Text style={[styles.openSidebarButtonText, themedStyles.buttonPrimaryText]}>View All Chats</Text>
               </TouchableOpacity>
             </View>
           </View>
