@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   StatusBar,
+  Dimensions,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,7 +27,8 @@ import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
 
-const SIDEBAR_WIDTH = 320;
+// Sidebar width is 90% of screen width for the drawer
+const SIDEBAR_WIDTH = Dimensions.get('window').width * 0.9;
 const LAST_CHAT_KEY = 'whale_pod_last_chat';
 
 // Track locally-read chats at module level so they persist across component remounts
@@ -113,41 +115,8 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
     };
   }, [navigation]);
 
-  useEffect(() => {
-    if (!loading && !hasAutoSelected.current && (individualChats.length > 0 || podChats.length > 0)) {
-      hasAutoSelected.current = true;
-      autoSelectChat();
-    }
-  }, [loading, individualChats, podChats]);
-
-  const autoSelectChat = async () => {
-    try {
-      const lastChatStr = await AsyncStorage.getItem(LAST_CHAT_KEY);
-      if (lastChatStr) {
-        const lastChat = JSON.parse(lastChatStr);
-        if (lastChat.type === 'individual') {
-          const found = individualChats.find(c => c.partnerId === lastChat.partnerId);
-          if (found) {
-            setSelectedChat(found);
-            return;
-          }
-        } else if (lastChat.type === 'pod') {
-          const found = podChats.find(c => c.pursuit_id === lastChat.pursuit_id);
-          if (found) {
-            setSelectedChat(found);
-            return;
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error loading last chat:', error);
-    }
-
-    const allChats = getAllChats();
-    if (allChats.length > 0) {
-      setSelectedChat(allChats[0]);
-    }
-  };
+  // Removed auto-select behavior - conversations list is now the default view
+  // Users must explicitly select a chat to view it
 
   const loadAllChats = async () => {
     if (!user) return;
@@ -504,35 +473,75 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
     );
   }
 
-  if (!selectedChat && individualChats.length === 0 && podChats.length === 0) {
+  const filteredChats = getFilteredChats();
+  const totalUnread = getTotalUnreadCount();
+
+  // If no chat is selected, show the full-screen conversations list
+  if (!selectedChat) {
     return (
       <View style={[styles.container, themedStyles.container]}>
         <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         {isNewTheme && <GrainTexture opacity={0.06} />}
+
+        {/* Full-screen header */}
         <View style={[styles.header, themedStyles.header]}>
           <View style={styles.headerTop}>
             <View>
               <Text style={[styles.headerGreeting, themedStyles.headerSubtitle]}>Your conversations</Text>
-              <Text style={[styles.headerTitle, themedStyles.headerTitle]}>Conversations</Text>
+              <Text style={[styles.headerTitle, themedStyles.headerTitle]}>Chats</Text>
             </View>
+            {totalUnread > 0 && (
+              <View style={[styles.headerBadge, themedStyles.badge]}>
+                <Text style={[styles.headerBadgeText, themedStyles.badgeText]}>{totalUnread}</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Filter Tabs */}
+          <View style={styles.filterTabs}>
+            {(['all', 'direct', 'pods'] as FilterTab[]).map((tab) => (
+              <TouchableOpacity
+                key={tab}
+                style={[
+                  styles.filterTab,
+                  themedStyles.surfaceAlt,
+                  activeTab === tab && { backgroundColor: themedStyles.accentIconColor }
+                ]}
+                onPress={() => setActiveTab(tab)}
+              >
+                <Text style={[
+                  styles.filterTabText,
+                  themedStyles.textSecondary,
+                  activeTab === tab && { color: isNewTheme ? colors.background : legacyColors.white }
+                ]}>
+                  {tab === 'all' ? 'All' : tab === 'direct' ? 'Direct' : 'Pods'}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
-        <View style={styles.emptyContainer}>
-          <View style={[styles.emptyIconContainer, themedStyles.surfaceAlt]}>
-            <Ionicons name="chatbubbles-outline" size={48} color={themedStyles.accentIconColor} />
+
+        {/* Conversations List */}
+        {filteredChats.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <View style={[styles.emptyIconContainer, themedStyles.surfaceAlt]}>
+              <Ionicons name="chatbubbles-outline" size={48} color={themedStyles.accentIconColor} />
+            </View>
+            <Text style={[styles.emptyTitle, themedStyles.emptyText]}>No conversations yet</Text>
+            <Text style={[styles.emptySubtitle, themedStyles.emptySubtext]}>
+              Start chatting with team members or join a pod to access group chats
+            </Text>
           </View>
-          <Text style={[styles.emptyTitle, themedStyles.emptyText]}>No conversations yet</Text>
-          <Text style={[styles.emptySubtitle, themedStyles.emptySubtext]}>
-            Start chatting with team members or join a pod to access group chats
-          </Text>
-        </View>
+        ) : (
+          <ScrollView style={styles.conversationsList} showsVerticalScrollIndicator={false}>
+            {filteredChats.map(chat => renderChatCard(chat))}
+          </ScrollView>
+        )}
       </View>
     );
   }
 
-  const filteredChats = getFilteredChats();
-  const totalUnread = getTotalUnreadCount();
-
+  // When a chat is selected, show the chat with sidebar drawer functionality
   return (
     <KeyboardAvoidingView
       style={[styles.container, themedStyles.container]}
@@ -541,7 +550,8 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
     >
       <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       {isNewTheme && <GrainTexture opacity={0.06} />}
-      {/* Sidebar Overlay */}
+
+      {/* Sidebar Overlay - only when in a chat */}
       {sidebarOpen && (
         <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
           <TouchableOpacity
@@ -552,7 +562,7 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
         </Animated.View>
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar Drawer - 90% width when switching chats */}
       <Animated.View
         style={[styles.sidebar, { transform: [{ translateX: sidebarTranslateX }] }, themedStyles.surface]}
       >
@@ -600,54 +610,36 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
 
       {/* Main Chat Area */}
       <View style={styles.chatArea}>
-        {selectedChat ? (
-          selectedChat.type === 'individual' ? (
-            <ChatScreen
-              partnerId={(selectedChat as IndividualChat).partnerId}
-              partnerEmail={(selectedChat as IndividualChat).partnerEmail || ''}
-              navigation={navigation}
-              onBack={toggleSidebar}
-              showMenuButton={true}
-              onMenuPress={toggleSidebar}
-              onDelete={() => deleteChat(selectedChat)}
-            />
-          ) : (
-            <PodChatScreen
-              pursuitId={(selectedChat as PodChatItem).pursuit_id}
-              pursuitTitle={(selectedChat as PodChatItem).pursuit_title}
-              customName={(selectedChat as PodChatItem).custom_name}
-              podPicture={(selectedChat as PodChatItem).default_picture}
-              onBack={toggleSidebar}
-              onNameChanged={(newName) => {
-                setPodChats(prev =>
-                  prev.map(c => c.pursuit_id === (selectedChat as PodChatItem).pursuit_id
-                    ? { ...c, custom_name: newName }
-                    : c
-                  )
-                );
-              }}
-              navigation={navigation}
-              showMenuButton={true}
-              onMenuPress={toggleSidebar}
-              onDelete={() => deleteChat(selectedChat)}
-            />
-          )
+        {selectedChat.type === 'individual' ? (
+          <ChatScreen
+            partnerId={(selectedChat as IndividualChat).partnerId}
+            partnerEmail={(selectedChat as IndividualChat).partnerEmail || ''}
+            navigation={navigation}
+            onBack={() => setSelectedChat(null)}
+            showMenuButton={true}
+            onMenuPress={toggleSidebar}
+            onDelete={() => deleteChat(selectedChat)}
+          />
         ) : (
-          <View style={[styles.noChatSelected, themedStyles.container]}>
-            <View style={styles.noChatContent}>
-              <View style={[styles.noChatIconContainer, themedStyles.surfaceAlt]}>
-                <Ionicons name="chatbubbles" size={40} color={themedStyles.accentIconColor} />
-              </View>
-              <Text style={[styles.noChatTitle, themedStyles.emptyText]}>Select a conversation</Text>
-              <Text style={[styles.noChatSubtitle, themedStyles.emptySubtext]}>
-                Choose from your existing chats or start a new conversation
-              </Text>
-              <TouchableOpacity style={[styles.openSidebarButton, themedStyles.buttonPrimary]} onPress={toggleSidebar}>
-                <Ionicons name="menu" size={20} color={isNewTheme ? colors.background : legacyColors.white} />
-                <Text style={[styles.openSidebarButtonText, themedStyles.buttonPrimaryText]}>View All Chats</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+          <PodChatScreen
+            pursuitId={(selectedChat as PodChatItem).pursuit_id}
+            pursuitTitle={(selectedChat as PodChatItem).pursuit_title}
+            customName={(selectedChat as PodChatItem).custom_name}
+            podPicture={(selectedChat as PodChatItem).default_picture}
+            onBack={() => setSelectedChat(null)}
+            onNameChanged={(newName) => {
+              setPodChats(prev =>
+                prev.map(c => c.pursuit_id === (selectedChat as PodChatItem).pursuit_id
+                  ? { ...c, custom_name: newName }
+                  : c
+                )
+              );
+            }}
+            navigation={navigation}
+            showMenuButton={true}
+            onMenuPress={toggleSidebar}
+            onDelete={() => deleteChat(selectedChat)}
+          />
         )}
       </View>
     </KeyboardAvoidingView>
@@ -700,6 +692,40 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize['3xl'],
     fontWeight: typography.fontWeight.bold,
     color: legacyColors.textPrimary,
+  },
+  headerBadge: {
+    minWidth: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.sm,
+  },
+  headerBadgeText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.bold,
+  },
+
+  // Filter Tabs (full-screen view)
+  filterTabs: {
+    flexDirection: 'row',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.base,
+    gap: spacing.sm,
+  },
+  filterTab: {
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+  },
+  filterTabText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.medium,
+  },
+
+  // Conversations List (full-screen view)
+  conversationsList: {
+    flex: 1,
   },
 
   // Sidebar
