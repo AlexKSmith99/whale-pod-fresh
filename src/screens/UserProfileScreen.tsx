@@ -270,7 +270,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
           <View style={[styles.privateInfoBox, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
             <Ionicons name="shield-checkmark" size={32} color={colors.textSecondary} />
             <Text style={[styles.privateTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Private Profile</Text>
-            <Text style={[styles.privateDescription, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+            <Text style={[styles.privateDescription, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
               This user has restricted access to their profile. Connect with them to see more.
             </Text>
           </View>
@@ -291,7 +291,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
     <View style={[styles.lockedSection, { backgroundColor: colors.surfaceAlt }]}>
       <Ionicons name="lock-closed" size={40} color={colors.textTertiary} />
       <Text style={[styles.lockedTitle, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{title}</Text>
-      <Text style={[styles.lockedDescription, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>This section is private.</Text>
+      <Text style={[styles.lockedDescription, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>This section is private.</Text>
     </View>
   );
 
@@ -372,7 +372,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
           <View style={styles.noReviews}>
             <Ionicons name="star-outline" size={48} color={colors.textTertiary} />
             <Text style={[styles.noReviewsText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>No reviews yet</Text>
-            <Text style={[styles.noReviewsSubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+            <Text style={[styles.noReviewsSubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
               Reviews will appear here after teammates share their feedback
             </Text>
           </View>
@@ -417,7 +417,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
                   </Text>
                 </View>
 
-                <Text style={[styles.reviewDescription, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{review.description}</Text>
+                <Text style={[styles.reviewDescription, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>{review.description}</Text>
 
                 {/* Rating Pills */}
                 <View style={styles.ratingPills}>
@@ -455,7 +455,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
           <View style={styles.noPods}>
             <Ionicons name="people-outline" size={48} color={colors.textTertiary} />
             <Text style={[styles.noPodsText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>No pods yet</Text>
-            <Text style={[styles.noPodsSubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+            <Text style={[styles.noPodsSubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
               This user has not joined any pods yet.
             </Text>
           </View>
@@ -567,7 +567,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
           {profile?.name || 'Name not set'}
         </Text>
 
-        {profile?.bio && <Text style={[styles.bio, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{profile.bio}</Text>}
+        {profile?.bio && <Text style={[styles.bio, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>{profile.bio}</Text>}
       </View>
 
       <View style={styles.actionButtons}>
@@ -665,7 +665,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
           {profile?.bio && (
             <View style={[styles.section, { backgroundColor: colors.surface }]}>
               <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Bio</Text>
-              <Text style={[styles.bioText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{profile.bio}</Text>
+              <Text style={[styles.bioText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>{profile.bio}</Text>
             </View>
           )}
 
@@ -689,12 +689,12 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
             <View style={[styles.lockedSection, { backgroundColor: colors.surfaceAlt }]}>
               <Ionicons name="lock-closed" size={48} color={colors.textTertiary} />
               <Text style={[styles.lockedTitle, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Connections</Text>
-              <Text style={[styles.lockedDescription, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>This section is private.</Text>
+              <Text style={[styles.lockedDescription, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>This section is private.</Text>
             </View>
           ) : connectionsLoading ? (
             <View style={styles.emptyState}>
               <ActivityIndicator size="large" color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
-              <Text style={[styles.emptyHint, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Loading connections...</Text>
+              <Text style={[styles.emptyHint, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>Loading connections...</Text>
             </View>
           ) : userConnections.length === 0 ? (
             <View style={styles.emptyState}>
@@ -758,7 +758,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
                   <View style={styles.connectionInfo}>
                     <Text style={[styles.connectionName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{conn.profile?.name || 'Unknown'}</Text>
                     {conn.profile?.bio && (
-                      <Text style={[styles.connectionBio, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]} numberOfLines={1}>{conn.profile.bio}</Text>
+                      <Text style={[styles.connectionBio, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]} numberOfLines={1}>{conn.profile.bio}</Text>
                     )}
                   </View>
                   <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
@@ -773,7 +773,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
               }).length === 0 && (
                 <View style={styles.emptyState}>
                   <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>No matches found</Text>
-                  <Text style={[styles.emptyHint, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Try a different search term</Text>
+                  <Text style={[styles.emptyHint, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>Try a different search term</Text>
                 </View>
               )}
             </ScrollView>

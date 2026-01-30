@@ -317,14 +317,14 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
         <View style={styles.content}>
           <View style={[styles.introSection, { backgroundColor: isNewTheme ? colors.warningLight : legacyColors.warningLight }]}>
             <Text style={[styles.pursuitTitle, { color: colors.warning, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{pursuitTitle}</Text>
-            <Text style={[styles.introText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+            <Text style={[styles.introText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
               Review all time proposals from your team members and select the final meeting time.
             </Text>
-            <Text style={[styles.statsText, { color: colors.warning, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+            <Text style={[styles.statsText, { color: colors.warning, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
               {proposals.length}/{teamMembersCount} team member{teamMembersCount !== 1 ? 's' : ''} submitted proposals
             </Text>
             {proposals.length < teamMembersCount && (
-              <Text style={[styles.warningText, { color: colors.error, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+              <Text style={[styles.warningText, { color: colors.error, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
                 Waiting for {teamMembersCount - proposals.length} more team member{teamMembersCount - proposals.length !== 1 ? 's' : ''} to submit
               </Text>
             )}
@@ -351,8 +351,8 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
           {Object.keys(groupedTimeSlots).length === 0 ? (
             <View style={[styles.emptyState, { backgroundColor: colors.surface }]}>
               <Ionicons name="time-outline" size={48} color={colors.textTertiary} />
-              <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>No proposals yet</Text>
-              <Text style={[styles.emptySubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Waiting for team members to submit their availability</Text>
+              <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>No proposals yet</Text>
+              <Text style={[styles.emptySubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>Waiting for team members to submit their availability</Text>
             </View>
           ) : (
             Object.keys(groupedTimeSlots).sort().map((date) => (
@@ -401,7 +401,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                           ))}
                         </View>
                         {slots.length > 1 && (
-                          <Text style={[styles.overlapText, { color: colors.success, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                          <Text style={[styles.overlapText, { color: colors.success, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
                             {slots.length} members available
                           </Text>
                         )}
@@ -441,7 +441,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                 ]}>
                   Schedule for a different time
                 </Text>
-                <Text style={[styles.customTimeSubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                <Text style={[styles.customTimeSubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
                   Choose your own date and time
                 </Text>
               </View>

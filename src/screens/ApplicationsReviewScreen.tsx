@@ -253,7 +253,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
           {applications.length === 0 ? (
             <View style={styles.empty}>
               <Text style={styles.emptyEmoji}>📭</Text>
-              <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>No applications yet</Text>
+              <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>No applications yet</Text>
             </View>
           ) : (
             <>
@@ -282,17 +282,17 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
                           </Text>
                           {app.status === 'interview_pending' && (
                             <View style={[styles.interviewStatusBadge, { backgroundColor: isNewTheme ? colors.primaryLight : '#f3e8ff' }]}>
-                              <Text style={[styles.interviewStatusText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>⏳ Awaiting time proposals</Text>
+                              <Text style={[styles.interviewStatusText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>⏳ Awaiting time proposals</Text>
                             </View>
                           )}
                           {app.status === 'interview_times_submitted' && (
                             <View style={[styles.interviewStatusBadge, styles.interviewStatusReview, { backgroundColor: isNewTheme ? colors.warningLight : '#fef3c7' }]}>
-                              <Text style={[styles.interviewStatusText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>📅 Times proposed - review needed</Text>
+                              <Text style={[styles.interviewStatusText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>📅 Times proposed - review needed</Text>
                             </View>
                           )}
                           {app.status === 'interview_scheduled' && (
                             <View style={[styles.interviewStatusBadge, styles.interviewStatusScheduled, { backgroundColor: isNewTheme ? colors.successLight : '#d1fae5' }]}>
-                              <Text style={[styles.interviewStatusText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>✓ Interview scheduled</Text>
+                              <Text style={[styles.interviewStatusText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>✓ Interview scheduled</Text>
                             </View>
                           )}
                           <Text style={[styles.viewProfileLink, { color: isNewTheme ? colors.accentGreen : '#0ea5e9', fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>View profile →</Text>
@@ -303,7 +303,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
                         {app.answers.map((answer: any, index: number) => (
                           <View key={index} style={styles.answerBlock}>
                             <Text style={[styles.answerQuestion, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{answer.question}</Text>
-                            <Text style={[styles.answerText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{answer.answer}</Text>
+                            <Text style={[styles.answerText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>{answer.answer}</Text>
                           </View>
                         ))}
                       </View>
@@ -319,7 +319,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
                           </View>
                           <View style={styles.resumeInfo}>
                             <Text style={[styles.resumeLabel, { color: accentPurple, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined }]}>📎 Resume Attached</Text>
-                            <Text style={[styles.resumeFilename, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]} numberOfLines={1}>
+                            <Text style={[styles.resumeFilename, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]} numberOfLines={1}>
                               {app.resume_filename || 'View Resume'}
                             </Text>
                           </View>
@@ -426,7 +426,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
                           {app.answers.map((answer: any, index: number) => (
                             <View key={index} style={styles.answerBlock}>
                               <Text style={[styles.answerQuestion, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{answer.question}</Text>
-                              <Text style={[styles.answerText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{answer.answer}</Text>
+                              <Text style={[styles.answerText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>{answer.answer}</Text>
                             </View>
                           ))}
                           {/* Resume Attachment for reviewed apps */}
@@ -440,7 +440,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
                               </View>
                               <View style={styles.resumeInfo}>
                                 <Text style={[styles.resumeLabel, { color: accentPurple, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined }]}>📎 Resume Attached</Text>
-                                <Text style={[styles.resumeFilename, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]} numberOfLines={1}>
+                                <Text style={[styles.resumeFilename, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]} numberOfLines={1}>
                                   {app.resume_filename || 'View Resume'}
                                 </Text>
                               </View>

@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useFonts, NothingYouCouldDo_400Regular } from '@expo-google-fonts/nothing-you-could-do';
 import { JuliusSansOne_400Regular } from '@expo-google-fonts/julius-sans-one';
 import { Aboreto_400Regular } from '@expo-google-fonts/aboreto';
+import { Magra_400Regular, Magra_700Bold } from '@expo-google-fonts/magra';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { ThemeProvider } from './src/theme/ThemeContext';
 import { notificationService } from './src/services/notificationService';
@@ -1499,6 +1500,8 @@ export default function App() {
     NothingYouCouldDo_400Regular,
     JuliusSansOne_400Regular,
     Aboreto_400Regular,
+    Magra_400Regular,
+    Magra_700Bold,
   });
 
   // Show loading while fonts load

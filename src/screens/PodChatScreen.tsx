@@ -275,7 +275,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
         {/* Time separator - shown when 1+ hour gap */}
         {showTimeSeparator && (
           <View style={styles.timeSeparator}>
-            <Text style={[styles.timeSeparatorText, { color: colors.textTertiary, backgroundColor: colors.surfaceAlt, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+            <Text style={[styles.timeSeparatorText, { color: colors.textTertiary, backgroundColor: colors.surfaceAlt, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
               {formatTimeSeparator(item.created_at)}
             </Text>
           </View>
@@ -304,7 +304,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
                     onPress={() => setExpandedMessageId(expandedMessageId === item.id ? null : item.id)}
                     style={[styles.messageBubble, styles.myMessageBubble, { backgroundColor: isNewTheme ? colors.accentGreen : '#8b5cf6' }]}
                   >
-                    <Text style={[styles.messageText, styles.myMessageText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{item.content}</Text>
+                    <Text style={[styles.messageText, styles.myMessageText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>{item.content}</Text>
                   </TouchableOpacity>
                   {expandedMessageId === item.id && (
                     <Text style={[styles.expandedTimestamp, styles.expandedTimestampRight, { color: colors.textTertiary }]}>
@@ -337,7 +337,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
                     onPress={() => setExpandedMessageId(expandedMessageId === item.id ? null : item.id)}
                     style={[styles.messageBubble, styles.theirMessageBubble, { backgroundColor: colors.surface, borderColor: colors.border }]}
                   >
-                    <Text style={[styles.messageText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{item.content}</Text>
+                    <Text style={[styles.messageText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>{item.content}</Text>
                   </TouchableOpacity>
                   {expandedMessageId === item.id && (
                     <Text style={[styles.expandedTimestamp, styles.expandedTimestampLeft, { color: colors.textTertiary }]}>
@@ -405,10 +405,10 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Ionicons name="chatbubbles-outline" size={48} color={colors.textTertiary} />
-              <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+              <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
                 {loading ? 'Loading...' : 'No messages yet'}
               </Text>
-              <Text style={[styles.emptySubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+              <Text style={[styles.emptySubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
                 Start the conversation!
               </Text>
             </View>
@@ -419,7 +419,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
       {/* Input */}
       <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
         <TextInput
-          style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.background, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}
+          style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.background, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}
           placeholder="Type a message..."
           placeholderTextColor={colors.textTertiary}
           value={newMessage}
@@ -497,7 +497,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
           <View style={[styles.renameModalContainer, { backgroundColor: colors.surface }]}>
             <Text style={[styles.renameModalTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Rename Chat</Text>
             <TextInput
-              style={[styles.renameInput, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.background, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}
+              style={[styles.renameInput, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.background, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}
               value={tempChatName}
               onChangeText={setTempChatName}
               placeholder="Enter new chat name"

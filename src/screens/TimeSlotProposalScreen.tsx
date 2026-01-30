@@ -216,7 +216,7 @@ export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClos
         <View style={styles.content}>
           <View style={[styles.introSection, { backgroundColor: isNewTheme ? colors.primaryLight : legacyColors.primaryLight }]}>
             <Text style={[styles.pursuitTitle, { color: accentColor, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{pursuitTitle}</Text>
-            <Text style={[styles.introText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+            <Text style={[styles.introText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
               The kickoff meeting has been activated! Please propose your available time slots below.
               Your team creator will review all proposals and select the final meeting time.
             </Text>

@@ -275,7 +275,7 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
     messageText: {
       fontSize: typography.fontSize.base,
       color: colors.textPrimary,
-      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'Magra_400Regular' : undefined,
     },
     myMessageText: {
       color: isNewTheme ? colors.background : legacyColors.white,
@@ -291,14 +291,14 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.xs,
       borderRadius: 12,
-      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'Magra_400Regular' : undefined,
     },
     expandedTimestamp: {
       fontSize: 11,
       color: colors.textSecondary,
       marginTop: 4,
       marginBottom: 2,
-      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'Magra_400Regular' : undefined,
     },
     inputContainer: {
       flexDirection: 'row' as const,
@@ -320,7 +320,7 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
       fontSize: typography.fontSize.base,
       backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.white,
       color: colors.textPrimary,
-      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'Magra_400Regular' : undefined,
     },
     sendButton: {
       backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary,

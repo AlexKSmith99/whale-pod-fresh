@@ -258,9 +258,9 @@ export default function InterviewSchedulingScreen({
         <View style={styles.content}>
           <View style={[styles.introSection, { backgroundColor: isNewTheme ? colors.primaryLight : '#f3e8ff' }]}>
             <Text style={[styles.pursuitTitle, { color: accentColor, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{pursuitTitle}</Text>
-            <Text style={[styles.applicantLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Interview with:</Text>
+            <Text style={[styles.applicantLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>Interview with:</Text>
             <Text style={[styles.applicantName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{applicantName}</Text>
-            <Text style={[styles.introText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+            <Text style={[styles.introText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
               Review the proposed times below and select when to schedule the interview.
             </Text>
           </View>
@@ -271,8 +271,8 @@ export default function InterviewSchedulingScreen({
           {proposedTimes.length === 0 ? (
             <View style={[styles.emptyState, { backgroundColor: colors.surface }]}>
               <Ionicons name="time-outline" size={48} color={colors.textTertiary} />
-              <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>No times proposed yet</Text>
-              <Text style={[styles.emptySubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>The applicant hasn't submitted their availability</Text>
+              <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>No times proposed yet</Text>
+              <Text style={[styles.emptySubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>The applicant hasn't submitted their availability</Text>
             </View>
           ) : (
             proposedTimes.map((slot, index) => {
@@ -339,7 +339,7 @@ export default function InterviewSchedulingScreen({
                 ]}>
                   Schedule for a different time
                 </Text>
-                <Text style={[styles.customTimeSubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                <Text style={[styles.customTimeSubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
                   Choose your own date and time
                 </Text>
               </View>

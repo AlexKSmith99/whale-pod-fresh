@@ -8,6 +8,7 @@ import { HapticManager } from '../services/hapticManager';
 import GrainTexture from '../components/ui/GrainTexture';
 import PursuitDetailScreen from './PursuitDetailScreen';
 import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+import { useFonts, Magra_400Regular } from '@expo-google-fonts/magra';
 
 // Location suggestions for autocomplete
 const LOCATION_SUGGESTIONS = [
@@ -45,6 +46,9 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
   const { user } = useAuth();
   const { theme, toggleTheme, isNewTheme } = useTheme();
   const colors = theme.colors;
+  const [fontsLoaded] = useFonts({
+    Magra_400Regular,
+  });
   const [pursuits, setPursuits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPursuit, setSelectedPursuit] = useState<any>(null);
@@ -392,7 +396,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
       color: colors.textSecondary,
       lineHeight: typography.fontSize.base * typography.lineHeight.normal,
       marginBottom: spacing.md,
-      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'Magra_400Regular' : undefined,
     },
     filterButton: {
       flexDirection: 'row' as const,

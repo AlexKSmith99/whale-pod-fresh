@@ -757,7 +757,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
 
         <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }]}>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined, textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0 }]}>Description</Text>
-          <Text style={[styles.description, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{pursuit.description}</Text>
+          <Text style={[styles.description, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>{pursuit.description}</Text>
         </View>
 
         <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }]}>
@@ -836,7 +836,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
 
         <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }]}>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined, textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0 }]}>Decision System</Text>
-          <Text style={[styles.detailValue, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+          <Text style={[styles.detailValue, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
             {pursuit.decision_system === 'admin_has_ultimate_say'
               ? 'Admin has full control'
               : pursuit.decision_system.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
@@ -859,10 +859,10 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                 })}
               </Text>
               <View style={styles.nextMeetingDetails}>
-                <Text style={[styles.nextMeetingDetail, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                <Text style={[styles.nextMeetingDetail, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
                   ⏱️ {nextMeeting.duration_minutes} min
                 </Text>
-                <Text style={[styles.nextMeetingDetail, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                <Text style={[styles.nextMeetingDetail, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
                   📍 {nextMeeting.meeting_type === 'video' ? 'Video Call' :
                       nextMeeting.meeting_type === 'in_person' ? 'In Person' : 'Hybrid'}
                 </Text>
@@ -872,7 +872,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                   <Text style={[styles.kickoffBadgeText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined, letterSpacing: isNewTheme ? 0.5 : 0 }]}>🚀 KICKOFF MEETING</Text>
                 </View>
               )}
-              <Text style={[styles.teamBoardPrompt, { color: isNewTheme ? colors.accentGreen : legacyColors.secondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+              <Text style={[styles.teamBoardPrompt, { color: isNewTheme ? colors.accentGreen : legacyColors.secondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
                 💡 Add your thoughts to the Team Board!
               </Text>
             </View>
@@ -909,7 +909,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
             {hasSubmittedProposal ? (
               <View style={[styles.proposalSubmittedBadge, { backgroundColor: isNewTheme ? 'rgba(168, 230, 163, 0.15)' : '#e0f2fe', borderColor: isNewTheme ? colors.accentGreen : legacyColors.secondary }]}>
                 <Text style={[styles.proposalSubmittedText, { color: isNewTheme ? colors.accentGreen : legacyColors.secondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>✓ Time Proposals Submitted</Text>
-                <Text style={[styles.proposalSubmittedSubtext, { color: isNewTheme ? colors.accentGreenMuted : '#0369a1', fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                <Text style={[styles.proposalSubmittedSubtext, { color: isNewTheme ? colors.accentGreenMuted : '#0369a1', fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
                   Waiting for team creator to select final time
                 </Text>
               </View>
@@ -1086,7 +1086,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                   </Text>
 
                   <Text style={[styles.removalLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Reason for Removal</Text>
-                  <Text style={[styles.removalSubLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                  <Text style={[styles.removalSubLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
                     Please explain why you are removing this member (50 character minimum)
                   </Text>
                   <TextInput
@@ -1117,7 +1117,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                     </View>
                     <Text style={[styles.checkboxLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Share with the member?</Text>
                   </TouchableOpacity>
-                  <Text style={[styles.checkboxHint, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                  <Text style={[styles.checkboxHint, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
                     If checked, the member will receive a notification with your reason
                   </Text>
 
@@ -1191,7 +1191,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                 </Text>
 
                 <Text style={[styles.removalLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Reason for Leaving</Text>
-                <Text style={[styles.removalSubLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                <Text style={[styles.removalSubLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
                   Please explain why you are leaving this pod (50 character minimum)
                 </Text>
                 <TextInput
@@ -1222,7 +1222,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                   </View>
                   <Text style={[styles.checkboxLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Share with the leader?</Text>
                 </TouchableOpacity>
-                <Text style={[styles.checkboxHint, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                <Text style={[styles.checkboxHint, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
                   If checked, the pod creator will receive a notification with your reason
                 </Text>
 

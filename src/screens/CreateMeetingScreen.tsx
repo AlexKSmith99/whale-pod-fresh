@@ -290,7 +290,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
           {/* Title */}
           <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Meeting Title *</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}
             placeholder="e.g., Weekly Standup"
             placeholderTextColor={colors.textTertiary}
             value={title}
@@ -347,7 +347,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
           {/* Description */}
           <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Description (optional)</Text>
           <TextInput
-            style={[styles.input, styles.textArea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}
+            style={[styles.input, styles.textArea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}
             placeholder="Add meeting details..."
             placeholderTextColor={colors.textTertiary}
             value={description}
@@ -377,7 +377,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
             <>
               <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Location *</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}
+                style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}
                 placeholder="e.g., Conference Room A"
                 placeholderTextColor={colors.textTertiary}
                 value={location}
@@ -502,7 +502,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
           {/* Duration */}
           <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Duration (minutes)</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}
             placeholder="60"
             placeholderTextColor={colors.textTertiary}
             value={duration}

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Switch, Modal, FlatList, KeyboardAvoidingView, Platform, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFonts, NothingYouCouldDo_400Regular } from '@expo-google-fonts/nothing-you-could-do';
+import { Magra_400Regular } from '@expo-google-fonts/magra';
 import { useAuth } from '../contexts/AuthContext';
 import { pursuitService } from '../services/pursuitService';
 import { colors as legacyColors, typography, spacing } from '../theme/designSystem';
@@ -117,6 +118,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
 
   const [fontsLoaded] = useFonts({
     NothingYouCouldDo_400Regular,
+    Magra_400Regular,
   });
 
   // Basic Info
@@ -455,14 +457,14 @@ export default function CreateScreen({ onClose }: Props = {}) {
       fontSize: 14,
       marginBottom: 12,
       color: colors.textPrimary,
-      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'Magra_400Regular' : undefined,
     },
     hint: {
       fontSize: 12,
       color: colors.textSecondary,
       marginBottom: 8,
       fontStyle: 'italic' as const,
-      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'Magra_400Regular' : undefined,
     },
     charCount: {
       fontSize: 12,
@@ -635,7 +637,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
       fontSize: 13,
       color: colors.textSecondary,
       marginBottom: 12,
-      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'Magra_400Regular' : undefined,
     },
     defaultQuestionsBox: {
       backgroundColor: colors.surface,
@@ -667,7 +669,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
       color: isNewTheme ? colors.accentGreen : '#059669',
       fontWeight: '500' as const,
       marginBottom: 8,
-      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'Magra_400Regular' : undefined,
     },
     selectedTypesContainer: {
       flexDirection: 'row' as const,
@@ -703,7 +705,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
     dropdownButtonText: {
       fontSize: 14,
       color: colors.textSecondary,
-      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'Magra_400Regular' : undefined,
     },
     searchContainer: {
       flexDirection: 'row' as const,
@@ -721,7 +723,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
       paddingVertical: 12,
       fontSize: 14,
       color: colors.textPrimary,
-      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'Magra_400Regular' : undefined,
     },
     selectedCount: {
       fontSize: 12,

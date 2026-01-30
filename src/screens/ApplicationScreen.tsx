@@ -206,7 +206,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
         <View style={styles.content}>
           <View style={[styles.pursuitCard, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#e0f2fe', borderLeftColor: isNewTheme ? colors.accentGreen : '#0ea5e9' }]}>
             <Text style={[styles.pursuitTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{pursuit.title}</Text>
-            <Text style={[styles.pursuitDescription, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]} numberOfLines={2}>
+            <Text style={[styles.pursuitDescription, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]} numberOfLines={2}>
               {pursuit.description}
             </Text>
           </View>
@@ -219,7 +219,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
                 <Text style={[styles.questionNumber, { color: isNewTheme ? colors.accentGreen : '#0ea5e9', fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined }]}>Question {index + 1}</Text>
                 <Text style={[styles.questionText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{question}</Text>
                 <TextInput
-                  style={[styles.answerInput, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#fafafa', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}
+                  style={[styles.answerInput, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#fafafa', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}
                   placeholder="Your answer..."
                   placeholderTextColor={colors.textTertiary}
                   value={answers[index] || ''}
@@ -252,7 +252,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
 
               {!resumeFile ? (
                 <>
-                  <Text style={[styles.resumeInstructions, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                  <Text style={[styles.resumeInstructions, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
                     Upload your resume in PDF or Word format (max 10MB)
                   </Text>
 
@@ -266,7 +266,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
                   </TouchableOpacity>
 
                   <View style={styles.supportedFormats}>
-                    <Text style={[styles.supportedFormatsText, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                    <Text style={[styles.supportedFormatsText, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
                       Supported: PDF, DOC, DOCX
                     </Text>
                   </View>
@@ -284,7 +284,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
                     <View style={styles.fileInfo}>
                       <Text style={[styles.fileName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]} numberOfLines={1}>{resumeFile.name}</Text>
                       {resumeFile.size && (
-                        <Text style={[styles.fileSize, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{formatFileSize(resumeFile.size)}</Text>
+                        <Text style={[styles.fileSize, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>{formatFileSize(resumeFile.size)}</Text>
                       )}
                     </View>
                     <TouchableOpacity
@@ -308,7 +308,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
               {uploadingResume && (
                 <View style={styles.uploadingIndicator}>
                   <ActivityIndicator size="small" color={accentPurple} />
-                  <Text style={[styles.uploadingText, { color: accentPurple, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Uploading resume...</Text>
+                  <Text style={[styles.uploadingText, { color: accentPurple, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>Uploading resume...</Text>
                 </View>
               )}
             </View>
@@ -317,7 +317,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
           {pursuit.requires_interview && (
             <View style={[styles.infoBox, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#eff6ff', borderLeftColor: isNewTheme ? colors.accentGreen : '#0ea5e9' }]}>
               <Text style={styles.infoIcon}>🎤</Text>
-              <Text style={[styles.infoText, { color: isNewTheme ? colors.textSecondary : '#0369a1', fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+              <Text style={[styles.infoText, { color: isNewTheme ? colors.textSecondary : '#0369a1', fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
                 This pursuit requires an interview. You may be contacted for one.
               </Text>
             </View>
