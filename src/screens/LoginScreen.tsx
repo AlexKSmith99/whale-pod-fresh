@@ -13,16 +13,20 @@ import {
   TouchableWithoutFeedback,
   Animated,
   Dimensions,
+  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
-import { colors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+import { useTheme } from '../theme/ThemeContext';
+import { getThemedStyles } from '../theme/themedStyles';
+import GrainTexture from '../components/ui/GrainTexture';
 
 const { height } = Dimensions.get('window');
 
-// Custom colors for login page (white/green/purple theme)
-const loginColors = {
+// Custom colors for login page (white/green/purple theme) - light mode fallback
+const loginColorsLight = {
   accent: '#6366F1',        // Indigo/purple - primary accent
   accentLight: '#EEF2FF',   // Light indigo background
   green: '#10B981',         // Emerald green
@@ -31,7 +35,21 @@ const loginColors = {
   purpleLight: '#EDE9FE',   // Light purple
 };
 
+// Dark mode login colors
+const loginColorsDark = {
+  accent: '#A8E6A3',        // Green accent for dark mode
+  accentLight: 'rgba(168, 230, 163, 0.15)',
+  green: '#A8E6A3',
+  greenLight: 'rgba(168, 230, 163, 0.15)',
+  purple: '#818CF8',
+  purpleLight: 'rgba(129, 140, 248, 0.15)',
+};
+
 export default function LoginScreen() {
+  const { theme, isNewTheme } = useTheme();
+  const colors = theme.colors;
+  const themedStyles = getThemedStyles(colors, isNewTheme);
+  const loginColors = isNewTheme ? loginColorsDark : loginColorsLight;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignup, setIsSignup] = useState(false);
@@ -127,11 +145,13 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: isNewTheme ? colors.background : legacyColors.white }]}>
+      <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={isNewTheme ? colors.background : legacyColors.white} />
+      {isNewTheme && <GrainTexture opacity={0.06} />}
       {/* Decorative circles - white/green/purple theme */}
-      <View style={styles.decorativeCircle1} />
-      <View style={styles.decorativeCircle2} />
-      <View style={styles.decorativeCircle3} />
+      <View style={[styles.decorativeCircle1, { backgroundColor: loginColorsLight.purpleLight }]} />
+      <View style={[styles.decorativeCircle2, { backgroundColor: loginColorsLight.greenLight }]} />
+      <View style={[styles.decorativeCircle3, { backgroundColor: loginColorsLight.accentLight }]} />
 
     <KeyboardAvoidingView
         style={styles.keyboardView}
@@ -154,12 +174,12 @@ export default function LoginScreen() {
               ]}
             >
               <View style={styles.logoContainer}>
-                <View style={styles.logoBadge}>
+                <View style={[styles.logoBadge, { backgroundColor: loginColorsLight.accent }]}>
                   <Text style={styles.logoEmoji}>🐋</Text>
                 </View>
               </View>
-              <Text style={styles.appName}>Whale Pod</Text>
-              <Text style={styles.tagline}>
+              <Text style={[styles.appName, { color: legacyColors.textPrimary }]}>Whale Pod</Text>
+              <Text style={[styles.tagline, { color: legacyColors.textSecondary }]}>
                 {isSignup ? 'Join the community' : 'Welcome back'}
               </Text>
             </Animated.View>
@@ -168,6 +188,7 @@ export default function LoginScreen() {
             <Animated.View
               style={[
                 styles.formSection,
+                { backgroundColor: isNewTheme ? colors.surface : legacyColors.white },
                 {
                   opacity: fadeAnim,
                   transform: [{ translateY: slideAnim }],
@@ -176,11 +197,12 @@ export default function LoginScreen() {
             >
               {/* Email Input */}
               <View style={styles.inputWrapper}>
-                <Text style={styles.inputLabel}>Email</Text>
+                <Text style={[styles.inputLabel, { color: legacyColors.textPrimary }]}>Email</Text>
                 <View
                   style={[
                     styles.inputContainer,
-                    emailFocused && styles.inputContainerFocused,
+                    { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.backgroundSecondary },
+                    emailFocused && [styles.inputContainerFocused, { borderColor: loginColors.accent, backgroundColor: isNewTheme ? colors.surface : legacyColors.white }],
                   ]}
                 >
                   <Ionicons
@@ -190,7 +212,7 @@ export default function LoginScreen() {
                     style={styles.inputIcon}
                   />
           <TextInput
-            style={styles.input}
+            style={[styles.input, { color: legacyColors.textPrimary }]}
                     placeholder="Enter your email"
                     placeholderTextColor={colors.textTertiary}
             value={email}
@@ -206,11 +228,12 @@ export default function LoginScreen() {
 
               {/* Password Input */}
               <View style={styles.inputWrapper}>
-                <Text style={styles.inputLabel}>Password</Text>
+                <Text style={[styles.inputLabel, { color: legacyColors.textPrimary }]}>Password</Text>
                 <View
                   style={[
                     styles.inputContainer,
-                    passwordFocused && styles.inputContainerFocused,
+                    { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.backgroundSecondary },
+                    passwordFocused && [styles.inputContainerFocused, { borderColor: loginColors.accent, backgroundColor: isNewTheme ? colors.surface : legacyColors.white }],
                   ]}
                 >
                   <Ionicons
@@ -220,7 +243,7 @@ export default function LoginScreen() {
                     style={styles.inputIcon}
           />
           <TextInput
-            style={styles.input}
+            style={[styles.input, { color: legacyColors.textPrimary }]}
                     placeholder="Enter your password"
                     placeholderTextColor={colors.textTertiary}
             value={password}
@@ -255,39 +278,40 @@ export default function LoginScreen() {
                   <View
                     style={[
                       styles.checkbox,
-                      rememberMe && styles.checkboxChecked,
+                      { borderColor: legacyColors.border, backgroundColor: isNewTheme ? colors.surface : legacyColors.white },
+                      rememberMe && [styles.checkboxChecked, { backgroundColor: loginColorsLight.accent, borderColor: loginColors.accent }],
                     ]}
                   >
                     {rememberMe && (
-                      <Ionicons name="checkmark" size={14} color="#fff" />
+                      <Ionicons name="checkmark" size={14} color={isNewTheme ? colors.background : '#fff'} />
                     )}
               </View>
-                  <Text style={styles.rememberMeText}>Remember me</Text>
+                  <Text style={[styles.rememberMeText, { color: legacyColors.textSecondary }]}>Remember me</Text>
             </TouchableOpacity>
           )}
 
               {/* Submit Button */}
               <TouchableOpacity
-                style={styles.submitButton}
+                style={[styles.submitButton, { backgroundColor: loginColorsLight.accent }]}
                 onPress={handleSubmit}
                 activeOpacity={0.85}
               >
-                <Text style={styles.submitButtonText}>
+                <Text style={[styles.submitButtonText, { color: isNewTheme ? colors.background : legacyColors.white }]}>
                   {isSignup ? 'Create Account' : 'Sign In'}
                 </Text>
                 <Ionicons
                   name={isSignup ? 'person-add-outline' : 'arrow-forward'}
                   size={20}
-                  color="#fff"
+                  color={isNewTheme ? colors.background : '#fff'}
                   style={styles.submitButtonIcon}
                 />
           </TouchableOpacity>
 
               {/* Divider */}
               <View style={styles.dividerContainer}>
-                <View style={styles.divider} />
-                <Text style={styles.dividerText}>or</Text>
-                <View style={styles.divider} />
+                <View style={[styles.divider, { backgroundColor: colors.border }]} />
+                <Text style={[styles.dividerText, { color: legacyColors.textTertiary }]}>or</Text>
+                <View style={[styles.divider, { backgroundColor: colors.border }]} />
               </View>
 
               {/* Toggle Sign Up / Sign In */}
@@ -296,11 +320,11 @@ export default function LoginScreen() {
                 onPress={toggleMode}
                 activeOpacity={0.7}
               >
-                <Text style={styles.toggleText}>
+                <Text style={[styles.toggleText, { color: legacyColors.textSecondary }]}>
                   {isSignup
                     ? 'Already have an account? '
                     : "Don't have an account? "}
-                  <Text style={styles.toggleTextBold}>
+                  <Text style={[styles.toggleTextBold, { color: loginColors.accent }]}>
                     {isSignup ? 'Sign In' : 'Sign Up'}
                   </Text>
             </Text>
@@ -309,7 +333,7 @@ export default function LoginScreen() {
 
             {/* Footer */}
             <Animated.View style={[styles.footer, { opacity: fadeAnim }]}>
-              <Text style={styles.footerText}>
+              <Text style={[styles.footerText, { color: legacyColors.textTertiary }]}>
                 By continuing, you agree to our Terms of Service
               </Text>
             </Animated.View>
@@ -323,7 +347,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: legacyColors.white,
   },
   decorativeCircle1: {
     position: 'absolute',
@@ -332,7 +356,7 @@ const styles = StyleSheet.create({
     width: 250,
     height: 250,
     borderRadius: 125,
-    backgroundColor: loginColors.purpleLight,
+    backgroundColor: loginColorsLight.purpleLight,
     opacity: 0.6,
   },
   decorativeCircle2: {
@@ -342,7 +366,7 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: loginColors.greenLight,
+    backgroundColor: loginColorsLight.greenLight,
     opacity: 0.5,
   },
   decorativeCircle3: {
@@ -352,7 +376,7 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: 75,
-    backgroundColor: loginColors.accentLight,
+    backgroundColor: loginColorsLight.accentLight,
     opacity: 0.4,
   },
   keyboardView: {
@@ -375,7 +399,7 @@ const styles = StyleSheet.create({
     width: 90,
     height: 90,
     borderRadius: 28,
-    backgroundColor: loginColors.accent,
+    backgroundColor: loginColorsLight.accent,
     justifyContent: 'center',
     alignItems: 'center',
     ...shadows.lg,
@@ -386,17 +410,17 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: typography.fontSize['4xl'],
     fontWeight: typography.fontWeight.bold,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
     letterSpacing: -0.5,
     marginBottom: spacing.xs,
   },
   tagline: {
     fontSize: typography.fontSize.lg,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
     fontWeight: typography.fontWeight.medium,
   },
   formSection: {
-    backgroundColor: colors.white,
+    backgroundColor: legacyColors.white,
     borderRadius: borderRadius['2xl'],
     padding: spacing.xl,
     ...shadows.md,
@@ -407,14 +431,14 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
     marginBottom: spacing.sm,
     marginLeft: spacing.xs,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: legacyColors.backgroundSecondary,
     borderRadius: borderRadius.lg,
     borderWidth: 1.5,
     borderColor: 'transparent',
@@ -422,8 +446,8 @@ const styles = StyleSheet.create({
     height: 54,
   },
   inputContainerFocused: {
-    borderColor: loginColors.accent,
-    backgroundColor: colors.white,
+    borderColor: loginColorsLight.accent,
+    backgroundColor: legacyColors.white,
   },
   inputIcon: {
     marginRight: spacing.md,
@@ -431,7 +455,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: typography.fontSize.base,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
     paddingVertical: 0,
   },
   eyeButton: {
@@ -448,26 +472,26 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: borderRadius.sm,
     borderWidth: 2,
-    borderColor: colors.border,
-    backgroundColor: colors.white,
+    borderColor: legacyColors.border,
+    backgroundColor: legacyColors.white,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing.md,
   },
   checkboxChecked: {
-    backgroundColor: loginColors.accent,
-    borderColor: loginColors.accent,
+    backgroundColor: loginColorsLight.accent,
+    borderColor: loginColorsLight.accent,
   },
   rememberMeText: {
     fontSize: typography.fontSize.base,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
     fontWeight: typography.fontWeight.medium,
   },
   submitButton: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: loginColors.accent,
+    backgroundColor: loginColorsLight.accent,
     borderRadius: borderRadius.lg,
     paddingVertical: spacing.base,
     paddingHorizontal: spacing.xl,
@@ -476,7 +500,7 @@ const styles = StyleSheet.create({
   submitButtonText: {
     fontSize: typography.fontSize.lg,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.white,
+    color: legacyColors.white,
     letterSpacing: 0.3,
   },
   submitButtonIcon: {
@@ -490,12 +514,12 @@ const styles = StyleSheet.create({
   divider: {
     flex: 1,
     height: 1,
-    backgroundColor: colors.border,
+    backgroundColor: legacyColors.border,
   },
   dividerText: {
     marginHorizontal: spacing.base,
     fontSize: typography.fontSize.sm,
-    color: colors.textTertiary,
+    color: legacyColors.textTertiary,
     fontWeight: typography.fontWeight.medium,
   },
   toggleButton: {
@@ -504,10 +528,10 @@ const styles = StyleSheet.create({
   },
   toggleText: {
     fontSize: typography.fontSize.base,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
   },
   toggleTextBold: {
-    color: loginColors.accent,
+    color: loginColorsLight.accent,
     fontWeight: typography.fontWeight.semibold,
   },
   footer: {
@@ -517,7 +541,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: typography.fontSize.xs,
-    color: colors.textTertiary,
+    color: legacyColors.textTertiary,
     textAlign: 'center',
   },
 });

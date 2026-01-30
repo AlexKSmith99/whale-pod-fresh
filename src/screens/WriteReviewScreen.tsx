@@ -11,9 +11,14 @@ import {
   Modal,
   Image,
   LayoutChangeEvent,
+  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
+import { colors as legacyColors, typography, spacing, borderRadius } from '../theme/designSystem';
+import { useTheme } from '../theme/ThemeContext';
+import { getThemedStyles } from '../theme/themedStyles';
+import GrainTexture from '../components/ui/GrainTexture';
 
 // Custom Slider Component (works in Metro/Expo Go)
 interface CustomSliderProps {
@@ -22,6 +27,8 @@ interface CustomSliderProps {
   minimumValue?: number;
   maximumValue?: number;
   step?: number;
+  accentColor?: string;
+  trackColor?: string;
 }
 
 const CustomSlider: React.FC<CustomSliderProps> = ({
@@ -30,6 +37,8 @@ const CustomSlider: React.FC<CustomSliderProps> = ({
   minimumValue = 0,
   maximumValue = 10,
   step = 1,
+  accentColor = '#0ea5e9',
+  trackColor = '#e5e7eb',
 }) => {
   const trackRef = useRef<View>(null);
   const layoutRef = useRef({ width: 0, pageX: 0 });
@@ -37,7 +46,7 @@ const CustomSlider: React.FC<CustomSliderProps> = ({
   const getValueFromPageX = (pageX: number) => {
     const { width, pageX: trackLeft } = layoutRef.current;
     if (width === 0) return value;
-    
+
     const positionX = pageX - trackLeft;
     const percentage = Math.max(0, Math.min(1, positionX / width));
     const rawValue = minimumValue + percentage * (maximumValue - minimumValue);
@@ -69,10 +78,10 @@ const CustomSlider: React.FC<CustomSliderProps> = ({
 
   return (
     <View style={customSliderStyles.container}>
-      <Text style={customSliderStyles.label}>0</Text>
+      <Text style={[customSliderStyles.label, { color: trackColor }]}>0</Text>
       <View
         ref={trackRef}
-        style={customSliderStyles.track}
+        style={[customSliderStyles.track, { backgroundColor: trackColor }]}
         onLayout={measureTrack}
         onStartShouldSetResponder={() => true}
         onMoveShouldSetResponder={() => true}
@@ -80,12 +89,12 @@ const CustomSlider: React.FC<CustomSliderProps> = ({
         onResponderMove={handleResponderMove}
         onResponderTerminationRequest={() => false}
       >
-        <View style={[customSliderStyles.filledTrack, { width: `${percentage * 100}%` }]} />
-        <View style={[customSliderStyles.thumb, { left: `${percentage * 100}%`, marginLeft: -16 }]}>
+        <View style={[customSliderStyles.filledTrack, { width: `${percentage * 100}%`, backgroundColor: accentColor }]} />
+        <View style={[customSliderStyles.thumb, { left: `${percentage * 100}%`, marginLeft: -16, backgroundColor: accentColor }]}>
           <Text style={customSliderStyles.thumbText}>{value}</Text>
         </View>
       </View>
-      <Text style={customSliderStyles.label}>10</Text>
+      <Text style={[customSliderStyles.label, { color: trackColor }]}>10</Text>
     </View>
   );
 };
@@ -98,14 +107,12 @@ const customSliderStyles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    color: '#9ca3af',
     width: 24,
     textAlign: 'center',
   },
   track: {
     flex: 1,
     height: 8,
-    backgroundColor: '#e5e7eb',
     borderRadius: 4,
     marginHorizontal: 8,
     position: 'relative',
@@ -116,7 +123,6 @@ const customSliderStyles = StyleSheet.create({
     left: 0,
     top: 0,
     bottom: 0,
-    backgroundColor: '#0ea5e9',
     borderRadius: 4,
   },
   thumb: {
@@ -124,7 +130,6 @@ const customSliderStyles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#0ea5e9',
     justifyContent: 'center',
     alignItems: 'center',
     top: -12,
@@ -140,9 +145,9 @@ const customSliderStyles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+
 import { reviewService, REVIEW_ATTRIBUTES, EligiblePursuit, ReviewRatings } from '../services/reviewService';
 import { supabase } from '../config/supabase';
-import { colors } from '../theme/designSystem';
 
 interface WriteReviewScreenProps {
   route: {
@@ -158,7 +163,10 @@ interface WriteReviewScreenProps {
 export default function WriteReviewScreen({ route, navigation }: WriteReviewScreenProps) {
   const { revieweeId, revieweeName, revieweePhoto } = route.params;
   const { user } = useAuth();
-  
+  const { theme, isNewTheme } = useTheme();
+  const colors = theme.colors;
+  const themedStyles = getThemedStyles(colors, isNewTheme);
+
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [eligiblePursuits, setEligiblePursuits] = useState<EligiblePursuit[]>([]);
@@ -167,17 +175,19 @@ export default function WriteReviewScreen({ route, navigation }: WriteReviewScre
   const [description, setDescription] = useState('');
   const [ratings, setRatings] = useState<ReviewRatings>({});
 
+  const accentColor = isNewTheme ? colors.accentGreen : legacyColors.primary;
+
   useEffect(() => {
     loadEligiblePursuits();
   }, []);
 
   const loadEligiblePursuits = async () => {
     if (!user) return;
-    
+
     try {
       const pursuits = await reviewService.getEligiblePursuitsForReview(user.id, revieweeId);
       setEligiblePursuits(pursuits);
-      
+
       if (pursuits.length === 0) {
         Alert.alert(
           'Not Eligible',
@@ -256,9 +266,11 @@ export default function WriteReviewScreen({ route, navigation }: WriteReviewScre
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0ea5e9" />
-        <Text style={styles.loadingText}>Loading...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+        {isNewTheme && <GrainTexture opacity={0.06} />}
+        <ActivityIndicator size="large" color={accentColor} />
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading...</Text>
       </View>
     );
   }
@@ -267,131 +279,126 @@ export default function WriteReviewScreen({ route, navigation }: WriteReviewScre
   const ratedCount = getRatedCount();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+      {isNewTheme && <GrainTexture opacity={0.06} />}
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#1f2937" />
+          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Write Review</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Write Review</Text>
         <View style={styles.placeholder} />
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Reviewee Info */}
-        <View style={styles.revieweeCard}>
+        <View style={[styles.revieweeCard, { backgroundColor: colors.surface }]}>
           {revieweePhoto ? (
             <Image source={{ uri: revieweePhoto }} style={styles.revieweeAvatar} />
           ) : (
-            <View style={styles.revieweeAvatarPlaceholder}>
-              <Text style={styles.revieweeAvatarText}>
+            <View style={[styles.revieweeAvatarPlaceholder, { backgroundColor: accentColor }]}>
+              <Text style={[styles.revieweeAvatarText, { color: isNewTheme ? colors.background : colors.white }]}>
                 {revieweeName?.charAt(0).toUpperCase() || '?'}
               </Text>
             </View>
           )}
           <View style={styles.revieweeInfo}>
-            <Text style={styles.reviewingLabel}>Reviewing</Text>
-            <Text style={styles.revieweeName}>{revieweeName}</Text>
+            <Text style={[styles.reviewingLabel, { color: colors.textSecondary }]}>Reviewing</Text>
+            <Text style={[styles.revieweeName, { color: colors.textPrimary }]}>{revieweeName}</Text>
           </View>
         </View>
 
         {/* Pod Selection */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            <Ionicons name="people" size={18} color="#0ea5e9" /> Select Pod
+        <View style={[styles.section, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+            <Ionicons name="people" size={18} color={accentColor} /> Select Pod
           </Text>
-          <Text style={styles.sectionHint}>
+          <Text style={[styles.sectionHint, { color: colors.textSecondary }]}>
             Choose the pod where you worked together
           </Text>
-          
-          <TouchableOpacity 
-            style={styles.pursuitSelector}
+
+          <TouchableOpacity
+            style={[styles.pursuitSelector, { borderColor: colors.border, backgroundColor: colors.backgroundSecondary }]}
             onPress={() => setShowPursuitPicker(true)}
           >
             <Text style={[
               styles.pursuitSelectorText,
-              !selectedPursuit && styles.pursuitSelectorPlaceholder
+              { color: colors.textPrimary },
+              !selectedPursuit && { color: colors.textTertiary }
             ]}>
               {selectedPursuit ? selectedPursuit.pursuit_title : 'Select a pod...'}
             </Text>
-            <Ionicons name="chevron-down" size={20} color="#6b7280" />
+            <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
-          
-          {/* TESTING: Hidden meeting count display
-          {selectedPursuit && selectedPursuit.shared_meetings > 0 && (
-            <Text style={styles.sharedMeetingsText}>
-              ✓ {selectedPursuit.shared_meetings} meetings completed together
-            </Text>
-          )}
-          */}
         </View>
 
         {/* Description */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            <Ionicons name="document-text" size={18} color="#0ea5e9" /> Your Experience
+        <View style={[styles.section, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+            <Ionicons name="document-text" size={18} color={accentColor} /> Your Experience
           </Text>
-          <Text style={styles.sectionHint}>
+          <Text style={[styles.sectionHint, { color: colors.textSecondary }]}>
             Describe the project, how you worked together, and your impression of them as a contributor and team member (minimum 50 words)
           </Text>
-          
+
           <TextInput
-            style={styles.descriptionInput}
+            style={[styles.descriptionInput, { borderColor: colors.border, backgroundColor: colors.backgroundSecondary, color: colors.textPrimary }]}
             placeholder="Share your experience working with this person..."
-            placeholderTextColor="#9ca3af"
+            placeholderTextColor={colors.textTertiary}
             value={description}
             onChangeText={setDescription}
             multiline
             textAlignVertical="top"
           />
-          
+
           <Text style={[
             styles.wordCount,
-            wordCount >= 50 ? styles.wordCountValid : styles.wordCountInvalid
+            wordCount >= 50 ? { color: colors.success } : { color: colors.error }
           ]}>
             {wordCount}/50 words {wordCount >= 50 ? '✓' : ''}
           </Text>
         </View>
 
         {/* Ratings */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            <Ionicons name="star" size={18} color="#0ea5e9" /> Rate Attributes
+        <View style={[styles.section, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+            <Ionicons name="star" size={18} color={accentColor} /> Rate Attributes
           </Text>
-          <Text style={styles.sectionHint}>
+          <Text style={[styles.sectionHint, { color: colors.textSecondary }]}>
             Rate on a scale of 0-10. You must rate at least 3 attributes.
           </Text>
-          
+
           <Text style={[
             styles.ratedCount,
-            ratedCount >= 3 ? styles.ratedCountValid : styles.ratedCountInvalid
+            ratedCount >= 3 ? { color: colors.success } : { color: colors.warning }
           ]}>
             {ratedCount}/3 minimum rated {ratedCount >= 3 ? '✓' : ''}
           </Text>
 
           {REVIEW_ATTRIBUTES.map((attr) => (
-            <View key={attr.key} style={styles.ratingCard}>
+            <View key={attr.key} style={[styles.ratingCard, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
               <View style={styles.ratingHeader}>
                 <View style={styles.ratingLabelContainer}>
                   <Text style={styles.ratingIcon}>{attr.icon}</Text>
                   <View>
-                    <Text style={styles.ratingLabel}>{attr.label}</Text>
-                    <Text style={styles.ratingDescription}>{attr.description}</Text>
+                    <Text style={[styles.ratingLabel, { color: colors.textPrimary }]}>{attr.label}</Text>
+                    <Text style={[styles.ratingDescription, { color: colors.textSecondary }]}>{attr.description}</Text>
                     {attr.optional && (
-                      <Text style={styles.optionalTag}>Only if relevant</Text>
+                      <Text style={[styles.optionalTag, { color: colors.textTertiary }]}>Only if relevant</Text>
                     )}
                   </View>
                 </View>
                 {ratings[attr.key as keyof ReviewRatings] !== undefined && (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     onPress={() => clearRating(attr.key)}
                     style={styles.clearButton}
                   >
-                    <Text style={styles.clearButtonText}>Clear</Text>
+                    <Text style={[styles.clearButtonText, { color: colors.error }]}>Clear</Text>
                   </TouchableOpacity>
                 )}
               </View>
-              
+
               {/* Slider (0-10) */}
               <CustomSlider
                 value={ratings[attr.key as keyof ReviewRatings] ?? 5}
@@ -399,10 +406,12 @@ export default function WriteReviewScreen({ route, navigation }: WriteReviewScre
                 minimumValue={0}
                 maximumValue={10}
                 step={1}
+                accentColor={accentColor}
+                trackColor={colors.border as string}
               />
-              
+
               {ratings[attr.key as keyof ReviewRatings] === undefined && (
-                <Text style={styles.notRatedText}>Drag slider to rate</Text>
+                <Text style={[styles.notRatedText, { color: colors.textTertiary }]}>Drag slider to rate</Text>
               )}
             </View>
           ))}
@@ -412,17 +421,18 @@ export default function WriteReviewScreen({ route, navigation }: WriteReviewScre
         <TouchableOpacity
           style={[
             styles.submitButton,
+            { backgroundColor: accentColor },
             (!selectedPursuit || wordCount < 50 || ratedCount < 3 || submitting) && styles.submitButtonDisabled
           ]}
           onPress={handleSubmit}
           disabled={!selectedPursuit || wordCount < 50 || ratedCount < 3 || submitting}
         >
           {submitting ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={isNewTheme ? colors.background : colors.white} />
           ) : (
             <>
-              <Ionicons name="checkmark-circle" size={22} color="#fff" />
-              <Text style={styles.submitButtonText}>Submit Review</Text>
+              <Ionicons name="checkmark-circle" size={22} color={isNewTheme ? colors.background : colors.white} />
+              <Text style={[styles.submitButtonText, { color: isNewTheme ? colors.background : colors.white }]}>Submit Review</Text>
             </>
           )}
         </TouchableOpacity>
@@ -437,26 +447,27 @@ export default function WriteReviewScreen({ route, navigation }: WriteReviewScre
         animationType="slide"
         onRequestClose={() => setShowPursuitPicker(false)}
       >
-        <TouchableOpacity 
-          style={styles.modalOverlay}
+        <TouchableOpacity
+          style={[styles.modalOverlay, { backgroundColor: isNewTheme ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)' }]}
           activeOpacity={1}
           onPress={() => setShowPursuitPicker(false)}
         >
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Pod</Text>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Select Pod</Text>
               <TouchableOpacity onPress={() => setShowPursuitPicker(false)}>
-                <Ionicons name="close" size={24} color="#6b7280" />
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
-            
+
             <ScrollView style={styles.modalScroll}>
               {eligiblePursuits.map((pursuit) => (
                 <TouchableOpacity
                   key={pursuit.pursuit_id}
                   style={[
                     styles.pursuitOption,
-                    selectedPursuit?.pursuit_id === pursuit.pursuit_id && styles.pursuitOptionSelected
+                    { backgroundColor: colors.backgroundSecondary, borderColor: colors.border },
+                    selectedPursuit?.pursuit_id === pursuit.pursuit_id && { borderColor: accentColor, backgroundColor: isNewTheme ? colors.primaryLight : '#eff6ff' }
                   ]}
                   onPress={() => {
                     setSelectedPursuit(pursuit);
@@ -464,15 +475,10 @@ export default function WriteReviewScreen({ route, navigation }: WriteReviewScre
                   }}
                 >
                   <View style={styles.pursuitOptionContent}>
-                    <Text style={styles.pursuitOptionTitle}>{pursuit.pursuit_title}</Text>
-                    {/* TESTING: Hidden meeting count
-                    <Text style={styles.pursuitOptionMeetings}>
-                      {pursuit.shared_meetings} meetings together
-                    </Text>
-                    */}
+                    <Text style={[styles.pursuitOptionTitle, { color: colors.textPrimary }]}>{pursuit.pursuit_title}</Text>
                   </View>
                   {selectedPursuit?.pursuit_id === pursuit.pursuit_id && (
-                    <Ionicons name="checkmark-circle" size={24} color="#0ea5e9" />
+                    <Ionicons name="checkmark-circle" size={24} color={accentColor} />
                   )}
                 </TouchableOpacity>
               ))}
@@ -487,37 +493,31 @@ export default function WriteReviewScreen({ route, navigation }: WriteReviewScre
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.background,
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#6b7280',
+    marginTop: spacing.md,
+    fontSize: typography.fontSize.base,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#fff',
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.base,
     paddingTop: 60,
-    paddingBottom: 16,
+    paddingBottom: spacing.base,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
   },
   backButton: {
-    padding: 8,
+    padding: spacing.sm,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1f2937',
+    fontSize: typography.fontSize.lg,
+    fontWeight: typography.fontWeight.bold,
   },
   placeholder: {
     width: 40,
@@ -528,9 +528,8 @@ const styles = StyleSheet.create({
   revieweeCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 20,
-    marginBottom: 12,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
   },
   revieweeAvatar: {
     width: 60,
@@ -541,43 +540,36 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#0ea5e9',
     justifyContent: 'center',
     alignItems: 'center',
   },
   revieweeAvatarText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontSize: typography.fontSize['2xl'],
+    fontWeight: typography.fontWeight.bold,
   },
   revieweeInfo: {
-    marginLeft: 16,
+    marginLeft: spacing.base,
   },
   reviewingLabel: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 4,
+    fontSize: typography.fontSize.sm,
+    marginBottom: spacing.xs,
   },
   revieweeName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1f2937',
+    fontSize: typography.fontSize.xl,
+    fontWeight: typography.fontWeight.bold,
   },
   section: {
-    backgroundColor: '#fff',
-    padding: 20,
-    marginBottom: 12,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 8,
+    fontSize: typography.fontSize.lg,
+    fontWeight: typography.fontWeight.bold,
+    marginBottom: spacing.sm,
   },
   sectionHint: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 16,
+    fontSize: typography.fontSize.sm,
+    marginBottom: spacing.base,
     lineHeight: 20,
   },
   pursuitSelector: {
@@ -585,71 +577,42 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 12,
-    padding: 16,
-    backgroundColor: '#f9fafb',
+    borderRadius: borderRadius.lg,
+    padding: spacing.base,
   },
   pursuitSelectorText: {
-    fontSize: 16,
-    color: '#1f2937',
+    fontSize: typography.fontSize.base,
     flex: 1,
-  },
-  pursuitSelectorPlaceholder: {
-    color: '#9ca3af',
-  },
-  sharedMeetingsText: {
-    fontSize: 13,
-    color: '#10b981',
-    marginTop: 8,
-    fontWeight: '500',
   },
   descriptionInput: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    backgroundColor: '#f9fafb',
+    borderRadius: borderRadius.lg,
+    padding: spacing.base,
+    fontSize: typography.fontSize.base,
     height: 150,
-    color: '#1f2937',
   },
   wordCount: {
-    fontSize: 13,
-    marginTop: 8,
+    fontSize: typography.fontSize.sm,
+    marginTop: spacing.sm,
     textAlign: 'right',
-    fontWeight: '500',
-  },
-  wordCountValid: {
-    color: '#10b981',
-  },
-  wordCountInvalid: {
-    color: '#ef4444',
+    fontWeight: typography.fontWeight.medium,
   },
   ratedCount: {
-    fontSize: 14,
-    marginBottom: 16,
-    fontWeight: '600',
-  },
-  ratedCountValid: {
-    color: '#10b981',
-  },
-  ratedCountInvalid: {
-    color: '#f59e0b',
+    fontSize: typography.fontSize.sm,
+    marginBottom: spacing.base,
+    fontWeight: typography.fontWeight.semibold,
   },
   ratingCard: {
-    backgroundColor: '#f9fafb',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: borderRadius.lg,
+    padding: spacing.base,
+    marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
   },
   ratingHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   ratingLabelContainer: {
     flexDirection: 'row',
@@ -658,58 +621,51 @@ const styles = StyleSheet.create({
   },
   ratingIcon: {
     fontSize: 24,
-    marginRight: 12,
+    marginRight: spacing.md,
   },
   ratingLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 4,
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semibold,
+    marginBottom: spacing.xs,
   },
   ratingDescription: {
-    fontSize: 13,
-    color: '#6b7280',
+    fontSize: typography.fontSize.sm,
   },
   optionalTag: {
-    fontSize: 11,
-    color: '#9ca3af',
+    fontSize: typography.fontSize.xs,
     fontStyle: 'italic',
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   clearButton: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
   },
   clearButtonText: {
-    fontSize: 13,
-    color: '#ef4444',
-    fontWeight: '500',
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.medium,
   },
   notRatedText: {
-    fontSize: 13,
-    color: '#9ca3af',
+    fontSize: typography.fontSize.sm,
     fontStyle: 'italic',
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   submitButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#0ea5e9',
-    marginHorizontal: 20,
-    marginVertical: 20,
-    padding: 16,
-    borderRadius: 12,
-    gap: 8,
+    marginHorizontal: spacing.lg,
+    marginVertical: spacing.lg,
+    padding: spacing.base,
+    borderRadius: borderRadius.lg,
+    gap: spacing.sm,
   },
   submitButtonDisabled: {
-    backgroundColor: '#9ca3af',
+    opacity: 0.5,
   },
   submitButtonText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontSize: typography.fontSize.lg,
+    fontWeight: typography.fontWeight.bold,
   },
   bottomPadding: {
     height: 40,
@@ -717,57 +673,42 @@ const styles = StyleSheet.create({
   // Modal styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
     maxHeight: '70%',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1f2937',
+    fontSize: typography.fontSize.lg,
+    fontWeight: typography.fontWeight.bold,
   },
   modalScroll: {
-    padding: 20,
+    padding: spacing.lg,
   },
   pursuitOption: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    backgroundColor: '#f9fafb',
+    padding: spacing.base,
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  pursuitOptionSelected: {
-    borderColor: '#0ea5e9',
-    backgroundColor: '#eff6ff',
   },
   pursuitOptionContent: {
     flex: 1,
   },
   pursuitOptionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 4,
-  },
-  pursuitOptionMeetings: {
-    fontSize: 13,
-    color: '#6b7280',
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semibold,
+    marginBottom: spacing.xs,
   },
 });

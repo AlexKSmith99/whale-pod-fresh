@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Platform, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Platform, Modal, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,7 +7,10 @@ import { meetingService } from '../services/meetingService';
 import { agoraService } from '../services/agoraService';
 import { notificationService } from '../services/notificationService';
 import { supabase } from '../config/supabase';
-import { colors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+import { useTheme } from '../theme/ThemeContext';
+import { getThemedStyles } from '../theme/themedStyles';
+import GrainTexture from '../components/ui/GrainTexture';
 
 interface Props {
   pursuitId: string;
@@ -27,6 +30,9 @@ const formatTime12Hour = (time24: string): string => {
 
 export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClose, onScheduled }: Props) {
   const { user } = useAuth();
+  const { theme, isNewTheme } = useTheme();
+  const colors = theme.colors;
+  const themedStyles = getThemedStyles(colors, isNewTheme);
   const [proposals, setProposals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTime, setSelectedTime] = useState<any>(null);
@@ -263,6 +269,9 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
     '#06b6d4', // cyan
   ];
 
+  // Dynamic accent color for primary
+  const accentColor = isNewTheme ? colors.accentGreen : legacyColors.primary;
+
   // Assign colors to team members
   let colorIndex = 0;
   proposals.forEach((proposal) => {
@@ -292,45 +301,47 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
   });
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+      {isNewTheme && <GrainTexture opacity={0.06} />}
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
           <Ionicons name="close" size={28} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Schedule Kickoff</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'NothingYouCouldDo_400Regular' : undefined }]}>Schedule Kickoff</Text>
         <View style={{ width: 28 }} />
       </View>
 
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
-          <View style={styles.introSection}>
-            <Text style={styles.pursuitTitle}>{pursuitTitle}</Text>
-            <Text style={styles.introText}>
+          <View style={[styles.introSection, { backgroundColor: isNewTheme ? colors.warningLight : legacyColors.warningLight }]}>
+            <Text style={[styles.pursuitTitle, { color: colors.warning, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{pursuitTitle}</Text>
+            <Text style={[styles.introText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
               Review all time proposals from your team members and select the final meeting time.
             </Text>
-            <Text style={styles.statsText}>
+            <Text style={[styles.statsText, { color: colors.warning, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
               {proposals.length}/{teamMembersCount} team member{teamMembersCount !== 1 ? 's' : ''} submitted proposals
             </Text>
             {proposals.length < teamMembersCount && (
-              <Text style={styles.warningText}>
-                ⚠️ Waiting for {teamMembersCount - proposals.length} more team member{teamMembersCount - proposals.length !== 1 ? 's' : ''} to submit
+              <Text style={[styles.warningText, { color: colors.error, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                Waiting for {teamMembersCount - proposals.length} more team member{teamMembersCount - proposals.length !== 1 ? 's' : ''} to submit
               </Text>
             )}
           </View>
 
           {/* Proposed Times Calendar */}
-          <Text style={styles.sectionTitle}>Proposed Meeting Times</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'NothingYouCouldDo_400Regular' : undefined }]}>Proposed Meeting Times</Text>
 
           {/* Legend */}
           {Object.keys(groupedTimeSlots).length > 0 && (
-            <View style={styles.legend}>
-              <Text style={styles.legendTitle}>Team Members:</Text>
+            <View style={[styles.legend, { backgroundColor: colors.backgroundSecondary }]}>
+              <Text style={[styles.legendTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Team Members:</Text>
               <View style={styles.legendItems}>
                 {proposals.map((proposal) => (
                   <View key={proposal.user_id} style={styles.legendItem}>
                     <View style={[styles.legendColor, { backgroundColor: teamMemberColors[proposal.user_id] }]} />
-                    <Text style={styles.legendText}>{proposal.user?.name || 'Team member'}</Text>
+                    <Text style={[styles.legendText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{proposal.user?.name || 'Team member'}</Text>
                   </View>
                 ))}
               </View>
@@ -338,15 +349,15 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
           )}
 
           {Object.keys(groupedTimeSlots).length === 0 ? (
-            <View style={styles.emptyState}>
+            <View style={[styles.emptyState, { backgroundColor: colors.surface }]}>
               <Ionicons name="time-outline" size={48} color={colors.textTertiary} />
-              <Text style={styles.emptyText}>No proposals yet</Text>
-              <Text style={styles.emptySubtext}>Waiting for team members to submit their availability</Text>
+              <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>No proposals yet</Text>
+              <Text style={[styles.emptySubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Waiting for team members to submit their availability</Text>
             </View>
           ) : (
             Object.keys(groupedTimeSlots).sort().map((date) => (
               <View key={date} style={styles.dateGroup}>
-                <Text style={styles.dateHeader}>
+                <Text style={[styles.dateHeader, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
                   {new Date(date).toLocaleDateString('en-US', {
                     weekday: 'long',
                     month: 'long',
@@ -369,7 +380,8 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                       key={`${date}-${timeKey}`}
                       style={[
                         styles.timeSlotOption,
-                        isSelected && styles.timeSlotSelected
+                        { backgroundColor: colors.surface, borderColor: isSelected ? accentColor : 'transparent' },
+                        isSelected && { backgroundColor: isNewTheme ? colors.primaryLight : legacyColors.primaryLight }
                       ]}
                       onPress={() => {
                         setSelectedTime(firstSlot);
@@ -377,25 +389,25 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                       }}
                     >
                       <View style={styles.timeSlotInfo}>
-                        <Text style={styles.timeSlotTime}>
+                        <Text style={[styles.timeSlotTime, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
                           {formatTime12Hour(firstSlot.start_time)} - {formatTime12Hour(firstSlot.end_time)}
                         </Text>
                         <View style={styles.teamMembersRow}>
                           {slots.map((slot, idx) => (
-                            <View key={idx} style={styles.memberBadge}>
+                            <View key={idx} style={[styles.memberBadge, { backgroundColor: colors.backgroundSecondary }]}>
                               <View style={[styles.memberColorDot, { backgroundColor: slot.color }]} />
-                              <Text style={styles.memberName}>{slot.proposer?.name || 'Team member'}</Text>
+                              <Text style={[styles.memberName, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{slot.proposer?.name || 'Team member'}</Text>
                             </View>
                           ))}
                         </View>
                         {slots.length > 1 && (
-                          <Text style={styles.overlapText}>
-                            ✨ {slots.length} members available
+                          <Text style={[styles.overlapText, { color: colors.success, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                            {slots.length} members available
                           </Text>
                         )}
                       </View>
                       {isSelected && (
-                        <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+                        <Ionicons name="checkmark-circle" size={24} color={accentColor} />
                       )}
                     </TouchableOpacity>
                   );
@@ -408,7 +420,8 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
           <TouchableOpacity
             style={[
               styles.customTimeButton,
-              useCustomTime && styles.customTimeButtonSelected
+              { backgroundColor: colors.surface, borderColor: useCustomTime ? accentColor : colors.borderLight },
+              useCustomTime && { backgroundColor: isNewTheme ? colors.primaryLight : legacyColors.primaryLight, borderStyle: 'solid' as const }
             ]}
             onPress={() => {
               setUseCustomTime(true);
@@ -419,35 +432,35 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
               <Ionicons
                 name="calendar-outline"
                 size={24}
-                color={useCustomTime ? colors.primary : colors.textSecondary}
+                color={useCustomTime ? accentColor : colors.textSecondary}
               />
               <View style={styles.customTimeTextContainer}>
                 <Text style={[
                   styles.customTimeButtonText,
-                  useCustomTime && styles.customTimeButtonTextSelected
+                  { color: useCustomTime ? accentColor : colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }
                 ]}>
                   Schedule for a different time
                 </Text>
-                <Text style={styles.customTimeSubtext}>
+                <Text style={[styles.customTimeSubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
                   Choose your own date and time
                 </Text>
               </View>
             </View>
             {useCustomTime && (
-              <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+              <Ionicons name="checkmark-circle" size={24} color={accentColor} />
             )}
           </TouchableOpacity>
 
           {/* Custom Date/Time Picker */}
           {useCustomTime && (
-            <View style={styles.customTimePickerSection}>
-              <Text style={styles.inputLabel}>Select Date</Text>
+            <View style={[styles.customTimePickerSection, { backgroundColor: colors.surface }]}>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Select Date</Text>
               <TouchableOpacity
-                style={styles.dateTimeButton}
+                style={[styles.dateTimeButton, { backgroundColor: colors.backgroundSecondary }]}
                 onPress={() => setShowDatePicker(true)}
               >
-                <Ionicons name="calendar" size={20} color={colors.primary} />
-                <Text style={styles.dateTimeButtonText}>
+                <Ionicons name="calendar" size={20} color={accentColor} />
+                <Text style={[styles.dateTimeButtonText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
                   {customDate.toLocaleDateString('en-US', {
                     weekday: 'long',
                     month: 'long',
@@ -457,13 +470,13 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                 </Text>
               </TouchableOpacity>
 
-              <Text style={styles.inputLabel}>Select Time</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Select Time</Text>
               <TouchableOpacity
-                style={styles.dateTimeButton}
+                style={[styles.dateTimeButton, { backgroundColor: colors.backgroundSecondary }]}
                 onPress={() => setShowTimePicker(true)}
               >
-                <Ionicons name="time" size={20} color={colors.primary} />
-                <Text style={styles.dateTimeButtonText}>
+                <Ionicons name="time" size={20} color={accentColor} />
+                <Text style={[styles.dateTimeButtonText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
                   {customTime.toLocaleTimeString('en-US', {
                     hour: 'numeric',
                     minute: '2-digit',
@@ -474,12 +487,12 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
 
               {showDatePicker && Platform.OS === 'ios' && (
                 <Modal transparent animationType="fade" visible={showDatePicker}>
-                  <TouchableOpacity 
-                    style={styles.pickerOverlay} 
-                    activeOpacity={1} 
+                  <TouchableOpacity
+                    style={[styles.pickerOverlay, { backgroundColor: isNewTheme ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)' }]}
+                    activeOpacity={1}
                     onPress={() => setShowDatePicker(false)}
                   >
-                    <View style={styles.pickerModalContent}>
+                    <View style={[styles.pickerModalContent, { backgroundColor: colors.surface }]}>
                       <DateTimePicker
                         value={customDate}
                         mode="date"
@@ -490,10 +503,10 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                         }}
                       />
                       <TouchableOpacity
-                        style={styles.doneButton}
+                        style={[styles.doneButton, { backgroundColor: accentColor }]}
                         onPress={() => setShowDatePicker(false)}
                       >
-                        <Text style={styles.doneButtonText}>Done</Text>
+                        <Text style={[styles.doneButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Done</Text>
                       </TouchableOpacity>
                     </View>
                   </TouchableOpacity>
@@ -514,12 +527,12 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
 
               {showTimePicker && Platform.OS === 'ios' && (
                 <Modal transparent animationType="fade" visible={showTimePicker}>
-                  <TouchableOpacity 
-                    style={styles.pickerOverlay} 
-                    activeOpacity={1} 
+                  <TouchableOpacity
+                    style={[styles.pickerOverlay, { backgroundColor: isNewTheme ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)' }]}
+                    activeOpacity={1}
                     onPress={() => setShowTimePicker(false)}
                   >
-                    <View style={styles.pickerModalContent}>
+                    <View style={[styles.pickerModalContent, { backgroundColor: colors.surface }]}>
                       <DateTimePicker
                         value={customTime}
                         mode="time"
@@ -529,10 +542,10 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                         }}
                       />
                       <TouchableOpacity
-                        style={styles.doneButton}
+                        style={[styles.doneButton, { backgroundColor: accentColor }]}
                         onPress={() => setShowTimePicker(false)}
                       >
-                        <Text style={styles.doneButtonText}>Done</Text>
+                        <Text style={[styles.doneButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Done</Text>
                       </TouchableOpacity>
                     </View>
                   </TouchableOpacity>
@@ -555,15 +568,23 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
           {/* Meeting Type Selection */}
           {(selectedTime || useCustomTime) && (
             <>
-              <Text style={styles.sectionTitle}>Meeting Type</Text>
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'NothingYouCouldDo_400Regular' : undefined }]}>Meeting Type</Text>
               <View style={styles.chipContainer}>
                 {(['in_person', 'video', 'hybrid'] as const).map((type) => (
                   <TouchableOpacity
                     key={type}
-                    style={[styles.chip, meetingType === type && styles.chipSelected]}
+                    style={[
+                      styles.chip,
+                      { backgroundColor: colors.backgroundSecondary, borderColor: colors.borderLight },
+                      meetingType === type && { backgroundColor: accentColor, borderColor: accentColor }
+                    ]}
                     onPress={() => setMeetingType(type)}
                   >
-                    <Text style={[styles.chipText, meetingType === type && styles.chipTextSelected]}>
+                    <Text style={[
+                      styles.chipText,
+                      { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined },
+                      meetingType === type && { color: isNewTheme ? colors.background : legacyColors.white }
+                    ]}>
                       {type === 'in_person' ? 'In Person' : type === 'video' ? 'Video' : 'Hybrid'}
                     </Text>
                   </TouchableOpacity>
@@ -573,10 +594,11 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
               {/* Location (if needed) */}
               {(meetingType === 'in_person' || meetingType === 'hybrid') && (
                 <>
-                  <Text style={styles.inputLabel}>Location</Text>
+                  <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Location</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.borderLight, color: colors.textPrimary }]}
                     placeholder="e.g., Conference Room A"
+                    placeholderTextColor={colors.textTertiary}
                     value={location}
                     onChangeText={setLocation}
                   />
@@ -584,10 +606,11 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
               )}
 
               {/* Duration */}
-              <Text style={styles.inputLabel}>Duration (minutes)</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Duration (minutes)</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.borderLight, color: colors.textPrimary }]}
                 placeholder="60"
+                placeholderTextColor={colors.textTertiary}
                 value={duration}
                 onChangeText={setDuration}
                 keyboardType="numeric"
@@ -595,11 +618,11 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
 
               {/* Schedule Button */}
               <TouchableOpacity
-                style={[styles.scheduleButton, loading && styles.scheduleButtonDisabled]}
+                style={[styles.scheduleButton, { backgroundColor: colors.warning }, loading && styles.scheduleButtonDisabled]}
                 onPress={handleScheduleKickoff}
                 disabled={loading}
               >
-                <Text style={styles.scheduleButtonText}>
+                <Text style={[styles.scheduleButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
                   {loading ? 'Sending Invites...' : 'Send Kick-Off Invites'}
                 </Text>
               </TouchableOpacity>
@@ -614,7 +637,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: legacyColors.background,
   },
   header: {
     flexDirection: 'row',
@@ -623,9 +646,9 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: spacing.base,
     paddingHorizontal: spacing.lg,
-    backgroundColor: colors.white,
+    backgroundColor: legacyColors.white,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
+    borderBottomColor: legacyColors.borderLight,
   },
   closeButton: {
     width: 40,
@@ -636,7 +659,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: typography.fontSize.xl,
     fontWeight: typography.fontWeight.bold,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
   },
   scrollView: {
     flex: 1,
@@ -646,7 +669,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing['4xl'],
   },
   introSection: {
-    backgroundColor: colors.warningLight,
+    backgroundColor: legacyColors.warningLight,
     padding: spacing.lg,
     borderRadius: borderRadius.lg,
     marginBottom: spacing.xl,
@@ -654,48 +677,48 @@ const styles = StyleSheet.create({
   pursuitTitle: {
     fontSize: typography.fontSize.lg,
     fontWeight: typography.fontWeight.bold,
-    color: colors.warning,
+    color: legacyColors.warning,
     marginBottom: spacing.sm,
   },
   introText: {
     fontSize: typography.fontSize.sm,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
     lineHeight: 20,
     marginBottom: spacing.sm,
   },
   statsText: {
     fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.warning,
+    color: legacyColors.warning,
   },
   warningText: {
     fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.error,
+    color: legacyColors.error,
     marginTop: spacing.sm,
   },
   sectionTitle: {
     fontSize: typography.fontSize.lg,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
     marginBottom: spacing.base,
     marginTop: spacing.lg,
   },
   emptyState: {
     alignItems: 'center',
     padding: spacing['3xl'],
-    backgroundColor: colors.white,
+    backgroundColor: legacyColors.white,
     borderRadius: borderRadius.lg,
   },
   emptyText: {
     fontSize: typography.fontSize.lg,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
     marginTop: spacing.base,
   },
   emptySubtext: {
     fontSize: typography.fontSize.sm,
-    color: colors.textTertiary,
+    color: legacyColors.textTertiary,
     marginTop: spacing.xs,
   },
   dateGroup: {
@@ -704,7 +727,7 @@ const styles = StyleSheet.create({
   dateHeader: {
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.bold,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
     marginBottom: spacing.sm,
     paddingLeft: spacing.sm,
   },
@@ -712,7 +735,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: colors.white,
+    backgroundColor: legacyColors.white,
     padding: spacing.lg,
     borderRadius: borderRadius.base,
     marginBottom: spacing.sm,
@@ -721,8 +744,8 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   timeSlotSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primaryLight,
+    borderColor: legacyColors.primary,
+    backgroundColor: legacyColors.primaryLight,
   },
   timeSlotInfo: {
     flex: 1,
@@ -730,15 +753,15 @@ const styles = StyleSheet.create({
   timeSlotTime: {
     fontSize: typography.fontSize.lg,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
     marginBottom: spacing.xs,
   },
   timeSlotProposer: {
     fontSize: typography.fontSize.sm,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
   },
   legend: {
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: legacyColors.backgroundSecondary,
     padding: spacing.base,
     borderRadius: borderRadius.base,
     marginBottom: spacing.base,
@@ -746,7 +769,7 @@ const styles = StyleSheet.create({
   legendTitle: {
     fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
     marginBottom: spacing.xs,
   },
   legendItems: {
@@ -766,7 +789,7 @@ const styles = StyleSheet.create({
   },
   legendText: {
     fontSize: typography.fontSize.xs,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
   },
   teamMembersRow: {
     flexDirection: 'row',
@@ -778,7 +801,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: legacyColors.backgroundSecondary,
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
     borderRadius: borderRadius.base,
@@ -790,12 +813,12 @@ const styles = StyleSheet.create({
   },
   memberName: {
     fontSize: typography.fontSize.xs,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
   },
   overlapText: {
     fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.success,
+    color: legacyColors.success,
     marginTop: spacing.xs,
   },
   chipContainer: {
@@ -808,41 +831,41 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.base,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.full,
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: legacyColors.backgroundSecondary,
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: legacyColors.borderLight,
   },
   chipSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: legacyColors.primary,
+    borderColor: legacyColors.primary,
   },
   chipText: {
     fontSize: typography.fontSize.sm,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
     fontWeight: typography.fontWeight.medium,
   },
   chipTextSelected: {
-    color: colors.white,
+    color: legacyColors.white,
     fontWeight: typography.fontWeight.bold,
   },
   inputLabel: {
     fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.medium,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
     marginBottom: spacing.xs,
     marginTop: spacing.base,
   },
   input: {
-    backgroundColor: colors.white,
+    backgroundColor: legacyColors.white,
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: legacyColors.borderLight,
     borderRadius: borderRadius.base,
     padding: spacing.base,
     fontSize: typography.fontSize.base,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
   },
   scheduleButton: {
-    backgroundColor: colors.warning,
+    backgroundColor: legacyColors.warning,
     borderRadius: borderRadius.base,
     padding: spacing.lg,
     alignItems: 'center',
@@ -853,7 +876,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   scheduleButtonText: {
-    color: colors.white,
+    color: legacyColors.white,
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.bold,
   },
@@ -861,19 +884,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: colors.white,
+    backgroundColor: legacyColors.white,
     padding: spacing.lg,
     borderRadius: borderRadius.base,
     marginTop: spacing.lg,
     ...shadows.sm,
     borderWidth: 2,
-    borderColor: colors.borderLight,
+    borderColor: legacyColors.borderLight,
     borderStyle: 'dashed',
   },
   customTimeButtonSelected: {
-    borderColor: colors.primary,
+    borderColor: legacyColors.primary,
     borderStyle: 'solid',
-    backgroundColor: colors.primaryLight,
+    backgroundColor: legacyColors.primaryLight,
   },
   customTimeButtonContent: {
     flexDirection: 'row',
@@ -887,18 +910,18 @@ const styles = StyleSheet.create({
   customTimeButtonText: {
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
   },
   customTimeButtonTextSelected: {
-    color: colors.primary,
+    color: legacyColors.primary,
   },
   customTimeSubtext: {
     fontSize: typography.fontSize.sm,
-    color: colors.textTertiary,
+    color: legacyColors.textTertiary,
     marginTop: 2,
   },
   customTimePickerSection: {
-    backgroundColor: colors.white,
+    backgroundColor: legacyColors.white,
     padding: spacing.lg,
     borderRadius: borderRadius.base,
     marginTop: spacing.base,
@@ -910,25 +933,25 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   pickerModalContent: {
-    backgroundColor: colors.white,
+    backgroundColor: legacyColors.white,
     borderTopLeftRadius: borderRadius.lg,
     borderTopRightRadius: borderRadius.lg,
     paddingBottom: spacing.xl,
   },
   doneButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: legacyColors.primary,
     padding: spacing.sm,
     alignItems: 'center',
   },
   doneButtonText: {
-    color: colors.white,
+    color: legacyColors.white,
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.semibold as any,
   },
   dateTimeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: legacyColors.backgroundSecondary,
     padding: spacing.base,
     borderRadius: borderRadius.base,
     marginBottom: spacing.base,
@@ -936,7 +959,7 @@ const styles = StyleSheet.create({
   },
   dateTimeButtonText: {
     fontSize: typography.fontSize.base,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
     fontWeight: typography.fontWeight.medium,
   },
 });

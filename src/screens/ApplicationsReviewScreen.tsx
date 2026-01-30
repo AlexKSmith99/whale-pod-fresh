@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Image, Linking } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Image, Linking, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { applicationService } from '../services/applicationService';
 import { notificationService } from '../services/notificationService';
@@ -7,7 +7,10 @@ import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import UserProfileScreen from './UserProfileScreen';
 import WriteReviewScreen from './WriteReviewScreen';
-import { colors } from '../theme/designSystem';
+import { colors as legacyColors, typography, spacing } from '../theme/designSystem';
+import { useTheme } from '../theme/ThemeContext';
+import { getThemedStyles } from '../theme/themedStyles';
+import GrainTexture from '../components/ui/GrainTexture';
 
 interface Props {
   pursuitId: string;
@@ -18,12 +21,16 @@ interface Props {
 
 export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, onScheduleInterview }: Props) {
   const { user } = useAuth();
+  const { theme, isNewTheme } = useTheme();
+  const colors = theme.colors;
+  const themedStyles = getThemedStyles(colors, isNewTheme);
+
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedReviewedId, setExpandedReviewedId] = useState<string | null>(null);
   const [showUserProfile, setShowUserProfile] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  
+
   // Write review state
   const [showWriteReview, setShowWriteReview] = useState(false);
   const [revieweeInfo, setRevieweeInfo] = useState<{
@@ -36,7 +43,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
     setSelectedUserId(userId);
     setShowUserProfile(true);
   };
-  
+
   const handleWriteReview = (revieweeId: string, revieweeName: string, revieweePhoto?: string) => {
     setRevieweeInfo({ revieweeId, revieweeName, revieweePhoto });
     setShowWriteReview(true);
@@ -185,6 +192,11 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
     }
   };
 
+  // Dynamic accent color for purple elements
+  const accentPurple = isNewTheme ? colors.primary : '#8b5cf6';
+  const accentPurpleLight = isNewTheme ? colors.primaryLight : '#f5f3ff';
+  const accentPurpleBorder = isNewTheme ? colors.primary : '#ddd6fe';
+
   // Show write review screen
   if (showWriteReview && revieweeInfo) {
     return (
@@ -224,13 +236,16 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+      {isNewTheme && <GrainTexture opacity={0.06} />}
+
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backText}>← Back</Text>
+          <Text style={[styles.backText, { color: isNewTheme ? colors.accentGreen : '#0ea5e9' }]}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Applications</Text>
-        <Text style={styles.subtitle}>{pendingApps.length} pending</Text>
+        <Text style={[styles.title, { color: isNewTheme ? colors.accentGreen : colors.textPrimary, fontFamily: isNewTheme ? 'NothingYouCouldDo_400Regular' : undefined }]}>Applications</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{pendingApps.length} pending</Text>
       </View>
 
       <ScrollView style={styles.scrollView}>
@@ -238,15 +253,15 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
           {applications.length === 0 ? (
             <View style={styles.empty}>
               <Text style={styles.emptyEmoji}>📭</Text>
-              <Text style={styles.emptyText}>No applications yet</Text>
+              <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>No applications yet</Text>
             </View>
           ) : (
             <>
               {pendingApps.length > 0 && (
                 <>
-                  <Text style={styles.sectionTitle}>Pending ({pendingApps.length})</Text>
+                  <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined }]}>Pending ({pendingApps.length})</Text>
                   {pendingApps.map((app) => (
-                    <View key={app.id} style={styles.appCard}>
+                    <View key={app.id} style={[styles.appCard, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }]}>
                       <TouchableOpacity
                         style={styles.appHeader}
                         onPress={() => app.applicant_id && handleViewProfile(app.applicant_id)}
@@ -254,41 +269,41 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
                         {app.applicant?.profile_picture ? (
                           <Image source={{ uri: app.applicant.profile_picture }} style={styles.avatarImage} />
                         ) : (
-                          <View style={styles.avatar}>
-                            <Text style={styles.avatarText}>
+                          <View style={[styles.avatar, { backgroundColor: isNewTheme ? colors.accentGreen : '#0ea5e9' }]}>
+                            <Text style={[styles.avatarText, { color: isNewTheme ? colors.background : '#fff' }]}>
                               {app.applicant?.name?.charAt(0).toUpperCase() || '👤'}
                             </Text>
                           </View>
                         )}
                         <View style={styles.appInfo}>
-                          <Text style={styles.appName}>{app.applicant?.name || 'Applicant'}</Text>
-                          <Text style={styles.appDate}>
+                          <Text style={[styles.appName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{app.applicant?.name || 'Applicant'}</Text>
+                          <Text style={[styles.appDate, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
                             Applied {new Date(app.created_at).toLocaleDateString()}
                           </Text>
                           {app.status === 'interview_pending' && (
-                            <View style={styles.interviewStatusBadge}>
-                              <Text style={styles.interviewStatusText}>⏳ Awaiting time proposals</Text>
+                            <View style={[styles.interviewStatusBadge, { backgroundColor: isNewTheme ? colors.primaryLight : '#f3e8ff' }]}>
+                              <Text style={[styles.interviewStatusText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>⏳ Awaiting time proposals</Text>
                             </View>
                           )}
                           {app.status === 'interview_times_submitted' && (
-                            <View style={[styles.interviewStatusBadge, styles.interviewStatusReview]}>
-                              <Text style={styles.interviewStatusText}>📅 Times proposed - review needed</Text>
+                            <View style={[styles.interviewStatusBadge, styles.interviewStatusReview, { backgroundColor: isNewTheme ? colors.warningLight : '#fef3c7' }]}>
+                              <Text style={[styles.interviewStatusText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>📅 Times proposed - review needed</Text>
                             </View>
                           )}
                           {app.status === 'interview_scheduled' && (
-                            <View style={[styles.interviewStatusBadge, styles.interviewStatusScheduled]}>
-                              <Text style={styles.interviewStatusText}>✓ Interview scheduled</Text>
+                            <View style={[styles.interviewStatusBadge, styles.interviewStatusScheduled, { backgroundColor: isNewTheme ? colors.successLight : '#d1fae5' }]}>
+                              <Text style={[styles.interviewStatusText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>✓ Interview scheduled</Text>
                             </View>
                           )}
-                          <Text style={styles.viewProfileLink}>View profile →</Text>
+                          <Text style={[styles.viewProfileLink, { color: isNewTheme ? colors.accentGreen : '#0ea5e9', fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>View profile →</Text>
                         </View>
                       </TouchableOpacity>
 
                       <View style={styles.answersSection}>
                         {app.answers.map((answer: any, index: number) => (
                           <View key={index} style={styles.answerBlock}>
-                            <Text style={styles.answerQuestion}>{answer.question}</Text>
-                            <Text style={styles.answerText}>{answer.answer}</Text>
+                            <Text style={[styles.answerQuestion, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{answer.question}</Text>
+                            <Text style={[styles.answerText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{answer.answer}</Text>
                           </View>
                         ))}
                       </View>
@@ -296,19 +311,19 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
                       {/* Resume Attachment */}
                       {app.resume_url && (
                         <TouchableOpacity
-                          style={styles.resumeAttachment}
+                          style={[styles.resumeAttachment, { backgroundColor: accentPurpleLight, borderColor: accentPurpleBorder }]}
                           onPress={() => Linking.openURL(app.resume_url)}
                         >
-                          <View style={styles.resumeIconContainer}>
-                            <Ionicons name="document-text" size={20} color="#8b5cf6" />
+                          <View style={[styles.resumeIconContainer, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#ede9fe' }]}>
+                            <Ionicons name="document-text" size={20} color={accentPurple} />
                           </View>
                           <View style={styles.resumeInfo}>
-                            <Text style={styles.resumeLabel}>📎 Resume Attached</Text>
-                            <Text style={styles.resumeFilename} numberOfLines={1}>
+                            <Text style={[styles.resumeLabel, { color: accentPurple, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined }]}>📎 Resume Attached</Text>
+                            <Text style={[styles.resumeFilename, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]} numberOfLines={1}>
                               {app.resume_filename || 'View Resume'}
                             </Text>
                           </View>
-                          <Ionicons name="open-outline" size={18} color="#8b5cf6" />
+                          <Ionicons name="open-outline" size={18} color={accentPurple} />
                         </TouchableOpacity>
                       )}
 
@@ -319,9 +334,10 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
                             <TouchableOpacity
                               style={[
                                 styles.interviewButton,
-                                buttonState.style === 'sent' && styles.interviewButtonSent,
-                                buttonState.style === 'review' && styles.interviewButtonReview,
-                                buttonState.style === 'scheduled' && styles.interviewButtonScheduled,
+                                { backgroundColor: accentPurple },
+                                buttonState.style === 'sent' && [styles.interviewButtonSent, { backgroundColor: colors.disabled }],
+                                buttonState.style === 'review' && [styles.interviewButtonReview, { backgroundColor: colors.warning }],
+                                buttonState.style === 'scheduled' && [styles.interviewButtonScheduled, { backgroundColor: colors.success }],
                               ]}
                               onPress={() => {
                                 if (buttonState.style === 'review' && onScheduleInterview) {
@@ -335,6 +351,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
                             >
                               <Text style={[
                                 styles.interviewButtonText,
+                                { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined },
                                 buttonState.disabled && styles.interviewButtonTextDisabled,
                               ]}>
                                 {buttonState.text}
@@ -343,16 +360,16 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
                           );
                         })()}
                         <TouchableOpacity
-                          style={styles.acceptButton}
+                          style={[styles.acceptButton, { backgroundColor: colors.success }]}
                           onPress={() => handleAccept(app.id, app.applicant?.name || 'this applicant')}
                         >
-                          <Text style={styles.acceptButtonText}>✓ Accept</Text>
+                          <Text style={[styles.acceptButtonText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>✓ Accept</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                          style={styles.rejectButton}
+                          style={[styles.rejectButton, { backgroundColor: colors.error }]}
                           onPress={() => handleReject(app.id)}
                         >
-                          <Text style={styles.rejectButtonText}>✕ Decline</Text>
+                          <Text style={[styles.rejectButtonText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>✕ Decline</Text>
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -362,75 +379,75 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
 
               {reviewedApps.length > 0 && (
                 <>
-                  <Text style={styles.sectionTitle}>Reviewed ({reviewedApps.length})</Text>
+                  <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined }]}>Reviewed ({reviewedApps.length})</Text>
                   {reviewedApps.map((app) => (
-                    <View key={app.id} style={styles.appCard}>
+                    <View key={app.id} style={[styles.appCard, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }]}>
                       <TouchableOpacity
                         style={styles.appHeader}
                         onPress={() => app.applicant_id && handleViewProfile(app.applicant_id)}
                       >
                         {app.applicant?.profile_picture ? (
-                          <Image source={{ uri: app.applicant.profile_picture }} style={[styles.avatarImage, app.status === 'accepted' ? styles.avatarAcceptedBorder : styles.avatarDeclinedBorder]} />
+                          <Image source={{ uri: app.applicant.profile_picture }} style={[styles.avatarImage, app.status === 'accepted' ? { borderWidth: 3, borderColor: colors.success } : { borderWidth: 3, borderColor: colors.error }]} />
                         ) : (
                           <View style={[
                             styles.avatar,
-                            app.status === 'accepted' ? styles.avatarAccepted : styles.avatarDeclined
+                            { backgroundColor: app.status === 'accepted' ? colors.success : colors.error }
                           ]}>
-                            <Text style={styles.avatarText}>
+                            <Text style={[styles.avatarText, { color: isNewTheme ? colors.background : '#fff' }]}>
                               {app.applicant?.name?.charAt(0).toUpperCase() || '👤'}
                             </Text>
                           </View>
                         )}
                         <View style={styles.appInfo}>
-                          <Text style={styles.appName}>{app.applicant?.name || 'Applicant'}</Text>
+                          <Text style={[styles.appName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{app.applicant?.name || 'Applicant'}</Text>
                           <View style={[
                             styles.statusBadge,
-                            app.status === 'accepted' ? styles.statusAccepted : styles.statusDeclined
+                            { backgroundColor: app.status === 'accepted' ? colors.successLight : colors.errorLight }
                           ]}>
-                            <Text style={styles.statusText}>
+                            <Text style={[styles.statusText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
                               {app.status === 'accepted' ? '✓ Accepted' : '✕ Declined'}
                             </Text>
                           </View>
-                          <Text style={styles.viewProfileLink}>View profile →</Text>
+                          <Text style={[styles.viewProfileLink, { color: isNewTheme ? colors.accentGreen : '#0ea5e9', fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>View profile →</Text>
                         </View>
                       </TouchableOpacity>
                       <TouchableOpacity
-                        style={styles.expandButton}
+                        style={[styles.expandButton, { borderTopColor: colors.border }]}
                         onPress={() => setExpandedReviewedId(expandedReviewedId === app.id ? null : app.id)}
                       >
-                        <Text style={styles.expandIcon}>
+                        <Text style={[styles.expandIcon, { color: isNewTheme ? colors.accentGreen : '#0ea5e9', fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
                           {expandedReviewedId === app.id ? '▲ Hide answers' : '▼ Show answers'}
                         </Text>
                       </TouchableOpacity>
 
                       {expandedReviewedId === app.id && (
                         <View style={styles.answersSection}>
-                          <Text style={styles.viewAnswersLabel}>Application Answers</Text>
+                          <Text style={[styles.viewAnswersLabel, { color: isNewTheme ? colors.accentGreen : '#0ea5e9', borderTopColor: colors.border, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined }]}>Application Answers</Text>
                           {app.answers.map((answer: any, index: number) => (
                             <View key={index} style={styles.answerBlock}>
-                              <Text style={styles.answerQuestion}>{answer.question}</Text>
-                              <Text style={styles.answerText}>{answer.answer}</Text>
+                              <Text style={[styles.answerQuestion, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{answer.question}</Text>
+                              <Text style={[styles.answerText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{answer.answer}</Text>
                             </View>
                           ))}
                           {/* Resume Attachment for reviewed apps */}
                           {app.resume_url && (
                             <TouchableOpacity
-                              style={styles.resumeAttachment}
+                              style={[styles.resumeAttachment, { backgroundColor: accentPurpleLight, borderColor: accentPurpleBorder }]}
                               onPress={() => Linking.openURL(app.resume_url)}
                             >
-                              <View style={styles.resumeIconContainer}>
-                                <Ionicons name="document-text" size={20} color="#8b5cf6" />
+                              <View style={[styles.resumeIconContainer, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#ede9fe' }]}>
+                                <Ionicons name="document-text" size={20} color={accentPurple} />
                               </View>
                               <View style={styles.resumeInfo}>
-                                <Text style={styles.resumeLabel}>📎 Resume Attached</Text>
-                                <Text style={styles.resumeFilename} numberOfLines={1}>
+                                <Text style={[styles.resumeLabel, { color: accentPurple, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined }]}>📎 Resume Attached</Text>
+                                <Text style={[styles.resumeFilename, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]} numberOfLines={1}>
                                   {app.resume_filename || 'View Resume'}
                                 </Text>
                               </View>
-                              <Ionicons name="open-outline" size={18} color="#8b5cf6" />
+                              <Ionicons name="open-outline" size={18} color={accentPurple} />
                             </TouchableOpacity>
                           )}
-                          <Text style={styles.appDateReviewed}>
+                          <Text style={[styles.appDateReviewed, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
                             Applied {new Date(app.created_at).toLocaleDateString()}
                           </Text>
                         </View>
@@ -448,28 +465,25 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  header: { 
-    backgroundColor: '#fff', 
-    padding: 20, 
-    paddingTop: 60, 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#eee',
+  container: { flex: 1 },
+  header: {
+    padding: 20,
+    paddingTop: 60,
+    borderBottomWidth: 1,
   },
   backButton: { marginBottom: 10 },
-  backText: { fontSize: 16, color: '#0ea5e9', fontWeight: '600' },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#333' },
-  subtitle: { fontSize: 14, color: '#666', marginTop: 4 },
+  backText: { fontSize: 16, fontWeight: '600' },
+  title: { fontSize: 24, fontWeight: 'bold' },
+  subtitle: { fontSize: 14, marginTop: 4 },
   scrollView: { flex: 1 },
   content: { padding: 20, paddingBottom: 100 },
   empty: { alignItems: 'center', paddingVertical: 80 },
   emptyEmoji: { fontSize: 64, marginBottom: 20 },
-  emptyText: { fontSize: 18, color: '#999', fontWeight: '600' },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 16, marginTop: 8 },
-  appCard: { 
-    backgroundColor: '#fff', 
-    borderRadius: 12, 
-    padding: 16, 
+  emptyText: { fontSize: 18, fontWeight: '600' },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 16, marginTop: 8 },
+  appCard: {
+    borderRadius: 12,
+    padding: 16,
     marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -478,77 +492,63 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   appHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  avatar: { 
-    width: 50, 
-    height: 50, 
-    borderRadius: 25, 
-    backgroundColor: '#0ea5e9', 
-    justifyContent: 'center', 
+  avatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
-  avatarText: { fontSize: 24, color: '#fff', fontWeight: 'bold' },
+  avatarText: { fontSize: 24, fontWeight: 'bold' },
   avatarImage: {
     width: 50,
     height: 50,
     borderRadius: 25,
     marginRight: 12,
   },
-  avatarAcceptedBorder: { borderWidth: 3, borderColor: '#10b981' },
-  avatarDeclinedBorder: { borderWidth: 3, borderColor: '#ef4444' },
   appInfo: { flex: 1 },
-  appName: { fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 4 },
-  appDate: { fontSize: 12, color: '#999' },
-  viewProfileLink: { fontSize: 12, color: '#0ea5e9', fontWeight: '600', marginTop: 4 },
+  appName: { fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
+  appDate: { fontSize: 12 },
+  viewProfileLink: { fontSize: 12, fontWeight: '600', marginTop: 4 },
   interviewStatusBadge: {
-    backgroundColor: '#f3e8ff',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,
     marginTop: 4,
     alignSelf: 'flex-start',
   },
-  interviewStatusReview: {
-    backgroundColor: '#fef3c7',
-  },
-  interviewStatusScheduled: {
-    backgroundColor: '#d1fae5',
-  },
+  interviewStatusReview: {},
+  interviewStatusScheduled: {},
   interviewStatusText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#6b7280',
   },
-  statusBadge: { 
+  statusBadge: {
     alignSelf: 'flex-start',
-    paddingHorizontal: 10, 
-    paddingVertical: 4, 
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 12,
     marginTop: 4,
   },
-  statusAccepted: { backgroundColor: '#d1fae5' },
-  statusDeclined: { backgroundColor: '#fee2e2' },
-  statusText: { fontSize: 12, fontWeight: 'bold', color: '#333' },
+  statusText: { fontSize: 12, fontWeight: 'bold' },
   answersSection: { marginBottom: 16 },
   answerBlock: { marginBottom: 12 },
-  answerQuestion: { fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 4 },
-  answerText: { fontSize: 14, color: '#666', lineHeight: 20 },
+  answerQuestion: { fontSize: 13, fontWeight: '600', marginBottom: 4 },
+  answerText: { fontSize: 14, lineHeight: 20 },
   // Resume attachment styles
   resumeAttachment: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f5f3ff',
     borderRadius: 10,
     padding: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#ddd6fe',
   },
   resumeIconContainer: {
     width: 36,
     height: 36,
     borderRadius: 8,
-    backgroundColor: '#ede9fe',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -559,73 +559,56 @@ const styles = StyleSheet.create({
   resumeLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#8b5cf6',
     marginBottom: 2,
   },
   resumeFilename: {
     fontSize: 12,
-    color: '#6b7280',
   },
   actionButtons: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
   interviewButton: {
     flex: 1,
-    backgroundColor: '#8b5cf6',
     borderRadius: 8,
     padding: 12,
     alignItems: 'center',
     minWidth: '100%',
     marginBottom: 8,
   },
-  interviewButtonSent: {
-    backgroundColor: '#9ca3af',
-  },
-  interviewButtonReview: {
-    backgroundColor: '#f59e0b',
-  },
-  interviewButtonScheduled: {
-    backgroundColor: '#10b981',
-  },
-  interviewButtonText: { color: '#fff', fontSize: 15, fontWeight: 'bold' },
+  interviewButtonSent: {},
+  interviewButtonReview: {},
+  interviewButtonScheduled: {},
+  interviewButtonText: { fontSize: 15, fontWeight: 'bold' },
   interviewButtonTextDisabled: { opacity: 0.9 },
-  acceptButton: { 
-    flex: 1, 
-    backgroundColor: '#10b981', 
-    borderRadius: 8, 
-    padding: 12, 
-    alignItems: 'center',
-  },
-  acceptButtonText: { color: '#fff', fontSize: 15, fontWeight: 'bold' },
-  rejectButton: {
+  acceptButton: {
     flex: 1,
-    backgroundColor: '#ef4444',
     borderRadius: 8,
     padding: 12,
     alignItems: 'center',
   },
-  rejectButtonText: { color: '#fff', fontSize: 15, fontWeight: 'bold' },
-  avatarAccepted: { backgroundColor: '#10b981' },
-  avatarDeclined: { backgroundColor: '#ef4444' },
+  acceptButtonText: { fontSize: 15, fontWeight: 'bold' },
+  rejectButton: {
+    flex: 1,
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+  },
+  rejectButtonText: { fontSize: 15, fontWeight: 'bold' },
   expandButton: {
     paddingVertical: 8,
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: '#eee',
     marginTop: 8,
   },
-  expandIcon: { fontSize: 12, color: '#0ea5e9', fontWeight: '600' },
+  expandIcon: { fontSize: 12, fontWeight: '600' },
   viewAnswersLabel: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#0ea5e9',
     marginBottom: 12,
     marginTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
     paddingTop: 16,
   },
   appDateReviewed: {
     fontSize: 12,
-    color: '#999',
     marginTop: 12,
     fontStyle: 'italic',
   },

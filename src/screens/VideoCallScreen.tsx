@@ -7,6 +7,7 @@ import {
   Alert,
   Platform,
   Dimensions,
+  StatusBar,
 } from 'react-native';
 import {
   RtcSurfaceView,
@@ -18,6 +19,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { agoraService } from '../services/agoraService';
 import { Camera } from 'expo-camera';
 import { Audio } from 'expo-av';
+import { useTheme } from '../theme/ThemeContext';
+import { getThemedStyles } from '../theme/themedStyles';
+import GrainTexture from '../components/ui/GrainTexture';
+import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
 
 const { width, height } = Dimensions.get('window');
 
@@ -36,6 +41,10 @@ export default function VideoCallScreen({
   agoraAppId,
   agoraToken = null,
 }: VideoCallScreenProps) {
+  const { theme, isNewTheme } = useTheme();
+  const colors = theme.colors;
+  const themedStyles = getThemedStyles(colors, isNewTheme);
+
   const [isJoined, setIsJoined] = useState(false);
   const [remoteUids, setRemoteUids] = useState<number[]>([]);
   const [isMuted, setIsMuted] = useState(false);
@@ -158,8 +167,14 @@ export default function VideoCallScreen({
     }
   };
 
+  // VideoCallScreen always uses a dark theme for video calls
+  const vcBackground = isNewTheme ? colors.background : '#1a1a1a';
+  const vcAccent = isNewTheme ? colors.accentGreen : '#8b5cf6';
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: vcBackground }]}>
+      <StatusBar barStyle="light-content" backgroundColor={vcBackground} />
+      {isNewTheme && <GrainTexture opacity={0.06} />}
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.podTitle}>{podTitle}</Text>
@@ -204,7 +219,7 @@ export default function VideoCallScreen({
 
         {/* Local video (small preview) */}
         {isVideoEnabled && (
-          <View style={styles.localVideoContainer}>
+          <View style={[styles.localVideoContainer, { borderColor: vcAccent }]}>
             <RtcSurfaceView
               canvas={{
                 uid: 0,

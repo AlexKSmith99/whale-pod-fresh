@@ -10,6 +10,7 @@ import {
   Modal,
   Alert,
   Keyboard,
+  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
@@ -17,7 +18,10 @@ import PodMemberCollage from '../components/PodMemberCollage';
 import { podChatService, PodChatMessage } from '../services/podChatService';
 import { notificationService } from '../services/notificationService';
 import { supabase } from '../config/supabase';
-import { colors } from '../theme/designSystem';
+import { colors as legacyColors } from '../theme/designSystem';
+import { useTheme } from '../theme/ThemeContext';
+import { getThemedStyles } from '../theme/themedStyles';
+import GrainTexture from '../components/ui/GrainTexture';
 
 interface Props {
   pursuitId: string;
@@ -34,6 +38,9 @@ interface Props {
 
 export default function PodChatScreen({ pursuitId, pursuitTitle, customName, podPicture, onBack, onNameChanged, navigation, showMenuButton, onMenuPress, onDelete }: Props) {
   const { user } = useAuth();
+  const { theme, isNewTheme } = useTheme();
+  const colors = theme.colors;
+  const themedStyles = getThemedStyles(colors, isNewTheme);
   const [messages, setMessages] = useState<PodChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -245,8 +252,8 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
           style={styles.messageAvatar}
         />
       ) : (
-        <View style={styles.messageAvatar}>
-          <Text style={styles.messageAvatarText}>
+        <View style={[styles.messageAvatar, { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]}>
+          <Text style={[styles.messageAvatarText, { color: isNewTheme ? colors.background : '#fff' }]}>
             {profile?.name?.charAt(0).toUpperCase() ||
              profile?.email?.charAt(0).toUpperCase() || '?'}
           </Text>
@@ -268,7 +275,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
         {/* Time separator - shown when 1+ hour gap */}
         {showTimeSeparator && (
           <View style={styles.timeSeparator}>
-            <Text style={styles.timeSeparatorText}>
+            <Text style={[styles.timeSeparatorText, { color: colors.textTertiary, backgroundColor: colors.surfaceAlt, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
               {formatTimeSeparator(item.created_at)}
             </Text>
           </View>
@@ -287,7 +294,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
               <View style={styles.myMessageContent}>
                 {/* Sender name for my messages - only on first in thread */}
                 {showHeaderAndAvatar && (
-                  <Text style={[styles.senderName, styles.mySenderName]}>
+                  <Text style={[styles.senderName, styles.mySenderName, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
                     {myProfile?.name || 'You'}
                   </Text>
                 )}
@@ -295,12 +302,12 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
                   <TouchableOpacity
                     activeOpacity={0.8}
                     onPress={() => setExpandedMessageId(expandedMessageId === item.id ? null : item.id)}
-                    style={[styles.messageBubble, styles.myMessageBubble]}
+                    style={[styles.messageBubble, styles.myMessageBubble, { backgroundColor: isNewTheme ? colors.accentGreen : '#8b5cf6' }]}
                   >
-                    <Text style={[styles.messageText, styles.myMessageText]}>{item.content}</Text>
+                    <Text style={[styles.messageText, styles.myMessageText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{item.content}</Text>
                   </TouchableOpacity>
                   {expandedMessageId === item.id && (
-                    <Text style={[styles.expandedTimestamp, styles.expandedTimestampRight]}>
+                    <Text style={[styles.expandedTimestamp, styles.expandedTimestampRight, { color: colors.textTertiary }]}>
                       {new Date(item.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                     </Text>
                   )}
@@ -320,7 +327,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
               <View style={styles.theirMessageContent}>
                 {/* Sender name - only on first in thread */}
                 {showHeaderAndAvatar && (
-                  <Text style={styles.senderName}>
+                  <Text style={[styles.senderName, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
                     {sender?.name || 'User'}
                   </Text>
                 )}
@@ -328,12 +335,12 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
                   <TouchableOpacity
                     activeOpacity={0.8}
                     onPress={() => setExpandedMessageId(expandedMessageId === item.id ? null : item.id)}
-                    style={[styles.messageBubble, styles.theirMessageBubble]}
+                    style={[styles.messageBubble, styles.theirMessageBubble, { backgroundColor: colors.surface, borderColor: colors.border }]}
                   >
-                    <Text style={styles.messageText}>{item.content}</Text>
+                    <Text style={[styles.messageText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{item.content}</Text>
                   </TouchableOpacity>
                   {expandedMessageId === item.id && (
-                    <Text style={[styles.expandedTimestamp, styles.expandedTimestampLeft]}>
+                    <Text style={[styles.expandedTimestamp, styles.expandedTimestampLeft, { color: colors.textTertiary }]}>
                       {new Date(item.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                     </Text>
                   )}
@@ -347,11 +354,13 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+      {isNewTheme && <GrainTexture opacity={0.06} />}
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={handleMenuPress} style={styles.backButton}>
-          <Ionicons name={showMenuButton ? "ellipsis-vertical" : "arrow-back"} size={24} color="#333" />
+          <Ionicons name={showMenuButton ? "ellipsis-vertical" : "arrow-back"} size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.headerInfo}
@@ -363,10 +372,10 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
             <PodMemberCollage members={members} size={40} />
           )}
           <View style={styles.headerTextContainer}>
-            <Text style={styles.headerTitle} numberOfLines={1}>
+            <Text style={[styles.headerTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]} numberOfLines={1}>
               {chatName}
             </Text>
-            <Text style={styles.memberCount}>
+            <Text style={[styles.memberCount, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
               {members.length} members
             </Text>
           </View>
@@ -378,7 +387,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
             setShowRenameModal(true);
           }}
         >
-          <Ionicons name="create-outline" size={20} color="#333" />
+          <Ionicons name="create-outline" size={20} color={colors.textPrimary} />
         </TouchableOpacity>
       </View>
 
@@ -395,11 +404,11 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
           keyboardDismissMode="interactive"
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Ionicons name="chatbubbles-outline" size={48} color="#ccc" />
-              <Text style={styles.emptyText}>
+              <Ionicons name="chatbubbles-outline" size={48} color={colors.textTertiary} />
+              <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
                 {loading ? 'Loading...' : 'No messages yet'}
               </Text>
-              <Text style={styles.emptySubtext}>
+              <Text style={[styles.emptySubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
                 Start the conversation!
               </Text>
             </View>
@@ -408,18 +417,19 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
       </View>
 
       {/* Input */}
-      <View style={styles.inputContainer}>
+      <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.background, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}
           placeholder="Type a message..."
+          placeholderTextColor={colors.textTertiary}
           value={newMessage}
           onChangeText={setNewMessage}
           multiline
           spellCheck={true}
           autoCorrect={true}
         />
-        <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
-          <Ionicons name="send" size={24} color="#fff" />
+        <TouchableOpacity style={[styles.sendButton, { backgroundColor: isNewTheme ? colors.accentGreen : '#8b5cf6' }]} onPress={handleSend}>
+          <Ionicons name="send" size={24} color={isNewTheme ? colors.background : '#fff'} />
         </TouchableOpacity>
       </View>
 
@@ -430,15 +440,15 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
         transparent={true}
         onRequestClose={() => setShowMembersModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Pod Members</Text>
+        <View style={[styles.modalOverlay, { backgroundColor: isNewTheme ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)' }]}>
+          <View style={[styles.modalContainer, { backgroundColor: colors.surface }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.modalTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Pod Members</Text>
               <TouchableOpacity
                 style={styles.modalCloseButton}
                 onPress={() => setShowMembersModal(false)}
               >
-                <Ionicons name="close" size={24} color="#333" />
+                <Ionicons name="close" size={24} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
             <FlatList
@@ -446,7 +456,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={styles.memberCard}
+                  style={[styles.memberCard, { borderBottomColor: colors.border }]}
                   onPress={() => {
                     setShowMembersModal(false);
                     navigation?.navigate('UserProfile', { userId: item.id });
@@ -455,17 +465,17 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
                   {item.profile_picture ? (
                     <Image source={{ uri: item.profile_picture }} style={styles.memberAvatar} />
                   ) : (
-                    <View style={styles.memberAvatar}>
-                      <Text style={styles.memberAvatarText}>
+                    <View style={[styles.memberAvatar, { backgroundColor: isNewTheme ? colors.accentGreen : '#10b981' }]}>
+                      <Text style={[styles.memberAvatarText, { color: isNewTheme ? colors.background : '#fff' }]}>
                         {item.name?.charAt(0).toUpperCase() || '?'}
                       </Text>
                     </View>
                   )}
                   <View style={styles.memberInfo}>
-                    <Text style={styles.memberName}>{item.name || 'Team Member'}</Text>
+                    <Text style={[styles.memberName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{item.name || 'Team Member'}</Text>
                     {item.isCreator && (
-                      <View style={styles.creatorBadge}>
-                        <Text style={styles.creatorBadgeText}>Creator</Text>
+                      <View style={[styles.creatorBadge, { backgroundColor: isNewTheme ? colors.accentGreen : '#8b5cf6' }]}>
+                        <Text style={[styles.creatorBadgeText, { color: isNewTheme ? colors.background : '#fff' }]}>Creator</Text>
                       </View>
                     )}
                   </View>
@@ -483,28 +493,29 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
         transparent={true}
         onRequestClose={() => setShowRenameModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.renameModalContainer}>
-            <Text style={styles.renameModalTitle}>Rename Chat</Text>
+        <View style={[styles.modalOverlay, { backgroundColor: isNewTheme ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)' }]}>
+          <View style={[styles.renameModalContainer, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.renameModalTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Rename Chat</Text>
             <TextInput
-              style={styles.renameInput}
+              style={[styles.renameInput, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.background, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}
               value={tempChatName}
               onChangeText={setTempChatName}
               placeholder="Enter new chat name"
+              placeholderTextColor={colors.textTertiary}
               autoFocus
             />
             <View style={styles.renameButtons}>
               <TouchableOpacity
-                style={styles.cancelButton}
+                style={[styles.cancelButton, { backgroundColor: colors.surfaceAlt }]}
                 onPress={() => setShowRenameModal(false)}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={[styles.cancelButtonText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.saveButton}
+                style={[styles.saveButton, { backgroundColor: isNewTheme ? colors.accentGreen : '#8b5cf6' }]}
                 onPress={handleRename}
               >
-                <Text style={styles.saveButtonText}>Save</Text>
+                <Text style={[styles.saveButtonText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Save</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -519,27 +530,27 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
         onRequestClose={() => setShowOptionsMenu(false)}
       >
         <TouchableOpacity
-          style={styles.optionsOverlay}
+          style={[styles.optionsOverlay, { backgroundColor: isNewTheme ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)' }]}
           activeOpacity={1}
           onPress={() => setShowOptionsMenu(false)}
         >
-          <View style={styles.optionsContainer}>
+          <View style={[styles.optionsContainer, { backgroundColor: colors.surface }]}>
             <TouchableOpacity style={styles.optionItem} onPress={handleSwitchChats}>
-              <Ionicons name="chatbubbles-outline" size={22} color="#333" />
-              <Text style={styles.optionText}>Switch Chats</Text>
+              <Ionicons name="chatbubbles-outline" size={22} color={colors.textPrimary} />
+              <Text style={[styles.optionText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Switch Chats</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.optionItem} onPress={handleRenameChat}>
-              <Ionicons name="create-outline" size={22} color="#333" />
-              <Text style={styles.optionText}>Rename Chat</Text>
+              <Ionicons name="create-outline" size={22} color={colors.textPrimary} />
+              <Text style={[styles.optionText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Rename Chat</Text>
             </TouchableOpacity>
             {onDelete && (
               <TouchableOpacity style={styles.optionItemDanger} onPress={handleDeleteChat}>
-                <Ionicons name="trash-outline" size={22} color="#ef4444" />
-                <Text style={styles.optionTextDanger}>Delete Chat</Text>
+                <Ionicons name="trash-outline" size={22} color={colors.error} />
+                <Text style={[styles.optionTextDanger, { color: colors.error, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Delete Chat</Text>
               </TouchableOpacity>
             )}
-            <TouchableOpacity style={styles.optionCancel} onPress={() => setShowOptionsMenu(false)}>
-              <Text style={styles.optionCancelText}>Cancel</Text>
+            <TouchableOpacity style={[styles.optionCancel, { borderTopColor: colors.border }]} onPress={() => setShowOptionsMenu(false)}>
+              <Text style={[styles.optionCancelText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -551,7 +562,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: legacyColors.background,
   },
   header: {
     flexDirection: 'row',
@@ -684,7 +695,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomLeftRadius: 4,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: legacyColors.border,
   },
   messageText: {
     fontSize: 15,

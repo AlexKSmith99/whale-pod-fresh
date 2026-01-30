@@ -9,11 +9,15 @@ import {
   Alert,
   ActivityIndicator,
   Image,
-  Platform,
+  StatusBar,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
+import { useTheme } from '../theme/ThemeContext';
+import { getThemedStyles } from '../theme/themedStyles';
+import GrainTexture from '../components/ui/GrainTexture';
+import { colors as legacyColors } from '../theme/designSystem';
 
 interface EditProfileScreenProps {
   onBack: () => void;
@@ -21,6 +25,9 @@ interface EditProfileScreenProps {
 
 export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
   const { user } = useAuth();
+  const { theme, isNewTheme } = useTheme();
+  const colors = theme.colors;
+  const themedStyles = getThemedStyles(colors, isNewTheme);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -204,143 +211,157 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0ea5e9" />
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+        {isNewTheme && <GrainTexture opacity={0.06} />}
+        <ActivityIndicator size="large" color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+      {isNewTheme && <GrainTexture opacity={0.06} />}
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backButtonText}>← Back</Text>
+          <Text style={[styles.backButtonText, { color: isNewTheme ? colors.accentGreen : legacyColors.primary }]}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Edit Profile</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Edit Profile</Text>
         <TouchableOpacity onPress={handleSave} style={styles.saveButton} disabled={saving}>
-          <Text style={styles.saveButtonText}>{saving ? 'Saving...' : 'Save'}</Text>
+          <Text style={[styles.saveButtonText, { color: isNewTheme ? colors.accentGreen : legacyColors.primary }]}>{saving ? 'Saving...' : 'Save'}</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
-          <Text style={styles.sectionTitle}>Profile Picture</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Profile Picture</Text>
           {profilePicture ? (
-            <Image source={{ uri: profilePicture }} style={styles.previewImage} />
+            <Image source={{ uri: profilePicture }} style={[styles.previewImage, { borderColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]} />
           ) : (
-            <View style={styles.placeholderImage}>
-              <Text style={styles.placeholderText}>No photo yet</Text>
+            <View style={[styles.placeholderImage, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#e5e7eb', borderColor: colors.border }]}>
+              <Text style={[styles.placeholderText, { color: colors.textTertiary }]}>No photo yet</Text>
             </View>
           )}
 
           <View style={styles.photoButtons}>
-            <TouchableOpacity 
-              style={styles.photoButton}
+            <TouchableOpacity
+              style={[styles.photoButton, { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]}
               onPress={() => pickImage(true)}
               disabled={uploading}
             >
-              <Text style={styles.photoButtonText}>
-                {uploading ? 'Uploading...' : '📷 Take Photo'}
+              <Text style={[styles.photoButtonText, { color: isNewTheme ? colors.background : legacyColors.white }]}>
+                {uploading ? 'Uploading...' : 'Take Photo'}
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.photoButton}
+            <TouchableOpacity
+              style={[styles.photoButton, { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]}
               onPress={() => pickImage(false)}
               disabled={uploading}
             >
-              <Text style={styles.photoButtonText}>
-                {uploading ? 'Uploading...' : '🖼️ Choose Photo'}
+              <Text style={[styles.photoButtonText, { color: isNewTheme ? colors.background : legacyColors.white }]}>
+                {uploading ? 'Uploading...' : 'Choose Photo'}
               </Text>
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.sectionTitle}>Basic Info</Text>
-          
-          <Text style={styles.label}>Name *</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Basic Info</Text>
+
+          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Name *</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}
             placeholder="e.g., John Smith"
+            placeholderTextColor={colors.textTertiary}
             value={name}
             onChangeText={setName}
           />
 
-          <Text style={styles.label}>Age</Text>
+          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Age</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}
             placeholder="e.g., 25"
+            placeholderTextColor={colors.textTertiary}
             value={age}
             onChangeText={setAge}
             keyboardType="numeric"
           />
 
-          <Text style={styles.label}>Gender</Text>
+          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Gender</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}
             placeholder="e.g., Male, Female, Non-binary"
+            placeholderTextColor={colors.textTertiary}
             value={gender}
             onChangeText={setGender}
           />
 
-          <Text style={styles.label}>Hometown</Text>
+          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Hometown</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}
             placeholder="e.g., San Francisco, CA"
+            placeholderTextColor={colors.textTertiary}
             value={hometown}
             onChangeText={setHometown}
           />
 
-          <Text style={styles.label}>Bio</Text>
+          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Bio</Text>
           <TextInput
-            style={[styles.input, styles.textArea]}
+            style={[styles.input, styles.textArea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}
             placeholder="Tell us about yourself..."
+            placeholderTextColor={colors.textTertiary}
             value={bio}
             onChangeText={setBio}
             multiline
             numberOfLines={4}
           />
 
-          <Text style={styles.sectionTitle}>Social Links</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Social Links</Text>
 
-          <Text style={styles.label}>Instagram</Text>
+          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Instagram</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}
             placeholder="@username or full URL"
+            placeholderTextColor={colors.textTertiary}
             value={instagram}
             onChangeText={setInstagram}
             autoCapitalize="none"
           />
 
-          <Text style={styles.label}>LinkedIn</Text>
+          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>LinkedIn</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}
             placeholder="linkedin.com/in/username"
+            placeholderTextColor={colors.textTertiary}
             value={linkedin}
             onChangeText={setLinkedin}
             autoCapitalize="none"
           />
 
-          <Text style={styles.label}>Facebook</Text>
+          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Facebook</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}
             placeholder="facebook.com/username"
+            placeholderTextColor={colors.textTertiary}
             value={facebook}
             onChangeText={setFacebook}
             autoCapitalize="none"
           />
 
-          <Text style={styles.label}>GitHub</Text>
+          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>GitHub</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}
             placeholder="github.com/username"
+            placeholderTextColor={colors.textTertiary}
             value={github}
             onChangeText={setGithub}
             autoCapitalize="none"
           />
 
-          <Text style={styles.label}>Portfolio Website</Text>
+          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Portfolio Website</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}
             placeholder="https://yourwebsite.com"
+            placeholderTextColor={colors.textTertiary}
             value={portfolio}
             onChangeText={setPortfolio}
             autoCapitalize="none"

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Platform, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Platform, Modal, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,7 +7,10 @@ import { meetingService } from '../services/meetingService';
 import { agoraService } from '../services/agoraService';
 import { notificationService } from '../services/notificationService';
 import { supabase } from '../config/supabase';
-import { colors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+import { useTheme } from '../theme/ThemeContext';
+import { getThemedStyles } from '../theme/themedStyles';
+import GrainTexture from '../components/ui/GrainTexture';
 
 interface Props {
   applicationId: string;
@@ -38,6 +41,12 @@ export default function InterviewSchedulingScreen({
   onScheduled
 }: Props) {
   const { user } = useAuth();
+  const { theme, isNewTheme } = useTheme();
+  const colors = theme.colors;
+  const themedStyles = getThemedStyles(colors, isNewTheme);
+  // Interview uses purple accent color (#8b5cf6)
+  const interviewAccent = '#8b5cf6';
+  const accentColor = isNewTheme ? colors.accentGreen : interviewAccent;
   const [proposedTimes, setProposedTimes] = useState<any[]>([]);
   const [timezone, setTimezone] = useState<string>('');
   const [loading, setLoading] = useState(true);
@@ -233,35 +242,37 @@ export default function InterviewSchedulingScreen({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+      {isNewTheme && <GrainTexture opacity={0.06} />}
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
           <Ionicons name="close" size={28} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Schedule Interview</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'NothingYouCouldDo_400Regular' : undefined }]}>Schedule Interview</Text>
         <View style={{ width: 28 }} />
       </View>
 
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
-          <View style={styles.introSection}>
-            <Text style={styles.pursuitTitle}>{pursuitTitle}</Text>
-            <Text style={styles.applicantLabel}>Interview with:</Text>
-            <Text style={styles.applicantName}>{applicantName}</Text>
-            <Text style={styles.introText}>
+          <View style={[styles.introSection, { backgroundColor: isNewTheme ? colors.primaryLight : '#f3e8ff' }]}>
+            <Text style={[styles.pursuitTitle, { color: accentColor, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{pursuitTitle}</Text>
+            <Text style={[styles.applicantLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Interview with:</Text>
+            <Text style={[styles.applicantName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{applicantName}</Text>
+            <Text style={[styles.introText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
               Review the proposed times below and select when to schedule the interview.
             </Text>
           </View>
 
           {/* Proposed Times */}
-          <Text style={styles.sectionTitle}>Proposed Interview Times</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'NothingYouCouldDo_400Regular' : undefined }]}>Proposed Interview Times</Text>
 
           {proposedTimes.length === 0 ? (
-            <View style={styles.emptyState}>
+            <View style={[styles.emptyState, { backgroundColor: colors.surface }]}>
               <Ionicons name="time-outline" size={48} color={colors.textTertiary} />
-              <Text style={styles.emptyText}>No times proposed yet</Text>
-              <Text style={styles.emptySubtext}>The applicant hasn't submitted their availability</Text>
+              <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>No times proposed yet</Text>
+              <Text style={[styles.emptySubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>The applicant hasn't submitted their availability</Text>
             </View>
           ) : (
             proposedTimes.map((slot, index) => {
@@ -275,7 +286,8 @@ export default function InterviewSchedulingScreen({
                   key={index}
                   style={[
                     styles.timeSlotOption,
-                    isSelected && styles.timeSlotSelected
+                    { backgroundColor: colors.surface, borderColor: isSelected ? accentColor : 'transparent' },
+                    isSelected && { backgroundColor: isNewTheme ? colors.primaryLight : '#f3e8ff' }
                   ]}
                   onPress={() => {
                     setSelectedTime(slot);
@@ -283,19 +295,19 @@ export default function InterviewSchedulingScreen({
                   }}
                 >
                   <View style={styles.timeSlotInfo}>
-                    <Text style={styles.timeSlotDate}>
+                    <Text style={[styles.timeSlotDate, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
                       {new Date(slot.date).toLocaleDateString('en-US', {
                         weekday: 'short',
                         month: 'short',
                         day: 'numeric'
                       })}
                     </Text>
-                    <Text style={styles.timeSlotTime}>
+                    <Text style={[styles.timeSlotTime, { color: accentColor, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
                       {formatTime12Hour(slot.start_time)} - {formatTime12Hour(slot.end_time)}
                     </Text>
                   </View>
                   {isSelected && (
-                    <Ionicons name="checkmark-circle" size={24} color="#8b5cf6" />
+                    <Ionicons name="checkmark-circle" size={24} color={accentColor} />
                   )}
                 </TouchableOpacity>
               );
@@ -306,7 +318,8 @@ export default function InterviewSchedulingScreen({
           <TouchableOpacity
             style={[
               styles.customTimeButton,
-              useCustomTime && styles.customTimeButtonSelected
+              { backgroundColor: colors.surface, borderColor: useCustomTime ? accentColor : colors.borderLight },
+              useCustomTime && { backgroundColor: isNewTheme ? colors.primaryLight : '#f3e8ff', borderStyle: 'solid' as const }
             ]}
             onPress={() => {
               setUseCustomTime(true);
@@ -317,35 +330,35 @@ export default function InterviewSchedulingScreen({
               <Ionicons
                 name="calendar-outline"
                 size={24}
-                color={useCustomTime ? '#8b5cf6' : colors.textSecondary}
+                color={useCustomTime ? accentColor : colors.textSecondary}
               />
               <View style={styles.customTimeTextContainer}>
                 <Text style={[
                   styles.customTimeButtonText,
-                  useCustomTime && styles.customTimeButtonTextSelected
+                  { color: useCustomTime ? accentColor : colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }
                 ]}>
                   Schedule for a different time
                 </Text>
-                <Text style={styles.customTimeSubtext}>
+                <Text style={[styles.customTimeSubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
                   Choose your own date and time
                 </Text>
               </View>
             </View>
             {useCustomTime && (
-              <Ionicons name="checkmark-circle" size={24} color="#8b5cf6" />
+              <Ionicons name="checkmark-circle" size={24} color={accentColor} />
             )}
           </TouchableOpacity>
 
           {/* Custom Date/Time Picker */}
           {useCustomTime && (
-            <View style={styles.customTimePickerSection}>
-              <Text style={styles.inputLabel}>Select Date</Text>
+            <View style={[styles.customTimePickerSection, { backgroundColor: colors.surface }]}>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Select Date</Text>
               <TouchableOpacity
-                style={styles.dateTimeButton}
+                style={[styles.dateTimeButton, { backgroundColor: colors.backgroundSecondary }]}
                 onPress={() => setShowDatePicker(!showDatePicker)}
               >
-                <Ionicons name="calendar" size={20} color="#8b5cf6" />
-                <Text style={styles.dateTimeButtonText}>
+                <Ionicons name="calendar" size={20} color={accentColor} />
+                <Text style={[styles.dateTimeButtonText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
                   {customDate.toLocaleDateString('en-US', {
                     weekday: 'long',
                     month: 'long',
@@ -353,17 +366,17 @@ export default function InterviewSchedulingScreen({
                     year: 'numeric'
                   })}
                 </Text>
-                <Ionicons name={showDatePicker ? "chevron-up" : "chevron-down"} size={16} color="#8b5cf6" />
+                <Ionicons name={showDatePicker ? "chevron-up" : "chevron-down"} size={16} color={accentColor} />
               </TouchableOpacity>
 
               {showDatePicker && Platform.OS === 'ios' && (
                 <Modal transparent animationType="fade" visible={showDatePicker}>
-                  <TouchableOpacity 
-                    style={styles.pickerOverlay} 
-                    activeOpacity={1} 
+                  <TouchableOpacity
+                    style={[styles.pickerOverlay, { backgroundColor: isNewTheme ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)' }]}
+                    activeOpacity={1}
                     onPress={() => setShowDatePicker(false)}
                   >
-                    <View style={styles.pickerModalContent}>
+                    <View style={[styles.pickerModalContent, { backgroundColor: colors.surface }]}>
                       <DateTimePicker
                         value={customDate}
                         mode="date"
@@ -374,10 +387,10 @@ export default function InterviewSchedulingScreen({
                         }}
                       />
                       <TouchableOpacity
-                        style={styles.doneButton}
+                        style={[styles.doneButton, { backgroundColor: accentColor }]}
                         onPress={() => setShowDatePicker(false)}
                       >
-                        <Text style={styles.doneButtonText}>Done</Text>
+                        <Text style={[styles.doneButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Done</Text>
                       </TouchableOpacity>
                     </View>
                   </TouchableOpacity>
@@ -396,30 +409,30 @@ export default function InterviewSchedulingScreen({
                 />
               )}
 
-              <Text style={styles.inputLabel}>Select Time</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Select Time</Text>
               <TouchableOpacity
-                style={styles.dateTimeButton}
+                style={[styles.dateTimeButton, { backgroundColor: colors.backgroundSecondary }]}
                 onPress={() => setShowTimePicker(!showTimePicker)}
               >
-                <Ionicons name="time" size={20} color="#8b5cf6" />
-                <Text style={styles.dateTimeButtonText}>
+                <Ionicons name="time" size={20} color={accentColor} />
+                <Text style={[styles.dateTimeButtonText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
                   {customTime.toLocaleTimeString('en-US', {
                     hour: 'numeric',
                     minute: '2-digit',
                     hour12: true
                   })}
                 </Text>
-                <Ionicons name={showTimePicker ? "chevron-up" : "chevron-down"} size={16} color="#8b5cf6" />
+                <Ionicons name={showTimePicker ? "chevron-up" : "chevron-down"} size={16} color={accentColor} />
               </TouchableOpacity>
 
               {showTimePicker && Platform.OS === 'ios' && (
                 <Modal transparent animationType="fade" visible={showTimePicker}>
-                  <TouchableOpacity 
-                    style={styles.pickerOverlay} 
-                    activeOpacity={1} 
+                  <TouchableOpacity
+                    style={[styles.pickerOverlay, { backgroundColor: isNewTheme ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)' }]}
+                    activeOpacity={1}
                     onPress={() => setShowTimePicker(false)}
                   >
-                    <View style={styles.pickerModalContent}>
+                    <View style={[styles.pickerModalContent, { backgroundColor: colors.surface }]}>
                       <DateTimePicker
                         value={customTime}
                         mode="time"
@@ -429,10 +442,10 @@ export default function InterviewSchedulingScreen({
                         }}
                       />
                       <TouchableOpacity
-                        style={styles.doneButton}
+                        style={[styles.doneButton, { backgroundColor: accentColor }]}
                         onPress={() => setShowTimePicker(false)}
                       >
-                        <Text style={styles.doneButtonText}>Done</Text>
+                        <Text style={[styles.doneButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Done</Text>
                       </TouchableOpacity>
                     </View>
                   </TouchableOpacity>
@@ -455,15 +468,23 @@ export default function InterviewSchedulingScreen({
           {/* Meeting Type Selection */}
           {(selectedTime || useCustomTime) && (
             <>
-              <Text style={styles.sectionTitle}>Meeting Type</Text>
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'NothingYouCouldDo_400Regular' : undefined }]}>Meeting Type</Text>
               <View style={styles.chipContainer}>
                 {(['in_person', 'video', 'hybrid'] as const).map((type) => (
                   <TouchableOpacity
                     key={type}
-                    style={[styles.chip, meetingType === type && styles.chipSelected]}
+                    style={[
+                      styles.chip,
+                      { backgroundColor: colors.backgroundSecondary, borderColor: colors.borderLight },
+                      meetingType === type && { backgroundColor: accentColor, borderColor: accentColor }
+                    ]}
                     onPress={() => setMeetingType(type)}
                   >
-                    <Text style={[styles.chipText, meetingType === type && styles.chipTextSelected]}>
+                    <Text style={[
+                      styles.chipText,
+                      { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined },
+                      meetingType === type && { color: isNewTheme ? colors.background : legacyColors.white }
+                    ]}>
                       {type === 'in_person' ? 'In Person' : type === 'video' ? 'Video' : 'Hybrid'}
                     </Text>
                   </TouchableOpacity>
@@ -473,10 +494,11 @@ export default function InterviewSchedulingScreen({
               {/* Location (if needed) */}
               {(meetingType === 'in_person' || meetingType === 'hybrid') && (
                 <>
-                  <Text style={styles.inputLabel}>Location</Text>
+                  <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Location</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.borderLight, color: colors.textPrimary }]}
                     placeholder="e.g., Coffee Shop, Office"
+                    placeholderTextColor={colors.textTertiary}
                     value={location}
                     onChangeText={setLocation}
                   />
@@ -484,10 +506,11 @@ export default function InterviewSchedulingScreen({
               )}
 
               {/* Duration */}
-              <Text style={styles.inputLabel}>Duration (minutes)</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Duration (minutes)</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.borderLight, color: colors.textPrimary }]}
                 placeholder="30"
+                placeholderTextColor={colors.textTertiary}
                 value={duration}
                 onChangeText={setDuration}
                 keyboardType="numeric"
@@ -495,11 +518,11 @@ export default function InterviewSchedulingScreen({
 
               {/* Schedule Button */}
               <TouchableOpacity
-                style={[styles.scheduleButton, loading && styles.scheduleButtonDisabled]}
+                style={[styles.scheduleButton, { backgroundColor: accentColor }, loading && styles.scheduleButtonDisabled]}
                 onPress={handleScheduleInterview}
                 disabled={loading}
               >
-                <Text style={styles.scheduleButtonText}>
+                <Text style={[styles.scheduleButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
                   {loading ? 'Scheduling...' : 'Schedule Interview'}
                 </Text>
               </TouchableOpacity>
@@ -514,7 +537,7 @@ export default function InterviewSchedulingScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: legacyColors.background,
   },
   header: {
     flexDirection: 'row',
@@ -523,9 +546,9 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: spacing.base,
     paddingHorizontal: spacing.lg,
-    backgroundColor: colors.white,
+    backgroundColor: legacyColors.white,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
+    borderBottomColor: legacyColors.borderLight,
   },
   closeButton: {
     width: 40,
@@ -536,7 +559,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: typography.fontSize.xl,
     fontWeight: typography.fontWeight.bold,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
   },
   scrollView: {
     flex: 1,
@@ -559,50 +582,50 @@ const styles = StyleSheet.create({
   },
   applicantLabel: {
     fontSize: typography.fontSize.sm,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
     marginTop: spacing.sm,
   },
   applicantName: {
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
     marginBottom: spacing.sm,
   },
   introText: {
     fontSize: typography.fontSize.sm,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
     lineHeight: 20,
     marginTop: spacing.sm,
   },
   sectionTitle: {
     fontSize: typography.fontSize.lg,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
     marginBottom: spacing.base,
     marginTop: spacing.lg,
   },
   emptyState: {
     alignItems: 'center',
     padding: spacing['3xl'],
-    backgroundColor: colors.white,
+    backgroundColor: legacyColors.white,
     borderRadius: borderRadius.lg,
   },
   emptyText: {
     fontSize: typography.fontSize.lg,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
     marginTop: spacing.base,
   },
   emptySubtext: {
     fontSize: typography.fontSize.sm,
-    color: colors.textTertiary,
+    color: legacyColors.textTertiary,
     marginTop: spacing.xs,
   },
   timeSlotOption: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: colors.white,
+    backgroundColor: legacyColors.white,
     padding: spacing.lg,
     borderRadius: borderRadius.base,
     marginBottom: spacing.sm,
@@ -620,7 +643,7 @@ const styles = StyleSheet.create({
   timeSlotDate: {
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
     marginBottom: 4,
   },
   timeSlotTime: {
@@ -638,9 +661,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.base,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.full,
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: legacyColors.backgroundSecondary,
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: legacyColors.borderLight,
   },
   chipSelected: {
     backgroundColor: '#8b5cf6',
@@ -648,28 +671,28 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontSize: typography.fontSize.sm,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
     fontWeight: typography.fontWeight.medium,
   },
   chipTextSelected: {
-    color: colors.white,
+    color: legacyColors.white,
     fontWeight: typography.fontWeight.bold,
   },
   inputLabel: {
     fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.medium,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
     marginBottom: spacing.xs,
     marginTop: spacing.base,
   },
   input: {
-    backgroundColor: colors.white,
+    backgroundColor: legacyColors.white,
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: legacyColors.borderLight,
     borderRadius: borderRadius.base,
     padding: spacing.base,
     fontSize: typography.fontSize.base,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
   },
   scheduleButton: {
     backgroundColor: '#8b5cf6',
@@ -683,7 +706,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   scheduleButtonText: {
-    color: colors.white,
+    color: legacyColors.white,
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.bold,
   },
@@ -691,13 +714,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: colors.white,
+    backgroundColor: legacyColors.white,
     padding: spacing.lg,
     borderRadius: borderRadius.base,
     marginTop: spacing.lg,
     ...shadows.sm,
     borderWidth: 2,
-    borderColor: colors.borderLight,
+    borderColor: legacyColors.borderLight,
     borderStyle: 'dashed',
   },
   customTimeButtonSelected: {
@@ -717,18 +740,18 @@ const styles = StyleSheet.create({
   customTimeButtonText: {
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
   },
   customTimeButtonTextSelected: {
     color: '#8b5cf6',
   },
   customTimeSubtext: {
     fontSize: typography.fontSize.sm,
-    color: colors.textTertiary,
+    color: legacyColors.textTertiary,
     marginTop: 2,
   },
   customTimePickerSection: {
-    backgroundColor: colors.white,
+    backgroundColor: legacyColors.white,
     padding: spacing.lg,
     borderRadius: borderRadius.base,
     marginTop: spacing.base,
@@ -737,7 +760,7 @@ const styles = StyleSheet.create({
   dateTimeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: legacyColors.backgroundSecondary,
     padding: spacing.base,
     borderRadius: borderRadius.base,
     marginBottom: spacing.base,
@@ -745,12 +768,12 @@ const styles = StyleSheet.create({
   },
   dateTimeButtonText: {
     fontSize: typography.fontSize.base,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
     fontWeight: typography.fontWeight.medium,
     flex: 1,
   },
   pickerContainer: {
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: legacyColors.backgroundSecondary,
     borderRadius: borderRadius.base,
     marginBottom: spacing.base,
     overflow: 'hidden',
@@ -761,7 +784,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   pickerModalContent: {
-    backgroundColor: colors.white,
+    backgroundColor: legacyColors.white,
     borderTopLeftRadius: borderRadius.lg,
     borderTopRightRadius: borderRadius.lg,
     paddingBottom: spacing.xl,
@@ -772,7 +795,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   doneButtonText: {
-    color: colors.white,
+    color: legacyColors.white,
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.semibold,
   },

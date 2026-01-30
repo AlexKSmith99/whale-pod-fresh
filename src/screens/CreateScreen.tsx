@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Switch, Modal, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Switch, Modal, FlatList, KeyboardAvoidingView, Platform, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFonts, NothingYouCouldDo_400Regular } from '@expo-google-fonts/nothing-you-could-do';
 import { useAuth } from '../contexts/AuthContext';
 import { pursuitService } from '../services/pursuitService';
-import { colors } from '../theme/designSystem';
+import { colors as legacyColors, typography, spacing } from '../theme/designSystem';
+import { useTheme } from '../theme/ThemeContext';
+import { getThemedStyles } from '../theme/themedStyles';
+import GrainTexture from '../components/ui/GrainTexture';
 
 const PURSUIT_TYPES = [
   'Accountability', 'Art', 'Business', 'Career Development', 'Co-founders', 'Discussion',
@@ -108,6 +111,10 @@ interface Props {
 
 export default function CreateScreen({ onClose }: Props = {}) {
   const { user } = useAuth();
+  const { theme, isNewTheme } = useTheme();
+  const colors = theme.colors;
+  const themedStyles = getThemedStyles(colors, isNewTheme);
+
   const [fontsLoaded] = useFonts({
     NothingYouCouldDo_400Regular,
   });
@@ -125,16 +132,16 @@ export default function CreateScreen({ onClose }: Props = {}) {
   const [showCitySuggestions, setShowCitySuggestions] = useState(false);
   const [showStateModal, setShowStateModal] = useState(false);
   const [projectedDuration, setProjectedDuration] = useState('');
-  
+
   // Types & Categories
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [categories, setCategories] = useState('');
   const [showPursuitTypeModal, setShowPursuitTypeModal] = useState(false);
   const [pursuitTypeSearch, setPursuitTypeSearch] = useState('');
-  
+
   // Business
   const [ownershipStructure, setOwnershipStructure] = useState('');
-  
+
   // Decision & Meeting
   const [decisionSystem, setDecisionSystem] = useState('Standard Vote');
   const [decisionNote, setDecisionNote] = useState('');
@@ -142,20 +149,20 @@ export default function CreateScreen({ onClose }: Props = {}) {
   const [meetingNote, setMeetingNote] = useState('');
   const [attendanceStyle, setAttendanceStyle] = useState('Mandatory');
   const [attendanceNote, setAttendanceNote] = useState('');
-  
+
   // Optional Fields
   const [accountabilityMechanics, setAccountabilityMechanics] = useState('');
   const [roles, setRoles] = useState('');
   const [experienceLevel, setExperienceLevel] = useState('');
   const [currentStage, setCurrentStage] = useState('');
   const [ageRestriction, setAgeRestriction] = useState('');
-  
+
   // Application Settings
   const [continueAccepting, setContinueAccepting] = useState(false);
   const [requiresInterview, setRequiresInterview] = useState(false);
   const [requiresResume, setRequiresResume] = useState(false);
   const [applicationQuestions, setApplicationQuestions] = useState('');
-  
+
   const [loading, setLoading] = useState(false);
 
   const toggleType = (type: string) => {
@@ -189,7 +196,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
     setLocationCity(city);
     setCitySearchQuery(city);
     setShowCitySuggestions(false);
-    
+
     // If this city only exists in one state, auto-select that state
     const statesForCity = CITY_STATE_MAP[city];
     if (statesForCity && statesForCity.length === 1) {
@@ -207,10 +214,10 @@ export default function CreateScreen({ onClose }: Props = {}) {
       setShowStateModal(false);
       return;
     }
-    
+
     setLocationState(stateAbbr);
     setShowStateModal(false);
-    
+
     // If current city doesn't exist in this state, clear it
     if (locationCity && CITY_STATE_MAP[locationCity] && !CITY_STATE_MAP[locationCity].includes(stateAbbr)) {
       setLocationCity('');
@@ -227,7 +234,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
   const filteredCities = US_CITIES.filter(city => {
     const matchesSearch = city.toLowerCase().startsWith(citySearchQuery.toLowerCase());
     if (!matchesSearch) return false;
-    
+
     // If a state is selected, only show cities in that state
     if (locationState) {
       const statesForCity = CITY_STATE_MAP[city];
@@ -331,7 +338,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
         current_members_count: 1,
       });
 
-      Alert.alert('🎉 Success!', 'Your pursuit has been created!', [
+      Alert.alert('Success!', 'Your pursuit has been created!', [
         { text: 'OK', onPress: () => {
           // Reset form
           setTitle('');
@@ -374,64 +381,461 @@ export default function CreateScreen({ onClose }: Props = {}) {
     }
   };
 
+  // Dynamic styles based on theme
+  const dynamicStyles = {
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      backgroundColor: colors.surface,
+      padding: 20,
+      paddingTop: 60,
+      borderBottomWidth: isNewTheme ? 1 : 1,
+      borderBottomColor: colors.border,
+      shadowColor: isNewTheme ? 'transparent' : '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: isNewTheme ? 0 : 0.1,
+      shadowRadius: 4,
+      elevation: isNewTheme ? 0 : 3,
+    },
+    title: {
+      fontSize: 28,
+      fontWeight: 'bold' as const,
+      color: isNewTheme ? colors.accentGreen : colors.textPrimary,
+      fontFamily: isNewTheme ? 'NothingYouCouldDo_400Regular' : (fontsLoaded ? 'NothingYouCouldDo_400Regular' : undefined),
+    },
+    subtitle: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginTop: 5,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    section: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 20,
+      shadowColor: isNewTheme ? 'transparent' : '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: isNewTheme ? 0 : 0.05,
+      shadowRadius: 3,
+      elevation: isNewTheme ? 0 : 2,
+      borderWidth: isNewTheme ? 1 : 0,
+      borderColor: colors.border,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: 'bold' as const,
+      color: colors.textPrimary,
+      marginBottom: 16,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 8,
+      marginTop: 8,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    miniLabel: {
+      fontSize: 12,
+      fontWeight: '600' as const,
+      color: colors.textSecondary,
+      marginBottom: 4,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    input: {
+      backgroundColor: isNewTheme ? colors.surfaceAlt : '#fafafa',
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 8,
+      padding: 12,
+      fontSize: 14,
+      marginBottom: 12,
+      color: colors.textPrimary,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    hint: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginBottom: 8,
+      fontStyle: 'italic' as const,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    charCount: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginBottom: 4,
+      textAlign: 'right' as const,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    chip: {
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 20,
+      backgroundColor: isNewTheme ? colors.surfaceAlt : '#f0f0f0',
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    chipSelected: {
+      backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.secondary,
+      borderColor: isNewTheme ? colors.accentGreen : legacyColors.secondary,
+    },
+    chipText: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    chipTextSelected: {
+      color: isNewTheme ? colors.background : legacyColors.white,
+      fontWeight: 'bold' as const,
+    },
+    button: {
+      backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.secondary,
+      borderRadius: 12,
+      padding: 18,
+      marginTop: 10,
+      alignItems: 'center' as const,
+      shadowColor: isNewTheme ? 'transparent' : legacyColors.secondary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: isNewTheme ? 0 : 0.3,
+      shadowRadius: 8,
+      elevation: isNewTheme ? 0 : 5,
+    },
+    buttonText: {
+      color: isNewTheme ? colors.background : legacyColors.white,
+      fontSize: 17,
+      fontWeight: 'bold' as const,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    suggestionsContainer: {
+      position: 'absolute' as const,
+      top: 48,
+      left: 0,
+      right: 0,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 8,
+      maxHeight: 200,
+      zIndex: 1000,
+      elevation: 5,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+    },
+    suggestionItem: {
+      padding: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    suggestionText: {
+      fontSize: 14,
+      color: colors.textPrimary,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    pickerButtonText: {
+      fontSize: 14,
+      color: colors.textTertiary,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    pickerButtonTextSelected: {
+      fontSize: 14,
+      color: colors.textPrimary,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: isNewTheme ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'flex-end' as const,
+    },
+    modalContent: {
+      backgroundColor: colors.surface,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      maxHeight: '70%' as const,
+      paddingBottom: 20,
+    },
+    modalHeader: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      padding: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    modalTitle: {
+      fontSize: 18,
+      fontWeight: 'bold' as const,
+      color: colors.textPrimary,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    modalClose: {
+      fontSize: 24,
+      color: colors.textSecondary,
+      fontWeight: 'bold' as const,
+    },
+    stateItem: {
+      padding: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    stateItemSelected: {
+      backgroundColor: isNewTheme ? 'rgba(168, 230, 163, 0.15)' : '#e0f2fe',
+    },
+    stateText: {
+      fontSize: 15,
+      color: colors.textPrimary,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    stateTextSelected: {
+      color: isNewTheme ? colors.accentGreen : legacyColors.secondary,
+      fontWeight: '600' as const,
+    },
+    emptyStateText: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      textAlign: 'center' as const,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    clearButton: {
+      backgroundColor: isNewTheme ? colors.errorLight : '#fee2e2',
+      padding: 12,
+      marginHorizontal: 16,
+      marginTop: 8,
+      borderRadius: 8,
+      alignItems: 'center' as const,
+    },
+    clearButtonText: {
+      color: isNewTheme ? colors.error : '#dc2626',
+      fontSize: 14,
+      fontWeight: '600' as const,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    questionsSection: {
+      backgroundColor: isNewTheme ? colors.surfaceAlt : '#f8fafc',
+      borderRadius: 12,
+      padding: 16,
+      marginTop: 16,
+      marginBottom: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    questionsSectionTitle: {
+      fontSize: 16,
+      fontWeight: 'bold' as const,
+      color: colors.textPrimary,
+      marginBottom: 4,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    questionsSectionSubtitle: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      marginBottom: 12,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    defaultQuestionsBox: {
+      backgroundColor: colors.surface,
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    defaultQuestionsLabel: {
+      fontSize: 12,
+      fontWeight: '700' as const,
+      color: colors.textSecondary,
+      marginBottom: 8,
+      textTransform: 'uppercase' as const,
+      letterSpacing: 0.5,
+      fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined,
+    },
+    defaultQuestion: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: colors.textPrimary,
+      marginBottom: 4,
+      lineHeight: 20,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    customizeHint: {
+      fontSize: 13,
+      color: isNewTheme ? colors.accentGreen : '#059669',
+      fontWeight: '500' as const,
+      marginBottom: 8,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    selectedTypesContainer: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      gap: 8,
+      marginBottom: 12,
+    },
+    selectedTypeChip: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.secondary,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 16,
+      gap: 6,
+    },
+    selectedTypeText: {
+      color: isNewTheme ? colors.background : legacyColors.white,
+      fontSize: 13,
+      fontWeight: '600' as const,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    dropdownButton: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      backgroundColor: isNewTheme ? colors.surfaceAlt : '#fafafa',
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 8,
+      padding: 12,
+    },
+    dropdownButtonText: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    searchContainer: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      backgroundColor: isNewTheme ? colors.surfaceAlt : '#f5f5f5',
+      borderRadius: 8,
+      marginHorizontal: 16,
+      marginVertical: 12,
+      paddingHorizontal: 12,
+      borderWidth: isNewTheme ? 1 : 0,
+      borderColor: colors.border,
+    },
+    searchInput: {
+      flex: 1,
+      paddingVertical: 12,
+      fontSize: 14,
+      color: colors.textPrimary,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    selectedCount: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginHorizontal: 16,
+      marginBottom: 8,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    pursuitTypeItem: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      padding: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    pursuitTypeItemSelected: {
+      backgroundColor: isNewTheme ? 'rgba(168, 230, 163, 0.15)' : '#e0f2fe',
+    },
+    pursuitTypeItemDisabled: {
+      opacity: 0.5,
+    },
+    pursuitTypeText: {
+      fontSize: 15,
+      color: colors.textPrimary,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    pursuitTypeTextSelected: {
+      color: isNewTheme ? colors.accentGreen : legacyColors.secondary,
+      fontWeight: '600' as const,
+    },
+    pursuitTypeTextDisabled: {
+      color: colors.textTertiary,
+    },
+    doneButton: {
+      backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.secondary,
+      margin: 16,
+      padding: 14,
+      borderRadius: 8,
+      alignItems: 'center' as const,
+    },
+    doneButtonText: {
+      color: isNewTheme ? colors.background : legacyColors.white,
+      fontSize: 16,
+      fontWeight: '600' as const,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+  };
+
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
+    <KeyboardAvoidingView
+      style={dynamicStyles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
-      <View style={styles.header}>
-        <Text style={[styles.title, fontsLoaded && { fontFamily: 'NothingYouCouldDo_400Regular' }]}>Create a Pursuit</Text>
-        <Text style={styles.subtitle}>* = Required fields</Text>
+      <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+      {isNewTheme && <GrainTexture opacity={0.06} />}
+
+      <View style={dynamicStyles.header}>
+        <Text style={dynamicStyles.title}>Create a Pursuit</Text>
+        <Text style={dynamicStyles.subtitle}>* = Required fields</Text>
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={true}
       >
         <View style={styles.form}>
-          
+
           {/* BASIC INFORMATION */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📋 Basic Information</Text>
-            
-            <Text style={styles.label}>Title *</Text>
+          <View style={dynamicStyles.section}>
+            <Text style={dynamicStyles.sectionTitle}>Basic Information</Text>
+
+            <Text style={dynamicStyles.label}>Title *</Text>
             <TextInput
-              style={styles.input}
+              style={dynamicStyles.input}
               placeholder="e.g., Learn Java Programming Together"
+              placeholderTextColor={colors.textTertiary}
               value={title}
               onChangeText={setTitle}
             />
 
-            <Text style={styles.label}>Description * (min 50 characters)</Text>
-            <Text style={styles.charCount}>{description.length}/50</Text>
+            <Text style={dynamicStyles.label}>Description * (min 50 characters)</Text>
+            <Text style={dynamicStyles.charCount}>{description.length}/50</Text>
             <TextInput
-              style={[styles.input, styles.textArea]}
+              style={[dynamicStyles.input, styles.textArea]}
               placeholder="Describe your pursuit, who you're looking for, and where you want it to go. Be specific!"
+              placeholderTextColor={colors.textTertiary}
               value={description}
               onChangeText={setDescription}
               multiline
               numberOfLines={6}
             />
 
-            <Text style={styles.label}>Team Size Range *</Text>
+            <Text style={dynamicStyles.label}>Team Size Range *</Text>
             <View style={styles.row}>
               <View style={styles.halfInput}>
-                <Text style={styles.miniLabel}>Min</Text>
+                <Text style={dynamicStyles.miniLabel}>Min</Text>
                 <TextInput
-                  style={styles.input}
+                  style={dynamicStyles.input}
                   placeholder="2"
+                  placeholderTextColor={colors.textTertiary}
                   value={teamSizeMin}
                   onChangeText={setTeamSizeMin}
                   keyboardType="numeric"
                 />
               </View>
               <View style={styles.halfInput}>
-                <Text style={styles.miniLabel}>Max</Text>
+                <Text style={dynamicStyles.miniLabel}>Max</Text>
                 <TextInput
-                  style={styles.input}
+                  style={dynamicStyles.input}
                   placeholder="8"
+                  placeholderTextColor={colors.textTertiary}
                   value={teamSizeMax}
                   onChangeText={setTeamSizeMax}
                   keyboardType="numeric"
@@ -440,20 +844,25 @@ export default function CreateScreen({ onClose }: Props = {}) {
             </View>
 
             <View style={styles.switchRow}>
-              <Text style={styles.label}>Team size flexible?</Text>
-              <Switch value={teamSizeFlexible} onValueChange={setTeamSizeFlexible} />
+              <Text style={dynamicStyles.label}>Team size flexible?</Text>
+              <Switch
+                value={teamSizeFlexible}
+                onValueChange={setTeamSizeFlexible}
+                trackColor={{ false: colors.border, true: isNewTheme ? colors.accentGreenMuted : legacyColors.secondary }}
+                thumbColor={teamSizeFlexible ? (isNewTheme ? colors.accentGreen : legacyColors.white) : colors.surface}
+              />
             </View>
 
-            <Text style={styles.label}>Location Type * (Select all that apply)</Text>
-            <Text style={styles.hint}>Select In-person, Hybrid, and/or Remote</Text>
+            <Text style={dynamicStyles.label}>Location Type * (Select all that apply)</Text>
+            <Text style={dynamicStyles.hint}>Select In-person, Hybrid, and/or Remote</Text>
             <View style={styles.chipContainer}>
               {['In-person', 'Hybrid', 'Remote'].map((type) => (
                 <TouchableOpacity
                   key={type}
-                  style={[styles.chip, locationTypes.includes(type) && styles.chipSelected]}
+                  style={[dynamicStyles.chip, locationTypes.includes(type) && dynamicStyles.chipSelected]}
                   onPress={() => toggleLocationType(type)}
                 >
-                  <Text style={[styles.chipText, locationTypes.includes(type) && styles.chipTextSelected]}>
+                  <Text style={[dynamicStyles.chipText, locationTypes.includes(type) && dynamicStyles.chipTextSelected]}>
                     {type}
                   </Text>
                 </TouchableOpacity>
@@ -462,30 +871,31 @@ export default function CreateScreen({ onClose }: Props = {}) {
 
             {(locationTypes.includes('In-person') || locationTypes.includes('Hybrid')) && (
               <>
-                <Text style={styles.label}>City *</Text>
-                <Text style={styles.hint}>
-                  {locationState 
-                    ? `Start typing to search cities in ${locationState}` 
+                <Text style={dynamicStyles.label}>City *</Text>
+                <Text style={dynamicStyles.hint}>
+                  {locationState
+                    ? `Start typing to search cities in ${locationState}`
                     : 'Start typing to search cities'}
                 </Text>
                 <View>
                   <TextInput
-                    style={styles.input}
+                    style={dynamicStyles.input}
                     placeholder="Search city (e.g., Austin)"
+                    placeholderTextColor={colors.textTertiary}
                     value={citySearchQuery}
                     onChangeText={handleCitySearch}
                     autoCapitalize="words"
                   />
                   {showCitySuggestions && filteredCities.length > 0 && (
-                    <View style={styles.suggestionsContainer}>
+                    <View style={dynamicStyles.suggestionsContainer}>
                       <ScrollView style={styles.suggestionsList} keyboardShouldPersistTaps="handled">
                         {filteredCities.map((city, index) => (
                           <TouchableOpacity
                             key={index}
-                            style={styles.suggestionItem}
+                            style={dynamicStyles.suggestionItem}
                             onPress={() => selectCity(city)}
                           >
-                            <Text style={styles.suggestionText}>{city}</Text>
+                            <Text style={dynamicStyles.suggestionText}>{city}</Text>
                           </TouchableOpacity>
                         ))}
                       </ScrollView>
@@ -493,40 +903,41 @@ export default function CreateScreen({ onClose }: Props = {}) {
                   )}
                 </View>
 
-                <Text style={styles.label}>State *</Text>
+                <Text style={dynamicStyles.label}>State *</Text>
                 <TouchableOpacity
-                  style={[styles.input, styles.pickerButton]}
+                  style={[dynamicStyles.input, styles.pickerButton]}
                   onPress={() => setShowStateModal(true)}
                 >
-                  <Text style={locationState ? styles.pickerButtonTextSelected : styles.pickerButtonText}>
+                  <Text style={locationState ? dynamicStyles.pickerButtonTextSelected : dynamicStyles.pickerButtonText}>
                     {locationState || 'Select state'}
                   </Text>
                 </TouchableOpacity>
               </>
             )}
 
-            <Text style={styles.label}>Projected Duration (optional)</Text>
+            <Text style={dynamicStyles.label}>Projected Duration (optional)</Text>
             <TextInput
-              style={styles.input}
+              style={dynamicStyles.input}
               placeholder="e.g., 3 months, 1 year, ongoing"
+              placeholderTextColor={colors.textTertiary}
               value={projectedDuration}
               onChangeText={setProjectedDuration}
             />
           </View>
 
           {/* PURSUIT TYPE */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🎯 Pursuit Type * (Select 1-3)</Text>
-            <Text style={styles.hint}>Selected: {selectedTypes.length}/3</Text>
+          <View style={dynamicStyles.section}>
+            <Text style={dynamicStyles.sectionTitle}>Pursuit Type * (Select 1-3)</Text>
+            <Text style={dynamicStyles.hint}>Selected: {selectedTypes.length}/3</Text>
 
             {/* Selected types display */}
             {selectedTypes.length > 0 && (
-              <View style={styles.selectedTypesContainer}>
+              <View style={dynamicStyles.selectedTypesContainer}>
                 {selectedTypes.map((type) => (
-                  <View key={type} style={styles.selectedTypeChip}>
-                    <Text style={styles.selectedTypeText}>{type}</Text>
+                  <View key={type} style={dynamicStyles.selectedTypeChip}>
+                    <Text style={dynamicStyles.selectedTypeText}>{type}</Text>
                     <TouchableOpacity onPress={() => setSelectedTypes(selectedTypes.filter(t => t !== type))}>
-                      <Ionicons name="close-circle" size={18} color="#fff" />
+                      <Ionicons name="close-circle" size={18} color={isNewTheme ? colors.background : legacyColors.white} />
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -535,23 +946,24 @@ export default function CreateScreen({ onClose }: Props = {}) {
 
             {/* Dropdown button */}
             <TouchableOpacity
-              style={styles.dropdownButton}
+              style={dynamicStyles.dropdownButton}
               onPress={() => setShowPursuitTypeModal(true)}
             >
-              <Text style={styles.dropdownButtonText}>
+              <Text style={dynamicStyles.dropdownButtonText}>
                 {selectedTypes.length === 0 ? 'Select pursuit types...' : 'Add more types...'}
               </Text>
-              <Ionicons name="chevron-down" size={20} color="#666" />
+              <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
           {/* CATEGORIES */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🏷️ Categories (optional, up to 5)</Text>
-            <Text style={styles.hint}>Comma-separated (e.g., tech, basketball, pokemon)</Text>
+          <View style={dynamicStyles.section}>
+            <Text style={dynamicStyles.sectionTitle}>Categories (optional, up to 5)</Text>
+            <Text style={dynamicStyles.hint}>Comma-separated (e.g., tech, basketball, pokemon)</Text>
             <TextInput
-              style={styles.input}
+              style={dynamicStyles.input}
               placeholder="tech, basketball, pokemon"
+              placeholderTextColor={colors.textTertiary}
               value={categories}
               onChangeText={setCategories}
             />
@@ -559,12 +971,13 @@ export default function CreateScreen({ onClose }: Props = {}) {
 
           {/* BUSINESS-SPECIFIC */}
           {selectedTypes.includes('Business') && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>💼 Business Details</Text>
-              <Text style={styles.label}>Ownership Structure</Text>
+            <View style={dynamicStyles.section}>
+              <Text style={dynamicStyles.sectionTitle}>Business Details</Text>
+              <Text style={dynamicStyles.label}>Ownership Structure</Text>
               <TextInput
-                style={styles.input}
+                style={dynamicStyles.input}
                 placeholder="e.g., Distributed evenly, Admin owns 90%"
+                placeholderTextColor={colors.textTertiary}
                 value={ownershipStructure}
                 onChangeText={setOwnershipStructure}
               />
@@ -572,64 +985,68 @@ export default function CreateScreen({ onClose }: Props = {}) {
           )}
 
           {/* DECISION SYSTEM */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🗳️ Decision System *</Text>
+          <View style={dynamicStyles.section}>
+            <Text style={dynamicStyles.sectionTitle}>Decision System *</Text>
             <View style={styles.chipContainer}>
               {DECISION_SYSTEMS.map((system) => (
                 <TouchableOpacity
                   key={system}
-                  style={[styles.chip, decisionSystem === system && styles.chipSelected]}
+                  style={[dynamicStyles.chip, decisionSystem === system && dynamicStyles.chipSelected]}
                   onPress={() => setDecisionSystem(system)}
                 >
-                  <Text style={[styles.chipText, decisionSystem === system && styles.chipTextSelected]}>
+                  <Text style={[dynamicStyles.chipText, decisionSystem === system && dynamicStyles.chipTextSelected]}>
                     {system}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
             <TextInput
-              style={styles.input}
+              style={dynamicStyles.input}
               placeholder="Add a note about your decision system (optional)"
+              placeholderTextColor={colors.textTertiary}
               value={decisionNote}
               onChangeText={setDecisionNote}
             />
           </View>
 
           {/* MEETING DETAILS */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📅 Meeting Details</Text>
-            
-            <Text style={styles.label}>Meeting Cadence *</Text>
+          <View style={dynamicStyles.section}>
+            <Text style={dynamicStyles.sectionTitle}>Meeting Details</Text>
+
+            <Text style={dynamicStyles.label}>Meeting Cadence *</Text>
             <TextInput
-              style={styles.input}
+              style={dynamicStyles.input}
               placeholder="e.g., Weekly on Mondays at 7pm"
+              placeholderTextColor={colors.textTertiary}
               value={meetingCadence}
               onChangeText={setMeetingCadence}
             />
             <TextInput
-              style={styles.input}
+              style={dynamicStyles.input}
               placeholder="Add a note (optional)"
+              placeholderTextColor={colors.textTertiary}
               value={meetingNote}
               onChangeText={setMeetingNote}
             />
 
-            <Text style={styles.label}>Attendance Style *</Text>
+            <Text style={dynamicStyles.label}>Attendance Style *</Text>
             <View style={styles.chipContainer}>
               {ATTENDANCE_STYLES.map((style) => (
                 <TouchableOpacity
                   key={style}
-                  style={[styles.chip, attendanceStyle === style && styles.chipSelected]}
+                  style={[dynamicStyles.chip, attendanceStyle === style && dynamicStyles.chipSelected]}
                   onPress={() => setAttendanceStyle(style)}
                 >
-                  <Text style={[styles.chipText, attendanceStyle === style && styles.chipTextSelected]}>
+                  <Text style={[dynamicStyles.chipText, attendanceStyle === style && dynamicStyles.chipTextSelected]}>
                     {style}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
             <TextInput
-              style={styles.input}
+              style={dynamicStyles.input}
               placeholder="Set expectations for attendance (optional)"
+              placeholderTextColor={colors.textTertiary}
               value={attendanceNote}
               onChangeText={setAttendanceNote}
             />
@@ -637,12 +1054,13 @@ export default function CreateScreen({ onClose }: Props = {}) {
 
           {/* ACCOUNTABILITY */}
           {selectedTypes.includes('Accountability') && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>✅ Accountability Mechanics</Text>
-              <Text style={styles.hint}>Comma-separated (e.g., streaks, check-ins, contributions)</Text>
+            <View style={dynamicStyles.section}>
+              <Text style={dynamicStyles.sectionTitle}>Accountability Mechanics</Text>
+              <Text style={dynamicStyles.hint}>Comma-separated (e.g., streaks, check-ins, contributions)</Text>
               <TextInput
-                style={styles.input}
+                style={dynamicStyles.input}
                 placeholder="streaks, check-ins, tasks complete"
+                placeholderTextColor={colors.textTertiary}
                 value={accountabilityMechanics}
                 onChangeText={setAccountabilityMechanics}
               />
@@ -650,86 +1068,106 @@ export default function CreateScreen({ onClose }: Props = {}) {
           )}
 
           {/* ROLES & EXPERIENCE */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>👤 Roles & Experience (optional)</Text>
-            
-            <Text style={styles.label}>Roles</Text>
-            <Text style={styles.hint}>Comma-separated roles you're looking for</Text>
+          <View style={dynamicStyles.section}>
+            <Text style={dynamicStyles.sectionTitle}>Roles & Experience (optional)</Text>
+
+            <Text style={dynamicStyles.label}>Roles</Text>
+            <Text style={dynamicStyles.hint}>Comma-separated roles you're looking for</Text>
             <TextInput
-              style={styles.input}
+              style={dynamicStyles.input}
               placeholder="Developer, Designer, Marketing Lead"
+              placeholderTextColor={colors.textTertiary}
               value={roles}
               onChangeText={setRoles}
             />
 
-            <Text style={styles.label}>Experience Level</Text>
+            <Text style={dynamicStyles.label}>Experience Level</Text>
             <TextInput
-              style={styles.input}
+              style={dynamicStyles.input}
               placeholder="e.g., 5+ years, Beginner, Intermediate"
+              placeholderTextColor={colors.textTertiary}
               value={experienceLevel}
               onChangeText={setExperienceLevel}
             />
 
-            <Text style={styles.label}>Current Stage in Process</Text>
+            <Text style={dynamicStyles.label}>Current Stage in Process</Text>
             <TextInput
-              style={styles.input}
+              style={dynamicStyles.input}
               placeholder="e.g., Just starting, Have a prototype"
+              placeholderTextColor={colors.textTertiary}
               value={currentStage}
               onChangeText={setCurrentStage}
             />
           </View>
 
           {/* RESTRICTIONS */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🔒 Restrictions (optional)</Text>
-            <Text style={styles.label}>Age Restriction</Text>
+          <View style={dynamicStyles.section}>
+            <Text style={dynamicStyles.sectionTitle}>Restrictions (optional)</Text>
+            <Text style={dynamicStyles.label}>Age Restriction</Text>
             <TextInput
-              style={styles.input}
+              style={dynamicStyles.input}
               placeholder="e.g., 18+, 21+ for cocktails, Students only"
+              placeholderTextColor={colors.textTertiary}
               value={ageRestriction}
               onChangeText={setAgeRestriction}
             />
           </View>
 
           {/* APPLICATION SETTINGS */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📝 Application Settings</Text>
-            
+          <View style={dynamicStyles.section}>
+            <Text style={dynamicStyles.sectionTitle}>Application Settings</Text>
+
             <View style={styles.switchRow}>
-              <Text style={styles.label}>Continue accepting after kickoff?</Text>
-              <Switch value={continueAccepting} onValueChange={setContinueAccepting} />
+              <Text style={dynamicStyles.label}>Continue accepting after kickoff?</Text>
+              <Switch
+                value={continueAccepting}
+                onValueChange={setContinueAccepting}
+                trackColor={{ false: colors.border, true: isNewTheme ? colors.accentGreenMuted : legacyColors.secondary }}
+                thumbColor={continueAccepting ? (isNewTheme ? colors.accentGreen : legacyColors.white) : colors.surface}
+              />
             </View>
 
             <View style={styles.switchRow}>
-              <Text style={styles.label}>Include interview option?</Text>
-              <Switch value={requiresInterview} onValueChange={setRequiresInterview} />
+              <Text style={dynamicStyles.label}>Include interview option?</Text>
+              <Switch
+                value={requiresInterview}
+                onValueChange={setRequiresInterview}
+                trackColor={{ false: colors.border, true: isNewTheme ? colors.accentGreenMuted : legacyColors.secondary }}
+                thumbColor={requiresInterview ? (isNewTheme ? colors.accentGreen : legacyColors.white) : colors.surface}
+              />
             </View>
 
             <View style={styles.switchRow}>
-              <Text style={styles.label}>Require resume?</Text>
-              <Switch value={requiresResume} onValueChange={setRequiresResume} />
+              <Text style={dynamicStyles.label}>Require resume?</Text>
+              <Switch
+                value={requiresResume}
+                onValueChange={setRequiresResume}
+                trackColor={{ false: colors.border, true: isNewTheme ? colors.accentGreenMuted : legacyColors.secondary }}
+                thumbColor={requiresResume ? (isNewTheme ? colors.accentGreen : legacyColors.white) : colors.surface}
+              />
             </View>
 
             {/* Application Questions Section */}
-            <View style={styles.questionsSection}>
-              <Text style={styles.questionsSectionTitle}>📝 Application Questions</Text>
-              <Text style={styles.questionsSectionSubtitle}>
+            <View style={dynamicStyles.questionsSection}>
+              <Text style={dynamicStyles.questionsSectionTitle}>Application Questions</Text>
+              <Text style={dynamicStyles.questionsSectionSubtitle}>
                 Use the default questions below or personalize your own
               </Text>
-              
-              <View style={styles.defaultQuestionsBox}>
-                <Text style={styles.defaultQuestionsLabel}>Default Questions:</Text>
-                <Text style={styles.defaultQuestion}>• Why are you a good team fit?</Text>
-                <Text style={styles.defaultQuestion}>• Where do you hope to see this go?</Text>
+
+              <View style={dynamicStyles.defaultQuestionsBox}>
+                <Text style={dynamicStyles.defaultQuestionsLabel}>Default Questions:</Text>
+                <Text style={dynamicStyles.defaultQuestion}>- Why are you a good team fit?</Text>
+                <Text style={dynamicStyles.defaultQuestion}>- Where do you hope to see this go?</Text>
               </View>
-              
-              <Text style={styles.customizeHint}>
-                ✏️ Tap below to edit or add your own questions (one per line)
+
+              <Text style={dynamicStyles.customizeHint}>
+                Tap below to edit or add your own questions (one per line)
               </Text>
-              
+
               <TextInput
-                style={[styles.input, styles.textArea, styles.questionsInput]}
+                style={[dynamicStyles.input, styles.textArea]}
                 placeholder="Why are you a good team fit?&#10;Where do you hope to see this go?"
+                placeholderTextColor={colors.textTertiary}
                 value={applicationQuestions}
                 onChangeText={setApplicationQuestions}
                 multiline
@@ -738,13 +1176,13 @@ export default function CreateScreen({ onClose }: Props = {}) {
             </View>
           </View>
 
-          <TouchableOpacity 
-            style={[styles.button, loading && styles.buttonDisabled]} 
+          <TouchableOpacity
+            style={[dynamicStyles.button, loading && styles.buttonDisabled]}
             onPress={handleCreate}
             disabled={loading}
           >
-            <Text style={styles.buttonText}>
-              {loading ? '🚀 Creating...' : '✨ Create Pursuit'}
+            <Text style={dynamicStyles.buttonText}>
+              {loading ? 'Creating...' : 'Create Pursuit'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -757,24 +1195,24 @@ export default function CreateScreen({ onClose }: Props = {}) {
         animationType="slide"
         onRequestClose={() => setShowStateModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
+        <View style={dynamicStyles.modalOverlay}>
+          <View style={dynamicStyles.modalContent}>
+            <View style={dynamicStyles.modalHeader}>
+              <Text style={dynamicStyles.modalTitle}>
                 Select State{locationCity ? ` (for ${locationCity})` : ''}
               </Text>
               <TouchableOpacity onPress={() => setShowStateModal(false)}>
-                <Text style={styles.modalClose}>✕</Text>
+                <Text style={dynamicStyles.modalClose}>x</Text>
               </TouchableOpacity>
             </View>
             {locationState ? (
-              <TouchableOpacity style={styles.clearButton} onPress={clearState}>
-                <Text style={styles.clearButtonText}>✕ Clear selection ({locationState})</Text>
+              <TouchableOpacity style={dynamicStyles.clearButton} onPress={clearState}>
+                <Text style={dynamicStyles.clearButtonText}>x Clear selection ({locationState})</Text>
               </TouchableOpacity>
             ) : null}
             {filteredStates.length === 0 ? (
               <View style={styles.emptyStateContainer}>
-                <Text style={styles.emptyStateText}>No states found for the selected city</Text>
+                <Text style={dynamicStyles.emptyStateText}>No states found for the selected city</Text>
               </View>
             ) : (
               <FlatList
@@ -782,10 +1220,10 @@ export default function CreateScreen({ onClose }: Props = {}) {
                 keyExtractor={(item) => item.abbr}
                 renderItem={({ item }) => (
                   <TouchableOpacity
-                    style={[styles.stateItem, locationState === item.abbr && styles.stateItemSelected]}
+                    style={[dynamicStyles.stateItem, locationState === item.abbr && dynamicStyles.stateItemSelected]}
                     onPress={() => selectState(item.abbr)}
                   >
-                    <Text style={[styles.stateText, locationState === item.abbr && styles.stateTextSelected]}>
+                    <Text style={[dynamicStyles.stateText, locationState === item.abbr && dynamicStyles.stateTextSelected]}>
                       {item.name} ({item.abbr}){locationState === item.abbr ? ' (tap to deselect)' : ''}
                     </Text>
                   </TouchableOpacity>
@@ -803,37 +1241,38 @@ export default function CreateScreen({ onClose }: Props = {}) {
         animationType="slide"
         onRequestClose={() => setShowPursuitTypeModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Pursuit Types</Text>
+        <View style={dynamicStyles.modalOverlay}>
+          <View style={dynamicStyles.modalContent}>
+            <View style={dynamicStyles.modalHeader}>
+              <Text style={dynamicStyles.modalTitle}>Select Pursuit Types</Text>
               <TouchableOpacity onPress={() => {
                 setShowPursuitTypeModal(false);
                 setPursuitTypeSearch('');
               }}>
-                <Text style={styles.modalClose}>✕</Text>
+                <Text style={dynamicStyles.modalClose}>x</Text>
               </TouchableOpacity>
             </View>
 
             {/* Search input */}
-            <View style={styles.searchContainer}>
-              <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
+            <View style={dynamicStyles.searchContainer}>
+              <Ionicons name="search" size={20} color={colors.textTertiary} style={styles.searchIcon} />
               <TextInput
-                style={styles.searchInput}
+                style={dynamicStyles.searchInput}
                 placeholder="Search pursuit types..."
+                placeholderTextColor={colors.textTertiary}
                 value={pursuitTypeSearch}
                 onChangeText={setPursuitTypeSearch}
                 autoCapitalize="none"
               />
               {pursuitTypeSearch.length > 0 && (
                 <TouchableOpacity onPress={() => setPursuitTypeSearch('')}>
-                  <Ionicons name="close-circle" size={20} color="#999" />
+                  <Ionicons name="close-circle" size={20} color={colors.textTertiary} />
                 </TouchableOpacity>
               )}
             </View>
 
             {/* Selected count */}
-            <Text style={styles.selectedCount}>
+            <Text style={dynamicStyles.selectedCount}>
               {selectedTypes.length}/3 selected
               {selectedTypes.length >= 3 && ' (max reached)'}
             </Text>
@@ -850,9 +1289,9 @@ export default function CreateScreen({ onClose }: Props = {}) {
                 return (
                   <TouchableOpacity
                     style={[
-                      styles.pursuitTypeItem,
-                      isSelected && styles.pursuitTypeItemSelected,
-                      isDisabled && styles.pursuitTypeItemDisabled
+                      dynamicStyles.pursuitTypeItem,
+                      isSelected && dynamicStyles.pursuitTypeItemSelected,
+                      isDisabled && dynamicStyles.pursuitTypeItemDisabled
                     ]}
                     onPress={() => {
                       if (isSelected) {
@@ -864,34 +1303,34 @@ export default function CreateScreen({ onClose }: Props = {}) {
                     disabled={isDisabled}
                   >
                     <Text style={[
-                      styles.pursuitTypeText,
-                      isSelected && styles.pursuitTypeTextSelected,
-                      isDisabled && styles.pursuitTypeTextDisabled
+                      dynamicStyles.pursuitTypeText,
+                      isSelected && dynamicStyles.pursuitTypeTextSelected,
+                      isDisabled && dynamicStyles.pursuitTypeTextDisabled
                     ]}>
                       {item}
                     </Text>
                     {isSelected && (
-                      <Ionicons name="checkmark-circle" size={22} color="#0ea5e9" />
+                      <Ionicons name="checkmark-circle" size={22} color={isNewTheme ? colors.accentGreen : legacyColors.secondary} />
                     )}
                   </TouchableOpacity>
                 );
               }}
               ListEmptyComponent={
                 <View style={styles.emptyStateContainer}>
-                  <Text style={styles.emptyStateText}>No matching pursuit types</Text>
+                  <Text style={dynamicStyles.emptyStateText}>No matching pursuit types</Text>
                 </View>
               }
             />
 
             {/* Done button */}
             <TouchableOpacity
-              style={styles.doneButton}
+              style={dynamicStyles.doneButton}
               onPress={() => {
                 setShowPursuitTypeModal(false);
                 setPursuitTypeSearch('');
               }}
             >
-              <Text style={styles.doneButtonText}>Done</Text>
+              <Text style={dynamicStyles.doneButtonText}>Done</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -901,336 +1340,30 @@ export default function CreateScreen({ onClose }: Props = {}) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  header: { 
-    backgroundColor: '#fff', 
-    padding: 20, 
-    paddingTop: 60, 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#eee',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  title: { fontSize: 28, fontWeight: 'bold', color: '#333' },
-  subtitle: { fontSize: 12, color: '#999', marginTop: 5 },
   scrollView: { flex: 1 },
   form: { padding: 20, paddingBottom: 120 },
-  section: { 
-    backgroundColor: '#fff', 
-    borderRadius: 12, 
-    padding: 16, 
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 16 },
-  label: { fontSize: 14, fontWeight: '600', color: '#333', marginBottom: 8, marginTop: 8 },
-  miniLabel: { fontSize: 12, fontWeight: '600', color: '#666', marginBottom: 4 },
-  input: { 
-    backgroundColor: '#fafafa', 
-    borderWidth: 1, 
-    borderColor: '#e5e5e5', 
-    borderRadius: 8, 
-    padding: 12, 
-    fontSize: 14,
-    marginBottom: 12,
-  },
   textArea: { height: 100, textAlignVertical: 'top' },
   row: { flexDirection: 'row', gap: 10 },
   halfInput: { flex: 1 },
-  hint: { fontSize: 12, color: '#999', marginBottom: 8, fontStyle: 'italic' },
-  charCount: { fontSize: 12, color: '#666', marginBottom: 4, textAlign: 'right' },
-  switchRow: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
+  switchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 8,
   },
   chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
-  chip: { 
-    paddingHorizontal: 14, 
-    paddingVertical: 8, 
-    borderRadius: 20, 
-    backgroundColor: '#f0f0f0',
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  chipSelected: { backgroundColor: '#0ea5e9', borderColor: '#0ea5e9' },
-  chipText: { fontSize: 13, color: '#666' },
-  chipTextSelected: { color: '#fff', fontWeight: 'bold' },
-  button: { 
-    backgroundColor: '#0ea5e9', 
-    borderRadius: 12, 
-    padding: 18, 
-    marginTop: 10, 
-    alignItems: 'center',
-    shadowColor: '#0ea5e9',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
-  },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#fff', fontSize: 17, fontWeight: 'bold' },
-  suggestionsContainer: {
-    position: 'absolute',
-    top: 48,
-    left: 0,
-    right: 0,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#e5e5e5',
-    borderRadius: 8,
-    maxHeight: 200,
-    zIndex: 1000,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
   suggestionsList: {
     maxHeight: 200,
   },
-  suggestionItem: {
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  suggestionText: {
-    fontSize: 14,
-    color: '#333',
-  },
   pickerButton: {
     justifyContent: 'center',
-  },
-  pickerButtonText: {
-    fontSize: 14,
-    color: '#999',
-  },
-  pickerButtonTextSelected: {
-    fontSize: 14,
-    color: '#333',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '70%',
-    paddingBottom: 20,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  modalClose: {
-    fontSize: 24,
-    color: '#666',
-    fontWeight: 'bold',
-  },
-  stateItem: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  stateItemSelected: {
-    backgroundColor: '#e0f2fe',
-  },
-  stateText: {
-    fontSize: 15,
-    color: '#333',
-  },
-  stateTextSelected: {
-    color: '#0ea5e9',
-    fontWeight: '600',
   },
   emptyStateContainer: {
     padding: 40,
     alignItems: 'center',
   },
-  emptyStateText: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-  },
-  clearButton: {
-    backgroundColor: '#fee2e2',
-    padding: 12,
-    marginHorizontal: 16,
-    marginTop: 8,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  clearButtonText: {
-    color: '#dc2626',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  questionsSection: {
-    backgroundColor: '#f8fafc',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 16,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  questionsSectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1e293b',
-    marginBottom: 4,
-  },
-  questionsSectionSubtitle: {
-    fontSize: 13,
-    color: '#64748b',
-    marginBottom: 12,
-  },
-  defaultQuestionsBox: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  defaultQuestionsLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#374151',
-    marginBottom: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  defaultQuestion: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 4,
-    lineHeight: 20,
-  },
-  customizeHint: {
-    fontSize: 13,
-    color: '#059669',
-    fontWeight: '500',
-    marginBottom: 8,
-  },
-  questionsInput: {
-    backgroundColor: '#fff',
-    borderColor: '#d1d5db',
-  },
-  selectedTypesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 12,
-  },
-  selectedTypeChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#0ea5e9',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 6,
-  },
-  selectedTypeText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  dropdownButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#fafafa',
-    borderWidth: 1,
-    borderColor: '#e5e5e5',
-    borderRadius: 8,
-    padding: 12,
-  },
-  dropdownButtonText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    marginHorizontal: 16,
-    marginVertical: 12,
-    paddingHorizontal: 12,
-  },
   searchIcon: {
     marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    paddingVertical: 12,
-    fontSize: 14,
-  },
-  selectedCount: {
-    fontSize: 12,
-    color: '#666',
-    marginHorizontal: 16,
-    marginBottom: 8,
-  },
-  pursuitTypeItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  pursuitTypeItemSelected: {
-    backgroundColor: '#e0f2fe',
-  },
-  pursuitTypeItemDisabled: {
-    opacity: 0.5,
-  },
-  pursuitTypeText: {
-    fontSize: 15,
-    color: '#333',
-  },
-  pursuitTypeTextSelected: {
-    color: '#0ea5e9',
-    fontWeight: '600',
-  },
-  pursuitTypeTextDisabled: {
-    color: '#999',
-  },
-  doneButton: {
-    backgroundColor: '#0ea5e9',
-    margin: 16,
-    padding: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  doneButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
   },
 });

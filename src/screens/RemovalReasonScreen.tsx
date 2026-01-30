@@ -1,6 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { colors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar } from 'react-native';
+import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+import { useTheme } from '../theme/ThemeContext';
+import { getThemedStyles } from '../theme/themedStyles';
+import GrainTexture from '../components/ui/GrainTexture';
 
 interface Props {
   pursuitTitle: string;
@@ -10,6 +13,12 @@ interface Props {
 }
 
 export default function RemovalReasonScreen({ pursuitTitle, reason, removedAt, onBack }: Props) {
+  const { theme, isNewTheme } = useTheme();
+  const colors = theme.colors;
+  const themedStyles = getThemedStyles(colors, isNewTheme);
+
+  const primaryColor = isNewTheme ? colors.accentGreen : legacyColors.primary;
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -21,12 +30,14 @@ export default function RemovalReasonScreen({ pursuitTitle, reason, removedAt, o
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+      {isNewTheme && <GrainTexture opacity={0.06} />}
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backText}>← Back</Text>
+          <Text style={[styles.backText, { color: primaryColor }]}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Membership Update</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>Membership Update</Text>
       </View>
 
       <ScrollView style={styles.scrollView}>
@@ -35,28 +46,28 @@ export default function RemovalReasonScreen({ pursuitTitle, reason, removedAt, o
             <Text style={styles.icon}>📋</Text>
           </View>
 
-          <View style={styles.infoCard}>
-            <Text style={styles.cardTitle}>You have been removed from</Text>
-            <Text style={styles.pursuitTitle}>{pursuitTitle}</Text>
-            <Text style={styles.dateText}>on {formatDate(removedAt)}</Text>
+          <View style={[styles.infoCard, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.cardTitle, { color: colors.textSecondary }]}>You have been removed from</Text>
+            <Text style={[styles.pursuitTitle, { color: colors.textPrimary }]}>{pursuitTitle}</Text>
+            <Text style={[styles.dateText, { color: colors.textSecondary }]}>on {formatDate(removedAt)}</Text>
           </View>
 
-          <View style={styles.reasonCard}>
-            <Text style={styles.reasonLabel}>Reason provided by the creator:</Text>
-            <View style={styles.reasonBox}>
-              <Text style={styles.reasonText}>{reason}</Text>
+          <View style={[styles.reasonCard, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.reasonLabel, { color: colors.textSecondary }]}>Reason provided by the creator:</Text>
+            <View style={[styles.reasonBox, { backgroundColor: isNewTheme ? colors.warningLight : '#fef3c7', borderLeftColor: colors.warning }]}>
+              <Text style={[styles.reasonText, { color: colors.textPrimary }]}>{reason}</Text>
             </View>
           </View>
 
-          <View style={styles.noteCard}>
+          <View style={[styles.noteCard, { backgroundColor: isNewTheme ? colors.primaryLight : '#eff6ff', borderLeftColor: primaryColor }]}>
             <Text style={styles.noteIcon}>💡</Text>
-            <Text style={styles.noteText}>
+            <Text style={[styles.noteText, { color: isNewTheme ? colors.textSecondary : '#0369a1' }]}>
               This pod will now appear in your "Past" pods section. You can still browse other pursuits and apply to join new teams.
             </Text>
           </View>
 
-          <TouchableOpacity style={styles.browseButton} onPress={onBack}>
-            <Text style={styles.browseButtonText}>Browse Pursuits</Text>
+          <TouchableOpacity style={[styles.browseButton, { backgroundColor: primaryColor }]} onPress={onBack}>
+            <Text style={[styles.browseButtonText, { color: isNewTheme ? colors.background : legacyColors.white }]}>Browse Pursuits</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -67,27 +78,27 @@ export default function RemovalReasonScreen({ pursuitTitle, reason, removedAt, o
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: legacyColors.background,
   },
   header: {
-    backgroundColor: colors.white,
+    backgroundColor: legacyColors.white,
     padding: spacing.lg,
     paddingTop: 60,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
+    borderBottomColor: legacyColors.borderLight,
   },
   backButton: {
     marginBottom: spacing.sm,
   },
   backText: {
     fontSize: typography.fontSize.base,
-    color: colors.primary,
+    color: legacyColors.primary,
     fontWeight: typography.fontWeight.semibold,
   },
   title: {
     fontSize: typography.fontSize.xl,
     fontWeight: typography.fontWeight.bold,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
   },
   scrollView: {
     flex: 1,
@@ -105,7 +116,7 @@ const styles = StyleSheet.create({
     fontSize: 64,
   },
   infoCard: {
-    backgroundColor: colors.white,
+    backgroundColor: legacyColors.white,
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
     marginBottom: spacing.lg,
@@ -114,22 +125,22 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: typography.fontSize.sm,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
     marginBottom: spacing.xs,
   },
   pursuitTitle: {
     fontSize: typography.fontSize.lg,
     fontWeight: typography.fontWeight.bold,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
     textAlign: 'center',
     marginBottom: spacing.sm,
   },
   dateText: {
     fontSize: typography.fontSize.sm,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
   },
   reasonCard: {
-    backgroundColor: colors.white,
+    backgroundColor: legacyColors.white,
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
     marginBottom: spacing.lg,
@@ -138,7 +149,7 @@ const styles = StyleSheet.create({
   reasonLabel: {
     fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
     marginBottom: spacing.base,
   },
   reasonBox: {
@@ -150,7 +161,7 @@ const styles = StyleSheet.create({
   },
   reasonText: {
     fontSize: typography.fontSize.base,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
     lineHeight: 22,
   },
   noteCard: {
@@ -161,7 +172,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: spacing.xl,
     borderLeftWidth: 3,
-    borderLeftColor: colors.primary,
+    borderLeftColor: legacyColors.primary,
   },
   noteIcon: {
     fontSize: 20,
@@ -174,13 +185,13 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   browseButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: legacyColors.primary,
     borderRadius: borderRadius.lg,
     padding: spacing.base,
     alignItems: 'center',
   },
   browseButtonText: {
-    color: colors.white,
+    color: legacyColors.white,
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.bold,
   },

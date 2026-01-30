@@ -1,11 +1,14 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { useAuth } from '../contexts/AuthContext';
 import { applicationService } from '../services/applicationService';
 import { supabase } from '../config/supabase';
-import { colors } from '../theme/designSystem';
+import { colors as legacyColors, typography, spacing } from '../theme/designSystem';
+import { useTheme } from '../theme/ThemeContext';
+import { getThemedStyles } from '../theme/themedStyles';
+import GrainTexture from '../components/ui/GrainTexture';
 
 interface Props {
   pursuit: any;
@@ -15,6 +18,10 @@ interface Props {
 
 export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Props) {
   const { user } = useAuth();
+  const { theme, isNewTheme } = useTheme();
+  const colors = theme.colors;
+  const themedStyles = getThemedStyles(colors, isNewTheme);
+
   const scrollViewRef = useRef<ScrollView>(null);
   const [answers, setAnswers] = useState<{ [key: number]: string }>({});
   const [loading, setLoading] = useState(false);
@@ -44,7 +51,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const file = result.assets[0];
-        
+
         // Check file size (max 10MB)
         if (file.size && file.size > 10 * 1024 * 1024) {
           Alert.alert('File Too Large', 'Please select a file smaller than 10MB');
@@ -153,7 +160,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
         resume_url: resumeUrl,
         resume_filename: resumeFile?.name || null,
       });
-      
+
       console.log('✅ Application created successfully!');
 
       Alert.alert(
@@ -169,17 +176,25 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
     }
   };
 
+  // Dynamic accent color for purple elements
+  const accentPurple = isNewTheme ? colors.primary : '#8b5cf6';
+  const accentPurpleLight = isNewTheme ? colors.primaryLight : '#f3e8ff';
+  const accentPurpleBorder = isNewTheme ? colors.primary : '#ddd6fe';
+
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
-      <View style={styles.header}>
+      <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+      {isNewTheme && <GrainTexture opacity={0.06} />}
+
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backText}>← Cancel</Text>
+          <Text style={[styles.backText, { color: isNewTheme ? colors.accentGreen : '#0ea5e9' }]}>← Cancel</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Apply to Pursuit</Text>
+        <Text style={[styles.title, { color: isNewTheme ? colors.accentGreen : colors.textPrimary, fontFamily: isNewTheme ? 'NothingYouCouldDo_400Regular' : undefined }]}>Apply to Pursuit</Text>
       </View>
 
       <ScrollView
@@ -189,23 +204,24 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.content}>
-          <View style={styles.pursuitCard}>
-            <Text style={styles.pursuitTitle}>{pursuit.title}</Text>
-            <Text style={styles.pursuitDescription} numberOfLines={2}>
+          <View style={[styles.pursuitCard, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#e0f2fe', borderLeftColor: isNewTheme ? colors.accentGreen : '#0ea5e9' }]}>
+            <Text style={[styles.pursuitTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{pursuit.title}</Text>
+            <Text style={[styles.pursuitDescription, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]} numberOfLines={2}>
               {pursuit.description}
             </Text>
           </View>
 
           <View style={styles.questionsSection}>
-            <Text style={styles.sectionTitle}>Application Questions</Text>
-            
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined }]}>Application Questions</Text>
+
             {questions.map((question: string, index: number) => (
-              <View key={index} style={styles.questionBlock}>
-                <Text style={styles.questionNumber}>Question {index + 1}</Text>
-                <Text style={styles.questionText}>{question}</Text>
+              <View key={index} style={[styles.questionBlock, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }]}>
+                <Text style={[styles.questionNumber, { color: isNewTheme ? colors.accentGreen : '#0ea5e9', fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined }]}>Question {index + 1}</Text>
+                <Text style={[styles.questionText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{question}</Text>
                 <TextInput
-                  style={styles.answerInput}
+                  style={[styles.answerInput, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#fafafa', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}
                   placeholder="Your answer..."
+                  placeholderTextColor={colors.textTertiary}
                   value={answers[index] || ''}
                   onChangeText={(text) => setAnswers({ ...answers, [index]: text })}
                   multiline
@@ -225,94 +241,94 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
 
           {/* Resume Upload Section */}
           {pursuit.requires_resume && (
-            <View style={styles.resumeSection}>
+            <View style={[styles.resumeSection, { backgroundColor: colors.surface, borderColor: accentPurple, borderWidth: isNewTheme ? 1 : 2 }]}>
               <View style={styles.resumeHeader}>
-                <Ionicons name="document-attach" size={24} color="#8b5cf6" />
+                <Ionicons name="document-attach" size={24} color={accentPurple} />
                 <View style={styles.resumeHeaderText}>
-                  <Text style={styles.resumeTitle}>Resume Required</Text>
-                  <Text style={styles.resumeSubtitle}>This pod requires a resume</Text>
+                  <Text style={[styles.resumeTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Resume Required</Text>
+                  <Text style={[styles.resumeSubtitle, { color: accentPurple, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined }]}>This pod requires a resume</Text>
                 </View>
               </View>
 
               {!resumeFile ? (
                 <>
-                  <Text style={styles.resumeInstructions}>
+                  <Text style={[styles.resumeInstructions, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
                     Upload your resume in PDF or Word format (max 10MB)
                   </Text>
 
-                  <TouchableOpacity 
-                    style={styles.uploadButton}
+                  <TouchableOpacity
+                    style={[styles.uploadButton, { backgroundColor: accentPurpleLight, borderColor: accentPurple }]}
                     onPress={pickDocument}
                     disabled={uploadingResume}
                   >
-                    <Ionicons name="cloud-upload-outline" size={24} color="#8b5cf6" />
-                    <Text style={styles.uploadButtonText}>Choose File</Text>
+                    <Ionicons name="cloud-upload-outline" size={24} color={accentPurple} />
+                    <Text style={[styles.uploadButtonText, { color: accentPurple, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Choose File</Text>
                   </TouchableOpacity>
 
                   <View style={styles.supportedFormats}>
-                    <Text style={styles.supportedFormatsText}>
+                    <Text style={[styles.supportedFormatsText, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
                       Supported: PDF, DOC, DOCX
                     </Text>
                   </View>
                 </>
               ) : (
                 <View style={styles.selectedFileContainer}>
-                  <View style={styles.selectedFile}>
-                    <View style={styles.fileIconContainer}>
-                      <Ionicons 
-                        name={resumeFile.name.endsWith('.pdf') ? 'document' : 'document-text'} 
-                        size={28} 
-                        color="#8b5cf6" 
+                  <View style={[styles.selectedFile, { backgroundColor: accentPurpleLight, borderColor: accentPurpleBorder }]}>
+                    <View style={[styles.fileIconContainer, { backgroundColor: colors.surface }]}>
+                      <Ionicons
+                        name={resumeFile.name.endsWith('.pdf') ? 'document' : 'document-text'}
+                        size={28}
+                        color={accentPurple}
                       />
                     </View>
                     <View style={styles.fileInfo}>
-                      <Text style={styles.fileName} numberOfLines={1}>{resumeFile.name}</Text>
+                      <Text style={[styles.fileName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]} numberOfLines={1}>{resumeFile.name}</Text>
                       {resumeFile.size && (
-                        <Text style={styles.fileSize}>{formatFileSize(resumeFile.size)}</Text>
+                        <Text style={[styles.fileSize, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{formatFileSize(resumeFile.size)}</Text>
                       )}
                     </View>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.removeFileButton}
                       onPress={() => setResumeFile(null)}
                     >
-                      <Ionicons name="close-circle" size={24} color="#ef4444" />
+                      <Ionicons name="close-circle" size={24} color={colors.error} />
                     </TouchableOpacity>
                   </View>
 
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.changeFileButton}
                     onPress={pickDocument}
                   >
-                    <Ionicons name="swap-horizontal" size={16} color="#8b5cf6" />
-                    <Text style={styles.changeFileText}>Change file</Text>
+                    <Ionicons name="swap-horizontal" size={16} color={accentPurple} />
+                    <Text style={[styles.changeFileText, { color: accentPurple, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Change file</Text>
                   </TouchableOpacity>
                 </View>
               )}
 
               {uploadingResume && (
                 <View style={styles.uploadingIndicator}>
-                  <ActivityIndicator size="small" color="#8b5cf6" />
-                  <Text style={styles.uploadingText}>Uploading resume...</Text>
+                  <ActivityIndicator size="small" color={accentPurple} />
+                  <Text style={[styles.uploadingText, { color: accentPurple, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Uploading resume...</Text>
                 </View>
               )}
             </View>
           )}
 
           {pursuit.requires_interview && (
-            <View style={styles.infoBox}>
+            <View style={[styles.infoBox, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#eff6ff', borderLeftColor: isNewTheme ? colors.accentGreen : '#0ea5e9' }]}>
               <Text style={styles.infoIcon}>🎤</Text>
-              <Text style={styles.infoText}>
+              <Text style={[styles.infoText, { color: isNewTheme ? colors.textSecondary : '#0369a1', fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
                 This pursuit requires an interview. You may be contacted for one.
               </Text>
             </View>
           )}
 
-          <TouchableOpacity 
-            style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+          <TouchableOpacity
+            style={[styles.submitButton, { backgroundColor: isNewTheme ? colors.accentGreen : '#0ea5e9', shadowColor: isNewTheme ? colors.accentGreen : '#0ea5e9' }, loading && styles.submitButtonDisabled]}
             onPress={handleSubmit}
             disabled={loading}
           >
-            <Text style={styles.submitButtonText}>
+            <Text style={[styles.submitButtonText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
               {loading ? 'Submitting...' : '🚀 Submit Application'}
             </Text>
           </TouchableOpacity>
@@ -323,58 +339,29 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  header: { 
-    backgroundColor: '#fff', 
-    padding: 20, 
-    paddingTop: 60, 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#eee',
+  container: { flex: 1 },
+  header: {
+    padding: 20,
+    paddingTop: 60,
+    borderBottomWidth: 1,
   },
   backButton: { marginBottom: 10 },
-  backText: { fontSize: 16, color: '#0ea5e9', fontWeight: '600' },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#333' },
+  backText: { fontSize: 16, fontWeight: '600' },
+  title: { fontSize: 24, fontWeight: 'bold' },
   scrollView: { flex: 1 },
   scrollContent: { flexGrow: 1 },
   content: { padding: 20, paddingBottom: 120 },
-  pursuitCard: { 
-    backgroundColor: '#e0f2fe', 
-    borderRadius: 12, 
-    padding: 16, 
+  pursuitCard: {
+    borderRadius: 12,
+    padding: 16,
     marginBottom: 20,
     borderLeftWidth: 4,
-    borderLeftColor: '#0ea5e9',
   },
-  pursuitTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 8 },
-  pursuitDescription: { fontSize: 14, color: '#666' },
+  pursuitTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 8 },
+  pursuitDescription: { fontSize: 14 },
   questionsSection: { marginBottom: 20 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 16 },
-  questionBlock: { 
-    backgroundColor: '#fff', 
-    borderRadius: 12, 
-    padding: 16, 
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  questionNumber: { fontSize: 12, fontWeight: 'bold', color: '#0ea5e9', marginBottom: 4 },
-  questionText: { fontSize: 15, fontWeight: '600', color: '#333', marginBottom: 12 },
-  answerInput: { 
-    backgroundColor: '#fafafa', 
-    borderWidth: 1, 
-    borderColor: '#e5e5e5', 
-    borderRadius: 8, 
-    padding: 12, 
-    fontSize: 14,
-    height: 100,
-    textAlignVertical: 'top',
-  },
-  // Resume Section Styles
-  resumeSection: {
-    backgroundColor: '#fff',
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 16 },
+  questionBlock: {
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -383,8 +370,27 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 3,
     elevation: 2,
-    borderWidth: 2,
-    borderColor: '#8b5cf6',
+  },
+  questionNumber: { fontSize: 12, fontWeight: 'bold', marginBottom: 4 },
+  questionText: { fontSize: 15, fontWeight: '600', marginBottom: 12 },
+  answerInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    height: 100,
+    textAlignVertical: 'top',
+  },
+  // Resume Section Styles
+  resumeSection: {
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   resumeHeader: {
     flexDirection: 'row',
@@ -397,16 +403,13 @@ const styles = StyleSheet.create({
   resumeTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
   },
   resumeSubtitle: {
     fontSize: 13,
-    color: '#8b5cf6',
     fontWeight: '500',
   },
   resumeInstructions: {
     fontSize: 13,
-    color: '#666',
     marginBottom: 16,
     lineHeight: 18,
   },
@@ -414,18 +417,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f3e8ff',
     borderRadius: 12,
     padding: 20,
     borderWidth: 2,
-    borderColor: '#8b5cf6',
     borderStyle: 'dashed',
     gap: 10,
   },
   uploadButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#8b5cf6',
   },
   supportedFormats: {
     alignItems: 'center',
@@ -433,7 +433,6 @@ const styles = StyleSheet.create({
   },
   supportedFormatsText: {
     fontSize: 12,
-    color: '#9ca3af',
   },
   selectedFileContainer: {
     marginTop: 4,
@@ -441,17 +440,14 @@ const styles = StyleSheet.create({
   selectedFile: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f3e8ff',
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#ddd6fe',
   },
   fileIconContainer: {
     width: 48,
     height: 48,
     borderRadius: 8,
-    backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -462,12 +458,10 @@ const styles = StyleSheet.create({
   fileName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1f2937',
     marginBottom: 2,
   },
   fileSize: {
     fontSize: 12,
-    color: '#6b7280',
   },
   removeFileButton: {
     padding: 4,
@@ -481,7 +475,6 @@ const styles = StyleSheet.create({
   },
   changeFileText: {
     fontSize: 14,
-    color: '#8b5cf6',
     fontWeight: '500',
   },
   uploadingIndicator: {
@@ -493,30 +486,25 @@ const styles = StyleSheet.create({
   },
   uploadingText: {
     fontSize: 13,
-    color: '#8b5cf6',
   },
-  infoBox: { 
+  infoBox: {
     flexDirection: 'row',
-    backgroundColor: '#eff6ff', 
-    borderRadius: 8, 
-    padding: 12, 
+    borderRadius: 8,
+    padding: 12,
     marginBottom: 16,
     borderLeftWidth: 3,
-    borderLeftColor: '#0ea5e9',
   },
   infoIcon: { fontSize: 20, marginRight: 12 },
-  infoText: { flex: 1, fontSize: 13, color: '#0369a1' },
-  submitButton: { 
-    backgroundColor: '#0ea5e9', 
-    borderRadius: 12, 
-    padding: 18, 
+  infoText: { flex: 1, fontSize: 13 },
+  submitButton: {
+    borderRadius: 12,
+    padding: 18,
     alignItems: 'center',
-    shadowColor: '#0ea5e9',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 5,
   },
   submitButtonDisabled: { opacity: 0.6 },
-  submitButtonText: { color: '#fff', fontSize: 17, fontWeight: 'bold' },
+  submitButtonText: { fontSize: 17, fontWeight: 'bold' },
 });

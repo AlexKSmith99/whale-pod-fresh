@@ -12,6 +12,7 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../config/supabase';
@@ -20,7 +21,10 @@ import { connectionService } from '../services/connectionService';
 import { reviewService, REVIEW_ATTRIBUTES } from '../services/reviewService';
 import { privacyService, ViewerRelationship } from '../services/privacyService';
 import PodMemberCollage from '../components/PodMemberCollage';
-import { colors } from '../theme/designSystem';
+import { colors as legacyColors, typography, spacing } from '../theme/designSystem';
+import { useTheme } from '../theme/ThemeContext';
+import { getThemedStyles } from '../theme/themedStyles';
+import GrainTexture from '../components/ui/GrainTexture';
 
 interface PrivacyVisibility {
   canAccessProfile: boolean;
@@ -34,6 +38,9 @@ interface PrivacyVisibility {
 export default function UserProfileScreen({ route, navigation, onWriteReview }: any) {
   const { userId } = route.params;
   const { user } = useAuth();
+  const { theme, isNewTheme } = useTheme();
+  const colors = theme.colors;
+  const themedStyles = getThemedStyles(colors, isNewTheme);
   const [profile, setProfile] = useState<any>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -226,9 +233,11 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0ea5e9" />
-        <Text style={styles.loadingText}>Loading profile...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+        {isNewTheme && <GrainTexture opacity={0.06} />}
+        <ActivityIndicator size="large" color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
+        <Text style={[styles.loadingText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Loading profile...</Text>
       </View>
     );
   }
@@ -236,10 +245,12 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
   // Private Profile View - shown when profile access is blocked
   if (!privacyVisibility?.canAccessProfile) {
     return (
-      <ScrollView style={styles.container}>
-        <View style={styles.header}>
+      <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+        {isNewTheme && <GrainTexture opacity={0.06} />}
+        <View style={[styles.header, { backgroundColor: colors.surface }]}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#333" />
+            <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
         </View>
 
@@ -247,27 +258,27 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
           {profile?.profile_picture ? (
             <Image source={{ uri: profile.profile_picture }} style={styles.avatarPrivate} />
           ) : (
-            <View style={styles.avatarPlaceholderPrivate}>
-              <Ionicons name="lock-closed" size={40} color="#9ca3af" />
+            <View style={[styles.avatarPlaceholderPrivate, { backgroundColor: colors.surfaceAlt }]}>
+              <Ionicons name="lock-closed" size={40} color={colors.textTertiary} />
             </View>
           )}
 
-          <Text style={styles.name}>
+          <Text style={[styles.name, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
             {profile?.name || 'User'}
           </Text>
 
-          <View style={styles.privateInfoBox}>
-            <Ionicons name="shield-checkmark" size={32} color="#6b7280" />
-            <Text style={styles.privateTitle}>Private Profile</Text>
-            <Text style={styles.privateDescription}>
+          <View style={[styles.privateInfoBox, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
+            <Ionicons name="shield-checkmark" size={32} color={colors.textSecondary} />
+            <Text style={[styles.privateTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Private Profile</Text>
+            <Text style={[styles.privateDescription, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
               This user has restricted access to their profile. Connect with them to see more.
             </Text>
           </View>
 
           {!isConnected && user && (
-            <TouchableOpacity style={styles.connectButtonLarge} onPress={handleConnect}>
-              <Ionicons name="person-add" size={20} color="#fff" />
-              <Text style={styles.connectButtonLargeText}>Send Connection Request</Text>
+            <TouchableOpacity style={[styles.connectButtonLarge, { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]} onPress={handleConnect}>
+              <Ionicons name="person-add" size={20} color={isNewTheme ? colors.background : legacyColors.white} />
+              <Text style={[styles.connectButtonLargeText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Send Connection Request</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -277,10 +288,10 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
 
   // Locked Section Placeholder Component
   const LockedSection = ({ title }: { title: string }) => (
-    <View style={styles.lockedSection}>
-      <Ionicons name="lock-closed" size={40} color="#d1d5db" />
-      <Text style={styles.lockedTitle}>{title}</Text>
-      <Text style={styles.lockedDescription}>This section is private.</Text>
+    <View style={[styles.lockedSection, { backgroundColor: colors.surfaceAlt }]}>
+      <Ionicons name="lock-closed" size={40} color={colors.textTertiary} />
+      <Text style={[styles.lockedTitle, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{title}</Text>
+      <Text style={[styles.lockedDescription, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>This section is private.</Text>
     </View>
   );
 
@@ -295,41 +306,41 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
     if (!hasSocialLinks) return null;
 
     return (
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Links</Text>
+      <View style={[styles.section, { backgroundColor: colors.surface }]}>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Links</Text>
         {profile?.linkedin && (
-          <TouchableOpacity style={styles.linkItem} onPress={() => handleOpenLink(profile.linkedin)}>
+          <TouchableOpacity style={[styles.linkItem, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.linkedin)}>
             <Ionicons name="logo-linkedin" size={20} color="#0077b5" />
-            <Text style={styles.linkText}>LinkedIn</Text>
-            <Ionicons name="open-outline" size={16} color="#999" style={styles.linkArrow} />
+            <Text style={[styles.linkText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>LinkedIn</Text>
+            <Ionicons name="open-outline" size={16} color={colors.textTertiary} style={styles.linkArrow} />
           </TouchableOpacity>
         )}
         {profile?.instagram && (
-          <TouchableOpacity style={styles.linkItem} onPress={() => handleOpenLink(profile.instagram)}>
+          <TouchableOpacity style={[styles.linkItem, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.instagram)}>
             <Ionicons name="logo-instagram" size={20} color="#e4405f" />
-            <Text style={styles.linkText}>Instagram</Text>
-            <Ionicons name="open-outline" size={16} color="#999" style={styles.linkArrow} />
+            <Text style={[styles.linkText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Instagram</Text>
+            <Ionicons name="open-outline" size={16} color={colors.textTertiary} style={styles.linkArrow} />
           </TouchableOpacity>
         )}
         {profile?.facebook && (
-          <TouchableOpacity style={styles.linkItem} onPress={() => handleOpenLink(profile.facebook)}>
+          <TouchableOpacity style={[styles.linkItem, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.facebook)}>
             <Ionicons name="logo-facebook" size={20} color="#1877f2" />
-            <Text style={styles.linkText}>Facebook</Text>
-            <Ionicons name="open-outline" size={16} color="#999" style={styles.linkArrow} />
+            <Text style={[styles.linkText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Facebook</Text>
+            <Ionicons name="open-outline" size={16} color={colors.textTertiary} style={styles.linkArrow} />
           </TouchableOpacity>
         )}
         {profile?.github && (
-          <TouchableOpacity style={styles.linkItem} onPress={() => handleOpenLink(profile.github)}>
-            <Ionicons name="logo-github" size={20} color="#333" />
-            <Text style={styles.linkText}>GitHub</Text>
-            <Ionicons name="open-outline" size={16} color="#999" style={styles.linkArrow} />
+          <TouchableOpacity style={[styles.linkItem, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.github)}>
+            <Ionicons name="logo-github" size={20} color={isNewTheme ? colors.textPrimary : '#333'} />
+            <Text style={[styles.linkText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>GitHub</Text>
+            <Ionicons name="open-outline" size={16} color={colors.textTertiary} style={styles.linkArrow} />
           </TouchableOpacity>
         )}
         {profile?.portfolio_website && (
-          <TouchableOpacity style={styles.linkItem} onPress={() => handleOpenLink(profile.portfolio_website)}>
-            <Ionicons name="globe-outline" size={20} color="#0ea5e9" />
-            <Text style={styles.linkText}>Portfolio</Text>
-            <Ionicons name="open-outline" size={16} color="#999" style={styles.linkArrow} />
+          <TouchableOpacity style={[styles.linkItem, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.portfolio_website)}>
+            <Ionicons name="globe-outline" size={20} color={isNewTheme ? colors.accentGreen : '#0ea5e9'} />
+            <Text style={[styles.linkText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Portfolio</Text>
+            <Ionicons name="open-outline" size={16} color={colors.textTertiary} style={styles.linkArrow} />
           </TouchableOpacity>
         )}
       </View>
@@ -346,22 +357,22 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
       <View style={styles.reviewsContainer}>
         {/* Write Review Button */}
         {canReview && (
-          <TouchableOpacity style={styles.writeReviewButton} onPress={handleWriteReview}>
-            <Ionicons name="add-circle" size={22} color="#fff" />
-            <Text style={styles.writeReviewButtonText}>Write a Review</Text>
+          <TouchableOpacity style={[styles.writeReviewButton, { backgroundColor: isNewTheme ? colors.accentGreen : '#10b981' }]} onPress={handleWriteReview}>
+            <Ionicons name="add-circle" size={22} color={isNewTheme ? colors.background : '#fff'} />
+            <Text style={[styles.writeReviewButtonText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Write a Review</Text>
           </TouchableOpacity>
         )}
 
         {reviewsLoading ? (
           <View style={styles.reviewsLoading}>
-            <ActivityIndicator size="small" color="#0ea5e9" />
-            <Text style={styles.reviewsLoadingText}>Loading reviews...</Text>
+            <ActivityIndicator size="small" color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
+            <Text style={[styles.reviewsLoadingText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Loading reviews...</Text>
           </View>
         ) : reviews.length === 0 ? (
           <View style={styles.noReviews}>
-            <Ionicons name="star-outline" size={48} color="#d1d5db" />
-            <Text style={styles.noReviewsText}>No reviews yet</Text>
-            <Text style={styles.noReviewsSubtext}>
+            <Ionicons name="star-outline" size={48} color={colors.textTertiary} />
+            <Text style={[styles.noReviewsText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>No reviews yet</Text>
+            <Text style={[styles.noReviewsSubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
               Reviews will appear here after teammates share their feedback
             </Text>
           </View>
@@ -369,13 +380,13 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
           <>
             {/* Average Ratings Summary */}
             {averageRatings && averageRatings.count > 0 && (
-              <View style={styles.ratingsCard}>
+              <View style={[styles.ratingsCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <View style={styles.overallRating}>
-                  <Text style={styles.overallRatingNumber}>
+                  <Text style={[styles.overallRatingNumber, { color: isNewTheme ? colors.accentGreen : legacyColors.primary }]}>
                     {averageRatings.overall.toFixed(1)}
                   </Text>
-                  <Text style={styles.overallRatingLabel}>Overall</Text>
-                  <Text style={styles.overallRatingCount}>
+                  <Text style={[styles.overallRatingLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Overall</Text>
+                  <Text style={[styles.overallRatingCount, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
                     Based on {averageRatings.count} review{averageRatings.count !== 1 ? 's' : ''}
                   </Text>
                 </View>
@@ -384,38 +395,38 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
 
             {/* Individual Reviews */}
             {reviews.map((review) => (
-              <View key={review.id} style={styles.reviewCard}>
+              <View key={review.id} style={[styles.reviewCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <View style={styles.reviewHeader}>
                   <View style={styles.reviewerInfo}>
-                    <View style={styles.reviewerAvatarSmall}>
-                      <Text style={styles.reviewerAvatarTextSmall}>
+                    <View style={[styles.reviewerAvatarSmall, { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]}>
+                      <Text style={[styles.reviewerAvatarTextSmall, { color: isNewTheme ? colors.background : legacyColors.white }]}>
                         {review.reviewer?.name?.charAt(0).toUpperCase() || '?'}
                       </Text>
                     </View>
                     <View>
-                      <Text style={styles.reviewerName}>
+                      <Text style={[styles.reviewerName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
                         {review.reviewer?.name || 'Anonymous'}
                       </Text>
-                      <Text style={styles.reviewPursuit}>
+                      <Text style={[styles.reviewPursuit, { color: isNewTheme ? colors.accentGreen : legacyColors.primary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
                         {review.pursuit?.title || 'Unknown Pod'}
                       </Text>
                     </View>
                   </View>
-                  <Text style={styles.reviewDate}>
+                  <Text style={[styles.reviewDate, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
                     {new Date(review.created_at).toLocaleDateString()}
                   </Text>
                 </View>
 
-                <Text style={styles.reviewDescription}>{review.description}</Text>
+                <Text style={[styles.reviewDescription, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{review.description}</Text>
 
                 {/* Rating Pills */}
                 <View style={styles.ratingPills}>
-                  {REVIEW_ATTRIBUTES.filter(attr => 
+                  {REVIEW_ATTRIBUTES.filter(attr =>
                     review[attr.key] !== null && review[attr.key] !== undefined
                   ).slice(0, 4).map(attr => (
-                    <View key={attr.key} style={styles.ratingPill}>
+                    <View key={attr.key} style={[styles.ratingPill, { backgroundColor: colors.surfaceAlt }]}>
                       <Text style={styles.ratingPillIcon}>{attr.icon}</Text>
-                      <Text style={styles.ratingPillValue}>{review[attr.key]}</Text>
+                      <Text style={[styles.ratingPillValue, { color: colors.textPrimary }]}>{review[attr.key]}</Text>
                     </View>
                   ))}
                 </View>
@@ -437,15 +448,15 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
       <View style={styles.podsContainer}>
         {podsLoading ? (
           <View style={styles.podsLoading}>
-            <ActivityIndicator size="small" color="#0ea5e9" />
-            <Text style={styles.podsLoadingText}>Loading pods...</Text>
+            <ActivityIndicator size="small" color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
+            <Text style={[styles.podsLoadingText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Loading pods...</Text>
           </View>
         ) : userPods.length === 0 ? (
           <View style={styles.noPods}>
-            <Ionicons name="people-outline" size={48} color="#d1d5db" />
-            <Text style={styles.noPodsText}>No pods yet</Text>
-            <Text style={styles.noPodsSubtext}>
-              This user hasn't joined any pods yet.
+            <Ionicons name="people-outline" size={48} color={colors.textTertiary} />
+            <Text style={[styles.noPodsText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>No pods yet</Text>
+            <Text style={[styles.noPodsSubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+              This user has not joined any pods yet.
             </Text>
           </View>
         ) : (
@@ -453,13 +464,13 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
             {/* Current Pods */}
             {userPods.filter(p => !p.status || ['awaiting_kickoff', 'collecting_proposals', 'active'].includes(p.status) || ['active', 'accepted'].includes(p.membership_status)).length > 0 && (
               <>
-                <Text style={styles.podsSectionTitle}>Current Pods</Text>
+                <Text style={[styles.podsSectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Current Pods</Text>
                 {userPods
                   .filter(p => !p.status || ['awaiting_kickoff', 'collecting_proposals', 'active'].includes(p.status) || ['active', 'accepted'].includes(p.membership_status))
                   .map((pod) => (
                     <TouchableOpacity
                       key={pod.id}
-                      style={styles.podCard}
+                      style={[styles.podCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
                       onPress={() => handlePodPress(pod.id)}
                     >
                       {pod.default_picture ? (
@@ -468,20 +479,20 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
                         <PodMemberCollage members={pod.members || []} size={50} borderRadius={10} />
                       )}
                       <View style={styles.podInfo}>
-                        <Text style={styles.podTitle}>{pod.title}</Text>
+                        <Text style={[styles.podTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{pod.title}</Text>
                         <View style={styles.podMeta}>
                           {pod.isCreator && (
-                            <View style={styles.creatorBadge}>
-                              <Ionicons name="star" size={12} color="#f59e0b" />
-                              <Text style={styles.creatorBadgeText}>Creator</Text>
+                            <View style={[styles.creatorBadge, { backgroundColor: isNewTheme ? 'rgba(168, 230, 163, 0.15)' : '#fef3c7' }]}>
+                              <Ionicons name="star" size={12} color={isNewTheme ? colors.accentGreen : '#f59e0b'} />
+                              <Text style={[styles.creatorBadgeText, { color: isNewTheme ? colors.accentGreen : '#d97706' }]}>Creator</Text>
                             </View>
                           )}
-                          <Text style={styles.podMembers}>
+                          <Text style={[styles.podMembers, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
                             {pod.current_members_count || 1} member{(pod.current_members_count || 1) !== 1 ? 's' : ''}
                           </Text>
                         </View>
                       </View>
-                      <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                      <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
                     </TouchableOpacity>
                   ))}
               </>
@@ -490,13 +501,13 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
             {/* Past Pods */}
             {userPods.filter(p => ['completed', 'archived'].includes(p.status) || ['left', 'removed'].includes(p.membership_status)).length > 0 && (
               <>
-                <Text style={[styles.podsSectionTitle, { marginTop: 24 }]}>Past Pods</Text>
+                <Text style={[styles.podsSectionTitle, { marginTop: 24, color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Past Pods</Text>
                 {userPods
                   .filter(p => ['completed', 'archived'].includes(p.status) || ['left', 'removed'].includes(p.membership_status))
                   .map((pod) => (
                     <TouchableOpacity
                       key={pod.id}
-                      style={[styles.podCard, styles.podCardPast]}
+                      style={[styles.podCard, styles.podCardPast, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}
                       onPress={() => handlePodPress(pod.id)}
                     >
                       {pod.default_picture ? (
@@ -507,20 +518,20 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
                         </View>
                       )}
                       <View style={styles.podInfo}>
-                        <Text style={[styles.podTitle, styles.podTitlePast]}>{pod.title}</Text>
+                        <Text style={[styles.podTitle, styles.podTitlePast, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{pod.title}</Text>
                         <View style={styles.podMeta}>
                           {pod.isCreator && (
-                            <View style={[styles.creatorBadge, styles.creatorBadgePast]}>
-                              <Ionicons name="star" size={12} color="#9ca3af" />
-                              <Text style={styles.creatorBadgeTextPast}>Creator</Text>
+                            <View style={[styles.creatorBadge, styles.creatorBadgePast, { backgroundColor: colors.surfaceAlt }]}>
+                              <Ionicons name="star" size={12} color={colors.textTertiary} />
+                              <Text style={[styles.creatorBadgeTextPast, { color: colors.textTertiary }]}>Creator</Text>
                             </View>
                           )}
-                          <Text style={styles.podStatus}>
+                          <Text style={[styles.podStatus, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
                             {pod.membership_status === 'left' ? 'Left' : pod.membership_status === 'removed' ? 'Removed' : 'Closed'}
                           </Text>
                         </View>
                       </View>
-                      <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
+                      <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
                     </TouchableOpacity>
                   ))}
               </>
@@ -532,90 +543,92 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+      {isNewTheme && <GrainTexture opacity={0.06} />}
+      <View style={[styles.header, { backgroundColor: colors.surface }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
+          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
       </View>
 
-      <View style={styles.profileSection}>
+      <View style={[styles.profileSection, { backgroundColor: colors.surface }]}>
         {profile?.profile_picture ? (
           <Image source={{ uri: profile.profile_picture }} style={styles.avatar} />
         ) : (
-          <View style={styles.avatarPlaceholder}>
-            <Text style={styles.avatarText}>
+          <View style={[styles.avatarPlaceholder, { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]}>
+            <Text style={[styles.avatarText, { color: isNewTheme ? colors.background : legacyColors.white }]}>
               {profile?.name?.charAt(0).toUpperCase() || '?'}
             </Text>
           </View>
         )}
 
-        <Text style={styles.name}>
+        <Text style={[styles.name, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
           {profile?.name || 'Name not set'}
         </Text>
 
-        {profile?.bio && <Text style={styles.bio}>{profile.bio}</Text>}
+        {profile?.bio && <Text style={[styles.bio, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{profile.bio}</Text>}
       </View>
 
       <View style={styles.actionButtons}>
         {!isConnected && user && (
-          <TouchableOpacity style={styles.connectButton} onPress={handleConnect}>
-            <Ionicons name="person-add" size={20} color="#fff" />
-            <Text style={styles.connectButtonText}>Connect</Text>
+          <TouchableOpacity style={[styles.connectButton, { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]} onPress={handleConnect}>
+            <Ionicons name="person-add" size={20} color={isNewTheme ? colors.background : legacyColors.white} />
+            <Text style={[styles.connectButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Connect</Text>
           </TouchableOpacity>
         )}
-        <TouchableOpacity style={styles.messageButton} onPress={handleMessage}>
-          <Ionicons name="chatbubble" size={20} color="#0ea5e9" />
-          <Text style={styles.messageButtonText}>Message</Text>
+        <TouchableOpacity style={[styles.messageButton, { backgroundColor: colors.surface, borderColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]} onPress={handleMessage}>
+          <Ionicons name="chatbubble" size={20} color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
+          <Text style={[styles.messageButtonText, { color: isNewTheme ? colors.accentGreen : legacyColors.primary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Message</Text>
         </TouchableOpacity>
       </View>
 
       {/* Tabs */}
-      <View style={styles.tabsContainer}>
+      <View style={[styles.tabsContainer, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'about' && styles.tabActive]}
+          style={[styles.tab, activeTab === 'about' && styles.tabActive, activeTab === 'about' && { borderBottomColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]}
           onPress={() => setActiveTab('about')}
         >
-          <Text style={[styles.tabText, activeTab === 'about' && styles.tabTextActive]}>
+          <Text style={[styles.tabText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }, activeTab === 'about' && { color: isNewTheme ? colors.accentGreen : legacyColors.primary }]}>
             About
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'reviews' && styles.tabActive]}
+          style={[styles.tab, activeTab === 'reviews' && styles.tabActive, activeTab === 'reviews' && { borderBottomColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]}
           onPress={() => setActiveTab('reviews')}
         >
           <View style={styles.tabContent}>
-            <Text style={[styles.tabText, activeTab === 'reviews' && styles.tabTextActive]}>
+            <Text style={[styles.tabText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }, activeTab === 'reviews' && { color: isNewTheme ? colors.accentGreen : legacyColors.primary }]}>
               Reviews
             </Text>
             {!privacyVisibility?.canViewReviews && (
-              <Ionicons name="lock-closed" size={12} color="#9ca3af" style={{ marginLeft: 4 }} />
+              <Ionicons name="lock-closed" size={12} color={colors.textTertiary} style={{ marginLeft: 4 }} />
             )}
           </View>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'pods' && styles.tabActive]}
+          style={[styles.tab, activeTab === 'pods' && styles.tabActive, activeTab === 'pods' && { borderBottomColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]}
           onPress={() => setActiveTab('pods')}
         >
           <View style={styles.tabContent}>
-            <Text style={[styles.tabText, activeTab === 'pods' && styles.tabTextActive]} numberOfLines={1}>
+            <Text style={[styles.tabText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }, activeTab === 'pods' && { color: isNewTheme ? colors.accentGreen : legacyColors.primary }]} numberOfLines={1}>
               Pods
             </Text>
             {!privacyVisibility?.canViewPodsTab && (
-              <Ionicons name="lock-closed" size={12} color="#9ca3af" style={{ marginLeft: 4 }} />
+              <Ionicons name="lock-closed" size={12} color={colors.textTertiary} style={{ marginLeft: 4 }} />
             )}
           </View>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'connections' && styles.tabActive]}
+          style={[styles.tab, activeTab === 'connections' && styles.tabActive, activeTab === 'connections' && { borderBottomColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]}
           onPress={() => setActiveTab('connections')}
         >
           <View style={styles.tabContent}>
-            <Text style={[styles.tabText, activeTab === 'connections' && styles.tabTextActive]} numberOfLines={1}>
+            <Text style={[styles.tabText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }, activeTab === 'connections' && { color: isNewTheme ? colors.accentGreen : legacyColors.primary }]} numberOfLines={1}>
               Connections
             </Text>
             {!privacyVisibility?.canViewConnections && (
-              <Ionicons name="lock-closed" size={12} color="#9ca3af" style={{ marginLeft: 4 }} />
+              <Ionicons name="lock-closed" size={12} color={colors.textTertiary} style={{ marginLeft: 4 }} />
             )}
           </View>
         </TouchableOpacity>
@@ -625,24 +638,24 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
         <>
           {/* Basic Info Section */}
           {(profile?.age || profile?.gender || profile?.hometown) && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Basic Info</Text>
+            <View style={[styles.section, { backgroundColor: colors.surface }]}>
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Basic Info</Text>
               {profile?.age && (
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Age:</Text>
-                  <Text style={styles.infoValue}>{profile.age}</Text>
+                <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
+                  <Text style={[styles.infoLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Age:</Text>
+                  <Text style={[styles.infoValue, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{profile.age}</Text>
                 </View>
               )}
               {profile?.gender && (
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Gender:</Text>
-                  <Text style={styles.infoValue}>{profile.gender}</Text>
+                <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
+                  <Text style={[styles.infoLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Gender:</Text>
+                  <Text style={[styles.infoValue, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{profile.gender}</Text>
                 </View>
               )}
               {profile?.hometown && (
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Hometown:</Text>
-                  <Text style={styles.infoValue}>{profile.hometown}</Text>
+                <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
+                  <Text style={[styles.infoLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Hometown:</Text>
+                  <Text style={[styles.infoValue, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{profile.hometown}</Text>
                 </View>
               )}
             </View>
@@ -650,9 +663,9 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
 
           {/* Bio Section - show separately if not already in header */}
           {profile?.bio && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Bio</Text>
-              <Text style={styles.bioText}>{profile.bio}</Text>
+            <View style={[styles.section, { backgroundColor: colors.surface }]}>
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Bio</Text>
+              <Text style={[styles.bioText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{profile.bio}</Text>
             </View>
           )}
 
@@ -666,37 +679,37 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
 
       {/* Connections Tab */}
       {activeTab === 'connections' && (
-        <KeyboardAvoidingView 
-          style={{ flex: 1 }} 
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
         >
         <View style={styles.tabSection}>
           {!privacyVisibility?.canViewConnections ? (
-            <View style={styles.lockedSection}>
-              <Ionicons name="lock-closed" size={48} color="#9ca3af" />
-              <Text style={styles.lockedTitle}>Connections</Text>
-              <Text style={styles.lockedDescription}>This section is private.</Text>
+            <View style={[styles.lockedSection, { backgroundColor: colors.surfaceAlt }]}>
+              <Ionicons name="lock-closed" size={48} color={colors.textTertiary} />
+              <Text style={[styles.lockedTitle, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Connections</Text>
+              <Text style={[styles.lockedDescription, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>This section is private.</Text>
             </View>
           ) : connectionsLoading ? (
             <View style={styles.emptyState}>
-              <ActivityIndicator size="large" color="#0ea5e9" />
-              <Text style={styles.emptyHint}>Loading connections...</Text>
+              <ActivityIndicator size="large" color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
+              <Text style={[styles.emptyHint, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Loading connections...</Text>
             </View>
           ) : userConnections.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="people-outline" size={48} color="#9ca3af" />
-              <Text style={styles.emptyText}>No connections yet</Text>
+              <Ionicons name="people-outline" size={48} color={colors.textTertiary} />
+              <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>No connections yet</Text>
             </View>
           ) : (
             <ScrollView keyboardShouldPersistTaps="handled">
               {/* Search Bar */}
-              <View style={styles.connectionSearchContainer}>
-                <Ionicons name="search" size={18} color="#9ca3af" style={styles.connectionSearchIcon} />
+              <View style={[styles.connectionSearchContainer, { backgroundColor: colors.surfaceAlt }]}>
+                <Ionicons name="search" size={18} color={colors.textTertiary} style={styles.connectionSearchIcon} />
                 <TextInput
-                  style={styles.connectionSearchInput}
+                  style={[styles.connectionSearchInput, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}
                   placeholder="Search connections..."
-                  placeholderTextColor="#9ca3af"
+                  placeholderTextColor={colors.textTertiary}
                   value={connectionSearchQuery}
                   onChangeText={setConnectionSearchQuery}
                   autoCapitalize="none"
@@ -704,12 +717,12 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
                 />
                 {connectionSearchQuery.length > 0 && (
                   <TouchableOpacity onPress={() => setConnectionSearchQuery('')}>
-                    <Ionicons name="close-circle" size={18} color="#9ca3af" />
+                    <Ionicons name="close-circle" size={18} color={colors.textTertiary} />
                   </TouchableOpacity>
                 )}
               </View>
 
-              <Text style={styles.sectionTitle}>
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
                 Connections ({userConnections.length})
               </Text>
               {userConnections
@@ -725,7 +738,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
                 .map((conn) => (
                 <TouchableOpacity
                   key={conn.id}
-                  style={styles.connectionCard}
+                  style={[styles.connectionCard, { backgroundColor: colors.surface }]}
                   onPress={() => {
                     // Use otherUserId which is already computed by connectionService
                     if (conn.otherUserId) {
@@ -736,19 +749,19 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
                   {conn.profile?.profile_picture ? (
                     <Image source={{ uri: conn.profile.profile_picture }} style={styles.connectionAvatar} />
                   ) : (
-                    <View style={styles.connectionAvatarPlaceholder}>
-                      <Text style={styles.connectionAvatarText}>
+                    <View style={[styles.connectionAvatarPlaceholder, { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]}>
+                      <Text style={[styles.connectionAvatarText, { color: isNewTheme ? colors.background : legacyColors.white }]}>
                         {(conn.profile?.name || '?')[0].toUpperCase()}
                       </Text>
                     </View>
                   )}
                   <View style={styles.connectionInfo}>
-                    <Text style={styles.connectionName}>{conn.profile?.name || 'Unknown'}</Text>
+                    <Text style={[styles.connectionName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{conn.profile?.name || 'Unknown'}</Text>
                     {conn.profile?.bio && (
-                      <Text style={styles.connectionBio} numberOfLines={1}>{conn.profile.bio}</Text>
+                      <Text style={[styles.connectionBio, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]} numberOfLines={1}>{conn.profile.bio}</Text>
                     )}
                   </View>
-                  <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                  <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
                 </TouchableOpacity>
               ))}
               {connectionSearchQuery && userConnections.filter((conn) => {
@@ -759,8 +772,8 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
                 return nameParts.some((part: string) => part.startsWith(query));
               }).length === 0 && (
                 <View style={styles.emptyState}>
-                  <Text style={styles.emptyText}>No matches found</Text>
-                  <Text style={styles.emptyHint}>Try a different search term</Text>
+                  <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>No matches found</Text>
+                  <Text style={[styles.emptyHint, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Try a different search term</Text>
                 </View>
               )}
             </ScrollView>
@@ -775,13 +788,13 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: legacyColors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.background,
+    backgroundColor: legacyColors.background,
   },
   loadingText: {
     marginTop: 12,

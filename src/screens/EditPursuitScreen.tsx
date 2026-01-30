@@ -9,11 +9,16 @@ import {
   Alert,
   ActivityIndicator,
   Image,
+  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../config/supabase';
 import { pursuitService } from '../services/pursuitService';
+import { useTheme } from '../theme/ThemeContext';
+import { getThemedStyles } from '../theme/themedStyles';
+import GrainTexture from '../components/ui/GrainTexture';
+import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
 
 interface Props {
   pursuit: any;
@@ -23,6 +28,12 @@ interface Props {
 }
 
 export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted }: Props) {
+  const { theme, isNewTheme } = useTheme();
+  const colors = theme.colors;
+  const themedStyles = getThemedStyles(colors, isNewTheme);
+
+  const primaryColor = isNewTheme ? colors.accentGreen : '#8b5cf6';
+
   const [title, setTitle] = useState(pursuit.title || '');
   const [description, setDescription] = useState(pursuit.description || '');
   const [teamSizeMin, setTeamSizeMin] = useState(String(pursuit.team_size_min || 2));
@@ -214,78 +225,83 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
 
   if (deleting) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+        {isNewTheme && <GrainTexture opacity={0.06} />}
         <ActivityIndicator size="large" color="#ef4444" />
-        <Text style={styles.loadingText}>Deleting pursuit...</Text>
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Deleting pursuit...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+      {isNewTheme && <GrainTexture opacity={0.06} />}
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-          <Ionicons name="close" size={28} color="#1f2937" />
+          <Ionicons name="close" size={28} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Edit Pursuit</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Edit Pursuit</Text>
         <View style={{ width: 28 }} />
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Title */}
         <View style={styles.section}>
-          <Text style={styles.label}>
+          <Text style={[styles.label, { color: colors.textPrimary }]}>
             Title <Text style={styles.required}>*</Text>
           </Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
             value={title}
             onChangeText={setTitle}
             placeholder="e.g., Weekly Book Club"
+            placeholderTextColor={colors.textTertiary}
             maxLength={100}
           />
         </View>
 
         {/* Pod Picture */}
         <View style={styles.section}>
-          <Text style={styles.label}>Pod Picture</Text>
-          <Text style={styles.hint}>This picture will appear in the pod header and chat</Text>
+          <Text style={[styles.label, { color: colors.textPrimary }]}>Pod Picture</Text>
+          <Text style={[styles.hint, { color: colors.textSecondary }]}>This picture will appear in the pod header and chat</Text>
           <View style={styles.pictureContainer}>
             {defaultPicture ? (
               <View style={styles.picturePreview}>
                 <Image source={{ uri: defaultPicture }} style={styles.pictureImage} />
                 <View style={styles.pictureActions}>
                   <TouchableOpacity
-                    style={styles.changePictureButton}
+                    style={[styles.changePictureButton, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f3f4f6' }]}
                     onPress={pickImage}
                     disabled={uploadingImage}
                   >
-                    <Ionicons name="camera-outline" size={18} color="#8b5cf6" />
-                    <Text style={styles.changePictureText}>Change</Text>
+                    <Ionicons name="camera-outline" size={18} color={primaryColor} />
+                    <Text style={[styles.changePictureText, { color: primaryColor }]}>Change</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={styles.removePictureButton}
+                    style={[styles.removePictureButton, { backgroundColor: isNewTheme ? colors.errorLight : '#fef2f2' }]}
                     onPress={removeImage}
                     disabled={uploadingImage}
                   >
-                    <Ionicons name="trash-outline" size={18} color="#ef4444" />
-                    <Text style={styles.removePictureText}>Remove</Text>
+                    <Ionicons name="trash-outline" size={18} color={colors.error} />
+                    <Text style={[styles.removePictureText, { color: colors.error }]}>Remove</Text>
                   </TouchableOpacity>
                 </View>
               </View>
             ) : (
               <TouchableOpacity
-                style={styles.addPictureButton}
+                style={[styles.addPictureButton, { backgroundColor: isNewTheme ? colors.secondaryLight : '#f5f3ff', borderColor: primaryColor }]}
                 onPress={pickImage}
                 disabled={uploadingImage}
               >
                 {uploadingImage ? (
-                  <ActivityIndicator color="#8b5cf6" />
+                  <ActivityIndicator color={primaryColor} />
                 ) : (
                   <>
-                    <Ionicons name="image-outline" size={32} color="#8b5cf6" />
-                    <Text style={styles.addPictureText}>Add Pod Picture</Text>
+                    <Ionicons name="image-outline" size={32} color={primaryColor} />
+                    <Text style={[styles.addPictureText, { color: primaryColor }]}>Add Pod Picture</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -295,47 +311,50 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
 
         {/* Description */}
         <View style={styles.section}>
-          <Text style={styles.label}>
+          <Text style={[styles.label, { color: colors.textPrimary }]}>
             Description <Text style={styles.required}>*</Text>
           </Text>
-          <Text style={styles.hint}>Minimum 50 characters</Text>
+          <Text style={[styles.hint, { color: colors.textSecondary }]}>Minimum 50 characters</Text>
           <TextInput
-            style={[styles.input, styles.textArea]}
+            style={[styles.input, styles.textArea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
             value={description}
             onChangeText={setDescription}
             placeholder="Describe your pursuit in detail..."
+            placeholderTextColor={colors.textTertiary}
             multiline
             numberOfLines={6}
             textAlignVertical="top"
           />
-          <Text style={styles.charCount}>{description.length} / 50 min</Text>
+          <Text style={[styles.charCount, { color: colors.textTertiary }]}>{description.length} / 50 min</Text>
         </View>
 
         {/* Team Size */}
         <View style={styles.section}>
-          <Text style={styles.label}>Team Size</Text>
-          <Text style={styles.hint}>
+          <Text style={[styles.label, { color: colors.textPrimary }]}>Team Size</Text>
+          <Text style={[styles.hint, { color: colors.textSecondary }]}>
             Current members: {pursuit.current_members_count} (cannot be edited)
           </Text>
           <View style={styles.row}>
             <View style={styles.halfInput}>
-              <Text style={styles.subLabel}>Min</Text>
+              <Text style={[styles.subLabel, { color: colors.textSecondary }]}>Min</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
                 value={teamSizeMin}
                 onChangeText={setTeamSizeMin}
                 keyboardType="numeric"
                 placeholder="2"
+                placeholderTextColor={colors.textTertiary}
               />
             </View>
             <View style={styles.halfInput}>
-              <Text style={styles.subLabel}>Max</Text>
+              <Text style={[styles.subLabel, { color: colors.textSecondary }]}>Max</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
                 value={teamSizeMax}
                 onChangeText={setTeamSizeMax}
                 keyboardType="numeric"
                 placeholder="8"
+                placeholderTextColor={colors.textTertiary}
               />
             </View>
           </View>
@@ -343,38 +362,40 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
 
         {/* Meeting Cadence */}
         <View style={styles.section}>
-          <Text style={styles.label}>
+          <Text style={[styles.label, { color: colors.textPrimary }]}>
             Meeting Cadence <Text style={styles.required}>*</Text>
           </Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
             value={meetingCadence}
             onChangeText={setMeetingCadence}
             placeholder="e.g., Weekly on Mondays at 7pm"
+            placeholderTextColor={colors.textTertiary}
           />
         </View>
 
         {/* Location */}
         <View style={styles.section}>
-          <Text style={styles.label}>Location</Text>
+          <Text style={[styles.label, { color: colors.textPrimary }]}>Location</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
             value={location}
             onChangeText={setLocation}
             placeholder="e.g., San Francisco, CA or Remote"
+            placeholderTextColor={colors.textTertiary}
           />
         </View>
 
         {/* Save Button */}
         <TouchableOpacity
-          style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+          style={[styles.saveButton, { backgroundColor: primaryColor }, saving && styles.saveButtonDisabled]}
           onPress={handleSave}
           disabled={saving}
         >
           {saving ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={isNewTheme ? colors.background : '#fff'} />
           ) : (
-            <Text style={styles.saveButtonText}>Save Changes</Text>
+            <Text style={[styles.saveButtonText, { color: isNewTheme ? colors.background : '#fff' }]}>Save Changes</Text>
           )}
         </TouchableOpacity>
 

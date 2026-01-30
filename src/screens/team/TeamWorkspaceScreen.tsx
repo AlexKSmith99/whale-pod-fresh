@@ -15,6 +15,7 @@ import {
   Image,
   FlatList,
   KeyboardAvoidingView,
+  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -24,19 +25,23 @@ import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { galleryService, GalleryPhoto } from '../../services/galleryService';
 import { notificationService } from '../../services/notificationService';
-import { 
-  podDocService, 
-  podRulesService, 
-  DEFAULT_RULES_TEMPLATE, 
-  PodDoc, 
+import {
+  podDocService,
+  podRulesService,
+  DEFAULT_RULES_TEMPLATE,
+  PodDoc,
   PodRules,
 } from '../../services/podContentService';
 import UserProfileScreen from '../UserProfileScreen';
 import WriteReviewScreen from '../WriteReviewScreen';
 import WebRichTextEditor from '../../components/WebRichTextEditor';
+import { useTheme } from '../../theme/ThemeContext';
+import { getThemedStyles } from '../../theme/themedStyles';
+import GrainTexture from '../../components/ui/GrainTexture';
+import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../../theme/designSystem';
 
-// Modern dark theme colors
-const theme = {
+// Legacy hardcoded dark theme colors (used as fallback for local theme variable)
+const localDarkTheme = {
   // Backgrounds
   bg: '#0f0f0f',
   bgCard: '#1a1a1a',
@@ -65,6 +70,51 @@ const theme = {
   highlightActive: 'rgba(255, 235, 59, 0.6)',
 };
 
+// Helper function to get local theme colors based on isNewTheme
+function getLocalTheme(isNewTheme: boolean, colors: any) {
+  if (isNewTheme) {
+    return {
+      bg: colors.background,
+      bgCard: colors.surface,
+      bgElevated: colors.surfaceAlt,
+      bgHover: colors.surfaceAlt,
+      bgDocument: colors.surface,
+      accent: colors.accentGreen,
+      accentLight: colors.secondaryLight,
+      accentDim: 'rgba(168, 230, 163, 0.08)',
+      text: colors.textPrimary,
+      textSecondary: colors.textSecondary,
+      textMuted: colors.textTertiary,
+      border: colors.border,
+      divider: colors.borderLight,
+      success: colors.success,
+      error: colors.error,
+      highlight: 'rgba(168, 230, 163, 0.3)',
+      highlightActive: 'rgba(168, 230, 163, 0.6)',
+    };
+  }
+  // Light theme variant
+  return {
+    bg: '#f9fafb',
+    bgCard: '#ffffff',
+    bgElevated: '#f3f4f6',
+    bgHover: '#e5e7eb',
+    bgDocument: '#ffffff',
+    accent: legacyColors.primary,
+    accentLight: legacyColors.primaryLight,
+    accentDim: 'rgba(99, 102, 241, 0.08)',
+    text: legacyColors.textPrimary,
+    textSecondary: legacyColors.textSecondary,
+    textMuted: legacyColors.textTertiary,
+    border: legacyColors.border,
+    divider: legacyColors.borderLight,
+    success: legacyColors.success,
+    error: legacyColors.error,
+    highlight: 'rgba(99, 102, 241, 0.3)',
+    highlightActive: 'rgba(99, 102, 241, 0.6)',
+  };
+}
+
 const SIDEBAR_WIDTH = 260;
 
 interface Props {
@@ -83,6 +133,11 @@ interface DocumentEdit {
 }
 
 export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props) {
+  const { theme: appTheme, isNewTheme } = useTheme();
+  const appColors = appTheme.colors;
+  const themedStyles = getThemedStyles(appColors, isNewTheme);
+  const theme = getLocalTheme(isNewTheme, appColors);
+
   const { user } = useAuth();
   const [pods, setPods] = useState<any[]>([]);
   const [selectedPodId, setSelectedPodId] = useState<string | null>(null);
@@ -1523,7 +1578,9 @@ Example:
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.loadingContainer, { backgroundColor: theme.bg }]}>
+        <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={theme.bg} />
+        {isNewTheme && <GrainTexture opacity={0.06} />}
         <ActivityIndicator size="large" color={theme.accent} />
       </View>
     );
@@ -1570,9 +1627,11 @@ Example:
   const selectedPod = pods.find((p) => p.id === selectedPodId);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.bg }]}>
+      <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={theme.bg} />
+      {isNewTheme && <GrainTexture opacity={0.06} />}
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: theme.bgCard }]}>
         <TouchableOpacity onPress={onBack} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={24} color={theme.text} />
         </TouchableOpacity>
@@ -1812,13 +1871,13 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.bg,
+    backgroundColor: localDarkTheme.bg,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.bg,
+    backgroundColor: localDarkTheme.bg,
   },
 
   // Header
@@ -1828,7 +1887,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: Platform.OS === 'ios' ? 56 : 16,
     paddingBottom: 16,
-    backgroundColor: theme.bgCard,
+    backgroundColor: localDarkTheme.bgCard,
   },
   backBtn: {
     width: 40,
@@ -1843,7 +1902,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 13,
     fontWeight: '500',
-    color: theme.textSecondary,
+    color: localDarkTheme.textSecondary,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
@@ -1856,7 +1915,7 @@ const styles = StyleSheet.create({
   podName: {
     fontSize: 17,
     fontWeight: '600',
-    color: theme.text,
+    color: localDarkTheme.text,
     maxWidth: 200,
   },
   headerPodPicture: {
@@ -1890,7 +1949,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: SIDEBAR_WIDTH,
-    backgroundColor: theme.bgCard,
+    backgroundColor: localDarkTheme.bgCard,
     zIndex: 20,
     paddingTop: 24,
     paddingHorizontal: 20,
@@ -1898,7 +1957,7 @@ const styles = StyleSheet.create({
   sidebarTitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: theme.textMuted,
+    color: localDarkTheme.textMuted,
     letterSpacing: 1,
     textTransform: 'uppercase',
     marginBottom: 16,
@@ -1911,28 +1970,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 12,
     marginBottom: 8,
-    backgroundColor: theme.bgElevated,
+    backgroundColor: localDarkTheme.bgElevated,
     flexDirection: 'row',
     alignItems: 'center',
   },
   podItemActive: {
-    backgroundColor: theme.accentLight,
+    backgroundColor: localDarkTheme.accentLight,
   },
   podItemText: {
     flex: 1,
     fontSize: 15,
     fontWeight: '500',
-    color: theme.textSecondary,
+    color: localDarkTheme.textSecondary,
   },
   podItemTextActive: {
-    color: theme.accent,
+    color: localDarkTheme.accent,
     fontWeight: '600',
   },
   podItemIndicator: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: theme.accent,
+    backgroundColor: localDarkTheme.accent,
   },
   podItemPicture: {
     width: 28,
@@ -1944,7 +2003,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: theme.bgCard,
+    backgroundColor: localDarkTheme.bgCard,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,
@@ -1953,7 +2012,7 @@ const styles = StyleSheet.create({
   // Content
   content: {
     flex: 1,
-    backgroundColor: theme.bg,
+    backgroundColor: localDarkTheme.bg,
   },
 
   // Tab Bar
@@ -1962,7 +2021,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginTop: 20,
     marginBottom: 16,
-    backgroundColor: theme.bgCard,
+    backgroundColor: localDarkTheme.bgCard,
     borderRadius: 12,
     padding: 4,
   },
@@ -1973,12 +2032,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   tabActive: {
-    backgroundColor: theme.accent,
+    backgroundColor: localDarkTheme.accent,
   },
   tabText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.textSecondary,
+    color: localDarkTheme.textSecondary,
   },
   tabTextActive: {
     color: '#fff',
@@ -2014,10 +2073,10 @@ const styles = StyleSheet.create({
   },
   savingText: {
     fontSize: 12,
-    color: theme.textMuted,
+    color: localDarkTheme.textMuted,
   },
   modeBadge: {
-    backgroundColor: theme.accentLight,
+    backgroundColor: localDarkTheme.accentLight,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -2025,7 +2084,7 @@ const styles = StyleSheet.create({
   modeBadgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: theme.accent,
+    color: localDarkTheme.accent,
   },
   docMenuButton: {
     width: 36,
@@ -2033,13 +2092,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 18,
-    backgroundColor: theme.bgCard,
+    backgroundColor: localDarkTheme.bgCard,
   },
   documentScroll: {
     flex: 1,
   },
   documentPage: {
-    backgroundColor: theme.bgDocument,
+    backgroundColor: localDarkTheme.bgDocument,
     borderRadius: 12,
     padding: 20,
     minHeight: SCREEN_HEIGHT - 300,
@@ -2050,29 +2109,29 @@ const styles = StyleSheet.create({
   },
   documentText: {
     fontSize: 16,
-    color: theme.text,
+    color: localDarkTheme.text,
     lineHeight: 26,
   },
   documentPlaceholder: {
     fontSize: 16,
-    color: theme.textMuted,
+    color: localDarkTheme.textMuted,
     lineHeight: 26,
     fontStyle: 'italic',
   },
   documentInput: {
     fontSize: 16,
-    color: theme.text,
+    color: localDarkTheme.text,
     lineHeight: 26,
     minHeight: 100,
     textAlignVertical: 'top',
   },
   fullDocumentEdit: {
     minHeight: 300,
-    backgroundColor: theme.bgElevated,
+    backgroundColor: localDarkTheme.bgElevated,
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: theme.accent,
+    borderColor: localDarkTheme.accent,
   },
   editModeActions: {
     flexDirection: 'row',
@@ -2085,18 +2144,18 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 8,
-    backgroundColor: theme.bgElevated,
+    backgroundColor: localDarkTheme.bgElevated,
   },
   editModeCancelText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.textSecondary,
+    color: localDarkTheme.textSecondary,
   },
   editModeSaveBtn: {
     paddingVertical: 10,
     paddingHorizontal: 24,
     borderRadius: 8,
-    backgroundColor: theme.accent,
+    backgroundColor: localDarkTheme.accent,
   },
   editModeSaveBtnDisabled: {
     opacity: 0.5,
@@ -2109,22 +2168,22 @@ const styles = StyleSheet.create({
   newContributionInput: {
     marginTop: 16,
     minHeight: 80,
-    backgroundColor: theme.bgElevated,
+    backgroundColor: localDarkTheme.bgElevated,
     borderRadius: 8,
     padding: 12,
   },
   highlightedText: {
-    backgroundColor: theme.highlight,
+    backgroundColor: localDarkTheme.highlight,
   },
   activeHighlight: {
-    backgroundColor: theme.highlightActive,
+    backgroundColor: localDarkTheme.highlightActive,
   },
 
   // Search Bar
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.bgCard,
+    backgroundColor: localDarkTheme.bgCard,
     borderRadius: 12,
     padding: 8,
     marginBottom: 12,
@@ -2134,7 +2193,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.bgElevated,
+    backgroundColor: localDarkTheme.bgElevated,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -2143,7 +2202,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: theme.text,
+    color: localDarkTheme.text,
     padding: 0,
   },
   searchNav: {
@@ -2153,7 +2212,7 @@ const styles = StyleSheet.create({
   },
   searchCount: {
     fontSize: 12,
-    color: theme.textSecondary,
+    color: localDarkTheme.textSecondary,
     marginRight: 4,
   },
   searchNavBtn: {
@@ -2161,7 +2220,7 @@ const styles = StyleSheet.create({
     height: 32,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.bgElevated,
+    backgroundColor: localDarkTheme.bgElevated,
     borderRadius: 8,
   },
   searchCloseBtn: {
@@ -2179,7 +2238,7 @@ const styles = StyleSheet.create({
   formatToolbar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.bgCard,
+    backgroundColor: localDarkTheme.bgCard,
     borderRadius: 12,
     padding: 8,
     gap: 4,
@@ -2194,14 +2253,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 8,
-    backgroundColor: theme.bgElevated,
+    backgroundColor: localDarkTheme.bgElevated,
   },
   formatBtnActive: {
-    backgroundColor: theme.accent,
+    backgroundColor: localDarkTheme.accent,
   },
   formatBtnText: {
     fontSize: 16,
-    color: theme.text,
+    color: localDarkTheme.text,
   },
   formatBtnTextActive: {
     color: '#fff',
@@ -2218,13 +2277,13 @@ const styles = StyleSheet.create({
   formatDivider: {
     width: 1,
     height: 24,
-    backgroundColor: theme.border,
+    backgroundColor: localDarkTheme.border,
     marginHorizontal: 8,
   },
   formatDropdown: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.bgElevated,
+    backgroundColor: localDarkTheme.bgElevated,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
@@ -2232,7 +2291,7 @@ const styles = StyleSheet.create({
   },
   formatDropdownText: {
     fontSize: 14,
-    color: theme.text,
+    color: localDarkTheme.text,
     fontWeight: '500',
   },
   colorPreview: {
@@ -2240,10 +2299,10 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: theme.border,
+    borderColor: localDarkTheme.border,
   },
   pickerDropdown: {
-    backgroundColor: theme.bgCard,
+    backgroundColor: localDarkTheme.bgCard,
     borderRadius: 12,
     marginBottom: 12,
     overflow: 'hidden',
@@ -2252,20 +2311,20 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: theme.divider,
+    borderBottomColor: localDarkTheme.divider,
   },
   pickerOptionActive: {
-    backgroundColor: theme.accentLight,
+    backgroundColor: localDarkTheme.accentLight,
   },
   pickerOptionText: {
-    color: theme.text,
+    color: localDarkTheme.text,
     fontWeight: '500',
   },
   pickerOptionTextActive: {
-    color: theme.accent,
+    color: localDarkTheme.accent,
   },
   colorPickerDropdown: {
-    backgroundColor: theme.bgCard,
+    backgroundColor: localDarkTheme.bgCard,
     borderRadius: 12,
     padding: 12,
     marginBottom: 12,
@@ -2285,7 +2344,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   colorOptionActive: {
-    borderColor: theme.accent,
+    borderColor: localDarkTheme.accent,
   },
 
   // Edit History
@@ -2293,7 +2352,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: theme.divider,
+    borderBottomColor: localDarkTheme.divider,
   },
   editHistoryMeta: {
     flexDirection: 'row',
@@ -2302,7 +2361,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   editHistoryAuthor: {
-    backgroundColor: theme.accent,
+    backgroundColor: localDarkTheme.accent,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,
@@ -2314,7 +2373,7 @@ const styles = StyleSheet.create({
   },
   editHistoryTime: {
     fontSize: 11,
-    color: theme.textMuted,
+    color: localDarkTheme.textMuted,
   },
 
   // Menu
@@ -2327,7 +2386,7 @@ const styles = StyleSheet.create({
     paddingRight: 24,
   },
   menuContainer: {
-    backgroundColor: theme.bgCard,
+    backgroundColor: localDarkTheme.bgCard,
     borderRadius: 12,
     minWidth: 180,
     overflow: 'hidden',
@@ -2343,14 +2402,14 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '500',
-    color: theme.text,
+    color: localDarkTheme.text,
   },
   menuItemTextActive: {
-    color: theme.accent,
+    color: localDarkTheme.accent,
   },
   menuDivider: {
     height: 1,
-    backgroundColor: theme.divider,
+    backgroundColor: localDarkTheme.divider,
     marginHorizontal: 16,
   },
 
@@ -2363,7 +2422,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: theme.bgCard,
+    backgroundColor: localDarkTheme.bgCard,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
@@ -2371,19 +2430,19 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.textSecondary,
+    color: localDarkTheme.textSecondary,
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: theme.textMuted,
+    color: localDarkTheme.textMuted,
     textAlign: 'center',
     paddingHorizontal: 40,
   },
 
   // Role Card
   roleCard: {
-    backgroundColor: theme.bgCard,
+    backgroundColor: localDarkTheme.bgCard,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -2404,7 +2463,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.accent,
+    backgroundColor: localDarkTheme.accent,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -2424,11 +2483,11 @@ const styles = StyleSheet.create({
   memberNameText: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.text,
+    color: localDarkTheme.text,
   },
   viewProfileLink: {
     fontSize: 12,
-    color: theme.accent,
+    color: localDarkTheme.accent,
     fontWeight: '500',
     marginTop: 2,
   },
@@ -2436,7 +2495,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: theme.accentDim,
+    backgroundColor: localDarkTheme.accentDim,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -2446,12 +2505,12 @@ const styles = StyleSheet.create({
   roleTitleText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.accent,
+    color: localDarkTheme.accent,
     marginBottom: 4,
   },
   roleDescText: {
     fontSize: 14,
-    color: theme.textSecondary,
+    color: localDarkTheme.textSecondary,
     lineHeight: 20,
   },
   roleDeleteBtn: {
@@ -2462,11 +2521,11 @@ const styles = StyleSheet.create({
   },
   roleDeleteText: {
     fontSize: 12,
-    color: theme.error,
+    color: localDarkTheme.error,
   },
   noRoleText: {
     fontSize: 14,
-    color: theme.textMuted,
+    color: localDarkTheme.textMuted,
     fontStyle: 'italic',
     paddingLeft: 52,
   },
@@ -2482,7 +2541,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.bgCard,
+    backgroundColor: localDarkTheme.bgCard,
     paddingVertical: 16,
     borderRadius: 12,
     gap: 10,
@@ -2493,7 +2552,7 @@ const styles = StyleSheet.create({
   uploadBtnText: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.accent,
+    color: localDarkTheme.accent,
   },
 
   // Media Grid
@@ -2507,7 +2566,7 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: theme.bgCard,
+    backgroundColor: localDarkTheme.bgCard,
   },
   mediaImage: {
     width: '100%',
@@ -2541,7 +2600,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContainer: {
-    backgroundColor: theme.bgCard,
+    backgroundColor: localDarkTheme.bgCard,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '90%',
@@ -2552,18 +2611,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: theme.divider,
+    borderBottomColor: localDarkTheme.divider,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.text,
+    color: localDarkTheme.text,
   },
   modalClose: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.bgElevated,
+    backgroundColor: localDarkTheme.bgElevated,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -2574,7 +2633,7 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.textSecondary,
+    color: localDarkTheme.textSecondary,
     marginBottom: 8,
     marginTop: 16,
     textTransform: 'uppercase',
@@ -2583,15 +2642,15 @@ const styles = StyleSheet.create({
   memberLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.accent,
+    color: localDarkTheme.accent,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: theme.bgElevated,
+    backgroundColor: localDarkTheme.bgElevated,
     borderRadius: 12,
     padding: 14,
     fontSize: 15,
-    color: theme.text,
+    color: localDarkTheme.text,
   },
   textArea: {
     minHeight: 120,
@@ -2602,25 +2661,25 @@ const styles = StyleSheet.create({
     padding: 20,
     gap: 12,
     borderTopWidth: 1,
-    borderTopColor: theme.divider,
+    borderTopColor: localDarkTheme.divider,
   },
   cancelBtn: {
     flex: 1,
     paddingVertical: 16,
     borderRadius: 12,
-    backgroundColor: theme.bgElevated,
+    backgroundColor: localDarkTheme.bgElevated,
     alignItems: 'center',
   },
   cancelBtnText: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.textSecondary,
+    color: localDarkTheme.textSecondary,
   },
   submitBtn: {
     flex: 1,
     paddingVertical: 16,
     borderRadius: 12,
-    backgroundColor: theme.accent,
+    backgroundColor: localDarkTheme.accent,
     alignItems: 'center',
   },
   submitBtnDisabled: {
@@ -2685,12 +2744,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: theme.divider,
+    borderBottomColor: localDarkTheme.divider,
   },
   podDocTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: theme.text,
+    color: localDarkTheme.text,
   },
   saveDocButton: {
     backgroundColor: '#10b981',
@@ -2707,47 +2766,47 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   templateButton: {
-    backgroundColor: theme.bgElevated,
+    backgroundColor: localDarkTheme.bgElevated,
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: theme.border,
+    borderColor: localDarkTheme.border,
   },
   templateButtonText: {
-    color: theme.textSecondary,
+    color: localDarkTheme.textSecondary,
     fontWeight: '600',
     fontSize: 13,
   },
   podDocSection: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: theme.divider,
+    borderBottomColor: localDarkTheme.divider,
   },
   podDocSectionTitle: {
     fontSize: 17,
     fontWeight: 'bold',
-    color: theme.text,
+    color: localDarkTheme.text,
     marginBottom: 4,
   },
   podDocSectionHint: {
     fontSize: 13,
-    color: theme.textMuted,
+    color: localDarkTheme.textMuted,
     marginBottom: 12,
   },
   podDocInput: {
-    backgroundColor: theme.bgElevated,
+    backgroundColor: localDarkTheme.bgElevated,
     borderRadius: 12,
     padding: 14,
     fontSize: 15,
-    color: theme.text,
+    color: localDarkTheme.text,
     minHeight: 120,
     borderWidth: 1,
-    borderColor: theme.border,
+    borderColor: localDarkTheme.border,
   },
   rulesHint: {
     fontSize: 14,
-    color: theme.textSecondary,
+    color: localDarkTheme.textSecondary,
     padding: 16,
     paddingBottom: 8,
   },
@@ -2759,16 +2818,16 @@ const styles = StyleSheet.create({
   meetingsSectionLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.accent,
+    color: localDarkTheme.accent,
     letterSpacing: 1,
   },
   meetingHeaderBlock: {
-    backgroundColor: theme.bgElevated,
+    backgroundColor: localDarkTheme.bgElevated,
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
     borderLeftWidth: 3,
-    borderLeftColor: theme.accent,
+    borderLeftColor: localDarkTheme.accent,
   },
   pastMeetingHeaderBlock: {
     opacity: 0.7,
@@ -2779,26 +2838,26 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 3,
-    backgroundColor: theme.accent,
+    backgroundColor: localDarkTheme.accent,
     borderTopLeftRadius: 8,
     borderBottomLeftRadius: 8,
   },
   pastMeetingHeaderBar: {
-    backgroundColor: theme.textMuted,
+    backgroundColor: localDarkTheme.textMuted,
   },
   meetingHeaderTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.text,
+    color: localDarkTheme.text,
     marginBottom: 4,
   },
   meetingHeaderDate: {
     fontSize: 13,
-    color: theme.textSecondary,
+    color: localDarkTheme.textSecondary,
   },
   meetingHeaderStatus: {
     fontSize: 11,
-    color: theme.textMuted,
+    color: localDarkTheme.textMuted,
     marginTop: 4,
   },
   notesAreaDivider: {
@@ -2806,17 +2865,17 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: theme.divider,
+    borderTopColor: localDarkTheme.divider,
   },
   notesAreaLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.textSecondary,
+    color: localDarkTheme.textSecondary,
     letterSpacing: 1,
   },
   emptyDocumentText: {
     fontSize: 14,
-    color: theme.textMuted,
+    color: localDarkTheme.textMuted,
     fontStyle: 'italic',
     lineHeight: 22,
   },
@@ -2825,13 +2884,13 @@ const styles = StyleSheet.create({
   formattingToolbar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.bgElevated,
+    backgroundColor: localDarkTheme.bgElevated,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: theme.border,
+    borderColor: localDarkTheme.border,
   },
   formattingGroup: {
     flexDirection: 'row',
@@ -2841,23 +2900,23 @@ const styles = StyleSheet.create({
   formattingDivider: {
     width: 1,
     height: 24,
-    backgroundColor: theme.border,
+    backgroundColor: localDarkTheme.border,
     marginHorizontal: 10,
   },
   formatBtnTextBold: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: theme.text,
+    color: localDarkTheme.text,
   },
   formatBtnTextItalic: {
     fontSize: 16,
     fontStyle: 'italic',
-    color: theme.text,
+    color: localDarkTheme.text,
   },
   formatBtnTextUnderline: {
     fontSize: 16,
     textDecorationLine: 'underline',
-    color: theme.text,
+    color: localDarkTheme.text,
   },
   textSettingsBtn: {
     flexDirection: 'row',
@@ -2865,12 +2924,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,
-    backgroundColor: theme.bgHover,
+    backgroundColor: localDarkTheme.bgHover,
     gap: 4,
   },
   textSettingsBtnText: {
     fontSize: 14,
-    color: theme.text,
+    color: localDarkTheme.text,
     fontWeight: '500',
   },
   textSettingsOverlay: {
@@ -2880,7 +2939,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   textSettingsContainer: {
-    backgroundColor: theme.bgCard,
+    backgroundColor: localDarkTheme.bgCard,
     borderRadius: 16,
     padding: 20,
     width: '80%',
@@ -2889,14 +2948,14 @@ const styles = StyleSheet.create({
   textSettingsTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: theme.text,
+    color: localDarkTheme.text,
     marginBottom: 16,
     textAlign: 'center',
   },
   textSettingsLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.textSecondary,
+    color: localDarkTheme.textSecondary,
     marginBottom: 8,
     marginTop: 12,
   },
@@ -2908,28 +2967,28 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 12,
     borderRadius: 8,
-    backgroundColor: theme.bgElevated,
+    backgroundColor: localDarkTheme.bgElevated,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: theme.border,
+    borderColor: localDarkTheme.border,
   },
   textSettingsOptionActive: {
-    borderColor: theme.accent,
-    backgroundColor: theme.accentLight,
+    borderColor: localDarkTheme.accent,
+    backgroundColor: localDarkTheme.accentLight,
   },
   textSettingsOptionText: {
     fontSize: 14,
-    color: theme.textSecondary,
+    color: localDarkTheme.textSecondary,
   },
   textSettingsOptionTextActive: {
-    color: theme.accent,
+    color: localDarkTheme.accent,
     fontWeight: '600',
   },
 
   // Compact Edit Mode Styles
   editModeContainer: {
     flex: 1,
-    backgroundColor: theme.bg,
+    backgroundColor: localDarkTheme.bg,
   },
   editModeHeader: {
     flexDirection: 'row',
@@ -2938,7 +2997,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: theme.divider,
+    borderBottomColor: localDarkTheme.divider,
   },
   editModeBtn: {
     paddingHorizontal: 12,
@@ -2947,16 +3006,16 @@ const styles = StyleSheet.create({
   editModeTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.textSecondary,
+    color: localDarkTheme.textSecondary,
   },
   compactToolbar: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 6,
-    backgroundColor: theme.bgElevated,
+    backgroundColor: localDarkTheme.bgElevated,
     borderBottomWidth: 1,
-    borderBottomColor: theme.border,
+    borderBottomColor: localDarkTheme.border,
   },
   compactFormatBtn: {
     width: 32,
@@ -2966,51 +3025,51 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   compactFormatBtnActive: {
-    backgroundColor: theme.accentLight,
+    backgroundColor: localDarkTheme.accentLight,
   },
   compactFormatBtnBold: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: theme.text,
+    color: localDarkTheme.text,
   },
   compactFormatBtnItalic: {
     fontSize: 14,
     fontStyle: 'italic',
-    color: theme.text,
+    color: localDarkTheme.text,
   },
   compactFormatBtnUnderline: {
     fontSize: 14,
     textDecorationLine: 'underline',
-    color: theme.text,
+    color: localDarkTheme.text,
   },
   compactDivider: {
     width: 1,
     height: 20,
-    backgroundColor: theme.border,
+    backgroundColor: localDarkTheme.border,
     marginHorizontal: 6,
   },
   compactTextSettingsBtn: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
-    backgroundColor: theme.bgHover,
+    backgroundColor: localDarkTheme.bgHover,
   },
   compactTextSettingsBtnText: {
     fontSize: 13,
-    color: theme.text,
+    color: localDarkTheme.text,
     fontWeight: '500',
   },
   fullScreenEditor: {
     flex: 1,
     padding: 12,
-    color: theme.text,
+    color: localDarkTheme.text,
     textAlignVertical: 'top',
   },
 
   // Compact Read Mode Styles
   documentContainerCompact: {
     flex: 1,
-    backgroundColor: theme.bgDocument,
+    backgroundColor: localDarkTheme.bgDocument,
   },
   documentHeaderCompact: {
     flexDirection: 'row',
@@ -3024,12 +3083,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: theme.bgElevated,
+    backgroundColor: localDarkTheme.bgElevated,
     gap: 8,
   },
   searchCountCompact: {
     fontSize: 12,
-    color: theme.textMuted,
+    color: localDarkTheme.textMuted,
   },
   documentScrollCompact: {
     flex: 1,
@@ -3040,7 +3099,7 @@ const styles = StyleSheet.create({
   agendaTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.text,
+    color: localDarkTheme.text,
   },
   editButton: {
     flexDirection: 'row',
@@ -3048,12 +3107,12 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: theme.accentLight,
+    backgroundColor: localDarkTheme.accentLight,
     borderRadius: 6,
   },
   editButtonText: {
     fontSize: 14,
-    color: theme.accent,
+    color: localDarkTheme.accent,
     fontWeight: '500',
   },
   meetingHeadersSection: {
@@ -3061,20 +3120,20 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: theme.divider,
+    borderBottomColor: localDarkTheme.divider,
   },
   documentContentSection: {
     padding: 12,
   },
   htmlContentContainer: {
-    backgroundColor: theme.bgElevated,
+    backgroundColor: localDarkTheme.bgElevated,
     borderRadius: 8,
     padding: 12,
     marginTop: 8,
   },
   htmlContentPlaceholder: {
     fontSize: 14,
-    color: theme.textSecondary,
+    color: localDarkTheme.textSecondary,
     lineHeight: 20,
   },
   emptyDocContainer: {
@@ -3084,12 +3143,12 @@ const styles = StyleSheet.create({
   emptyDocText: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.text,
+    color: localDarkTheme.text,
     marginTop: 12,
   },
   emptyDocSubtext: {
     fontSize: 14,
-    color: theme.textMuted,
+    color: localDarkTheme.textMuted,
     marginTop: 4,
   },
 });

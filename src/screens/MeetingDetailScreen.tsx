@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, TextInput, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, TextInput, Image, ActivityIndicator, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '../contexts/AuthContext';
 import { meetingService } from '../services/meetingService';
-import { colors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+import { useTheme } from '../theme/ThemeContext';
+import { getThemedStyles } from '../theme/themedStyles';
+import GrainTexture from '../components/ui/GrainTexture';
 
 interface Props {
   meeting: any;
@@ -15,6 +18,10 @@ interface Props {
 
 export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMeetingUpdated }: Props) {
   const { user } = useAuth();
+  const { theme, isNewTheme } = useTheme();
+  const colors = theme.colors;
+  const themedStyles = getThemedStyles(colors, isNewTheme);
+
   const [isCreator, setIsCreator] = useState(false);
   const [participants, setParticipants] = useState<any[]>([]);
   const [podMembers, setPodMembers] = useState<any[]>([]);
@@ -230,23 +237,25 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
     member => !participants.some(p => p.user_id === member.user_id)
   );
 
+  const accentColor = isNewTheme ? colors.accentGreen : legacyColors.primary;
+
   const renderParticipant = (participant: any) => {
     const profile = participant.user;
     const isParticipantCreator = participant.user_id === meeting.creator_id;
 
     return (
-      <View key={participant.user_id} style={styles.participantRow}>
+      <View key={participant.user_id} style={[styles.participantRow, { borderTopColor: colors.border }]}>
         {profile?.profile_picture ? (
           <Image source={{ uri: profile.profile_picture }} style={styles.participantAvatar} />
         ) : (
-          <View style={[styles.participantAvatar, styles.participantAvatarPlaceholder]}>
-            <Text style={styles.participantInitial}>
+          <View style={[styles.participantAvatar, styles.participantAvatarPlaceholder, { backgroundColor: accentColor }]}>
+            <Text style={[styles.participantInitial, { color: isNewTheme ? colors.background : colors.white }]}>
               {profile?.name?.charAt(0)?.toUpperCase() || '?'}
             </Text>
           </View>
         )}
         <View style={styles.participantInfo}>
-          <Text style={styles.participantName}>
+          <Text style={[styles.participantName, { color: colors.textPrimary }]}>
             {profile?.name || profile?.email?.split('@')[0] || 'Unknown'}
             {isParticipantCreator && ' (Organizer)'}
           </Text>
@@ -269,56 +278,60 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
   // Edit Mode View
   if (isEditing) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+        {isNewTheme && <GrainTexture opacity={0.06} />}
+        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
           <TouchableOpacity onPress={() => setIsEditing(false)} style={styles.closeButton}>
             <Ionicons name="close" size={28} color={colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Edit Meeting</Text>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Edit Meeting</Text>
           <TouchableOpacity onPress={handleSaveChanges} disabled={saving}>
             {saving ? (
-              <ActivityIndicator size="small" color={colors.primary} />
+              <ActivityIndicator size="small" color={accentColor} />
             ) : (
-              <Text style={styles.saveButton}>Save</Text>
+              <Text style={[styles.saveButton, { color: accentColor }]}>Save</Text>
             )}
           </TouchableOpacity>
         </View>
 
         <ScrollView style={styles.scrollView} keyboardShouldPersistTaps="handled">
           <View style={styles.editForm}>
-            <Text style={styles.editLabel}>Title *</Text>
+            <Text style={[styles.editLabel, { color: colors.textSecondary }]}>Title *</Text>
             <TextInput
-              style={styles.editInput}
+              style={[styles.editInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
               value={editTitle}
               onChangeText={setEditTitle}
               placeholder="Meeting title"
+              placeholderTextColor={colors.textTertiary}
             />
 
-            <Text style={styles.editLabel}>Description</Text>
+            <Text style={[styles.editLabel, { color: colors.textSecondary }]}>Description</Text>
             <TextInput
-              style={[styles.editInput, styles.editTextArea]}
+              style={[styles.editInput, styles.editTextArea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
               value={editDescription}
               onChangeText={setEditDescription}
               placeholder="Add a description..."
+              placeholderTextColor={colors.textTertiary}
               multiline
               numberOfLines={4}
             />
 
-            <Text style={styles.editLabel}>Date & Time</Text>
+            <Text style={[styles.editLabel, { color: colors.textSecondary }]}>Date & Time</Text>
             <View style={styles.dateTimeRow}>
               <TouchableOpacity
-                style={[styles.editInput, styles.dateTimeButton]}
+                style={[styles.editInput, styles.dateTimeButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
                 onPress={() => setShowDatePicker(true)}
               >
                 <Ionicons name="calendar" size={20} color={colors.textSecondary} />
-                <Text style={styles.dateTimeText}>{editDate.toLocaleDateString()}</Text>
+                <Text style={[styles.dateTimeText, { color: colors.textPrimary }]}>{editDate.toLocaleDateString()}</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.editInput, styles.dateTimeButton]}
+                style={[styles.editInput, styles.dateTimeButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
                 onPress={() => setShowTimePicker(true)}
               >
                 <Ionicons name="time" size={20} color={colors.textSecondary} />
-                <Text style={styles.dateTimeText}>
+                <Text style={[styles.dateTimeText, { color: colors.textPrimary }]}>
                   {editDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                 </Text>
               </TouchableOpacity>
@@ -354,34 +367,37 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
               />
             )}
 
-            <Text style={styles.editLabel}>Duration (minutes)</Text>
+            <Text style={[styles.editLabel, { color: colors.textSecondary }]}>Duration (minutes)</Text>
             <TextInput
-              style={styles.editInput}
+              style={[styles.editInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
               value={editDuration}
               onChangeText={setEditDuration}
               placeholder="60"
+              placeholderTextColor={colors.textTertiary}
               keyboardType="numeric"
             />
 
-            <Text style={styles.editLabel}>Meeting Type</Text>
+            <Text style={[styles.editLabel, { color: colors.textSecondary }]}>Meeting Type</Text>
             <View style={styles.meetingTypeOptions}>
               {['video', 'in_person', 'hybrid'].map((type) => (
                 <TouchableOpacity
                   key={type}
                   style={[
                     styles.meetingTypeOption,
-                    editMeetingType === type && styles.meetingTypeOptionSelected
+                    { backgroundColor: colors.backgroundSecondary, borderColor: colors.border },
+                    editMeetingType === type && { backgroundColor: accentColor, borderColor: accentColor }
                   ]}
                   onPress={() => setEditMeetingType(type as any)}
                 >
                   <Ionicons
                     name={type === 'video' ? 'videocam' : type === 'in_person' ? 'location' : 'globe'}
                     size={18}
-                    color={editMeetingType === type ? colors.white : colors.textSecondary}
+                    color={editMeetingType === type ? (isNewTheme ? colors.background : colors.white) : colors.textSecondary}
                   />
                   <Text style={[
                     styles.meetingTypeText,
-                    editMeetingType === type && styles.meetingTypeTextSelected
+                    { color: colors.textSecondary },
+                    editMeetingType === type && { color: isNewTheme ? colors.background : colors.white, fontWeight: typography.fontWeight.semibold }
                   ]}>
                     {getMeetingTypeLabel(type)}
                   </Text>
@@ -391,12 +407,13 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
 
             {(editMeetingType === 'in_person' || editMeetingType === 'hybrid') && (
               <>
-                <Text style={styles.editLabel}>Location</Text>
+                <Text style={[styles.editLabel, { color: colors.textSecondary }]}>Location</Text>
                 <TextInput
-                  style={styles.editInput}
+                  style={[styles.editInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
                   value={editLocation}
                   onChangeText={setEditLocation}
                   placeholder="Enter meeting location"
+                  placeholderTextColor={colors.textTertiary}
                 />
               </>
             )}
@@ -407,16 +424,18 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+      {isNewTheme && <GrainTexture opacity={0.06} />}
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
           <Ionicons name="close" size={28} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Meeting Details</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Meeting Details</Text>
         {isCreator ? (
           <TouchableOpacity onPress={() => setIsEditing(true)}>
-            <Ionicons name="create-outline" size={24} color={colors.primary} />
+            <Ionicons name="create-outline" size={24} color={accentColor} />
           </TouchableOpacity>
         ) : (
           <View style={{ width: 24 }} />
@@ -427,56 +446,56 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
         <View style={styles.content}>
           {/* Meeting Title */}
           <View style={styles.titleSection}>
-            <Text style={styles.meetingTitle}>{meeting.title}</Text>
+            <Text style={[styles.meetingTitle, { color: colors.textPrimary }]}>{meeting.title}</Text>
             {meeting.is_kickoff && (
-              <View style={styles.kickoffBadge}>
-                <Text style={styles.kickoffBadgeText}>KICKOFF MEETING</Text>
+              <View style={[styles.kickoffBadge, { backgroundColor: colors.warning }]}>
+                <Text style={[styles.kickoffBadgeText, { color: isNewTheme ? colors.background : colors.white }]}>KICKOFF MEETING</Text>
               </View>
             )}
           </View>
 
           {/* Pursuit Link */}
           {meeting.pursuit && (
-            <View style={styles.pursuitCard}>
-              <Ionicons name="flag" size={20} color={colors.primary} />
-              <Text style={styles.pursuitText}>{meeting.pursuit.title}</Text>
+            <View style={[styles.pursuitCard, { backgroundColor: isNewTheme ? colors.primaryLight : legacyColors.primaryLight }]}>
+              <Ionicons name="flag" size={20} color={accentColor} />
+              <Text style={[styles.pursuitText, { color: accentColor }]}>{meeting.pursuit.title}</Text>
             </View>
           )}
 
           {/* Time & Date */}
-          <View style={styles.infoCard}>
+          <View style={[styles.infoCard, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }]}>
             <View style={styles.infoRow}>
-              <Ionicons name="calendar" size={24} color={colors.primary} />
+              <Ionicons name="calendar" size={24} color={accentColor} />
               <View style={styles.infoTextContainer}>
-                <Text style={styles.infoLabel}>Date</Text>
-                <Text style={styles.infoValue}>{formatDate(meeting.scheduled_time)}</Text>
+                <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Date</Text>
+                <Text style={[styles.infoValue, { color: colors.textPrimary }]}>{formatDate(meeting.scheduled_time)}</Text>
               </View>
             </View>
 
             <View style={styles.infoRow}>
-              <Ionicons name="time" size={24} color={colors.primary} />
+              <Ionicons name="time" size={24} color={accentColor} />
               <View style={styles.infoTextContainer}>
-                <Text style={styles.infoLabel}>Time</Text>
-                <Text style={styles.infoValue}>
+                <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Time</Text>
+                <Text style={[styles.infoValue, { color: colors.textPrimary }]}>
                   {formatTime(meeting.scheduled_time)} ({meeting.duration_minutes || 60} min)
                 </Text>
               </View>
             </View>
 
             <View style={styles.infoRow}>
-              <Ionicons name={getMeetingTypeIcon()} size={24} color={colors.primary} />
+              <Ionicons name={getMeetingTypeIcon()} size={24} color={accentColor} />
               <View style={styles.infoTextContainer}>
-                <Text style={styles.infoLabel}>Meeting Type</Text>
-                <Text style={styles.infoValue}>{getMeetingTypeLabel()}</Text>
+                <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Meeting Type</Text>
+                <Text style={[styles.infoValue, { color: colors.textPrimary }]}>{getMeetingTypeLabel()}</Text>
               </View>
             </View>
 
             {meeting.location && (
               <View style={styles.infoRow}>
-                <Ionicons name="location" size={24} color={colors.primary} />
+                <Ionicons name="location" size={24} color={accentColor} />
                 <View style={styles.infoTextContainer}>
-                  <Text style={styles.infoLabel}>Location</Text>
-                  <Text style={styles.infoValue}>{meeting.location}</Text>
+                  <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Location</Text>
+                  <Text style={[styles.infoValue, { color: colors.textPrimary }]}>{meeting.location}</Text>
                 </View>
               </View>
             )}
@@ -484,16 +503,16 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
 
           {/* Description */}
           {meeting.description && (
-            <View style={styles.descriptionCard}>
-              <Text style={styles.descriptionLabel}>Description</Text>
-              <Text style={styles.descriptionText}>{meeting.description}</Text>
+            <View style={[styles.descriptionCard, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }]}>
+              <Text style={[styles.descriptionLabel, { color: colors.textSecondary }]}>Description</Text>
+              <Text style={[styles.descriptionText, { color: colors.textPrimary }]}>{meeting.description}</Text>
             </View>
           )}
 
           {/* Participants Section */}
-          <View style={styles.participantsCard}>
+          <View style={[styles.participantsCard, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }]}>
             <View style={styles.participantsHeader}>
-              <Text style={styles.participantsTitle}>
+              <Text style={[styles.participantsTitle, { color: colors.textPrimary }]}>
                 Participants ({participants.length})
               </Text>
               {isCreator && availableMembers.length > 0 && (
@@ -501,24 +520,24 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
                   style={styles.addParticipantBtn}
                   onPress={() => setShowAddParticipant(true)}
                 >
-                  <Ionicons name="person-add" size={18} color={colors.primary} />
-                  <Text style={styles.addParticipantText}>Add</Text>
+                  <Ionicons name="person-add" size={18} color={accentColor} />
+                  <Text style={[styles.addParticipantText, { color: accentColor }]}>Add</Text>
                 </TouchableOpacity>
               )}
             </View>
 
             {loadingParticipants ? (
-              <ActivityIndicator size="small" color={colors.primary} style={{ padding: 20 }} />
+              <ActivityIndicator size="small" color={accentColor} style={{ padding: 20 }} />
             ) : participants.length === 0 ? (
-              <Text style={styles.noParticipantsText}>No participants yet</Text>
+              <Text style={[styles.noParticipantsText, { color: colors.textSecondary }]}>No participants yet</Text>
             ) : (
               participants.map(renderParticipant)
             )}
           </View>
 
           {/* Status Badge */}
-          <View style={styles.statusBadge}>
-            <Text style={styles.statusText}>
+          <View style={[styles.statusBadge, { backgroundColor: colors.backgroundSecondary }]}>
+            <Text style={[styles.statusText, { color: colors.textSecondary }]}>
               {isUpcoming ? 'Upcoming' : 'Completed'}
             </Text>
           </View>
@@ -526,19 +545,19 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
           {/* Join Video Call Button */}
           {canJoinVideo && (
             <TouchableOpacity
-              style={styles.joinButton}
+              style={[styles.joinButton, { backgroundColor: accentColor }]}
               onPress={handleJoinCall}
             >
-              <Ionicons name="videocam" size={24} color={colors.white} />
-              <Text style={styles.joinButtonText}>Join Video Call</Text>
+              <Ionicons name="videocam" size={24} color={isNewTheme ? colors.background : colors.white} />
+              <Text style={[styles.joinButtonText, { color: isNewTheme ? colors.background : colors.white }]}>Join Video Call</Text>
             </TouchableOpacity>
           )}
 
           {/* Channel Info for debugging (only show to creator) */}
           {isCreator && meeting.agora_channel_name && (
-            <View style={styles.debugInfo}>
-              <Text style={styles.debugLabel}>Video Channel:</Text>
-              <Text style={styles.debugValue}>{meeting.agora_channel_name}</Text>
+            <View style={[styles.debugInfo, { backgroundColor: colors.backgroundSecondary }]}>
+              <Text style={[styles.debugLabel, { color: colors.textTertiary }]}>Video Channel:</Text>
+              <Text style={[styles.debugValue, { color: colors.textSecondary }]}>{meeting.agora_channel_name}</Text>
             </View>
           )}
         </View>
@@ -551,10 +570,10 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
         animationType="slide"
         onRequestClose={() => setShowAddParticipant(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Add Participant</Text>
+        <View style={[styles.modalOverlay, { backgroundColor: isNewTheme ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)' }]}>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Add Participant</Text>
               <TouchableOpacity onPress={() => setShowAddParticipant(false)}>
                 <Ionicons name="close" size={24} color={colors.textPrimary} />
               </TouchableOpacity>
@@ -562,29 +581,29 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
 
             <ScrollView style={styles.modalScroll}>
               {availableMembers.length === 0 ? (
-                <Text style={styles.noMembersText}>All pod members are already in this meeting</Text>
+                <Text style={[styles.noMembersText, { color: colors.textSecondary }]}>All pod members are already in this meeting</Text>
               ) : (
                 availableMembers.map((member) => {
                   const profile = member.user;
                   return (
                     <TouchableOpacity
                       key={member.user_id}
-                      style={styles.memberRow}
+                      style={[styles.memberRow, { borderBottomColor: colors.border }]}
                       onPress={() => handleAddParticipant(member.user_id)}
                     >
                       {profile?.profile_picture ? (
                         <Image source={{ uri: profile.profile_picture }} style={styles.participantAvatar} />
                       ) : (
-                        <View style={[styles.participantAvatar, styles.participantAvatarPlaceholder]}>
-                          <Text style={styles.participantInitial}>
+                        <View style={[styles.participantAvatar, styles.participantAvatarPlaceholder, { backgroundColor: accentColor }]}>
+                          <Text style={[styles.participantInitial, { color: isNewTheme ? colors.background : colors.white }]}>
                             {profile?.name?.charAt(0)?.toUpperCase() || '?'}
                           </Text>
                         </View>
                       )}
-                      <Text style={styles.memberName}>
+                      <Text style={[styles.memberName, { color: colors.textPrimary }]}>
                         {profile?.name || profile?.email?.split('@')[0] || 'Unknown'}
                       </Text>
-                      <Ionicons name="add-circle" size={24} color={colors.primary} />
+                      <Ionicons name="add-circle" size={24} color={accentColor} />
                     </TouchableOpacity>
                   );
                 })
@@ -600,7 +619,6 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -609,9 +627,7 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: spacing.base,
     paddingHorizontal: spacing.lg,
-    backgroundColor: colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
   },
   closeButton: {
     width: 40,
@@ -622,12 +638,10 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: typography.fontSize.xl,
     fontWeight: typography.fontWeight.bold,
-    color: colors.textPrimary,
   },
   saveButton: {
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.primary,
   },
   scrollView: {
     flex: 1,
@@ -642,18 +656,15 @@ const styles = StyleSheet.create({
   meetingTitle: {
     fontSize: typography.fontSize['2xl'],
     fontWeight: typography.fontWeight.bold,
-    color: colors.textPrimary,
     marginBottom: spacing.sm,
   },
   kickoffBadge: {
-    backgroundColor: colors.warning,
     alignSelf: 'flex-start',
     paddingHorizontal: spacing.base,
     paddingVertical: spacing.xs,
     borderRadius: borderRadius.full,
   },
   kickoffBadgeText: {
-    color: colors.white,
     fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.bold,
   },
@@ -661,7 +672,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.primaryLight,
     padding: spacing.base,
     borderRadius: borderRadius.base,
     marginBottom: spacing.lg,
@@ -670,10 +680,8 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.primary,
   },
   infoCard: {
-    backgroundColor: colors.white,
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
     gap: spacing.lg,
@@ -690,16 +698,13 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: typography.fontSize.sm,
-    color: colors.textSecondary,
     marginBottom: 2,
   },
   infoValue: {
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.textPrimary,
   },
   descriptionCard: {
-    backgroundColor: colors.white,
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
     marginBottom: spacing.lg,
@@ -708,16 +713,13 @@ const styles = StyleSheet.create({
   descriptionLabel: {
     fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.textSecondary,
     marginBottom: spacing.xs,
   },
   descriptionText: {
     fontSize: typography.fontSize.base,
-    color: colors.textPrimary,
     lineHeight: 22,
   },
   participantsCard: {
-    backgroundColor: colors.white,
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
     marginBottom: spacing.lg,
@@ -732,7 +734,6 @@ const styles = StyleSheet.create({
   participantsTitle: {
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.textPrimary,
   },
   addParticipantBtn: {
     flexDirection: 'row',
@@ -742,14 +743,12 @@ const styles = StyleSheet.create({
   addParticipantText: {
     fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.primary,
   },
   participantRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: colors.borderLight,
   },
   participantAvatar: {
     width: 40,
@@ -757,12 +756,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   participantAvatarPlaceholder: {
-    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   participantInitial: {
-    color: colors.white,
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.bold,
   },
@@ -773,7 +770,6 @@ const styles = StyleSheet.create({
   participantName: {
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.medium,
-    color: colors.textPrimary,
   },
   participantStatus: {
     fontSize: typography.fontSize.sm,
@@ -783,13 +779,11 @@ const styles = StyleSheet.create({
   },
   noParticipantsText: {
     fontSize: typography.fontSize.sm,
-    color: colors.textSecondary,
     textAlign: 'center',
     paddingVertical: spacing.lg,
   },
   statusBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: colors.backgroundSecondary,
     paddingHorizontal: spacing.base,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.full,
@@ -798,38 +792,32 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.medium,
-    color: colors.textSecondary,
   },
   joinButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.primary,
     borderRadius: borderRadius.base,
     padding: spacing.lg,
     ...shadows.base,
   },
   joinButtonText: {
-    color: colors.white,
     fontSize: typography.fontSize.lg,
     fontWeight: typography.fontWeight.bold,
   },
   debugInfo: {
     marginTop: spacing.lg,
     padding: spacing.base,
-    backgroundColor: colors.backgroundSecondary,
     borderRadius: borderRadius.base,
   },
   debugLabel: {
     fontSize: typography.fontSize.xs,
-    color: colors.textTertiary,
     marginBottom: 2,
   },
   debugValue: {
     fontSize: typography.fontSize.sm,
     fontFamily: 'monospace',
-    color: colors.textSecondary,
   },
   // Edit form styles
   editForm: {
@@ -838,18 +826,14 @@ const styles = StyleSheet.create({
   editLabel: {
     fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.textSecondary,
     marginBottom: spacing.xs,
     marginTop: spacing.base,
   },
   editInput: {
-    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: borderRadius.base,
     padding: spacing.base,
     fontSize: typography.fontSize.base,
-    color: colors.textPrimary,
   },
   editTextArea: {
     height: 100,
@@ -867,7 +851,6 @@ const styles = StyleSheet.create({
   },
   dateTimeText: {
     fontSize: typography.fontSize.base,
-    color: colors.textPrimary,
   },
   meetingTypeOptions: {
     gap: spacing.sm,
@@ -877,31 +860,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     padding: spacing.base,
-    backgroundColor: colors.backgroundSecondary,
     borderRadius: borderRadius.base,
     borderWidth: 1,
-    borderColor: colors.border,
-  },
-  meetingTypeOptionSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
   },
   meetingTypeText: {
     fontSize: typography.fontSize.base,
-    color: colors.textSecondary,
-  },
-  meetingTypeTextSelected: {
-    color: colors.white,
-    fontWeight: typography.fontWeight.semibold,
   },
   // Modal styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: colors.white,
     borderTopLeftRadius: borderRadius.xl,
     borderTopRightRadius: borderRadius.xl,
     maxHeight: '70%',
@@ -912,12 +882,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
   },
   modalTitle: {
     fontSize: typography.fontSize.lg,
     fontWeight: typography.fontWeight.bold,
-    color: colors.textPrimary,
   },
   modalScroll: {
     padding: spacing.lg,
@@ -927,17 +895,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing.base,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
   },
   memberName: {
     flex: 1,
     marginLeft: spacing.base,
     fontSize: typography.fontSize.base,
-    color: colors.textPrimary,
   },
   noMembersText: {
     fontSize: typography.fontSize.base,
-    color: colors.textSecondary,
     textAlign: 'center',
     paddingVertical: spacing.xl,
   },

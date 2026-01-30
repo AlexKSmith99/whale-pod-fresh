@@ -9,13 +9,17 @@ import {
   Image,
   Modal,
   Keyboard,
+  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { messageService } from '../services/messageService';
 import { notificationService } from '../services/notificationService';
 import { supabase } from '../config/supabase';
-import { colors } from '../theme/designSystem';
+import { colors as legacyColors, typography, spacing } from '../theme/designSystem';
+import { useTheme } from '../theme/ThemeContext';
+import { getThemedStyles } from '../theme/themedStyles';
+import GrainTexture from '../components/ui/GrainTexture';
 
 interface Props {
   partnerId: string;
@@ -29,6 +33,9 @@ interface Props {
 
 export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation, showMenuButton, onMenuPress, onDelete }: Props) {
   const { user } = useAuth();
+  const { theme, isNewTheme } = useTheme();
+  const colors = theme.colors;
+  const themedStyles = getThemedStyles(colors, isNewTheme);
   const flatListRef = useRef<FlatList>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -198,6 +205,175 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
     }
   };
 
+  // Dynamic styles based on theme
+  const dynamicStyles = {
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      flexDirection: 'row' as const,
+      justifyContent: 'space-between' as const,
+      alignItems: 'center' as const,
+      padding: spacing.base,
+      paddingTop: 50,
+      backgroundColor: colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    headerAvatar: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+    },
+    headerAvatarText: {
+      fontSize: 14,
+      fontWeight: 'bold' as const,
+      color: isNewTheme ? colors.background : legacyColors.white,
+    },
+    headerUserName: {
+      fontSize: typography.fontSize.lg,
+      fontWeight: typography.fontWeight.semibold as '600',
+      color: colors.textPrimary,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    messagesList: {
+      padding: spacing.sm,
+      flexGrow: 1,
+      backgroundColor: colors.background,
+    },
+    messageAvatar: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+    },
+    messageAvatarText: {
+      fontSize: 14,
+      fontWeight: 'bold' as const,
+      color: isNewTheme ? colors.background : legacyColors.white,
+    },
+    myMessageBubble: {
+      padding: spacing.md,
+      borderRadius: 16,
+      backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary,
+      borderBottomRightRadius: 4,
+    },
+    theirMessageBubble: {
+      padding: spacing.md,
+      borderRadius: 16,
+      backgroundColor: isNewTheme ? colors.surface : legacyColors.white,
+      borderBottomLeftRadius: 4,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    messageText: {
+      fontSize: typography.fontSize.base,
+      color: colors.textPrimary,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    myMessageText: {
+      color: isNewTheme ? colors.background : legacyColors.white,
+    },
+    timeSeparator: {
+      alignItems: 'center' as const,
+      marginVertical: spacing.sm,
+    },
+    timeSeparatorText: {
+      fontSize: typography.fontSize.xs,
+      color: colors.textSecondary,
+      backgroundColor: isNewTheme ? colors.surfaceAlt : '#f5f5f5',
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs,
+      borderRadius: 12,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    expandedTimestamp: {
+      fontSize: 11,
+      color: colors.textSecondary,
+      marginTop: 4,
+      marginBottom: 2,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    inputContainer: {
+      flexDirection: 'row' as const,
+      padding: spacing.sm,
+      backgroundColor: colors.surface,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      alignItems: 'flex-end' as const,
+    },
+    input: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 20,
+      paddingHorizontal: spacing.base,
+      paddingVertical: spacing.sm,
+      marginRight: spacing.sm,
+      maxHeight: 100,
+      fontSize: typography.fontSize.base,
+      backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.white,
+      color: colors.textPrimary,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    sendButton: {
+      backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary,
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+    },
+    optionsOverlay: {
+      flex: 1,
+      backgroundColor: isNewTheme ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'flex-end' as const,
+    },
+    optionsContainer: {
+      backgroundColor: colors.surface,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      paddingTop: spacing.md,
+      paddingBottom: 34,
+    },
+    optionItem: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      paddingVertical: spacing.base,
+      paddingHorizontal: spacing.lg,
+      gap: spacing.md,
+    },
+    optionText: {
+      fontSize: typography.fontSize.base,
+      color: colors.textPrimary,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    optionTextDanger: {
+      fontSize: typography.fontSize.base,
+      color: colors.error,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+    optionCancel: {
+      alignItems: 'center' as const,
+      paddingVertical: spacing.base,
+      marginTop: spacing.sm,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+    optionCancelText: {
+      fontSize: typography.fontSize.base,
+      fontWeight: typography.fontWeight.semibold as '600',
+      color: colors.textSecondary,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+    },
+  };
+
   const renderMessage = ({ item, index }: { item: any; index: number }) => {
     const isMyMessage = item.sender_id === user?.id;
     const showTimeSeparator = hasTimeGap(item.created_at, index > 0 ? messages[index - 1]?.created_at : null);
@@ -208,11 +384,11 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
       const avatarContent = profile?.profile_picture ? (
         <Image
           source={{ uri: profile.profile_picture }}
-          style={styles.messageAvatar}
+          style={dynamicStyles.messageAvatar}
         />
       ) : (
-        <View style={styles.messageAvatar}>
-          <Text style={styles.messageAvatarText}>
+        <View style={dynamicStyles.messageAvatar}>
+          <Text style={dynamicStyles.messageAvatarText}>
             {profile?.name?.charAt(0).toUpperCase() ||
              profile?.email?.charAt(0).toUpperCase() || '?'}
           </Text>
@@ -233,8 +409,8 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
       <View>
         {/* Time separator - shown when 1+ hour gap */}
         {showTimeSeparator && (
-          <View style={styles.timeSeparator}>
-            <Text style={styles.timeSeparatorText}>
+          <View style={dynamicStyles.timeSeparator}>
+            <Text style={dynamicStyles.timeSeparatorText}>
               {formatTimeSeparator(item.created_at)}
             </Text>
           </View>
@@ -254,15 +430,12 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
                 <TouchableOpacity
                   activeOpacity={0.8}
                   onPress={() => setExpandedMessageId(expandedMessageId === item.id ? null : item.id)}
-                  style={[
-                    styles.messageBubble,
-                    styles.myMessageBubble,
-                  ]}
+                  style={dynamicStyles.myMessageBubble}
                 >
-                  <Text style={[styles.messageText, styles.myMessageText]}>{item.content}</Text>
+                  <Text style={[dynamicStyles.messageText, dynamicStyles.myMessageText]}>{item.content}</Text>
                 </TouchableOpacity>
                 {expandedMessageId === item.id && (
-                  <Text style={[styles.expandedTimestamp, styles.expandedTimestampRight]}>
+                  <Text style={[dynamicStyles.expandedTimestamp, styles.expandedTimestampRight]}>
                     {new Date(item.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                   </Text>
                 )}
@@ -282,15 +455,12 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
                 <TouchableOpacity
                   activeOpacity={0.8}
                   onPress={() => setExpandedMessageId(expandedMessageId === item.id ? null : item.id)}
-                  style={[
-                    styles.messageBubble,
-                    styles.theirMessageBubble,
-                  ]}
+                  style={dynamicStyles.theirMessageBubble}
                 >
-                  <Text style={styles.messageText}>{item.content}</Text>
+                  <Text style={dynamicStyles.messageText}>{item.content}</Text>
                 </TouchableOpacity>
                 {expandedMessageId === item.id && (
-                  <Text style={[styles.expandedTimestamp, styles.expandedTimestampLeft]}>
+                  <Text style={[dynamicStyles.expandedTimestamp, styles.expandedTimestampLeft]}>
                     {new Date(item.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                   </Text>
                 )}
@@ -303,10 +473,12 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={dynamicStyles.container}>
+      <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+      {isNewTheme && <GrainTexture opacity={0.06} />}
+      <View style={dynamicStyles.header}>
         <TouchableOpacity onPress={handleMenuPress} style={styles.backButton}>
-          <Ionicons name={showMenuButton ? "ellipsis-vertical" : "arrow-back"} size={24} color="#333" />
+          <Ionicons name={showMenuButton ? "ellipsis-vertical" : "arrow-back"} size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.headerUserInfo}
@@ -315,48 +487,49 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
           {otherUserProfile?.profile_picture ? (
             <Image
               source={{ uri: otherUserProfile.profile_picture }}
-              style={styles.headerAvatar}
+              style={dynamicStyles.headerAvatar}
             />
           ) : (
-            <View style={styles.headerAvatar}>
-              <Text style={styles.headerAvatarText}>
+            <View style={dynamicStyles.headerAvatar}>
+              <Text style={dynamicStyles.headerAvatarText}>
                 {otherUserProfile?.name?.charAt(0).toUpperCase() ||
                  otherUserProfile?.email?.charAt(0).toUpperCase() || '?'}
               </Text>
             </View>
           )}
-          <Text style={styles.headerUserName}>
+          <Text style={dynamicStyles.headerUserName}>
             {otherUserProfile?.name || 'User'}
           </Text>
         </TouchableOpacity>
         <View style={{ width: 24 }} />
       </View>
 
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
         <FlatList
           ref={flatListRef}
           data={[...messages].reverse()}
           renderItem={({ item, index }) => renderMessage({ item, index: messages.length - 1 - index })}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.messagesList}
+          contentContainerStyle={dynamicStyles.messagesList}
           inverted={true}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
         />
       </View>
 
-      <View style={styles.inputContainer}>
+      <View style={dynamicStyles.inputContainer}>
         <TextInput
-          style={styles.input}
+          style={dynamicStyles.input}
           placeholder="Type a message..."
+          placeholderTextColor={colors.textTertiary}
           value={newMessage}
           onChangeText={setNewMessage}
           multiline
           spellCheck={true}
           autoCorrect={true}
         />
-        <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
-          <Ionicons name="send" size={24} color="#fff" />
+        <TouchableOpacity style={dynamicStyles.sendButton} onPress={handleSend}>
+          <Ionicons name="send" size={24} color={isNewTheme ? colors.background : legacyColors.white} />
         </TouchableOpacity>
       </View>
 
@@ -368,23 +541,23 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
         onRequestClose={() => setShowOptionsMenu(false)}
       >
         <TouchableOpacity
-          style={styles.optionsOverlay}
+          style={dynamicStyles.optionsOverlay}
           activeOpacity={1}
           onPress={() => setShowOptionsMenu(false)}
         >
-          <View style={styles.optionsContainer}>
-            <TouchableOpacity style={styles.optionItem} onPress={handleSwitchChats}>
-              <Ionicons name="chatbubbles-outline" size={22} color="#333" />
-              <Text style={styles.optionText}>Switch Chats</Text>
+          <View style={dynamicStyles.optionsContainer}>
+            <TouchableOpacity style={dynamicStyles.optionItem} onPress={handleSwitchChats}>
+              <Ionicons name="chatbubbles-outline" size={22} color={colors.textPrimary} />
+              <Text style={dynamicStyles.optionText}>Switch Chats</Text>
             </TouchableOpacity>
             {onDelete && (
-              <TouchableOpacity style={styles.optionItemDanger} onPress={handleDeleteChat}>
-                <Ionicons name="trash-outline" size={22} color="#ef4444" />
-                <Text style={styles.optionTextDanger}>Delete Chat</Text>
+              <TouchableOpacity style={dynamicStyles.optionItem} onPress={handleDeleteChat}>
+                <Ionicons name="trash-outline" size={22} color={colors.error} />
+                <Text style={dynamicStyles.optionTextDanger}>Delete Chat</Text>
               </TouchableOpacity>
             )}
-            <TouchableOpacity style={styles.optionCancel} onPress={() => setShowOptionsMenu(false)}>
-              <Text style={styles.optionCancelText}>Cancel</Text>
+            <TouchableOpacity style={dynamicStyles.optionCancel} onPress={() => setShowOptionsMenu(false)}>
+              <Text style={dynamicStyles.optionCancelText}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -396,7 +569,7 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: legacyColors.background,
   },
   header: {
     flexDirection: 'row',
@@ -482,7 +655,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomLeftRadius: 4,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: legacyColors.border,
   },
   messageText: {
     fontSize: 15,

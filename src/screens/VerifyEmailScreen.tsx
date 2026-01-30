@@ -13,19 +13,34 @@ import {
   Animated,
   Dimensions,
   ActivityIndicator,
+  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+import { useTheme } from '../theme/ThemeContext';
+import { getThemedStyles } from '../theme/themedStyles';
+import GrainTexture from '../components/ui/GrainTexture';
 
 const { height } = Dimensions.get('window');
 
-const loginColors = {
+// Light mode login colors
+const loginColorsLight = {
   accent: '#6366F1',
   accentLight: '#EEF2FF',
   green: '#10B981',
   greenLight: '#D1FAE5',
   purple: '#8B5CF6',
   purpleLight: '#EDE9FE',
+};
+
+// Dark mode login colors
+const loginColorsDark = {
+  accent: '#A8E6A3',
+  accentLight: 'rgba(168, 230, 163, 0.15)',
+  green: '#A8E6A3',
+  greenLight: 'rgba(168, 230, 163, 0.15)',
+  purple: '#818CF8',
+  purpleLight: 'rgba(129, 140, 248, 0.15)',
 };
 
 interface Props {
@@ -36,6 +51,11 @@ interface Props {
 }
 
 export default function VerifyEmailScreen({ email, onVerify, onResendCode, onBack }: Props) {
+  const { theme, isNewTheme } = useTheme();
+  const colors = theme.colors;
+  const themedStyles = getThemedStyles(colors, isNewTheme);
+  const loginColors = isNewTheme ? loginColorsDark : loginColorsLight;
+
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
@@ -146,11 +166,13 @@ export default function VerifyEmailScreen({ email, onVerify, onResendCode, onBac
   const maskedEmail = email.replace(/(.{2})(.*)(@.*)/, '$1***$3');
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: isNewTheme ? colors.background : legacyColors.white }]}>
+      <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={isNewTheme ? colors.background : legacyColors.white} />
+      {isNewTheme && <GrainTexture opacity={0.06} />}
       {/* Decorative circles */}
-      <View style={styles.decorativeCircle1} />
-      <View style={styles.decorativeCircle2} />
-      <View style={styles.decorativeCircle3} />
+      <View style={[styles.decorativeCircle1, { backgroundColor: loginColorsLight.purpleLight }]} />
+      <View style={[styles.decorativeCircle2, { backgroundColor: loginColorsLight.greenLight }]} />
+      <View style={[styles.decorativeCircle3, { backgroundColor: loginColorsLight.accentLight }]} />
 
       <KeyboardAvoidingView
         style={styles.keyboardView}
@@ -159,7 +181,7 @@ export default function VerifyEmailScreen({ email, onVerify, onResendCode, onBac
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.content}>
             {/* Back Button */}
-            <TouchableOpacity style={styles.backButton} onPress={onBack}>
+            <TouchableOpacity style={[styles.backButton, { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.backgroundSecondary }]} onPress={onBack}>
               <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
             </TouchableOpacity>
 
@@ -173,27 +195,28 @@ export default function VerifyEmailScreen({ email, onVerify, onResendCode, onBac
                 },
               ]}
             >
-              <View style={styles.iconContainer}>
+              <View style={[styles.iconContainer, { backgroundColor: loginColorsLight.accentLight }]}>
                 <Ionicons name="mail-open-outline" size={48} color={loginColors.accent} />
               </View>
-              <Text style={styles.title}>Verify Your Email</Text>
-              <Text style={styles.subtitle}>
+              <Text style={[styles.title, { color: legacyColors.textPrimary }]}>Verify Your Email</Text>
+              <Text style={[styles.subtitle, { color: legacyColors.textSecondary }]}>
                 We've sent a 6-digit verification code to
               </Text>
-              <Text style={styles.email}>{maskedEmail}</Text>
+              <Text style={[styles.email, { color: loginColors.accent }]}>{maskedEmail}</Text>
             </Animated.View>
 
             {/* Code Input Section */}
             <Animated.View
               style={[
                 styles.formSection,
+                { backgroundColor: isNewTheme ? colors.surface : legacyColors.white },
                 {
                   opacity: fadeAnim,
                   transform: [{ translateY: slideAnim }],
                 },
               ]}
             >
-              <Text style={styles.inputLabel}>Enter verification code</Text>
+              <Text style={[styles.inputLabel, { color: legacyColors.textPrimary }]}>Enter verification code</Text>
               <View style={styles.codeContainer}>
                 {code.map((digit, index) => (
                   <TextInput
@@ -201,7 +224,8 @@ export default function VerifyEmailScreen({ email, onVerify, onResendCode, onBac
                     ref={(ref) => { inputRefs.current[index] = ref; }}
                     style={[
                       styles.codeInput,
-                      digit && styles.codeInputFilled,
+                      { borderColor: legacyColors.border, backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.backgroundSecondary, color: legacyColors.textPrimary },
+                      digit && [styles.codeInputFilled, { borderColor: loginColors.accent, backgroundColor: loginColorsLight.accentLight }],
                     ]}
                     value={digit}
                     onChangeText={(text) => handleCodeChange(text, index)}
@@ -216,24 +240,24 @@ export default function VerifyEmailScreen({ email, onVerify, onResendCode, onBac
 
               {/* Verify Button */}
               <TouchableOpacity
-                style={[styles.verifyButton, loading && styles.verifyButtonDisabled]}
+                style={[styles.verifyButton, { backgroundColor: loginColorsLight.accent }, loading && styles.verifyButtonDisabled]}
                 onPress={() => handleVerify()}
                 disabled={loading}
                 activeOpacity={0.85}
               >
                 {loading ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color={isNewTheme ? colors.background : '#fff'} />
                 ) : (
                   <>
-                    <Text style={styles.verifyButtonText}>Verify Email</Text>
-                    <Ionicons name="checkmark-circle-outline" size={20} color="#fff" style={styles.buttonIcon} />
+                    <Text style={[styles.verifyButtonText, { color: isNewTheme ? colors.background : legacyColors.white }]}>Verify Email</Text>
+                    <Ionicons name="checkmark-circle-outline" size={20} color={isNewTheme ? colors.background : '#fff'} style={styles.buttonIcon} />
                   </>
                 )}
               </TouchableOpacity>
 
               {/* Resend Code */}
               <View style={styles.resendContainer}>
-                <Text style={styles.resendText}>Didn't receive the code? </Text>
+                <Text style={[styles.resendText, { color: legacyColors.textSecondary }]}>Didn't receive the code? </Text>
                 <TouchableOpacity
                   onPress={handleResendCode}
                   disabled={resendCooldown > 0 || resendLoading}
@@ -241,9 +265,9 @@ export default function VerifyEmailScreen({ email, onVerify, onResendCode, onBac
                   {resendLoading ? (
                     <ActivityIndicator size="small" color={loginColors.accent} />
                   ) : resendCooldown > 0 ? (
-                    <Text style={styles.resendCooldown}>Resend in {resendCooldown}s</Text>
+                    <Text style={[styles.resendCooldown, { color: legacyColors.textTertiary }]}>Resend in {resendCooldown}s</Text>
                   ) : (
-                    <Text style={styles.resendLink}>Resend Code</Text>
+                    <Text style={[styles.resendLink, { color: loginColors.accent }]}>Resend Code</Text>
                   )}
                 </TouchableOpacity>
               </View>
@@ -252,7 +276,7 @@ export default function VerifyEmailScreen({ email, onVerify, onResendCode, onBac
             {/* Help Text */}
             <Animated.View style={[styles.helpSection, { opacity: fadeAnim }]}>
               <Ionicons name="information-circle-outline" size={16} color={colors.textTertiary} />
-              <Text style={styles.helpText}>
+              <Text style={[styles.helpText, { color: legacyColors.textTertiary }]}>
                 Check your spam folder if you don't see the email
               </Text>
             </Animated.View>
@@ -266,7 +290,7 @@ export default function VerifyEmailScreen({ email, onVerify, onResendCode, onBac
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: legacyColors.white,
   },
   decorativeCircle1: {
     position: 'absolute',
@@ -275,7 +299,7 @@ const styles = StyleSheet.create({
     width: 250,
     height: 250,
     borderRadius: 125,
-    backgroundColor: loginColors.purpleLight,
+    backgroundColor: loginColorsLight.purpleLight,
     opacity: 0.6,
   },
   decorativeCircle2: {
@@ -285,7 +309,7 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: loginColors.greenLight,
+    backgroundColor: loginColorsLight.greenLight,
     opacity: 0.5,
   },
   decorativeCircle3: {
@@ -295,7 +319,7 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: 75,
-    backgroundColor: loginColors.accentLight,
+    backgroundColor: loginColorsLight.accentLight,
     opacity: 0.4,
   },
   keyboardView: {
@@ -310,7 +334,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.backgroundSecondary,
+    backgroundColor: legacyColors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.xl,
@@ -323,7 +347,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: loginColors.accentLight,
+    backgroundColor: loginColorsLight.accentLight,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.lg,
@@ -331,22 +355,22 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.fontSize['2xl'],
     fontWeight: typography.fontWeight.bold,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
     marginBottom: spacing.sm,
   },
   subtitle: {
     fontSize: typography.fontSize.base,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
     textAlign: 'center',
   },
   email: {
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.semibold,
-    color: loginColors.accent,
+    color: loginColorsLight.accent,
     marginTop: spacing.xs,
   },
   formSection: {
-    backgroundColor: colors.white,
+    backgroundColor: legacyColors.white,
     borderRadius: borderRadius['2xl'],
     padding: spacing.xl,
     ...shadows.md,
@@ -354,7 +378,7 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
     marginBottom: spacing.md,
     textAlign: 'center',
   },
@@ -368,22 +392,22 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: borderRadius.lg,
     borderWidth: 2,
-    borderColor: colors.border,
-    backgroundColor: colors.backgroundSecondary,
+    borderColor: legacyColors.border,
+    backgroundColor: legacyColors.backgroundSecondary,
     fontSize: typography.fontSize['2xl'],
     fontWeight: typography.fontWeight.bold,
-    color: colors.textPrimary,
+    color: legacyColors.textPrimary,
     textAlign: 'center',
   },
   codeInputFilled: {
-    borderColor: loginColors.accent,
-    backgroundColor: loginColors.accentLight,
+    borderColor: loginColorsLight.accent,
+    backgroundColor: loginColorsLight.accentLight,
   },
   verifyButton: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: loginColors.accent,
+    backgroundColor: loginColorsLight.accent,
     borderRadius: borderRadius.lg,
     paddingVertical: spacing.base,
     paddingHorizontal: spacing.xl,
@@ -395,7 +419,7 @@ const styles = StyleSheet.create({
   verifyButtonText: {
     fontSize: typography.fontSize.lg,
     fontWeight: typography.fontWeight.semibold,
-    color: colors.white,
+    color: legacyColors.white,
   },
   buttonIcon: {
     marginLeft: spacing.sm,
@@ -408,16 +432,16 @@ const styles = StyleSheet.create({
   },
   resendText: {
     fontSize: typography.fontSize.base,
-    color: colors.textSecondary,
+    color: legacyColors.textSecondary,
   },
   resendLink: {
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.semibold,
-    color: loginColors.accent,
+    color: loginColorsLight.accent,
   },
   resendCooldown: {
     fontSize: typography.fontSize.base,
-    color: colors.textTertiary,
+    color: legacyColors.textTertiary,
   },
   helpSection: {
     flexDirection: 'row',
@@ -428,6 +452,6 @@ const styles = StyleSheet.create({
   },
   helpText: {
     fontSize: typography.fontSize.sm,
-    color: colors.textTertiary,
+    color: legacyColors.textTertiary,
   },
 });

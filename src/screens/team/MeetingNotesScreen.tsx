@@ -9,8 +9,13 @@ import {
   Alert,
   Modal,
   ActivityIndicator,
+  StatusBar,
 } from 'react-native';
 import { getMeetingNotes, createMeetingNote, updateMeetingNote, deleteMeetingNote, MeetingNote } from '../../services/meetingNotesService';
+import { useTheme } from '../../theme/ThemeContext';
+import { getThemedStyles } from '../../theme/themedStyles';
+import GrainTexture from '../../components/ui/GrainTexture';
+import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../../theme/designSystem';
 
 interface MeetingNotesScreenProps {
   pursuitId: string;
@@ -18,6 +23,10 @@ interface MeetingNotesScreenProps {
 }
 
 export default function MeetingNotesScreen({ pursuitId, onBack }: MeetingNotesScreenProps) {
+  const { theme, isNewTheme } = useTheme();
+  const colors = theme.colors;
+  const themedStyles = getThemedStyles(colors, isNewTheme);
+
   const [notes, setNotes] = useState<MeetingNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -109,23 +118,29 @@ export default function MeetingNotesScreen({ pursuitId, onBack }: MeetingNotesSc
     });
   };
 
+  const primaryColor = isNewTheme ? colors.accentGreen : legacyColors.primary;
+
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+        {isNewTheme && <GrainTexture opacity={0.06} />}
+        <ActivityIndicator size="large" color={primaryColor} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+      {isNewTheme && <GrainTexture opacity={0.06} />}
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backButtonText}>← Back</Text>
+          <Text style={[styles.backButtonText, { color: primaryColor }]}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Meeting Notes</Text>
-        <TouchableOpacity onPress={() => setShowAddModal(true)} style={styles.addButton}>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Meeting Notes</Text>
+        <TouchableOpacity onPress={() => setShowAddModal(true)} style={[styles.addButton, { backgroundColor: primaryColor }]}>
           <Text style={styles.addButtonText}>+ New Note</Text>
         </TouchableOpacity>
       </View>
@@ -135,37 +150,37 @@ export default function MeetingNotesScreen({ pursuitId, onBack }: MeetingNotesSc
         {notes.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyEmoji}>📝</Text>
-            <Text style={styles.emptyText}>No meeting notes yet</Text>
-            <Text style={styles.emptyHint}>Tap "+ New Note" to create your first meeting note</Text>
+            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No meeting notes yet</Text>
+            <Text style={[styles.emptyHint, { color: colors.textTertiary }]}>Tap "+ New Note" to create your first meeting note</Text>
           </View>
         ) : (
           notes.map((note) => (
             <TouchableOpacity
               key={note.id}
-              style={styles.noteCard}
+              style={[styles.noteCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
               onPress={() => {
                 setSelectedNote(note);
                 setShowDetailModal(true);
               }}
             >
               <View style={styles.noteHeader}>
-                <Text style={styles.noteTitle}>{note.title}</Text>
-                <Text style={styles.noteDate}>{formatDate(note.meeting_date)}</Text>
+                <Text style={[styles.noteTitle, { color: colors.textPrimary }]}>{note.title}</Text>
+                <Text style={[styles.noteDate, { color: colors.textSecondary }]}>{formatDate(note.meeting_date)}</Text>
               </View>
-              
+
               {note.agenda && (
-                <Text style={styles.notePreview} numberOfLines={2}>
+                <Text style={[styles.notePreview, { color: colors.textSecondary }]} numberOfLines={2}>
                   📋 {note.agenda}
                 </Text>
               )}
 
               {note.attendees && note.attendees.length > 0 && (
                 <View style={styles.attendeesRow}>
-                  <Text style={styles.attendeesLabel}>👥 {note.attendees.length} attendees</Text>
+                  <Text style={[styles.attendeesLabel, { color: primaryColor }]}>👥 {note.attendees.length} attendees</Text>
                 </View>
               )}
 
-              <Text style={styles.tapHint}>Tap to view details →</Text>
+              <Text style={[styles.tapHint, { color: primaryColor }]}>Tap to view details →</Text>
             </TouchableOpacity>
           ))
         )}
@@ -174,26 +189,29 @@ export default function MeetingNotesScreen({ pursuitId, onBack }: MeetingNotesSc
       {/* Add Note Modal */}
       <Modal visible={showAddModal} animationType="slide" transparent>
         <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>New Meeting Note</Text>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>New Meeting Note</Text>
 
             <TextInput
-              style={styles.input}
+              style={[styles.input, { borderColor: colors.border, backgroundColor: colors.surface, color: colors.textPrimary }]}
               placeholder="Meeting Title *"
+              placeholderTextColor={colors.textTertiary}
               value={title}
               onChangeText={setTitle}
             />
 
             <TextInput
-              style={styles.input}
+              style={[styles.input, { borderColor: colors.border, backgroundColor: colors.surface, color: colors.textPrimary }]}
               placeholder="Date (e.g., 2024-01-15) *"
+              placeholderTextColor={colors.textTertiary}
               value={meetingDate}
               onChangeText={setMeetingDate}
             />
 
             <TextInput
-              style={[styles.input, styles.textArea]}
+              style={[styles.input, styles.textArea, { borderColor: colors.border, backgroundColor: colors.surface, color: colors.textPrimary }]}
               placeholder="Agenda (optional)"
+              placeholderTextColor={colors.textTertiary}
               value={agenda}
               onChangeText={setAgenda}
               multiline
@@ -201,8 +219,9 @@ export default function MeetingNotesScreen({ pursuitId, onBack }: MeetingNotesSc
             />
 
             <TextInput
-              style={[styles.input, styles.textArea]}
+              style={[styles.input, styles.textArea, { borderColor: colors.border, backgroundColor: colors.surface, color: colors.textPrimary }]}
               placeholder="Meeting Notes (optional)"
+              placeholderTextColor={colors.textTertiary}
               value={noteContent}
               onChangeText={setNoteContent}
               multiline
@@ -210,24 +229,25 @@ export default function MeetingNotesScreen({ pursuitId, onBack }: MeetingNotesSc
             />
 
             <TextInput
-              style={styles.input}
+              style={[styles.input, { borderColor: colors.border, backgroundColor: colors.surface, color: colors.textPrimary }]}
               placeholder="Attendees (comma-separated, optional)"
+              placeholderTextColor={colors.textTertiary}
               value={attendees}
               onChangeText={setAttendees}
             />
 
             <View style={styles.modalActions}>
               <TouchableOpacity
-                style={styles.cancelButton}
+                style={[styles.cancelButton, { borderColor: colors.border }]}
                 onPress={() => {
                   setShowAddModal(false);
                   resetForm();
                 }}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>Cancel</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.createButton} onPress={handleAddNote}>
+              <TouchableOpacity style={[styles.createButton, { backgroundColor: primaryColor }]} onPress={handleAddNote}>
                 <Text style={styles.createButtonText}>Create Note</Text>
               </TouchableOpacity>
             </View>
@@ -238,31 +258,31 @@ export default function MeetingNotesScreen({ pursuitId, onBack }: MeetingNotesSc
       {/* Detail Modal */}
       <Modal visible={showDetailModal} animationType="slide" transparent>
         <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             {selectedNote && (
               <>
-                <Text style={styles.modalTitle}>{selectedNote.title}</Text>
-                <Text style={styles.detailDate}>{formatDate(selectedNote.meeting_date)}</Text>
+                <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{selectedNote.title}</Text>
+                <Text style={[styles.detailDate, { color: colors.textSecondary }]}>{formatDate(selectedNote.meeting_date)}</Text>
 
                 {selectedNote.agenda && (
                   <View style={styles.detailSection}>
-                    <Text style={styles.detailLabel}>📋 Agenda</Text>
-                    <Text style={styles.detailText}>{selectedNote.agenda}</Text>
+                    <Text style={[styles.detailLabel, { color: colors.textPrimary }]}>📋 Agenda</Text>
+                    <Text style={[styles.detailText, { color: colors.textSecondary }]}>{selectedNote.agenda}</Text>
                   </View>
                 )}
 
                 {selectedNote.notes && (
                   <View style={styles.detailSection}>
-                    <Text style={styles.detailLabel}>📝 Notes</Text>
-                    <Text style={styles.detailText}>{selectedNote.notes}</Text>
+                    <Text style={[styles.detailLabel, { color: colors.textPrimary }]}>📝 Notes</Text>
+                    <Text style={[styles.detailText, { color: colors.textSecondary }]}>{selectedNote.notes}</Text>
                   </View>
                 )}
 
                 {selectedNote.attendees && selectedNote.attendees.length > 0 && (
                   <View style={styles.detailSection}>
-                    <Text style={styles.detailLabel}>👥 Attendees</Text>
+                    <Text style={[styles.detailLabel, { color: colors.textPrimary }]}>👥 Attendees</Text>
                     {selectedNote.attendees.map((attendee, index) => (
-                      <Text key={index} style={styles.attendeeItem}>• {attendee}</Text>
+                      <Text key={index} style={[styles.attendeeItem, { color: colors.textSecondary }]}>• {attendee}</Text>
                     ))}
                   </View>
                 )}
@@ -276,7 +296,7 @@ export default function MeetingNotesScreen({ pursuitId, onBack }: MeetingNotesSc
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={styles.closeButton}
+                    style={[styles.closeButton, { backgroundColor: primaryColor }]}
                     onPress={() => setShowDetailModal(false)}
                   >
                     <Text style={styles.closeButtonText}>Close</Text>
