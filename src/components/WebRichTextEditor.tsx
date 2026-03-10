@@ -10,18 +10,18 @@ import {
 } from 'react-native';
 import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor';
 
-// Theme colors (matching team workspace dark theme)
+// Theme colors (matching team workspace soft theme - grey/white/green)
 const theme = {
-  bg: '#0f0f0f',
-  bgCard: '#1a1a1a',
-  bgElevated: '#242424',
-  accent: '#ff6b35',
-  accentLight: 'rgba(255, 107, 53, 0.15)',
-  text: '#ffffff',
-  textSecondary: '#a0a0a0',
-  textMuted: '#666666',
-  border: '#2a2a2a',
-  divider: '#1f1f1f',
+  bg: '#FAFAFA',
+  bgCard: '#FFFFFF',
+  bgElevated: '#F5F7F6',
+  accent: '#2D5A45',
+  accentLight: 'rgba(45, 90, 69, 0.15)',
+  text: '#1A1A1A',
+  textSecondary: '#3D3D3D',
+  textMuted: '#6B6B6B',
+  border: '#D0D8D4',
+  divider: '#D0D8D4',
 };
 
 interface WebRichTextEditorProps {
@@ -125,6 +125,7 @@ export default function WebRichTextEditor({
           initialContentHTML={initialContent}
           onChange={handleContentChange}
           onCursorPosition={handleCursorPosition}
+          autoCorrect={true}
           editorStyle={{
             backgroundColor: theme.bg,
             color: theme.text,
@@ -142,6 +143,10 @@ export default function WebRichTextEditor({
                 min-height: 400px;
                 color: ${theme.text};
                 background-color: ${theme.bg};
+                -webkit-user-modify: read-write-plaintext-only;
+              }
+              [contenteditable] {
+                -webkit-user-modify: read-write;
               }
               h1 {
                 font-size: 24px;

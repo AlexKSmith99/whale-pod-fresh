@@ -1,22 +1,19 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Switch, Modal, FlatList, KeyboardAvoidingView, Platform, StatusBar } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Switch, Modal, FlatList, StatusBar, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFonts, NothingYouCouldDo_400Regular } from '@expo-google-fonts/nothing-you-could-do';
-import { Magra_400Regular } from '@expo-google-fonts/magra';
+import { KleeOne_400Regular } from '@expo-google-fonts/klee-one';
 import { useAuth } from '../contexts/AuthContext';
 import { pursuitService } from '../services/pursuitService';
 import { colors as legacyColors, typography, spacing } from '../theme/designSystem';
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
+import GradientBackground from '../components/ui/GradientBackground';
+import LocationMapView from '../components/ui/LocationMapView';
+import { PURSUIT_TYPES } from '../constants/pursuitTypes';
+import { NEIGHBORHOODS } from '../constants/neighborhoods';
 
-const PURSUIT_TYPES = [
-  'Accountability', 'Art', 'Business', 'Career Development', 'Co-founders', 'Discussion',
-  'Education', 'Explore', 'Fitness', 'Friends', 'Fun', 'Games', 'Hangout', 'Health',
-  'Hobby', 'Lifestyle', 'Medical', 'Mental Health', 'Music', 'Nature', 'Networking',
-  'New Endeavor', 'Personal Growth', 'Problem', 'Relax', 'Religion', 'Side Hustle',
-  'Social Media', 'Socialize', 'Spiritual', 'Sport', 'Support', 'Technology', 'Travel'
-].sort();
 const DECISION_SYSTEMS = ['Standard Vote', 'Admin Has Ultimate Say', 'Delegated', 'Weighted Voting'];
 const ATTENDANCE_STYLES = ['Mandatory', 'Optional', 'Frequent'];
 
@@ -115,11 +112,19 @@ export default function CreateScreen({ onClose }: Props = {}) {
   const { theme, isNewTheme } = useTheme();
   const colors = theme.colors;
   const themedStyles = getThemedStyles(colors, isNewTheme);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const [fontsLoaded] = useFonts({
     NothingYouCouldDo_400Regular,
-    Magra_400Regular,
+    KleeOne_400Regular,
   });
+
+  // Scroll to input when focused (for fields lower on the page)
+  const scrollToInput = (yOffset: number) => {
+    setTimeout(() => {
+      scrollViewRef.current?.scrollTo({ y: yOffset, animated: true });
+    }, 100);
+  };
 
   // Basic Info
   const [title, setTitle] = useState('');
@@ -133,6 +138,12 @@ export default function CreateScreen({ onClose }: Props = {}) {
   const [citySearchQuery, setCitySearchQuery] = useState('');
   const [showCitySuggestions, setShowCitySuggestions] = useState(false);
   const [showStateModal, setShowStateModal] = useState(false);
+  const [neighborhood, setNeighborhood] = useState('');
+  const [neighborhoodSearch, setNeighborhoodSearch] = useState('');
+  const [showNeighborhoodSuggestions, setShowNeighborhoodSuggestions] = useState(false);
+  const [address, setAddress] = useState('');
+  const [pinLatitude, setPinLatitude] = useState<number | null>(null);
+  const [pinLongitude, setPinLongitude] = useState<number | null>(null);
   const [projectedDuration, setProjectedDuration] = useState('');
 
   // Types & Categories
@@ -163,7 +174,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
   const [continueAccepting, setContinueAccepting] = useState(false);
   const [requiresInterview, setRequiresInterview] = useState(false);
   const [requiresResume, setRequiresResume] = useState(false);
-  const [applicationQuestions, setApplicationQuestions] = useState('');
+  const [applicationQuestions, setApplicationQuestions] = useState<string[]>(['']);
 
   const [loading, setLoading] = useState(false);
 
@@ -198,6 +209,10 @@ export default function CreateScreen({ onClose }: Props = {}) {
     setLocationCity(city);
     setCitySearchQuery(city);
     setShowCitySuggestions(false);
+    // Reset neighborhood when city changes
+    setNeighborhood('');
+    setNeighborhoodSearch('');
+    setShowNeighborhoodSuggestions(false);
 
     // If this city only exists in one state, auto-select that state
     const statesForCity = CITY_STATE_MAP[city];
@@ -231,6 +246,27 @@ export default function CreateScreen({ onClose }: Props = {}) {
     setLocationState('');
     setShowStateModal(false);
   };
+
+  const handleNeighborhoodSearch = (text: string) => {
+    setNeighborhoodSearch(text);
+    if (text.trim().length > 0) {
+      setShowNeighborhoodSuggestions(true);
+    } else {
+      setShowNeighborhoodSuggestions(false);
+    }
+  };
+
+  const selectNeighborhood = (hood: string) => {
+    setNeighborhood(hood);
+    setNeighborhoodSearch(hood);
+    setShowNeighborhoodSuggestions(false);
+  };
+
+  // Filter neighborhoods based on search query and selected city
+  const availableNeighborhoods = locationCity ? (NEIGHBORHOODS[locationCity] || []) : [];
+  const filteredNeighborhoods = availableNeighborhoods.filter(hood =>
+    hood.toLowerCase().startsWith(neighborhoodSearch.toLowerCase())
+  ).slice(0, 8);
 
   // Filter cities based on search query AND selected state (if any)
   const filteredCities = US_CITIES.filter(city => {
@@ -288,6 +324,18 @@ export default function CreateScreen({ onClose }: Props = {}) {
       return;
     }
 
+    // In-person specific validation
+    if (locationTypes.includes('In-person')) {
+      if (!address.trim()) {
+        Alert.alert('Missing Address', 'Please enter the meeting address for in-person pursuits');
+        return;
+      }
+      if (pinLatitude == null || pinLongitude == null) {
+        Alert.alert('Missing Pin', 'Please tap the map to pin the exact meeting location');
+        return;
+      }
+    }
+
     // Build location string
     let locationString = '';
     const cityStateString = `${locationCity}, ${locationState}`;
@@ -317,6 +365,10 @@ export default function CreateScreen({ onClose }: Props = {}) {
         team_size_max: parseInt(teamSizeMax) || 8,
         team_size_flexible: teamSizeFlexible,
         location: locationString,
+        neighborhood: neighborhood || null,
+        address: address || null,
+        latitude: pinLatitude,
+        longitude: pinLongitude,
         projected_duration: projectedDuration || null,
         pursuit_types: selectedTypes,
         pursuit_categories: categories ? categories.split(',').map(c => c.trim()) : [],
@@ -335,7 +387,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
         continue_accepting_after_kickoff: continueAccepting,
         requires_interview: requiresInterview,
         requires_resume: requiresResume,
-        application_questions: applicationQuestions ? applicationQuestions.split('\n').filter(q => q.trim()) : null,
+        application_questions: applicationQuestions.filter(q => q.trim()).length > 0 ? applicationQuestions.filter(q => q.trim()) : null,
         status: 'awaiting_kickoff',
         current_members_count: 1,
       });
@@ -353,6 +405,12 @@ export default function CreateScreen({ onClose }: Props = {}) {
           setLocationState('');
           setCitySearchQuery('');
           setShowCitySuggestions(false);
+          setNeighborhood('');
+          setNeighborhoodSearch('');
+          setShowNeighborhoodSuggestions(false);
+          setAddress('');
+          setPinLatitude(null);
+          setPinLongitude(null);
           setProjectedDuration('');
           setSelectedTypes([]);
           setCategories('');
@@ -371,7 +429,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
           setContinueAccepting(false);
           setRequiresInterview(false);
           setRequiresResume(false);
-          setApplicationQuestions('');
+          setApplicationQuestions(['']);
           // Close modal and return to feed
           onClose?.();
         }}
@@ -457,14 +515,14 @@ export default function CreateScreen({ onClose }: Props = {}) {
       fontSize: 14,
       marginBottom: 12,
       color: colors.textPrimary,
-      fontFamily: isNewTheme ? 'Magra_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined,
     },
     hint: {
       fontSize: 12,
       color: colors.textSecondary,
       marginBottom: 8,
       fontStyle: 'italic' as const,
-      fontFamily: isNewTheme ? 'Magra_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined,
     },
     charCount: {
       fontSize: 12,
@@ -637,7 +695,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
       fontSize: 13,
       color: colors.textSecondary,
       marginBottom: 12,
-      fontFamily: isNewTheme ? 'Magra_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined,
     },
     defaultQuestionsBox: {
       backgroundColor: colors.surface,
@@ -668,8 +726,80 @@ export default function CreateScreen({ onClose }: Props = {}) {
       fontSize: 13,
       color: isNewTheme ? colors.accentGreen : '#059669',
       fontWeight: '500' as const,
-      marginBottom: 8,
-      fontFamily: isNewTheme ? 'Magra_400Regular' : undefined,
+      marginBottom: 12,
+    },
+    questionInputRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'flex-start' as const,
+      marginBottom: 10,
+      gap: 8,
+    },
+    questionNumber: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      backgroundColor: isNewTheme ? colors.accentGreenMuted : '#e0f2fe',
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      marginTop: 10,
+    },
+    questionNumberText: {
+      fontSize: 12,
+      fontWeight: '700' as const,
+      color: isNewTheme ? colors.accentGreen : '#0284c7',
+      fontFamily: isNewTheme ? 'KleeOne_600SemiBold' : undefined,
+    },
+    questionInput: {
+      flex: 1,
+      backgroundColor: colors.surface,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontSize: 15,
+      color: colors.textPrimary,
+      borderWidth: 1,
+      borderColor: colors.border,
+      minHeight: 44,
+      fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined,
+    },
+    removeQuestionBtn: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: isNewTheme ? 'rgba(239, 68, 68, 0.1)' : '#fef2f2',
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      marginTop: 8,
+    },
+    addQuestionBtn: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      backgroundColor: isNewTheme ? colors.accentGreenMuted : '#e0f2fe',
+      borderRadius: 8,
+      marginTop: 4,
+      gap: 6,
+      borderWidth: 1,
+      borderColor: isNewTheme ? colors.accentGreen : '#0284c7',
+      borderStyle: 'dashed' as const,
+    },
+    addQuestionBtnDisabled: {
+      opacity: 0.5,
+    },
+    addQuestionText: {
+      fontSize: 14,
+      fontWeight: '600' as const,
+      color: isNewTheme ? colors.accentGreen : '#0284c7',
+      fontFamily: isNewTheme ? 'KleeOne_600SemiBold' : undefined,
+    },
+    questionsCounter: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      textAlign: 'right' as const,
+      marginTop: 4,
+      fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined,
     },
     selectedTypesContainer: {
       flexDirection: 'row' as const,
@@ -705,7 +835,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
     dropdownButtonText: {
       fontSize: 14,
       color: colors.textSecondary,
-      fontFamily: isNewTheme ? 'Magra_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined,
     },
     searchContainer: {
       flexDirection: 'row' as const,
@@ -723,7 +853,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
       paddingVertical: 12,
       fontSize: 14,
       color: colors.textPrimary,
-      fontFamily: isNewTheme ? 'Magra_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined,
     },
     selectedCount: {
       fontSize: 12,
@@ -774,11 +904,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={dynamicStyles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-    >
+    <GradientBackground style={dynamicStyles.container}>
       <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       {isNewTheme && <GrainTexture opacity={0.06} />}
 
@@ -788,9 +914,11 @@ export default function CreateScreen({ onClose }: Props = {}) {
       </View>
 
       <ScrollView
+        ref={scrollViewRef}
         style={styles.scrollView}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={true}
+        automaticallyAdjustKeyboardInsets
       >
         <View style={styles.form}>
 
@@ -887,6 +1015,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
                     value={citySearchQuery}
                     onChangeText={handleCitySearch}
                     autoCapitalize="words"
+                    onFocus={() => scrollToInput(450)}
                   />
                   {showCitySuggestions && filteredCities.length > 0 && (
                     <View style={dynamicStyles.suggestionsContainer}>
@@ -908,12 +1037,86 @@ export default function CreateScreen({ onClose }: Props = {}) {
                 <Text style={dynamicStyles.label}>State *</Text>
                 <TouchableOpacity
                   style={[dynamicStyles.input, styles.pickerButton]}
-                  onPress={() => setShowStateModal(true)}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    scrollToInput(500);
+                    setShowStateModal(true);
+                  }}
                 >
                   <Text style={locationState ? dynamicStyles.pickerButtonTextSelected : dynamicStyles.pickerButtonText}>
                     {locationState || 'Select state'}
                   </Text>
                 </TouchableOpacity>
+
+                {/* Neighborhood (optional) */}
+                {availableNeighborhoods.length > 0 && (
+                  <>
+                    <Text style={dynamicStyles.label}>Neighborhood (optional)</Text>
+                    <Text style={dynamicStyles.hint}>
+                      Search neighborhoods in {locationCity}
+                    </Text>
+                    <View>
+                      <TextInput
+                        style={dynamicStyles.input}
+                        placeholder={`e.g., ${availableNeighborhoods[0] || 'Downtown'}`}
+                        placeholderTextColor={colors.textTertiary}
+                        value={neighborhoodSearch}
+                        onChangeText={handleNeighborhoodSearch}
+                        autoCapitalize="words"
+                        onFocus={() => scrollToInput(600)}
+                      />
+                      {showNeighborhoodSuggestions && filteredNeighborhoods.length > 0 && (
+                        <View style={dynamicStyles.suggestionsContainer}>
+                          <ScrollView style={styles.suggestionsList} keyboardShouldPersistTaps="handled">
+                            {filteredNeighborhoods.map((hood, index) => (
+                              <TouchableOpacity
+                                key={index}
+                                style={dynamicStyles.suggestionItem}
+                                onPress={() => selectNeighborhood(hood)}
+                              >
+                                <Text style={dynamicStyles.suggestionText}>{hood}</Text>
+                              </TouchableOpacity>
+                            ))}
+                          </ScrollView>
+                        </View>
+                      )}
+                    </View>
+                  </>
+                )}
+
+                {/* Address & Map Pin (In-person only) */}
+                {locationTypes.includes('In-person') && (
+                  <>
+                    <Text style={dynamicStyles.label}>Meeting Address *</Text>
+                    <TextInput
+                      style={dynamicStyles.input}
+                      placeholder="e.g., 123 Main St"
+                      placeholderTextColor={colors.textTertiary}
+                      value={address}
+                      onChangeText={setAddress}
+                      onFocus={() => scrollToInput(700)}
+                    />
+
+                    <Text style={dynamicStyles.label}>Pin the exact meeting location *</Text>
+                    <Text style={dynamicStyles.hint}>Tap the map to place a pin</Text>
+                    <LocationMapView
+                      latitude={pinLatitude}
+                      longitude={pinLongitude}
+                      interactive={true}
+                      initialCity={locationCity}
+                      onLocationSelect={(lat, lng) => {
+                        setPinLatitude(lat);
+                        setPinLongitude(lng);
+                      }}
+                      style={{ marginBottom: 8 }}
+                    />
+                    {pinLatitude != null && pinLongitude != null && (
+                      <Text style={[dynamicStyles.hint, { fontStyle: 'normal', color: isNewTheme ? colors.accentGreen : '#059669' }]}>
+                        Location pinned
+                      </Text>
+                    )}
+                  </>
+                )}
               </>
             )}
 
@@ -1105,10 +1308,9 @@ export default function CreateScreen({ onClose }: Props = {}) {
           {/* RESTRICTIONS */}
           <View style={dynamicStyles.section}>
             <Text style={dynamicStyles.sectionTitle}>Restrictions (optional)</Text>
-            <Text style={dynamicStyles.label}>Age Restriction</Text>
             <TextInput
               style={dynamicStyles.input}
-              placeholder="e.g., 18+, 21+ for cocktails, Students only"
+              placeholder="e.g., 18+, 21+ for cocktails, Students only, Must have car"
               placeholderTextColor={colors.textTertiary}
               value={ageRestriction}
               onChangeText={setAgeRestriction}
@@ -1140,7 +1342,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
             </View>
 
             <View style={styles.switchRow}>
-              <Text style={dynamicStyles.label}>Require resume?</Text>
+              <Text style={dynamicStyles.label}>Add Resume / Portfolio (Optional)?</Text>
               <Switch
                 value={requiresResume}
                 onValueChange={setRequiresResume}
@@ -1153,28 +1355,63 @@ export default function CreateScreen({ onClose }: Props = {}) {
             <View style={dynamicStyles.questionsSection}>
               <Text style={dynamicStyles.questionsSectionTitle}>Application Questions</Text>
               <Text style={dynamicStyles.questionsSectionSubtitle}>
-                Use the default questions below or personalize your own
+                Add up to 10 custom questions for applicants
               </Text>
 
               <View style={dynamicStyles.defaultQuestionsBox}>
-                <Text style={dynamicStyles.defaultQuestionsLabel}>Default Questions:</Text>
-                <Text style={dynamicStyles.defaultQuestion}>- Why are you a good team fit?</Text>
-                <Text style={dynamicStyles.defaultQuestion}>- Where do you hope to see this go?</Text>
+                <Text style={dynamicStyles.defaultQuestionsLabel}>Default Questions (always included):</Text>
+                <Text style={dynamicStyles.defaultQuestion}>• Why are you a good team fit?</Text>
+                <Text style={dynamicStyles.defaultQuestion}>• Where do you hope to see this go?</Text>
               </View>
 
               <Text style={dynamicStyles.customizeHint}>
-                Tap below to edit or add your own questions (one per line)
+                Add your own custom questions below:
               </Text>
 
-              <TextInput
-                style={[dynamicStyles.input, styles.textArea]}
-                placeholder="Why are you a good team fit?&#10;Where do you hope to see this go?"
-                placeholderTextColor={colors.textTertiary}
-                value={applicationQuestions}
-                onChangeText={setApplicationQuestions}
-                multiline
-                numberOfLines={4}
-              />
+              {applicationQuestions.map((question, index) => (
+                <View key={index} style={dynamicStyles.questionInputRow}>
+                  <View style={dynamicStyles.questionNumber}>
+                    <Text style={dynamicStyles.questionNumberText}>{index + 1}</Text>
+                  </View>
+                  <TextInput
+                    style={dynamicStyles.questionInput}
+                    placeholder={index === 0 ? "e.g., What relevant experience do you have?" : "Enter your question..."}
+                    placeholderTextColor={colors.textTertiary}
+                    value={question}
+                    onChangeText={(text) => {
+                      const newQuestions = [...applicationQuestions];
+                      newQuestions[index] = text;
+                      setApplicationQuestions(newQuestions);
+                    }}
+                    multiline
+                  />
+                  {applicationQuestions.length > 1 && (
+                    <TouchableOpacity
+                      style={dynamicStyles.removeQuestionBtn}
+                      onPress={() => {
+                        const newQuestions = applicationQuestions.filter((_, i) => i !== index);
+                        setApplicationQuestions(newQuestions);
+                      }}
+                    >
+                      <Ionicons name="close" size={16} color="#ef4444" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              ))}
+
+              {applicationQuestions.length < 10 && (
+                <TouchableOpacity
+                  style={dynamicStyles.addQuestionBtn}
+                  onPress={() => setApplicationQuestions([...applicationQuestions, ''])}
+                >
+                  <Ionicons name="add-circle-outline" size={20} color={isNewTheme ? colors.accentGreen : '#0284c7'} />
+                  <Text style={dynamicStyles.addQuestionText}>Add Question</Text>
+                </TouchableOpacity>
+              )}
+
+              <Text style={dynamicStyles.questionsCounter}>
+                {applicationQuestions.filter(q => q.trim()).length} of 10 questions used
+              </Text>
             </View>
           </View>
 
@@ -1337,7 +1574,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
           </View>
         </View>
       </Modal>
-    </KeyboardAvoidingView>
+    </GradientBackground>
   );
 }
 

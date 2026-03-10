@@ -58,7 +58,7 @@ export const connectionService = {
         const otherUserId = conn.user_id_1 === userId ? conn.user_id_2 : conn.user_id_1;
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('name, profile_picture, email')
+          .select('name, profile_picture, email, bio')
           .eq('id', otherUserId)
           .single();
         return { ...conn, profile: profileData, otherUserId };

@@ -25,6 +25,7 @@ import { colors as legacyColors, typography, spacing } from '../theme/designSyst
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
+import GradientBackground from '../components/ui/GradientBackground';
 
 interface PrivacyVisibility {
   canAccessProfile: boolean;
@@ -233,19 +234,20 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
 
   if (loading) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+      <GradientBackground style={styles.loadingContainer}>
         <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         {isNewTheme && <GrainTexture opacity={0.06} />}
         <ActivityIndicator size="large" color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
         <Text style={[styles.loadingText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Loading profile...</Text>
-      </View>
+      </GradientBackground>
     );
   }
 
   // Private Profile View - shown when profile access is blocked
   if (!privacyVisibility?.canAccessProfile) {
     return (
-      <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+      <GradientBackground style={styles.container}>
+      <ScrollView style={{ flex: 1 }}>
         <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         {isNewTheme && <GrainTexture opacity={0.06} />}
         <View style={[styles.header, { backgroundColor: colors.surface }]}>
@@ -270,7 +272,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
           <View style={[styles.privateInfoBox, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
             <Ionicons name="shield-checkmark" size={32} color={colors.textSecondary} />
             <Text style={[styles.privateTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Private Profile</Text>
-            <Text style={[styles.privateDescription, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
+            <Text style={[styles.privateDescription, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
               This user has restricted access to their profile. Connect with them to see more.
             </Text>
           </View>
@@ -283,6 +285,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
           )}
         </View>
       </ScrollView>
+      </GradientBackground>
     );
   }
 
@@ -291,7 +294,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
     <View style={[styles.lockedSection, { backgroundColor: colors.surfaceAlt }]}>
       <Ionicons name="lock-closed" size={40} color={colors.textTertiary} />
       <Text style={[styles.lockedTitle, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{title}</Text>
-      <Text style={[styles.lockedDescription, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>This section is private.</Text>
+      <Text style={[styles.lockedDescription, { color: colors.textTertiary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>This section is private.</Text>
     </View>
   );
 
@@ -372,7 +375,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
           <View style={styles.noReviews}>
             <Ionicons name="star-outline" size={48} color={colors.textTertiary} />
             <Text style={[styles.noReviewsText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>No reviews yet</Text>
-            <Text style={[styles.noReviewsSubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
+            <Text style={[styles.noReviewsSubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
               Reviews will appear here after teammates share their feedback
             </Text>
           </View>
@@ -417,16 +420,19 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
                   </Text>
                 </View>
 
-                <Text style={[styles.reviewDescription, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>{review.description}</Text>
+                <Text style={[styles.reviewDescription, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>{review.description}</Text>
 
-                {/* Rating Pills */}
-                <View style={styles.ratingPills}>
+                {/* Trait Ratings */}
+                <View style={styles.traitRatings}>
                   {REVIEW_ATTRIBUTES.filter(attr =>
                     review[attr.key] !== null && review[attr.key] !== undefined
-                  ).slice(0, 4).map(attr => (
-                    <View key={attr.key} style={[styles.ratingPill, { backgroundColor: colors.surfaceAlt }]}>
-                      <Text style={styles.ratingPillIcon}>{attr.icon}</Text>
-                      <Text style={[styles.ratingPillValue, { color: colors.textPrimary }]}>{review[attr.key]}</Text>
+                  ).map(attr => (
+                    <View key={attr.key} style={[styles.traitRatingRow, { borderBottomColor: colors.border }]}>
+                      <View style={styles.traitInfo}>
+                        <Text style={styles.traitIcon}>{attr.icon}</Text>
+                        <Text style={[styles.traitName, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>{attr.label}</Text>
+                      </View>
+                      <Text style={[styles.traitScore, { color: isNewTheme ? colors.accentGreen : legacyColors.primary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{review[attr.key]}/10</Text>
                     </View>
                   ))}
                 </View>
@@ -455,7 +461,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
           <View style={styles.noPods}>
             <Ionicons name="people-outline" size={48} color={colors.textTertiary} />
             <Text style={[styles.noPodsText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>No pods yet</Text>
-            <Text style={[styles.noPodsSubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
+            <Text style={[styles.noPodsSubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
               This user has not joined any pods yet.
             </Text>
           </View>
@@ -543,7 +549,8 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+    <GradientBackground style={styles.container}>
+    <ScrollView style={{ flex: 1 }}>
       <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       {isNewTheme && <GrainTexture opacity={0.06} />}
       <View style={[styles.header, { backgroundColor: colors.surface }]}>
@@ -567,7 +574,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
           {profile?.name || 'Name not set'}
         </Text>
 
-        {profile?.bio && <Text style={[styles.bio, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>{profile.bio}</Text>}
+        {profile?.bio && <Text style={[styles.bio, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>{profile.bio}</Text>}
       </View>
 
       <View style={styles.actionButtons}>
@@ -625,7 +632,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
         >
           <View style={styles.tabContent}>
             <Text style={[styles.tabText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }, activeTab === 'connections' && { color: isNewTheme ? colors.accentGreen : legacyColors.primary }]} numberOfLines={1}>
-              Connections
+              Network
             </Text>
             {!privacyVisibility?.canViewConnections && (
               <Ionicons name="lock-closed" size={12} color={colors.textTertiary} style={{ marginLeft: 4 }} />
@@ -636,10 +643,9 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
 
       {activeTab === 'about' && (
         <>
-          {/* Basic Info Section */}
-          {(profile?.age || profile?.gender || profile?.hometown) && (
+          {/* Age & Gender */}
+          {(profile?.age || profile?.gender) && (
             <View style={[styles.section, { backgroundColor: colors.surface }]}>
-              <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Basic Info</Text>
               {profile?.age && (
                 <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
                   <Text style={[styles.infoLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Age:</Text>
@@ -652,10 +658,29 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
                   <Text style={[styles.infoValue, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{profile.gender}</Text>
                 </View>
               )}
+            </View>
+          )}
+
+          {/* Location Section */}
+          {(profile?.hometown || profile?.college || profile?.work) && (
+            <View style={[styles.section, { backgroundColor: colors.surface }]}>
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Location</Text>
               {profile?.hometown && (
                 <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
                   <Text style={[styles.infoLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Hometown:</Text>
                   <Text style={[styles.infoValue, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{profile.hometown}</Text>
+                </View>
+              )}
+              {profile?.college && (
+                <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
+                  <Text style={[styles.infoLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>College:</Text>
+                  <Text style={[styles.infoValue, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{profile.college}</Text>
+                </View>
+              )}
+              {profile?.work && (
+                <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
+                  <Text style={[styles.infoLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Work:</Text>
+                  <Text style={[styles.infoValue, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{profile.work}</Text>
                 </View>
               )}
             </View>
@@ -665,7 +690,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
           {profile?.bio && (
             <View style={[styles.section, { backgroundColor: colors.surface }]}>
               <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Bio</Text>
-              <Text style={[styles.bioText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>{profile.bio}</Text>
+              <Text style={[styles.bioText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>{profile.bio}</Text>
             </View>
           )}
 
@@ -688,13 +713,13 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
           {!privacyVisibility?.canViewConnections ? (
             <View style={[styles.lockedSection, { backgroundColor: colors.surfaceAlt }]}>
               <Ionicons name="lock-closed" size={48} color={colors.textTertiary} />
-              <Text style={[styles.lockedTitle, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Connections</Text>
-              <Text style={[styles.lockedDescription, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>This section is private.</Text>
+              <Text style={[styles.lockedTitle, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Network</Text>
+              <Text style={[styles.lockedDescription, { color: colors.textTertiary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>This section is private.</Text>
             </View>
           ) : connectionsLoading ? (
             <View style={styles.emptyState}>
               <ActivityIndicator size="large" color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
-              <Text style={[styles.emptyHint, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>Loading connections...</Text>
+              <Text style={[styles.emptyHint, { color: colors.textTertiary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>Loading network...</Text>
             </View>
           ) : userConnections.length === 0 ? (
             <View style={styles.emptyState}>
@@ -708,7 +733,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
                 <Ionicons name="search" size={18} color={colors.textTertiary} style={styles.connectionSearchIcon} />
                 <TextInput
                   style={[styles.connectionSearchInput, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}
-                  placeholder="Search connections..."
+                  placeholder="Search network..."
                   placeholderTextColor={colors.textTertiary}
                   value={connectionSearchQuery}
                   onChangeText={setConnectionSearchQuery}
@@ -723,7 +748,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
               </View>
 
               <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
-                Connections ({userConnections.length})
+                Network ({userConnections.length})
               </Text>
               {userConnections
                 .filter((conn) => {
@@ -758,7 +783,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
                   <View style={styles.connectionInfo}>
                     <Text style={[styles.connectionName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{conn.profile?.name || 'Unknown'}</Text>
                     {conn.profile?.bio && (
-                      <Text style={[styles.connectionBio, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]} numberOfLines={1}>{conn.profile.bio}</Text>
+                      <Text style={[styles.connectionBio, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]} numberOfLines={1}>{conn.profile.bio}</Text>
                     )}
                   </View>
                   <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
@@ -773,7 +798,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
               }).length === 0 && (
                 <View style={styles.emptyState}>
                   <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>No matches found</Text>
-                  <Text style={[styles.emptyHint, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>Try a different search term</Text>
+                  <Text style={[styles.emptyHint, { color: colors.textTertiary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>Try a different search term</Text>
                 </View>
               )}
             </ScrollView>
@@ -782,19 +807,18 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
         </KeyboardAvoidingView>
       )}
     </ScrollView>
+    </GradientBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: legacyColors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: legacyColors.background,
   },
   loadingText: {
     marginTop: 12,
@@ -804,13 +828,11 @@ const styles = StyleSheet.create({
   header: {
     padding: 20,
     paddingTop: 50,
-    backgroundColor: '#fff',
   },
   backButton: {
     padding: 4,
   },
   profileSection: {
-    backgroundColor: '#fff',
     alignItems: 'center',
     padding: 30,
   },
@@ -868,7 +890,6 @@ const styles = StyleSheet.create({
   messageButton: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: '#fff',
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
@@ -883,7 +904,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   section: {
-    backgroundColor: '#fff',
     marginTop: 10,
     padding: 20,
   },
@@ -933,7 +953,6 @@ const styles = StyleSheet.create({
   // Tabs
   tabsContainer: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
     marginTop: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
@@ -983,7 +1002,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   privateInfoBox: {
-    backgroundColor: '#f9fafb',
     borderRadius: 16,
     padding: 24,
     alignItems: 'center',
@@ -1022,7 +1040,6 @@ const styles = StyleSheet.create({
   },
   // Locked Section
   lockedSection: {
-    backgroundColor: '#f9fafb',
     padding: 40,
     alignItems: 'center',
     marginTop: 10,
@@ -1084,7 +1101,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   ratingsCard: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 20,
     marginBottom: 16,
@@ -1112,7 +1128,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   reviewCard: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -1163,27 +1178,34 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     marginBottom: 12,
   },
-  ratingPills: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+  traitRatings: {
+    marginTop: 4,
   },
-  ratingPill: {
+  traitRatingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f3f4f6',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 4,
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
   },
-  ratingPillIcon: {
-    fontSize: 14,
+  traitInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
-  ratingPillValue: {
+  traitIcon: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  traitName: {
     fontSize: 14,
+    color: '#4b5563',
+  },
+  traitScore: {
+    fontSize: 15,
     fontWeight: '600',
-    color: '#374151',
+    color: '#0ea5e9',
   },
   // Pods Tab
   podsContainer: {
@@ -1223,7 +1245,6 @@ const styles = StyleSheet.create({
   podCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 12,
     marginBottom: 10,
@@ -1303,15 +1324,9 @@ const styles = StyleSheet.create({
   connectionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
     padding: 12,
     borderRadius: 12,
     marginBottom: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
   },
   connectionAvatar: {
     width: 48,

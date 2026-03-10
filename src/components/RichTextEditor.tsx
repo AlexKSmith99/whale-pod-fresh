@@ -141,7 +141,7 @@ export default function RichTextEditor({
                       : 'reorder-three'
                   }
                   size={18}
-                  color={alignment === align.value ? '#3b82f6' : '#6b7280'}
+                  color={alignment === align.value ? '#2D5A45' : '#6B6B6B'}
                 />
               </TouchableOpacity>
             ))}
@@ -155,7 +155,7 @@ export default function RichTextEditor({
             onPress={() => setShowFontModal(true)}
           >
             <Text style={styles.fontButtonText}>Aa</Text>
-            <Ionicons name="chevron-down" size={14} color="#6b7280" />
+            <Ionicons name="chevron-down" size={14} color="#6B6B6B" />
           </TouchableOpacity>
         </View>
       )}
@@ -179,7 +179,7 @@ export default function RichTextEditor({
           value={value}
           onChangeText={onChange}
           placeholder={placeholder}
-          placeholderTextColor="#9ca3af"
+          placeholderTextColor="#6B6B6B"
           multiline
           textAlignVertical="top"
           autoFocus={autoFocus}
@@ -266,20 +266,20 @@ export default function RichTextEditor({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#D0D8D4',
     overflow: 'hidden',
   },
   toolbar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#F5F7F6',
     paddingHorizontal: 8,
     paddingVertical: 6,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: '#D0D8D4',
   },
   toolbarSection: {
     flexDirection: 'row',
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   toolbarDivider: {
     width: 1,
     height: 20,
-    backgroundColor: '#d1d5db',
+    backgroundColor: '#D0D8D4',
     marginHorizontal: 8,
   },
   toolButton: {
@@ -300,22 +300,22 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   toolButtonActive: {
-    backgroundColor: '#dbeafe',
+    backgroundColor: 'rgba(45, 90, 69, 0.15)',
   },
   toolButtonTextBold: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#374151',
+    color: '#1A1A1A',
   },
   toolButtonTextItalic: {
     fontSize: 16,
     fontStyle: 'italic',
-    color: '#374151',
+    color: '#1A1A1A',
   },
   toolButtonTextUnderline: {
     fontSize: 16,
     textDecorationLine: 'underline',
-    color: '#374151',
+    color: '#1A1A1A',
   },
   fontButton: {
     flexDirection: 'row',
@@ -323,14 +323,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: '#D0D8D4',
     gap: 4,
   },
   fontButtonText: {
     fontSize: 14,
-    color: '#374151',
+    color: '#1A1A1A',
     fontWeight: '500',
   },
   inputContainer: {
@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
   },
   input: {
     padding: 12,
-    color: '#1f2937',
+    color: '#1A1A1A',
     lineHeight: 24,
   },
   // Modal styles
@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   fontModalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 20,
     width: '85%',
@@ -358,14 +358,14 @@ const styles = StyleSheet.create({
   fontModalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1f2937',
+    color: '#1A1A1A',
     marginBottom: 16,
     textAlign: 'center',
   },
   fontModalLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6b7280',
+    color: '#6B6B6B',
     marginBottom: 8,
     marginTop: 12,
   },
@@ -379,24 +379,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: '#e5e7eb',
+    borderColor: '#D0D8D4',
     alignItems: 'center',
   },
   fontOptionActive: {
-    borderColor: '#3b82f6',
-    backgroundColor: '#eff6ff',
+    borderColor: '#2D5A45',
+    backgroundColor: 'rgba(45, 90, 69, 0.15)',
   },
   fontOptionText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#6B6B6B',
   },
   fontOptionTextActive: {
-    color: '#3b82f6',
+    color: '#2D5A45',
     fontWeight: '600',
   },
   fontModalDone: {
     marginTop: 20,
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#2D5A45',
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',

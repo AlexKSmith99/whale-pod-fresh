@@ -7,6 +7,7 @@ import { meetingService } from '../services/meetingService';
 import { agoraService } from '../services/agoraService';
 import { notificationService } from '../services/notificationService';
 import { supabase } from '../config/supabase';
+import { podChatService } from '../services/podChatService';
 import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
@@ -45,6 +46,8 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
   const [customTime, setCustomTime] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [scheduledDateTimeText, setScheduledDateTimeText] = useState('');
 
   useEffect(() => {
     loadProposals();
@@ -236,15 +239,12 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                 // Don't throw - notification failure shouldn't block scheduling
               }
 
-              Alert.alert('Success!', 'Kickoff meeting scheduled successfully!', [
-                {
-                  text: 'OK',
-                  onPress: () => {
-                    onScheduled();
-                    onClose();
-                  }
-                }
-              ]);
+              // Store the scheduled date/time for the message
+              const scheduledText = `${displayDateTime!.date} at ${displayDateTime!.time}`;
+              setScheduledDateTimeText(scheduledText);
+
+              // Show success modal with option to send pod chat message
+              setShowSuccessModal(true);
             } catch (error: any) {
               console.error('Error scheduling kickoff:', error);
               Alert.alert('Error', error.message || 'Failed to schedule kickoff');
@@ -255,6 +255,28 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
         }
       ]
     );
+  };
+
+  const handleSendPodChatMessage = async () => {
+    try {
+      const message = `Hey guys I scheduled our kick-off meeting for ${scheduledDateTimeText}`;
+      await podChatService.sendMessage(pursuitId, user!.id, message);
+      setShowSuccessModal(false);
+      onScheduled();
+      onClose();
+    } catch (error) {
+      console.error('Error sending pod chat message:', error);
+      // Still close and proceed even if message fails
+      setShowSuccessModal(false);
+      onScheduled();
+      onClose();
+    }
+  };
+
+  const handleCloseSuccessModal = () => {
+    setShowSuccessModal(false);
+    onScheduled();
+    onClose();
   };
 
   // Group time slots by date and time for calendar view
@@ -317,14 +339,14 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
         <View style={styles.content}>
           <View style={[styles.introSection, { backgroundColor: isNewTheme ? colors.warningLight : legacyColors.warningLight }]}>
             <Text style={[styles.pursuitTitle, { color: colors.warning, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{pursuitTitle}</Text>
-            <Text style={[styles.introText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
+            <Text style={[styles.introText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
               Review all time proposals from your team members and select the final meeting time.
             </Text>
-            <Text style={[styles.statsText, { color: colors.warning, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
+            <Text style={[styles.statsText, { color: colors.warning, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
               {proposals.length}/{teamMembersCount} team member{teamMembersCount !== 1 ? 's' : ''} submitted proposals
             </Text>
             {proposals.length < teamMembersCount && (
-              <Text style={[styles.warningText, { color: colors.error, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
+              <Text style={[styles.warningText, { color: colors.error, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
                 Waiting for {teamMembersCount - proposals.length} more team member{teamMembersCount - proposals.length !== 1 ? 's' : ''} to submit
               </Text>
             )}
@@ -351,8 +373,8 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
           {Object.keys(groupedTimeSlots).length === 0 ? (
             <View style={[styles.emptyState, { backgroundColor: colors.surface }]}>
               <Ionicons name="time-outline" size={48} color={colors.textTertiary} />
-              <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>No proposals yet</Text>
-              <Text style={[styles.emptySubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>Waiting for team members to submit their availability</Text>
+              <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>No proposals yet</Text>
+              <Text style={[styles.emptySubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>Waiting for team members to submit their availability</Text>
             </View>
           ) : (
             Object.keys(groupedTimeSlots).sort().map((date) => (
@@ -401,7 +423,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                           ))}
                         </View>
                         {slots.length > 1 && (
-                          <Text style={[styles.overlapText, { color: colors.success, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
+                          <Text style={[styles.overlapText, { color: colors.success, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
                             {slots.length} members available
                           </Text>
                         )}
@@ -441,7 +463,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                 ]}>
                   Schedule for a different time
                 </Text>
-                <Text style={[styles.customTimeSubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
+                <Text style={[styles.customTimeSubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
                   Choose your own date and time
                 </Text>
               </View>
@@ -630,6 +652,65 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
           )}
         </View>
       </ScrollView>
+
+      {/* Success Modal with Pod Chat Message Option */}
+      <Modal
+        visible={showSuccessModal}
+        transparent
+        animationType="fade"
+        onRequestClose={handleCloseSuccessModal}
+      >
+        <View style={styles.successModalOverlay}>
+          <View style={[styles.successModalContent, { backgroundColor: colors.surface }]}>
+            {/* Close button */}
+            <TouchableOpacity
+              style={styles.successModalClose}
+              onPress={handleCloseSuccessModal}
+            >
+              <Ionicons name="close" size={24} color={colors.textSecondary} />
+            </TouchableOpacity>
+
+            {/* Success icon and message */}
+            <View style={styles.successIconContainer}>
+              <Ionicons name="checkmark-circle" size={60} color={colors.success} />
+            </View>
+            <Text style={[styles.successModalTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+              Kick-Off Scheduled!
+            </Text>
+            <Text style={[styles.successModalSubtitle, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
+              Let your team members know in the Pod Chat
+            </Text>
+
+            {/* Pre-curated message preview */}
+            <View style={[styles.messagePreview, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
+              <Text style={[styles.messagePreviewText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
+                "Hey guys I scheduled our kick-off meeting for {scheduledDateTimeText}"
+              </Text>
+            </View>
+
+            {/* Send button */}
+            <TouchableOpacity
+              style={[styles.sendMessageButton, { backgroundColor: accentColor }]}
+              onPress={handleSendPodChatMessage}
+            >
+              <Ionicons name="send" size={20} color={isNewTheme ? colors.background : '#fff'} />
+              <Text style={[styles.sendMessageButtonText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                Send Message
+              </Text>
+            </TouchableOpacity>
+
+            {/* Skip option */}
+            <TouchableOpacity
+              style={styles.skipButton}
+              onPress={handleCloseSuccessModal}
+            >
+              <Text style={[styles.skipButtonText, { color: colors.textTertiary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
+                Skip for now
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -961,5 +1042,82 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.base,
     color: legacyColors.textPrimary,
     fontWeight: typography.fontWeight.medium,
+  },
+  successModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.lg,
+  },
+  successModalContent: {
+    width: '100%',
+    maxWidth: 340,
+    backgroundColor: legacyColors.white,
+    borderRadius: borderRadius.xl,
+    padding: spacing.xl,
+    alignItems: 'center',
+    ...shadows.lg,
+  },
+  successModalClose: {
+    position: 'absolute',
+    top: spacing.base,
+    right: spacing.base,
+    padding: spacing.xs,
+  },
+  successIconContainer: {
+    marginBottom: spacing.base,
+  },
+  successModalTitle: {
+    fontSize: typography.fontSize.xl,
+    fontWeight: typography.fontWeight.bold,
+    color: legacyColors.textPrimary,
+    textAlign: 'center',
+    marginBottom: spacing.xs,
+  },
+  successModalSubtitle: {
+    fontSize: typography.fontSize.sm,
+    color: legacyColors.textSecondary,
+    textAlign: 'center',
+    marginBottom: spacing.lg,
+  },
+  messagePreview: {
+    width: '100%',
+    backgroundColor: legacyColors.backgroundSecondary,
+    borderRadius: borderRadius.base,
+    padding: spacing.base,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: legacyColors.borderLight,
+  },
+  messagePreviewText: {
+    fontSize: typography.fontSize.sm,
+    color: legacyColors.textPrimary,
+    fontStyle: 'italic',
+    lineHeight: 20,
+  },
+  sendMessageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: legacyColors.primary,
+    paddingVertical: spacing.base,
+    paddingHorizontal: spacing.xl,
+    borderRadius: borderRadius.base,
+    width: '100%',
+    gap: spacing.sm,
+    marginBottom: spacing.base,
+  },
+  sendMessageButtonText: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.bold,
+    color: legacyColors.white,
+  },
+  skipButton: {
+    padding: spacing.sm,
+  },
+  skipButtonText: {
+    fontSize: typography.fontSize.sm,
+    color: legacyColors.textTertiary,
   },
 });

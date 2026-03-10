@@ -3,9 +3,10 @@
  * Use this to wrap screen content for consistent theming across the app
  */
 import React, { ReactNode } from 'react';
-import { View, StyleSheet, StatusBar, ViewStyle } from 'react-native';
+import { StyleSheet, StatusBar, ViewStyle } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import GrainTexture from './GrainTexture';
+import GradientBackground from './GradientBackground';
 
 interface ThemedScreenProps {
   children: ReactNode;
@@ -26,18 +27,16 @@ export default function ThemedScreen({
   const { theme, isNewTheme } = useTheme();
   const colors = theme.colors;
 
-  const bgColor = backgroundColor || colors.background;
-
   return (
-    <View style={[styles.container, { backgroundColor: bgColor }, style]}>
+    <GradientBackground style={[styles.container, style]}>
       <StatusBar
         barStyle={isNewTheme ? 'light-content' : 'dark-content'}
-        backgroundColor={bgColor}
+        backgroundColor={isNewTheme ? colors.background : 'transparent'}
       />
       {/* Grain texture overlay for new theme */}
       {isNewTheme && showTexture && <GrainTexture opacity={0.06} />}
       {children}
-    </View>
+    </GradientBackground>
   );
 }
 
@@ -60,10 +59,10 @@ export function useThemedStyles() {
     surfaceAltStyle: { backgroundColor: colors.surfaceAlt },
     // Common border styles
     borderStyle: { borderColor: colors.border },
-    // Font families for new theme
-    bodyFont: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
-    headerFont: 'NothingYouCouldDo_400Regular',
-    accentFont: isNewTheme ? 'Aboreto_400Regular' : undefined,
+    // Font families - themed for both modes
+    bodyFont: isNewTheme ? 'JuliusSansOne_400Regular' : 'KleeOne_400Regular',
+    headerFont: isNewTheme ? 'NothingYouCouldDo_400Regular' : 'Inter_600SemiBold',
+    accentFont: isNewTheme ? 'Aboreto_400Regular' : 'Inter_500Medium',
   };
 }
 

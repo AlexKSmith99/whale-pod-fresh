@@ -94,8 +94,17 @@ export const pursuitService = {
 
     if (filters.keyword) {
       // Search across title, description, and subcategory
+      // Match words that START with the search term (not contain it mid-word)
+      // e.g., "art" matches "art", "artistic", "artwork" but NOT "start"
       const escaped = filters.keyword.replace(/"/g, '\\"');
-      query = query.or(`title.ilike."*${escaped}*",description.ilike."*${escaped}*",subcategory.ilike."*${escaped}*"`);
+      const startsWithTerm = `${escaped}*`;      // Field starts with term: "art..."
+      const wordStartsWithTerm = `* ${escaped}*`; // Word in text starts with term: "... art..."
+
+      query = query.or(
+        `title.ilike."${startsWithTerm}",title.ilike."${wordStartsWithTerm}",` +
+        `description.ilike."${startsWithTerm}",description.ilike."${wordStartsWithTerm}",` +
+        `subcategory.ilike."${startsWithTerm}",subcategory.ilike."${wordStartsWithTerm}"`
+      );
     }
 
     // Apply sorting

@@ -314,7 +314,7 @@ export default function MeetingNotesScreen({ pursuitId, onBack }: MeetingNotesSc
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#FAFAFA',
   },
   loadingContainer: {
     flex: 1,
@@ -328,25 +328,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 60,
     paddingBottom: 12,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: '#D0D8D4',
   },
   backButton: {
     padding: 8,
   },
   backButtonText: {
     fontSize: 16,
-    color: '#3b82f6',
+    color: '#2D5A45',
     fontWeight: '600',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1f2937',
+    color: '#1A1A1A',
   },
   addButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#2D5A45',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
@@ -371,22 +371,22 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#6b7280',
+    color: '#6B6B6B',
     marginBottom: 8,
   },
   emptyHint: {
     fontSize: 14,
-    color: '#9ca3af',
+    color: '#9CA3AF',
     textAlign: 'center',
     paddingHorizontal: 40,
   },
   noteCard: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#D0D8D4',
   },
   noteHeader: {
     flexDirection: 'row',
@@ -397,18 +397,18 @@ const styles = StyleSheet.create({
   noteTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1f2937',
+    color: '#1A1A1A',
     flex: 1,
     marginRight: 8,
   },
   noteDate: {
     fontSize: 12,
-    color: '#6b7280',
+    color: '#6B6B6B',
     fontWeight: '600',
   },
   notePreview: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#6B6B6B',
     marginBottom: 8,
   },
   attendeesRow: {
@@ -416,12 +416,12 @@ const styles = StyleSheet.create({
   },
   attendeesLabel: {
     fontSize: 13,
-    color: '#3b82f6',
+    color: '#2D5A45',
     fontWeight: '600',
   },
   tapHint: {
     fontSize: 12,
-    color: '#3b82f6',
+    color: '#2D5A45',
     fontWeight: '600',
     textAlign: 'right',
   },
@@ -432,7 +432,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 24,
     width: '90%',
@@ -441,23 +441,23 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1f2937',
+    color: '#1A1A1A',
     marginBottom: 16,
   },
   detailDate: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#6B6B6B',
     marginBottom: 16,
     fontWeight: '600',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: '#D0D8D4',
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
     marginBottom: 12,
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
   },
   textArea: {
     height: 80,
@@ -469,17 +469,17 @@ const styles = StyleSheet.create({
   detailLabel: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#374151',
+    color: '#3D3D3D',
     marginBottom: 8,
   },
   detailText: {
     fontSize: 15,
-    color: '#6b7280',
+    color: '#6B6B6B',
     lineHeight: 22,
   },
   attendeeItem: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#6B6B6B',
     marginBottom: 4,
   },
   modalActions: {
@@ -492,19 +492,19 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: '#D0D8D4',
     alignItems: 'center',
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6b7280',
+    color: '#6B6B6B',
   },
   createButton: {
     flex: 1,
     paddingVertical: 12,
     borderRadius: 8,
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#2D5A45',
     alignItems: 'center',
   },
   createButtonText: {
@@ -528,7 +528,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderRadius: 8,
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#2D5A45',
     alignItems: 'center',
   },
   closeButtonText: {

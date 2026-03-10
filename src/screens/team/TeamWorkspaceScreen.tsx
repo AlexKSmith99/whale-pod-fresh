@@ -16,8 +16,10 @@ import {
   FlatList,
   KeyboardAvoidingView,
   StatusBar,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { WebView } from 'react-native-webview';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
 import { Paths, File as ExpoFile } from 'expo-file-system';
@@ -40,79 +42,51 @@ import { getThemedStyles } from '../../theme/themedStyles';
 import GrainTexture from '../../components/ui/GrainTexture';
 import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../../theme/designSystem';
 
-// Legacy hardcoded dark theme colors (used as fallback for local theme variable)
-const localDarkTheme = {
-  // Backgrounds
-  bg: '#0f0f0f',
-  bgCard: '#1a1a1a',
-  bgElevated: '#242424',
-  bgHover: '#2a2a2a',
-  bgDocument: '#1e1e1e',
+// Sharp, bold color palette - crisp whites, deep greens, strong contrast
+const softTheme = {
+  // Backgrounds - clean, crisp
+  bg: '#FAFAFA',              // Clean off-white
+  bgCard: '#FFFFFF',          // Pure white cards
+  bgElevated: '#F5F7F6',      // Light gray-green tint
+  bgHover: '#EDF2EF',         // Hover state
+  bgDocument: '#FFFFFF',      // Pure white for documents
+  bgGradientStart: '#F0F5F2', // Subtle mint
+  bgGradientMid: '#F8FAFA',   // Near white
+  bgGradientEnd: '#FAFAFA',   // Off-white
 
-  // Accent
-  accent: '#ff6b35',
-  accentLight: 'rgba(255, 107, 53, 0.15)',
-  accentDim: 'rgba(255, 107, 53, 0.08)',
+  // Accent - deep forest green (darker, bolder)
+  accent: '#2D5A45',          // Deep forest green
+  accentLight: 'rgba(45, 90, 69, 0.15)',
+  accentDim: 'rgba(45, 90, 69, 0.08)',
+  accentSoft: '#4A7A62',      // Medium forest green
 
-  // Text
-  text: '#ffffff',
-  textSecondary: '#a0a0a0',
-  textMuted: '#666666',
+  // Secondary - deep teal blue
+  secondary: '#1E4D5C',       // Deep teal
+  secondaryLight: 'rgba(30, 77, 92, 0.12)',
 
-  // Borders & Dividers
-  border: '#2a2a2a',
-  divider: '#1f1f1f',
+  // Text - sharp, high contrast
+  text: '#1A1A1A',            // Near black
+  textSecondary: '#3D3D3D',   // Dark gray
+  textMuted: '#6B6B6B',       // Medium gray
+
+  // Borders & Dividers - visible, defined
+  border: '#2D5A45',          // Green borders (darker)
+  divider: '#D0D8D4',         // Visible divider
 
   // Status
-  success: '#10b981',
-  error: '#ef4444',
-  highlight: 'rgba(255, 235, 59, 0.3)',
-  highlightActive: 'rgba(255, 235, 59, 0.6)',
+  success: '#2D5A45',         // Matches accent
+  error: '#B54040',           // Strong red
+  highlight: 'rgba(45, 90, 69, 0.25)',
+  highlightActive: 'rgba(45, 90, 69, 0.4)',
 };
 
-// Helper function to get local theme colors based on isNewTheme
+// Keep for backwards compatibility
+const localDarkTheme = softTheme;
+
+// Helper function to get local theme colors - always use soft theme for TeamBoard
 function getLocalTheme(isNewTheme: boolean, colors: any) {
-  if (isNewTheme) {
-    return {
-      bg: colors.background,
-      bgCard: colors.surface,
-      bgElevated: colors.surfaceAlt,
-      bgHover: colors.surfaceAlt,
-      bgDocument: colors.surface,
-      accent: colors.accentGreen,
-      accentLight: colors.secondaryLight,
-      accentDim: 'rgba(168, 230, 163, 0.08)',
-      text: colors.textPrimary,
-      textSecondary: colors.textSecondary,
-      textMuted: colors.textTertiary,
-      border: colors.border,
-      divider: colors.borderLight,
-      success: colors.success,
-      error: colors.error,
-      highlight: 'rgba(168, 230, 163, 0.3)',
-      highlightActive: 'rgba(168, 230, 163, 0.6)',
-    };
-  }
-  // Light theme variant
-  return {
-    bg: '#f9fafb',
-    bgCard: '#ffffff',
-    bgElevated: '#f3f4f6',
-    bgHover: '#e5e7eb',
-    bgDocument: '#ffffff',
-    accent: legacyColors.primary,
-    accentLight: legacyColors.primaryLight,
-    accentDim: 'rgba(99, 102, 241, 0.08)',
-    text: legacyColors.textPrimary,
-    textSecondary: legacyColors.textSecondary,
-    textMuted: legacyColors.textTertiary,
-    border: legacyColors.border,
-    divider: legacyColors.borderLight,
-    success: legacyColors.success,
-    error: legacyColors.error,
-    highlight: 'rgba(99, 102, 241, 0.3)',
-    highlightActive: 'rgba(99, 102, 241, 0.6)',
-  };
+  // Always use the soft, airy theme for TeamBoard regardless of app theme
+  return softTheme;
 }
 
 const SIDEBAR_WIDTH = 260;
@@ -561,9 +535,9 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
       
       setIsInEditMode(false);
       Alert.alert('Saved', 'Document saved successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving agenda document:', error);
-      Alert.alert('Error', 'Failed to save document');
+      Alert.alert('Error', 'Failed to save document: ' + (error?.message || JSON.stringify(error)));
     } finally {
       setAgendaDocumentSaving(false);
     }
@@ -1290,22 +1264,104 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
             <Text style={styles.meetingsSectionLabel}>📝 NOTES</Text>
             {agendaDocumentHtml ? (
               <View style={styles.htmlContentContainer}>
-                <Text style={styles.htmlContentPlaceholder}>
-                  {/* Extract plain text from JSON document for preview */}
-                  {(() => {
-                    try {
-                      const doc = JSON.parse(agendaDocumentHtml);
-                      const text = doc.paragraphs?.map((p: any) => 
-                        p.spans?.map((s: any) => s.text || '').join('')
-                      ).join('\n') || '';
-                      return text.substring(0, 500) || 'Tap Edit to view and modify your notes...';
-                    } catch {
-                      // Fallback for plain text or HTML
-                      const text = agendaDocumentHtml.replace(/<[^>]*>/g, '');
-                      return text.substring(0, 500) || 'Tap Edit to view and modify your notes...';
-                    }
-                  })()}
-                </Text>
+                <WebView
+                  originWhitelist={['*']}
+                  source={{
+                    html: `
+                      <!DOCTYPE html>
+                      <html>
+                        <head>
+                          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+                          <style>
+                            * {
+                              margin: 0;
+                              padding: 0;
+                              box-sizing: border-box;
+                            }
+                            body {
+                              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                              font-size: 15px;
+                              line-height: 1.6;
+                              color: #1A1A1A;
+                              background-color: transparent;
+                              padding: 8px 0;
+                              word-wrap: break-word;
+                            }
+                            p {
+                              margin-bottom: 12px;
+                            }
+                            h1, h2, h3 {
+                              color: #1A1A1A;
+                              margin-bottom: 8px;
+                              margin-top: 16px;
+                            }
+                            h1 { font-size: 24px; }
+                            h2 { font-size: 20px; }
+                            h3 { font-size: 17px; }
+                            strong, b {
+                              font-weight: 700;
+                              color: #1A1A1A;
+                            }
+                            em, i {
+                              font-style: italic;
+                            }
+                            u {
+                              text-decoration: underline;
+                            }
+                            ul, ol {
+                              margin-left: 20px;
+                              margin-bottom: 12px;
+                            }
+                            li {
+                              margin-bottom: 4px;
+                            }
+                            blockquote {
+                              border-left: 3px solid #2D5A45;
+                              padding-left: 12px;
+                              margin: 12px 0;
+                              color: #6B6B6B;
+                              font-style: italic;
+                            }
+                            a {
+                              color: #2D5A45;
+                            }
+                            code {
+                              background-color: rgba(45, 90, 69, 0.08);
+                              padding: 2px 6px;
+                              border-radius: 4px;
+                              font-family: monospace;
+                              font-size: 13px;
+                            }
+                            pre {
+                              background-color: rgba(45, 90, 69, 0.08);
+                              padding: 12px;
+                              border-radius: 8px;
+                              overflow-x: auto;
+                              margin: 12px 0;
+                            }
+                            hr {
+                              border: none;
+                              border-top: 1px solid #D0D8D4;
+                              margin: 16px 0;
+                            }
+                          </style>
+                        </head>
+                        <body>${agendaDocumentHtml}</body>
+                      </html>
+                    `
+                  }}
+                  style={styles.htmlWebView}
+                  scrollEnabled={false}
+                  showsVerticalScrollIndicator={false}
+                  showsHorizontalScrollIndicator={false}
+                  injectedJavaScript={`
+                    window.ReactNativeWebView.postMessage(document.body.scrollHeight.toString());
+                    true;
+                  `}
+                  onMessage={(event) => {
+                    // Could use this to dynamically set height if needed
+                  }}
+                />
               </View>
             ) : (
               <View style={styles.emptyDocContainer}>
@@ -1711,18 +1767,34 @@ Example:
               {/* Segmented Tabs - Hidden when in edit mode on agenda tab */}
               {!(isInEditMode && activeSubTab === 'agenda') && (
                 <View style={styles.tabBar}>
-                  {(['agenda', 'doc', 'rules', 'roles', 'media'] as SubTab[]).map((tab) => (
-                    <TouchableOpacity
-                      key={tab}
-                      style={[styles.tab, activeSubTab === tab && styles.tabActive]}
-                      onPress={() => setActiveSubTab(tab)}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={[styles.tabText, activeSubTab === tab && styles.tabTextActive]}>
-                        {tab === 'agenda' ? 'Agenda & Notes' : tab === 'doc' ? 'Pod Doc' : tab === 'rules' ? 'Rules' : tab === 'roles' ? 'Roles' : 'Media'}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                  {(['agenda', 'doc', 'rules', 'roles', 'media'] as SubTab[]).map((tab) => {
+                    // Avant-garde icon representations for each tab
+                    const getTabIcon = () => {
+                      switch (tab) {
+                        case 'agenda': return 'flash-outline'; // Energy, action items, dynamic flow
+                        case 'doc': return 'layers-outline'; // Layered information, depth
+                        case 'rules': return 'shield-checkmark-outline'; // Protection, guidelines, structure
+                        case 'roles': return 'finger-print-outline'; // Identity, uniqueness
+                        case 'media': return 'aperture-outline'; // Creative lens, visual focus
+                        default: return 'ellipse-outline';
+                      }
+                    };
+                    const isActive = activeSubTab === tab;
+                    return (
+                      <TouchableOpacity
+                        key={tab}
+                        style={[styles.tab, isActive && styles.tabActive]}
+                        onPress={() => setActiveSubTab(tab)}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons
+                          name={getTabIcon() as any}
+                          size={24}
+                          color={isActive ? '#FFFFFF' : theme.accent}
+                        />
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               )}
 
@@ -1871,27 +1943,29 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: localDarkTheme.bg,
+    backgroundColor: softTheme.bg,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: localDarkTheme.bg,
+    backgroundColor: softTheme.bg,
   },
 
-  // Header
+  // Header - bold, defined
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 56 : 16,
-    paddingBottom: 16,
-    backgroundColor: localDarkTheme.bgCard,
+    paddingTop: Platform.OS === 'ios' ? 54 : 16,
+    paddingBottom: 14,
+    backgroundColor: softTheme.bgCard,
+    borderBottomWidth: 2,
+    borderBottomColor: softTheme.border,
   },
   backBtn: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1900,33 +1974,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: localDarkTheme.textSecondary,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
+    fontSize: 22,
+    fontWeight: '400',
+    color: softTheme.accent,
+    letterSpacing: 1,
+    fontFamily: 'NothingYouCouldDo_400Regular',
   },
   podSelector: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 4,
-    gap: 4,
+    gap: 6,
   },
   podName: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: localDarkTheme.text,
-    maxWidth: 200,
+    fontSize: 18,
+    fontWeight: '700',
+    color: softTheme.text,
+    maxWidth: 220,
+    fontFamily: 'Lora_700Bold',
   },
   headerPodPicture: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     marginRight: 6,
+    borderWidth: 2,
+    borderColor: softTheme.border,
   },
   menuBtn: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1935,12 +2012,13 @@ const styles = StyleSheet.create({
   mainArea: {
     flex: 1,
     position: 'relative',
+    backgroundColor: softTheme.bg,
   },
 
-  // Sidebar
+  // Sidebar - bold, defined
   sidebarOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(26, 26, 26, 0.5)',
     zIndex: 10,
   },
   sidebar: {
@@ -1949,43 +2027,52 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: SIDEBAR_WIDTH,
-    backgroundColor: localDarkTheme.bgCard,
+    backgroundColor: softTheme.bgCard,
     zIndex: 20,
-    paddingTop: 24,
-    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingHorizontal: 16,
+    borderRightWidth: 2,
+    borderRightColor: softTheme.border,
   },
   sidebarTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: localDarkTheme.textMuted,
-    letterSpacing: 1,
+    fontSize: 13,
+    fontWeight: '700',
+    color: softTheme.text,
+    letterSpacing: 2.5,
     textTransform: 'uppercase',
-    marginBottom: 16,
+    marginBottom: 18,
+    fontFamily: 'Sora_700Bold',
   },
   podList: {
     flex: 1,
   },
   podItem: {
     paddingVertical: 14,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     borderRadius: 12,
-    marginBottom: 8,
+    marginBottom: 10,
     backgroundColor: localDarkTheme.bgElevated,
     flexDirection: 'row',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: localDarkTheme.divider,
   },
   podItemActive: {
     backgroundColor: localDarkTheme.accentLight,
+    borderColor: localDarkTheme.accent,
+    borderWidth: 2,
   },
   podItemText: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '500',
-    color: localDarkTheme.textSecondary,
+    color: localDarkTheme.text,
+    fontFamily: 'Lora_500Medium',
   },
   podItemTextActive: {
     color: localDarkTheme.accent,
-    fontWeight: '600',
+    fontWeight: '700',
+    fontFamily: 'Lora_700Bold',
   },
   podItemIndicator: {
     width: 6,
@@ -1994,19 +2081,23 @@ const styles = StyleSheet.create({
     backgroundColor: localDarkTheme.accent,
   },
   podItemPicture: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    marginRight: 10,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginRight: 12,
+    borderWidth: 2,
+    borderColor: localDarkTheme.border,
   },
   podItemPlaceholder: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: localDarkTheme.bgCard,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10,
+    marginRight: 12,
+    borderWidth: 2,
+    borderColor: localDarkTheme.border,
   },
 
   // Content
@@ -2015,28 +2106,32 @@ const styles = StyleSheet.create({
     backgroundColor: localDarkTheme.bg,
   },
 
-  // Tab Bar
+  // Tab Bar - Icon only, avant-garde style
   tabBar: {
     flexDirection: 'row',
-    marginHorizontal: 20,
-    marginTop: 20,
-    marginBottom: 16,
-    backgroundColor: localDarkTheme.bgCard,
-    borderRadius: 12,
-    padding: 4,
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 14,
+    backgroundColor: softTheme.bgElevated,
+    borderRadius: 16,
+    padding: 6,
+    borderWidth: 2,
+    borderColor: softTheme.border,
   },
   tab: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 14,
     alignItems: 'center',
-    borderRadius: 10,
+    justifyContent: 'center',
+    borderRadius: 12,
   },
   tabActive: {
-    backgroundColor: localDarkTheme.accent,
+    backgroundColor: softTheme.accent,
   },
   tabText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
+    fontFamily: 'Sora_700Bold',
     color: localDarkTheme.textSecondary,
   },
   tabTextActive: {
@@ -2049,7 +2144,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
 
-  // Document Styles
+  // Document Styles - Bold, defined
   documentContainer: {
     flex: 1,
     marginHorizontal: 16,
@@ -2058,80 +2153,90 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 12,
     paddingHorizontal: 4,
   },
   documentHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   savingIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
   },
   savingText: {
-    fontSize: 12,
-    color: localDarkTheme.textMuted,
+    fontSize: 13,
+    color: softTheme.textSecondary,
+    fontFamily: 'Lora_400Regular',
   },
   modeBadge: {
-    backgroundColor: localDarkTheme.accentLight,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    backgroundColor: softTheme.accentLight,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: softTheme.accent,
   },
   modeBadgeText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: localDarkTheme.accent,
+    fontWeight: '700',
+    color: softTheme.accent,
+    fontFamily: 'Sora_700Bold',
+    letterSpacing: 1.5,
   },
   docMenuButton: {
-    width: 36,
-    height: 36,
+    width: 32,
+    height: 32,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 18,
-    backgroundColor: localDarkTheme.bgCard,
+    borderRadius: 16,
+    backgroundColor: softTheme.bgCard,
   },
   documentScroll: {
     flex: 1,
   },
   documentPage: {
-    backgroundColor: localDarkTheme.bgDocument,
+    backgroundColor: softTheme.bgDocument,
     borderRadius: 12,
     padding: 20,
-    minHeight: SCREEN_HEIGHT - 300,
+    minHeight: SCREEN_HEIGHT - 280,
+    borderWidth: 2,
+    borderColor: softTheme.border,
   },
   documentTouchable: {
     flex: 1,
     minHeight: 400,
   },
   documentText: {
-    fontSize: 16,
-    color: localDarkTheme.text,
+    fontSize: 17,
+    color: softTheme.text,
     lineHeight: 26,
+    fontFamily: 'Lora_400Regular',
   },
   documentPlaceholder: {
-    fontSize: 16,
-    color: localDarkTheme.textMuted,
+    fontSize: 17,
+    color: softTheme.textMuted,
     lineHeight: 26,
     fontStyle: 'italic',
+    fontFamily: 'Lora_400Regular',
   },
   documentInput: {
-    fontSize: 16,
-    color: localDarkTheme.text,
+    fontSize: 17,
+    color: softTheme.text,
     lineHeight: 26,
-    minHeight: 100,
+    minHeight: 120,
     textAlignVertical: 'top',
+    fontFamily: 'Lora_400Regular',
   },
   fullDocumentEdit: {
-    minHeight: 300,
-    backgroundColor: localDarkTheme.bgElevated,
-    borderRadius: 8,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: localDarkTheme.accent,
+    minHeight: 350,
+    backgroundColor: softTheme.bgElevated,
+    borderRadius: 10,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: softTheme.accent,
   },
   editModeActions: {
     flexDirection: 'row',
@@ -2141,18 +2246,21 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   editModeCancelBtn: {
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 8,
-    backgroundColor: localDarkTheme.bgElevated,
+    backgroundColor: softTheme.bgElevated,
+    borderWidth: 2,
+    borderColor: softTheme.divider,
   },
   editModeCancelText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
-    color: localDarkTheme.textSecondary,
+    color: localDarkTheme.text,
+    fontFamily: 'Lora_600SemiBold',
   },
   editModeSaveBtn: {
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
     backgroundColor: localDarkTheme.accent,
@@ -2161,9 +2269,10 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   editModeSaveText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
     color: '#fff',
+    fontFamily: 'Lora_700Bold',
   },
   newContributionInput: {
     marginTop: 16,
@@ -2201,9 +2310,10 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 16,
     color: localDarkTheme.text,
     padding: 0,
+    fontFamily: 'Lora_400Regular',
   },
   searchNav: {
     flexDirection: 'row',
@@ -2211,9 +2321,10 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   searchCount: {
-    fontSize: 12,
+    fontSize: 14,
     color: localDarkTheme.textSecondary,
-    marginRight: 4,
+    marginRight: 6,
+    fontFamily: 'Lora_400Regular',
   },
   searchNavBtn: {
     width: 32,
@@ -2290,9 +2401,10 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   formatDropdownText: {
-    fontSize: 14,
+    fontSize: 15,
     color: localDarkTheme.text,
-    fontWeight: '500',
+    fontWeight: '600',
+    fontFamily: 'Lora_600SemiBold',
   },
   colorPreview: {
     width: 20,
@@ -2319,9 +2431,12 @@ const styles = StyleSheet.create({
   pickerOptionText: {
     color: localDarkTheme.text,
     fontWeight: '500',
+    fontFamily: 'Lora_500Medium',
+    fontSize: 15,
   },
   pickerOptionTextActive: {
     color: localDarkTheme.accent,
+    fontFamily: 'Lora_700Bold',
   },
   colorPickerDropdown: {
     backgroundColor: localDarkTheme.bgCard,
@@ -2367,13 +2482,15 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   editHistoryInitials: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     color: '#fff',
+    fontFamily: 'Lora_700Bold',
   },
   editHistoryTime: {
-    fontSize: 11,
-    color: localDarkTheme.textMuted,
+    fontSize: 13,
+    color: localDarkTheme.textSecondary,
+    fontFamily: 'Lora_400Regular',
   },
 
   // Menu
@@ -2400,12 +2517,14 @@ const styles = StyleSheet.create({
   },
   menuItemText: {
     flex: 1,
-    fontSize: 15,
-    fontWeight: '500',
+    fontSize: 16,
+    fontWeight: '600',
     color: localDarkTheme.text,
+    fontFamily: 'Lora_600SemiBold',
   },
   menuItemTextActive: {
     color: localDarkTheme.accent,
+    fontFamily: 'Lora_700Bold',
   },
   menuDivider: {
     height: 1,
@@ -2416,36 +2535,43 @@ const styles = StyleSheet.create({
   // Empty State
   emptyState: {
     alignItems: 'center',
-    paddingVertical: 60,
+    paddingVertical: 70,
   },
   emptyIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: localDarkTheme.bgCard,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: localDarkTheme.bgElevated,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
+    borderWidth: 2,
+    borderColor: localDarkTheme.border,
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: localDarkTheme.textSecondary,
-    marginBottom: 8,
+    fontSize: 22,
+    fontWeight: '700',
+    color: localDarkTheme.text,
+    marginBottom: 10,
+    fontFamily: 'Sora_700Bold',
+    letterSpacing: 0.5,
   },
   emptySubtitle: {
-    fontSize: 14,
-    color: localDarkTheme.textMuted,
+    fontSize: 16,
+    color: localDarkTheme.textSecondary,
     textAlign: 'center',
     paddingHorizontal: 40,
+    fontFamily: 'Lora_400Regular',
   },
 
   // Role Card
   roleCard: {
     backgroundColor: localDarkTheme.bgCard,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 14,
+    padding: 18,
+    marginBottom: 14,
+    borderWidth: 2,
+    borderColor: localDarkTheme.border,
   },
   roleHeader: {
     flexDirection: 'row',
@@ -2460,81 +2586,92 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   memberAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: localDarkTheme.accent,
     justifyContent: 'center',
     alignItems: 'center',
   },
   memberAvatarImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: localDarkTheme.border,
   },
   memberAvatarText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '700',
     color: '#fff',
+    fontFamily: 'Lora_700Bold',
   },
   memberNameContainer: {
     flex: 1,
   },
   memberNameText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
     color: localDarkTheme.text,
+    fontFamily: 'Lora_700Bold',
   },
   viewProfileLink: {
-    fontSize: 12,
+    fontSize: 13,
     color: localDarkTheme.accent,
-    fontWeight: '500',
-    marginTop: 2,
+    fontWeight: '600',
+    marginTop: 3,
+    fontFamily: 'Lora_600SemiBold',
   },
   roleEditBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: localDarkTheme.accentDim,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: localDarkTheme.accentLight,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: localDarkTheme.accent,
   },
   roleContent: {
-    paddingLeft: 52,
+    paddingLeft: 62,
   },
   roleTitleText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     color: localDarkTheme.accent,
     marginBottom: 4,
+    fontFamily: 'Lora_700Bold',
   },
   roleDescText: {
-    fontSize: 14,
-    color: localDarkTheme.textSecondary,
-    lineHeight: 20,
+    fontSize: 15,
+    color: localDarkTheme.text,
+    lineHeight: 22,
+    fontFamily: 'Lora_400Regular',
   },
   roleDeleteBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 12,
+    gap: 6,
+    marginTop: 14,
   },
   roleDeleteText: {
-    fontSize: 12,
+    fontSize: 13,
     color: localDarkTheme.error,
+    fontFamily: 'Lora_400Regular',
   },
   noRoleText: {
-    fontSize: 14,
+    fontSize: 15,
     color: localDarkTheme.textMuted,
     fontStyle: 'italic',
-    paddingLeft: 52,
+    paddingLeft: 62,
+    fontFamily: 'Lora_400Regular',
   },
 
   // Upload Row
   uploadRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 20,
+    gap: 14,
+    marginBottom: 24,
   },
   uploadBtn: {
     flex: 1,
@@ -2542,31 +2679,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: localDarkTheme.bgCard,
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 10,
+    paddingVertical: 18,
+    borderRadius: 14,
+    gap: 12,
+    borderWidth: 2,
+    borderColor: localDarkTheme.border,
   },
   uploadBtnDisabled: {
     opacity: 0.5,
   },
   uploadBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     color: localDarkTheme.accent,
+    fontFamily: 'Lora_700Bold',
   },
 
   // Media Grid
   mediaGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 14,
   },
   mediaItem: {
-    width: (SCREEN_WIDTH - 52) / 3,
+    width: (SCREEN_WIDTH - 54) / 3,
     aspectRatio: 1,
-    borderRadius: 12,
+    borderRadius: 14,
     overflow: 'hidden',
     backgroundColor: localDarkTheme.bgCard,
+    borderWidth: 2,
+    borderColor: localDarkTheme.border,
   },
   mediaImage: {
     width: '100%',
@@ -2585,9 +2727,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   mediaUploader: {
-    fontSize: 10,
+    fontSize: 11,
     color: '#fff',
     flex: 1,
+    fontFamily: 'Lora_400Regular',
   },
   mediaDeleteBtn: {
     padding: 4,
@@ -2596,7 +2739,7 @@ const styles = StyleSheet.create({
   // Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.8)',
+    backgroundColor: 'rgba(0,0,0,0.85)',
     justifyContent: 'flex-end',
   },
   modalContainer: {
@@ -2604,81 +2747,97 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '90%',
+    borderTopWidth: 3,
+    borderLeftWidth: 3,
+    borderRightWidth: 3,
+    borderColor: localDarkTheme.border,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: localDarkTheme.divider,
+    padding: 24,
+    borderBottomWidth: 2,
+    borderBottomColor: localDarkTheme.border,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 24,
+    fontWeight: '800',
     color: localDarkTheme.text,
+    fontFamily: 'Sora_800ExtraBold',
+    letterSpacing: 0.5,
   },
   modalClose: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: localDarkTheme.bgElevated,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: localDarkTheme.border,
   },
   modalBody: {
-    padding: 20,
-    maxHeight: 400,
+    padding: 24,
+    maxHeight: 420,
   },
   inputLabel: {
     fontSize: 13,
-    fontWeight: '600',
-    color: localDarkTheme.textSecondary,
-    marginBottom: 8,
-    marginTop: 16,
+    fontWeight: '700',
+    color: localDarkTheme.text,
+    marginBottom: 10,
+    marginTop: 18,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 2,
+    fontFamily: 'Sora_700Bold',
   },
   memberLabel: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
     color: localDarkTheme.accent,
     marginBottom: 8,
+    fontFamily: 'Lora_700Bold',
   },
   input: {
     backgroundColor: localDarkTheme.bgElevated,
-    borderRadius: 12,
-    padding: 14,
-    fontSize: 15,
+    borderRadius: 10,
+    padding: 16,
+    fontSize: 16,
     color: localDarkTheme.text,
+    fontFamily: 'Lora_400Regular',
+    borderWidth: 2,
+    borderColor: localDarkTheme.border,
   },
   textArea: {
-    minHeight: 120,
+    minHeight: 140,
     textAlignVertical: 'top',
   },
   modalFooter: {
     flexDirection: 'row',
-    padding: 20,
-    gap: 12,
-    borderTopWidth: 1,
-    borderTopColor: localDarkTheme.divider,
+    padding: 24,
+    gap: 14,
+    borderTopWidth: 2,
+    borderTopColor: localDarkTheme.border,
   },
   cancelBtn: {
     flex: 1,
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 10,
     backgroundColor: localDarkTheme.bgElevated,
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: localDarkTheme.border,
   },
   cancelBtnText: {
     fontSize: 16,
     fontWeight: '600',
-    color: localDarkTheme.textSecondary,
+    color: localDarkTheme.text,
+    fontFamily: 'Lora_600SemiBold',
   },
   submitBtn: {
     flex: 1,
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 10,
     backgroundColor: localDarkTheme.accent,
     alignItems: 'center',
   },
@@ -2689,6 +2848,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#fff',
+    fontFamily: 'Lora_700Bold',
   },
 
   // Image Viewer
@@ -2712,8 +2872,9 @@ const styles = StyleSheet.create({
   },
   imageViewerCounter: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#fff',
+    fontFamily: 'Lora_700Bold',
   },
   imageViewerDownload: {
     width: 44,
@@ -2732,29 +2893,32 @@ const styles = StyleSheet.create({
     height: SCREEN_HEIGHT - 200,
   },
   imageViewerUploader: {
-    fontSize: 14,
-    color: '#999',
-    marginTop: 16,
+    fontSize: 15,
+    color: '#aaa',
+    marginTop: 14,
+    fontFamily: 'Lora_400Regular',
   },
 
-  // Pod Doc & Rules styles
+  // Pod Doc & Rules styles - bold, larger
   podDocHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: localDarkTheme.divider,
+    padding: 20,
+    borderBottomWidth: 2,
+    borderBottomColor: localDarkTheme.border,
   },
   podDocTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
+    fontSize: 26,
+    fontWeight: '800',
     color: localDarkTheme.text,
+    fontFamily: 'Sora_800ExtraBold',
+    letterSpacing: 1,
   },
   saveDocButton: {
-    backgroundColor: '#10b981',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    backgroundColor: softTheme.accent,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
     borderRadius: 8,
   },
   saveDocButtonDisabled: {
@@ -2763,71 +2927,80 @@ const styles = StyleSheet.create({
   saveDocButtonText: {
     color: '#fff',
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: 15,
+    fontFamily: 'Lora_600SemiBold',
   },
   templateButton: {
-    backgroundColor: localDarkTheme.bgElevated,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    backgroundColor: softTheme.bgElevated,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: localDarkTheme.border,
+    borderWidth: 2,
+    borderColor: softTheme.border,
   },
   templateButtonText: {
-    color: localDarkTheme.textSecondary,
+    color: softTheme.text,
     fontWeight: '600',
-    fontSize: 13,
+    fontSize: 14,
+    fontFamily: 'Lora_600SemiBold',
   },
   podDocSection: {
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: localDarkTheme.divider,
+    borderBottomWidth: 2,
+    borderBottomColor: softTheme.divider,
   },
   podDocSectionTitle: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: localDarkTheme.text,
-    marginBottom: 4,
+    fontSize: 18,
+    fontWeight: '700',
+    color: softTheme.text,
+    marginBottom: 6,
+    fontFamily: 'Sora_700Bold',
+    letterSpacing: 0.5,
   },
   podDocSectionHint: {
-    fontSize: 13,
-    color: localDarkTheme.textMuted,
+    fontSize: 14,
+    color: softTheme.textSecondary,
     marginBottom: 12,
+    fontFamily: 'Lora_400Regular',
   },
   podDocInput: {
-    backgroundColor: localDarkTheme.bgElevated,
-    borderRadius: 12,
-    padding: 14,
-    fontSize: 15,
-    color: localDarkTheme.text,
+    backgroundColor: softTheme.bgElevated,
+    borderRadius: 10,
+    padding: 16,
+    fontSize: 16,
+    color: softTheme.text,
     minHeight: 120,
-    borderWidth: 1,
-    borderColor: localDarkTheme.border,
+    borderWidth: 2,
+    borderColor: softTheme.border,
+    fontFamily: 'Lora_400Regular',
   },
   rulesHint: {
-    fontSize: 14,
-    color: localDarkTheme.textSecondary,
+    fontSize: 15,
+    color: softTheme.textSecondary,
     padding: 16,
-    paddingBottom: 8,
+    paddingBottom: 10,
+    fontFamily: 'Lora_400Regular',
   },
 
-  // Meeting Headers in Document Styles
+  // Meeting Headers in Document Styles - Bold, defined
   meetingSectionHeader: {
     marginBottom: 12,
   },
   meetingsSectionLabel: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '700',
-    color: localDarkTheme.accent,
-    letterSpacing: 1,
+    color: softTheme.accent,
+    letterSpacing: 2.5,
+    fontFamily: 'Sora_700Bold',
+    textTransform: 'uppercase',
   },
   meetingHeaderBlock: {
-    backgroundColor: localDarkTheme.bgElevated,
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
-    borderLeftWidth: 3,
-    borderLeftColor: localDarkTheme.accent,
+    backgroundColor: softTheme.bgElevated,
+    borderRadius: 10,
+    padding: 16,
+    marginBottom: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: softTheme.accent,
   },
   pastMeetingHeaderBlock: {
     opacity: 0.7,
@@ -2837,47 +3010,53 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
     bottom: 0,
-    width: 3,
-    backgroundColor: localDarkTheme.accent,
-    borderTopLeftRadius: 8,
-    borderBottomLeftRadius: 8,
+    width: 4,
+    backgroundColor: softTheme.accent,
+    borderTopLeftRadius: 10,
+    borderBottomLeftRadius: 10,
   },
   pastMeetingHeaderBar: {
-    backgroundColor: localDarkTheme.textMuted,
+    backgroundColor: softTheme.textMuted,
   },
   meetingHeaderTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '600',
-    color: localDarkTheme.text,
+    color: softTheme.text,
     marginBottom: 4,
+    fontFamily: 'Lora_600SemiBold',
   },
   meetingHeaderDate: {
-    fontSize: 13,
-    color: localDarkTheme.textSecondary,
+    fontSize: 14,
+    color: softTheme.textSecondary,
+    fontFamily: 'Lora_400Regular',
   },
   meetingHeaderStatus: {
-    fontSize: 11,
-    color: localDarkTheme.textMuted,
+    fontSize: 12,
+    color: softTheme.textMuted,
     marginTop: 4,
+    fontFamily: 'Lora_400Regular',
   },
   notesAreaDivider: {
     marginTop: 20,
     marginBottom: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: localDarkTheme.divider,
+    paddingTop: 16,
+    borderTopWidth: 2,
+    borderTopColor: softTheme.border,
   },
   notesAreaLabel: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '700',
-    color: localDarkTheme.textSecondary,
-    letterSpacing: 1,
+    color: softTheme.text,
+    letterSpacing: 2.5,
+    fontFamily: 'Sora_700Bold',
+    textTransform: 'uppercase',
   },
   emptyDocumentText: {
-    fontSize: 14,
-    color: localDarkTheme.textMuted,
+    fontSize: 16,
+    color: softTheme.textMuted,
     fontStyle: 'italic',
-    lineHeight: 22,
+    lineHeight: 24,
+    fontFamily: 'Lora_400Regular',
   },
 
   // Formatting Toolbar Styles
@@ -2928,9 +3107,10 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   textSettingsBtnText: {
-    fontSize: 14,
+    fontSize: 15,
     color: localDarkTheme.text,
-    fontWeight: '500',
+    fontWeight: '600',
+    fontFamily: 'Lora_600SemiBold',
   },
   textSettingsOverlay: {
     flex: 1,
@@ -2946,18 +3126,23 @@ const styles = StyleSheet.create({
     maxWidth: 320,
   },
   textSettingsTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 22,
+    fontWeight: '800',
     color: localDarkTheme.text,
-    marginBottom: 16,
+    marginBottom: 20,
     textAlign: 'center',
+    fontFamily: 'Sora_800ExtraBold',
+    letterSpacing: 0.5,
   },
   textSettingsLabel: {
     fontSize: 13,
-    fontWeight: '600',
-    color: localDarkTheme.textSecondary,
-    marginBottom: 8,
-    marginTop: 12,
+    fontWeight: '700',
+    color: localDarkTheme.text,
+    marginBottom: 12,
+    marginTop: 16,
+    fontFamily: 'Sora_700Bold',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
   textSettingsOptions: {
     flexDirection: 'row',
@@ -2977,12 +3162,14 @@ const styles = StyleSheet.create({
     backgroundColor: localDarkTheme.accentLight,
   },
   textSettingsOptionText: {
-    fontSize: 14,
+    fontSize: 15,
     color: localDarkTheme.textSecondary,
+    fontFamily: 'Lora_400Regular',
   },
   textSettingsOptionTextActive: {
     color: localDarkTheme.accent,
-    fontWeight: '600',
+    fontWeight: '700',
+    fontFamily: 'Lora_700Bold',
   },
 
   // Compact Edit Mode Styles
@@ -3004,9 +3191,11 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   editModeTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: localDarkTheme.textSecondary,
+    fontSize: 16,
+    fontWeight: '700',
+    color: localDarkTheme.text,
+    fontFamily: 'Sora_700Bold',
+    letterSpacing: 0.5,
   },
   compactToolbar: {
     flexDirection: 'row',
@@ -3055,15 +3244,18 @@ const styles = StyleSheet.create({
     backgroundColor: localDarkTheme.bgHover,
   },
   compactTextSettingsBtnText: {
-    fontSize: 13,
+    fontSize: 14,
     color: localDarkTheme.text,
-    fontWeight: '500',
+    fontWeight: '600',
+    fontFamily: 'Lora_600SemiBold',
   },
   fullScreenEditor: {
     flex: 1,
-    padding: 12,
+    padding: 16,
     color: localDarkTheme.text,
     textAlignVertical: 'top',
+    fontFamily: 'Lora_400Regular',
+    fontSize: 17,
   },
 
   // Compact Read Mode Styles
@@ -3087,8 +3279,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   searchCountCompact: {
-    fontSize: 12,
-    color: localDarkTheme.textMuted,
+    fontSize: 14,
+    color: localDarkTheme.textSecondary,
+    fontFamily: 'Lora_400Regular',
   },
   documentScrollCompact: {
     flex: 1,
@@ -3097,58 +3290,75 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   agendaTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
     color: localDarkTheme.text,
+    fontFamily: 'Sora_700Bold',
+    letterSpacing: 0.5,
   },
   editButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     backgroundColor: localDarkTheme.accentLight,
-    borderRadius: 6,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: localDarkTheme.accent,
   },
   editButtonText: {
     fontSize: 14,
     color: localDarkTheme.accent,
-    fontWeight: '500',
+    fontWeight: '700',
+    fontFamily: 'Lora_700Bold',
   },
   meetingHeadersSection: {
-    paddingHorizontal: 12,
-    paddingTop: 12,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: localDarkTheme.divider,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 20,
+    borderBottomWidth: 2,
+    borderBottomColor: localDarkTheme.border,
   },
   documentContentSection: {
-    padding: 12,
+    padding: 16,
   },
   htmlContentContainer: {
     backgroundColor: localDarkTheme.bgElevated,
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 8,
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 12,
+    minHeight: 180,
+    borderWidth: 2,
+    borderColor: localDarkTheme.border,
+  },
+  htmlWebView: {
+    backgroundColor: 'transparent',
+    minHeight: 120,
+    flex: 1,
   },
   htmlContentPlaceholder: {
-    fontSize: 14,
+    fontSize: 16,
     color: localDarkTheme.textSecondary,
-    lineHeight: 20,
+    lineHeight: 24,
+    fontFamily: 'Lora_400Regular',
   },
   emptyDocContainer: {
     alignItems: 'center',
     paddingVertical: 40,
   },
   emptyDocText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
     color: localDarkTheme.text,
-    marginTop: 12,
+    marginTop: 16,
+    fontFamily: 'Sora_700Bold',
+    letterSpacing: 0.5,
   },
   emptyDocSubtext: {
-    fontSize: 14,
-    color: localDarkTheme.textMuted,
-    marginTop: 4,
+    fontSize: 15,
+    color: localDarkTheme.textSecondary,
+    marginTop: 6,
+    fontFamily: 'Lora_400Regular',
   },
 });

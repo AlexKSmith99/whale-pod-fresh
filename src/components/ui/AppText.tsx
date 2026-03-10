@@ -86,8 +86,8 @@ export default function AppText({
       case 'label':
       case 'button':
       default:
-        // Only use custom body font in new theme
-        return isNewTheme ? typography.fontFamily.body : undefined;
+        // Apply body font in both themes (Inter for light, KleeOne/JuliusSansOne for dark)
+        return typography.fontFamily.body !== 'System' ? typography.fontFamily.body : undefined;
     }
   };
 

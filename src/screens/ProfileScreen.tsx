@@ -463,25 +463,42 @@ const handleRejectConnection = async (connectionId: string) => {
 
 {activeTab === 'info' && (
           <>
-        {(profile?.age || profile?.gender || profile?.hometown) && (
+        {(profile?.age || profile?.gender) && (
           <View style={[styles.section, themedStyles.card]}>
-            <Text style={[styles.sectionTitle, themedStyles.cardTitle]}>Basic Info</Text>
             {profile?.age && (
               <View style={styles.infoRow}>
                 <Text style={[styles.infoLabel, themedStyles.labelText]}>Age:</Text>
-                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>{profile.age}</Text>
+                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>{profile.age}</Text>
               </View>
             )}
             {profile?.gender && (
               <View style={styles.infoRow}>
                 <Text style={[styles.infoLabel, themedStyles.labelText]}>Gender:</Text>
-                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>{profile.gender}</Text>
+                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>{profile.gender}</Text>
               </View>
             )}
+          </View>
+        )}
+
+        {(profile?.hometown || profile?.college || profile?.work) && (
+          <View style={[styles.section, themedStyles.card]}>
+            <Text style={[styles.sectionTitle, themedStyles.cardTitle]}>Location</Text>
             {profile?.hometown && (
               <View style={styles.infoRow}>
                 <Text style={[styles.infoLabel, themedStyles.labelText]}>Hometown:</Text>
-                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>{profile.hometown}</Text>
+                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>{profile.hometown}</Text>
+              </View>
+            )}
+            {profile?.college && (
+              <View style={styles.infoRow}>
+                <Text style={[styles.infoLabel, themedStyles.labelText]}>College:</Text>
+                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>{profile.college}</Text>
+              </View>
+            )}
+            {profile?.work && (
+              <View style={styles.infoRow}>
+                <Text style={[styles.infoLabel, themedStyles.labelText]}>Work:</Text>
+                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>{profile.work}</Text>
               </View>
             )}
           </View>
@@ -490,7 +507,7 @@ const handleRejectConnection = async (connectionId: string) => {
         {profile?.bio && (
           <View style={[styles.section, themedStyles.card]}>
             <Text style={[styles.sectionTitle, themedStyles.cardTitle]}>Bio</Text>
-            <Text style={[styles.bioText, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>{profile.bio}</Text>
+            <Text style={[styles.bioText, themedStyles.bodyText, { fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>{profile.bio}</Text>
           </View>
         )}
 
@@ -560,7 +577,7 @@ const handleRejectConnection = async (connectionId: string) => {
             <View style={[styles.connectionSearchContainer, themedStyles.searchContainer]}>
               <Ionicons name="search" size={18} color={themedStyles.accentIconColor} style={styles.connectionSearchIcon} />
               <TextInput
-                style={[styles.connectionSearchInput, themedStyles.inputText, { fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}
+                style={[styles.connectionSearchInput, themedStyles.inputText, { fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
                 placeholder="Search connections..."
                 placeholderTextColor={colors.textTertiary}
                 value={connectionSearchQuery}

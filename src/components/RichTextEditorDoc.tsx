@@ -15,18 +15,18 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-// Theme colors (matching app theme)
+// Theme colors (matching team workspace soft theme - grey/white/green)
 const theme = {
-  bg: '#0f0f0f',
-  bgCard: '#1a1a1a',
-  bgElevated: '#242424',
-  accent: '#ff6b35',
-  accentLight: 'rgba(255, 107, 53, 0.15)',
-  text: '#ffffff',
-  textSecondary: '#a0a0a0',
-  textMuted: '#666666',
-  border: '#2a2a2a',
-  divider: '#1f1f1f',
+  bg: '#FAFAFA',
+  bgCard: '#FFFFFF',
+  bgElevated: '#F5F7F6',
+  accent: '#2D5A45',
+  accentLight: 'rgba(45, 90, 69, 0.15)',
+  text: '#1A1A1A',
+  textSecondary: '#3D3D3D',
+  textMuted: '#6B6B6B',
+  border: '#D0D8D4',
+  divider: '#D0D8D4',
 };
 
 // ============================================================================
@@ -63,7 +63,7 @@ const DEFAULT_FORMAT: CharFormat = {
   bold: false,
   italic: false,
   underline: false,
-  color: '#ffffff',
+  color: '#1A1A1A',
   fontSize: 16,
   fontFamily: 'System',
 };
@@ -84,12 +84,12 @@ const FONT_SIZES = [
 ];
 
 const TEXT_COLORS = [
-  { label: 'White', value: '#ffffff' },
-  { label: 'Gray', value: '#a0a0a0' },
+  { label: 'Black', value: '#1A1A1A' },
+  { label: 'Gray', value: '#6B6B6B' },
   { label: 'Red', value: '#ef4444' },
-  { label: 'Orange', value: '#ff6b35' },
+  { label: 'Green', value: '#2D5A45' },
   { label: 'Blue', value: '#3b82f6' },
-  { label: 'Green', value: '#10b981' },
+  { label: 'Teal', value: '#10b981' },
 ];
 
 interface RichTextEditorDocProps {
@@ -122,7 +122,7 @@ const parseContent = (content: string): DocumentContent => {
               bold: s.bold || s.format?.bold || false,
               italic: s.italic || s.format?.italic || false,
               underline: s.underline || s.format?.underline || false,
-              color: s.color || s.format?.color || '#ffffff',
+              color: s.color || s.format?.color || '#1A1A1A',
               fontSize: s.fontSize || s.format?.fontSize || 16,
               fontFamily: s.fontFamily || s.format?.fontFamily || 'System',
             }
@@ -609,7 +609,7 @@ export default function RichTextEditorDoc({
       >
         {para.spans.map((span, sIdx) => {
           const style: TextStyle = {
-            color: span.format.color || '#ffffff',
+            color: span.format.color || '#1A1A1A',
             fontSize: span.format.fontSize || 16,
           };
           if (span.format.fontFamily && span.format.fontFamily !== 'System') {

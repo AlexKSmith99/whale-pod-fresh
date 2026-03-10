@@ -6,9 +6,11 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
 import { HapticManager } from '../services/hapticManager';
 import GrainTexture from '../components/ui/GrainTexture';
+import GradientBackground from '../components/ui/GradientBackground';
+import { SkeletonFeedList } from '../components/ui/Skeleton';
 import PursuitDetailScreen from './PursuitDetailScreen';
 import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
-import { useFonts, Magra_400Regular } from '@expo-google-fonts/magra';
+import { useFonts, KleeOne_400Regular } from '@expo-google-fonts/klee-one';
 
 // Location suggestions for autocomplete
 const LOCATION_SUGGESTIONS = [
@@ -47,7 +49,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
   const { theme, toggleTheme, isNewTheme } = useTheme();
   const colors = theme.colors;
   const [fontsLoaded] = useFonts({
-    Magra_400Regular,
+    KleeOne_400Regular,
   });
   const [pursuits, setPursuits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -380,8 +382,8 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
       marginBottom: spacing.base,
       ...shadows.base,
       shadowColor: isNewTheme ? '#000' : '#000',
-      borderWidth: 1,
-      borderColor: isNewTheme ? colors.border : legacyColors.borderLight,
+      borderWidth: isNewTheme ? 0.75 : 0.5,
+      borderColor: isNewTheme ? colors.accentGreen : legacyColors.borderLight,
     },
     cardTitle: {
       flex: 1,
@@ -396,7 +398,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
       color: colors.textSecondary,
       lineHeight: typography.fontSize.base * typography.lineHeight.normal,
       marginBottom: spacing.md,
-      fontFamily: isNewTheme ? 'Magra_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined,
     },
     filterButton: {
       flexDirection: 'row' as const,
@@ -438,7 +440,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
   };
 
   return (
-    <View style={dynamicStyles.container}>
+    <GradientBackground style={dynamicStyles.container}>
       <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
 
       {/* Grain texture overlay for new theme */}
@@ -786,7 +788,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
         visible={showTeamSizeModal}
         onClose={() => setShowTeamSizeModal(false)}
         title="Filter by Team Size"
-        options={['1-2', '3-5', '6-10', '11-20', '20+']}
+        options={['1-2', '3-5', '6-8']}
         selectedValues={teamSizeFilter}
         onToggle={(value) => toggleFilter(teamSizeFilter, setTeamSizeFilter, value)}
       />
@@ -908,7 +910,9 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
         }
       >
         <View style={styles.content}>
-          {pursuits.length === 0 ? (
+          {loading && pursuits.length === 0 ? (
+            <SkeletonFeedList count={4} />
+          ) : pursuits.length === 0 ? (
             <View style={styles.emptyContainer}>
               <View style={[styles.emptyIconContainer, { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.backgroundSecondary }]}>
                 <Ionicons name="search-outline" size={48} color={colors.textTertiary} />
@@ -1016,7 +1020,9 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
                           <Ionicons name="location" size={14} color={colors.textSecondary} />
                         </View>
                         <Text style={[styles.infoTextFlex, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]} numberOfLines={1}>
-                          {pursuit.location}
+                          {pursuit.neighborhood
+                            ? `${pursuit.neighborhood}, ${pursuit.location.split(',')[0]}`
+                            : pursuit.location}
                         </Text>
                       </View>
                     )}
@@ -1077,7 +1083,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
           )}
         </View>
       </ScrollView>
-    </View>
+    </GradientBackground>
   );
 }
 
@@ -1306,7 +1312,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     marginBottom: spacing.base,
     ...shadows.base,
-    borderWidth: 1,
+    borderWidth: 0.5,
     borderColor: legacyColors.borderLight,
   },
 

@@ -18,6 +18,7 @@ import { colors as legacyColors, typography, spacing } from '../theme/designSyst
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
+import LocationMapView from '../components/ui/LocationMapView';
 
 interface Props {
   pursuit: any;
@@ -83,6 +84,20 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
 
   // Pod Chat state
   const [showPodChat, setShowPodChat] = useState(false);
+
+  // Delete Pursuit state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedTerminationReason, setSelectedTerminationReason] = useState<string | null>(null);
+  const [deletingPursuit, setDeletingPursuit] = useState(false);
+
+  const terminationReasons = [
+    'No interest from others',
+    'I lost interest in the pursuit',
+    'We finished our pursuit',
+    "I couldn't handle the responsibility",
+    'I can no longer lead a pod at this time',
+    "Unsatisfied with pursuit's progress",
+  ];
 
   // Handle initial sub-screen navigation from notifications
   useEffect(() => {
@@ -492,6 +507,53 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
     }
   };
 
+  const handleDeletePursuit = async () => {
+    if (!selectedTerminationReason) {
+      Alert.alert('Required', 'Please select a reason for pod termination.');
+      return;
+    }
+
+    setDeletingPursuit(true);
+    try {
+      // Notify all team members of pod termination
+      if (teamMembers.length > 0) {
+        try {
+          const memberIds = teamMembers.map(m => m.user_id).filter(id => id !== user?.id);
+          if (memberIds.length > 0) {
+            const creatorName = user?.name || user?.email?.split('@')[0] || 'The pod creator';
+            await notificationService.sendPushNotification(
+              memberIds,
+              `Pod Terminated: ${pursuit.title}`,
+              `${creatorName} has terminated the pod. Reason: ${selectedTerminationReason}`,
+              {
+                type: 'pod_terminated',
+                pursuitId: pursuit.id,
+                pursuitTitle: pursuit.title,
+                terminationReason: selectedTerminationReason,
+                terminatedAt: new Date().toISOString()
+              },
+              'pod_terminated',
+              pursuit.id,
+              'pursuit'
+            );
+          }
+        } catch (notifError) {
+          console.error('Error sending termination notifications:', notifError);
+        }
+      }
+
+      // Close the modal and call the delete handler
+      setShowDeleteModal(false);
+      setSelectedTerminationReason(null);
+      if (onDelete) onDelete();
+    } catch (error: any) {
+      console.error('Error deleting pursuit:', error);
+      Alert.alert('Error', error.message || 'Failed to delete pursuit');
+    } finally {
+      setDeletingPursuit(false);
+    }
+  };
+
   // Show loading state while fetching pursuit data
   if (pursuit._loading) {
     return (
@@ -631,7 +693,8 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <ScrollView style={{ flex: 1 }}>
       <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       {isNewTheme && <GrainTexture opacity={0.06} />}
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
@@ -653,7 +716,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
         <View style={styles.creatorSection}>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined, textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0 }]}>Created By</Text>
           <TouchableOpacity
-            style={[styles.creatorCard, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }]}
+            style={[styles.creatorCard, { backgroundColor: colors.surface, borderColor: isNewTheme ? colors.accentGreen : colors.border, borderWidth: isNewTheme ? 0.35 : 0 }]}
             onPress={() => {
               setSelectedMemberId(pursuit.creator_id);
               setShowUserProfile(true);
@@ -677,7 +740,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
 
         {/* Team Members Section */}
         {teamMembers.length > 0 && (
-          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }]}>
+          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: isNewTheme ? colors.accentGreen : colors.border, borderWidth: isNewTheme ? 0.35 : 0 }]}>
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined, textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0 }]}>Team Members ({teamMembers.length})</Text>
               {isOwner && (
@@ -755,17 +818,61 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
           </View>
         )}
 
-        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }]}>
+        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: isNewTheme ? colors.accentGreen : colors.border, borderWidth: isNewTheme ? 0.35 : 0 }]}>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined, textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0 }]}>Description</Text>
-          <Text style={[styles.description, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>{pursuit.description}</Text>
+          <Text style={[styles.description, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>{pursuit.description}</Text>
         </View>
 
-        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }]}>
+        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: isNewTheme ? colors.accentGreen : colors.border, borderWidth: isNewTheme ? 0.35 : 0 }]}>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined, textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0 }]}>Details</Text>
-          <View style={styles.detailRow}>
-            <Text style={[styles.detailLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>📍 Location:</Text>
-            <Text style={[styles.detailValue, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{pursuit.location}</Text>
-          </View>
+          {/* Location - conditional display based on membership */}
+          {(isTeamMember || isOwner) && pursuit.address ? (
+            <>
+              <View style={styles.detailRow}>
+                <Text style={[styles.detailLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>📍 Address:</Text>
+                <Text style={[styles.detailValue, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{pursuit.address}</Text>
+              </View>
+              {pursuit.latitude && pursuit.longitude && (
+                <LocationMapView
+                  latitude={pursuit.latitude}
+                  longitude={pursuit.longitude}
+                  interactive={false}
+                  style={{ marginBottom: 12, marginTop: 4 }}
+                />
+              )}
+              {pursuit.neighborhood && (
+                <View style={styles.detailRow}>
+                  <Text style={[styles.detailLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>📍 Neighborhood:</Text>
+                  <Text style={[styles.detailValue, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{pursuit.neighborhood}</Text>
+                </View>
+              )}
+              <View style={styles.detailRow}>
+                <Text style={[styles.detailLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>📍 Location:</Text>
+                <Text style={[styles.detailValue, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{pursuit.location}</Text>
+              </View>
+            </>
+          ) : (
+            <>
+              <View style={styles.detailRow}>
+                <Text style={[styles.detailLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>📍 Location:</Text>
+                <Text style={[styles.detailValue, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{pursuit.location}</Text>
+              </View>
+              {pursuit.neighborhood && (
+                <View style={styles.detailRow}>
+                  <Text style={[styles.detailLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>📍 Neighborhood:</Text>
+                  <Text style={[styles.detailValue, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{pursuit.neighborhood}</Text>
+                </View>
+              )}
+              {pursuit.address && (
+                <View style={[styles.detailRow, { alignItems: 'center' }]}>
+                  <Ionicons name="lock-closed" size={14} color={colors.textTertiary} style={{ marginRight: 6 }} />
+                  <Text style={[styles.detailValue, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined, fontStyle: 'italic', fontSize: 12 }]}>
+                    Exact location visible to pod members
+                  </Text>
+                </View>
+              )}
+            </>
+          )}
           <View style={styles.detailRow}>
             <Text style={[styles.detailLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>📅 Meeting Cadence:</Text>
             <Text style={[styles.detailValue, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{pursuit.meeting_cadence}</Text>
@@ -798,7 +905,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
         </View>
 
         {pursuit.pursuit_types && pursuit.pursuit_types.length > 0 && (
-          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }]}>
+          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: isNewTheme ? colors.accentGreen : colors.border, borderWidth: isNewTheme ? 0.35 : 0 }]}>
             <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined, textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0 }]}>Pursuit Types</Text>
             <View style={styles.tagContainer}>
               {pursuit.pursuit_types.map((type: string, i: number) => (
@@ -811,7 +918,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
         )}
 
         {pursuit.pursuit_categories && pursuit.pursuit_categories.length > 0 && (
-          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }]}>
+          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: isNewTheme ? colors.accentGreen : colors.border, borderWidth: isNewTheme ? 0.35 : 0 }]}>
             <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined, textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0 }]}>Categories</Text>
             <View style={styles.tagContainer}>
               {pursuit.pursuit_categories.map((category: string, i: number) => (
@@ -824,7 +931,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
         )}
 
         {pursuit.subcategory && (
-          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }]}>
+          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: isNewTheme ? colors.accentGreen : colors.border, borderWidth: isNewTheme ? 0.35 : 0 }]}>
             <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined, textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0 }]}>Sub-category</Text>
             <View style={styles.tagContainer}>
               <View style={[styles.tag, styles.subcategoryTag, { backgroundColor: isNewTheme ? 'rgba(252, 211, 77, 0.15)' : '#ddd6fe', borderWidth: isNewTheme ? 1 : 0, borderColor: isNewTheme ? colors.warning : undefined }]}>
@@ -834,9 +941,9 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
           </View>
         )}
 
-        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }]}>
+        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: isNewTheme ? colors.accentGreen : colors.border, borderWidth: isNewTheme ? 0.35 : 0 }]}>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined, textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0 }]}>Decision System</Text>
-          <Text style={[styles.detailValue, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
+          <Text style={[styles.detailValue, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
             {pursuit.decision_system === 'admin_has_ultimate_say'
               ? 'Admin has full control'
               : pursuit.decision_system.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
@@ -845,7 +952,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
 
         {/* Next Meeting Section */}
         {nextMeeting && (
-          <View style={[styles.section, styles.nextMeetingSection, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f0f9ff', borderColor: isNewTheme ? colors.accentGreen : legacyColors.secondary, borderWidth: 2 }]}>
+          <View style={[styles.section, styles.nextMeetingSection, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f0f9ff', borderColor: isNewTheme ? colors.accentGreen : legacyColors.secondary, borderWidth: 1 }]}>
             <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined, textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0 }]}>📅 Next Meeting</Text>
             <View style={styles.nextMeetingCard}>
               <Text style={[styles.nextMeetingTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{nextMeeting.title}</Text>
@@ -859,10 +966,10 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                 })}
               </Text>
               <View style={styles.nextMeetingDetails}>
-                <Text style={[styles.nextMeetingDetail, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
+                <Text style={[styles.nextMeetingDetail, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
                   ⏱️ {nextMeeting.duration_minutes} min
                 </Text>
-                <Text style={[styles.nextMeetingDetail, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
+                <Text style={[styles.nextMeetingDetail, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
                   📍 {nextMeeting.meeting_type === 'video' ? 'Video Call' :
                       nextMeeting.meeting_type === 'in_person' ? 'In Person' : 'Hybrid'}
                 </Text>
@@ -872,7 +979,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                   <Text style={[styles.kickoffBadgeText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined, letterSpacing: isNewTheme ? 0.5 : 0 }]}>🚀 KICKOFF MEETING</Text>
                 </View>
               )}
-              <Text style={[styles.teamBoardPrompt, { color: isNewTheme ? colors.accentGreen : legacyColors.secondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
+              <Text style={[styles.teamBoardPrompt, { color: isNewTheme ? colors.accentGreen : legacyColors.secondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
                 💡 Add your thoughts to the Team Board!
               </Text>
             </View>
@@ -909,7 +1016,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
             {hasSubmittedProposal ? (
               <View style={[styles.proposalSubmittedBadge, { backgroundColor: isNewTheme ? 'rgba(168, 230, 163, 0.15)' : '#e0f2fe', borderColor: isNewTheme ? colors.accentGreen : legacyColors.secondary }]}>
                 <Text style={[styles.proposalSubmittedText, { color: isNewTheme ? colors.accentGreen : legacyColors.secondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>✓ Time Proposals Submitted</Text>
-                <Text style={[styles.proposalSubmittedSubtext, { color: isNewTheme ? colors.accentGreenMuted : '#0369a1', fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
+                <Text style={[styles.proposalSubmittedSubtext, { color: isNewTheme ? colors.accentGreenMuted : '#0369a1', fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
                   Waiting for team creator to select final time
                 </Text>
               </View>
@@ -954,7 +1061,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
             >
               <Text style={[styles.reviewButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>📋 Review Applications</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.deleteButton, { backgroundColor: colors.error }]} onPress={onDelete}>
+            <TouchableOpacity style={[styles.deleteButton, { backgroundColor: colors.error }]} onPress={() => setShowDeleteModal(true)}>
               <Text style={[styles.deleteButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>🗑️ Delete Pursuit</Text>
             </TouchableOpacity>
           </View>
@@ -1085,12 +1192,12 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                     Removing: {memberToRemove?.user?.name || 'Team Member'}
                   </Text>
 
-                  <Text style={[styles.removalLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Reason for Removal</Text>
-                  <Text style={[styles.removalSubLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
+                  <Text style={[styles.removalLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_600SemiBold' : undefined }]}>Reason for Removal</Text>
+                  <Text style={[styles.removalSubLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
                     Please explain why you are removing this member (50 character minimum)
                   </Text>
                   <TextInput
-                    style={[styles.removalInput, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f9f9f9', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}
+                    style={[styles.removalInput, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f9f9f9', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
                     value={removalReason}
                     onChangeText={setRemovalReason}
                     placeholder="Enter reason for removal..."
@@ -1102,7 +1209,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                   />
                   <Text style={[
                     styles.characterCount,
-                    { color: isNewTheme ? colors.accentGreen : legacyColors.success, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined },
+                    { color: isNewTheme ? colors.accentGreen : legacyColors.success, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined },
                     removalReason.length < 50 && { color: colors.error }
                   ]}>
                     {removalReason.length}/50 characters minimum
@@ -1115,9 +1222,9 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                     <View style={[styles.checkbox, { borderColor: colors.border }, shareWithMember && { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.secondary, borderColor: isNewTheme ? colors.accentGreen : legacyColors.secondary }]}>
                       {shareWithMember && <Text style={[styles.checkboxMark, { color: isNewTheme ? colors.background : legacyColors.white }]}>✓</Text>}
                     </View>
-                    <Text style={[styles.checkboxLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Share with the member?</Text>
+                    <Text style={[styles.checkboxLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>Share with the member?</Text>
                   </TouchableOpacity>
-                  <Text style={[styles.checkboxHint, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
+                  <Text style={[styles.checkboxHint, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
                     If checked, the member will receive a notification with your reason
                   </Text>
 
@@ -1186,16 +1293,16 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
 
             <ScrollView style={styles.modalContent}>
               <View style={styles.removalForm}>
-                <Text style={[styles.leavePodTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                <Text style={[styles.leavePodTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_600SemiBold' : undefined }]}>
                   Are you sure you want to leave "{pursuit.title}"?
                 </Text>
 
-                <Text style={[styles.removalLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Reason for Leaving</Text>
-                <Text style={[styles.removalSubLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
+                <Text style={[styles.removalLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_600SemiBold' : undefined }]}>Reason for Leaving</Text>
+                <Text style={[styles.removalSubLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
                   Please explain why you are leaving this pod (50 character minimum)
                 </Text>
                 <TextInput
-                  style={[styles.removalInput, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f9f9f9', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}
+                  style={[styles.removalInput, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f9f9f9', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
                   value={leaveReason}
                   onChangeText={setLeaveReason}
                   placeholder="Enter reason for leaving..."
@@ -1207,7 +1314,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                 />
                 <Text style={[
                   styles.characterCount,
-                  { color: isNewTheme ? colors.accentGreen : legacyColors.success, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined },
+                  { color: isNewTheme ? colors.accentGreen : legacyColors.success, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined },
                   leaveReason.length < 50 && { color: colors.error }
                 ]}>
                   {leaveReason.length}/50 characters minimum
@@ -1220,9 +1327,9 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                   <View style={[styles.checkbox, { borderColor: colors.border }, shareWithLeader && { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.secondary, borderColor: isNewTheme ? colors.accentGreen : legacyColors.secondary }]}>
                     {shareWithLeader && <Text style={[styles.checkboxMark, { color: isNewTheme ? colors.background : legacyColors.white }]}>✓</Text>}
                   </View>
-                  <Text style={[styles.checkboxLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Share with the leader?</Text>
+                  <Text style={[styles.checkboxLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>Share with the leader?</Text>
                 </TouchableOpacity>
-                <Text style={[styles.checkboxHint, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
+                <Text style={[styles.checkboxHint, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
                   If checked, the pod creator will receive a notification with your reason
                 </Text>
 
@@ -1256,7 +1363,117 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Delete Pursuit Confirmation Modal */}
+      <Modal
+        visible={showDeleteModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => {
+          setShowDeleteModal(false);
+          setSelectedTerminationReason(null);
+        }}
+      >
+        <View style={[styles.modalOverlay, { backgroundColor: isNewTheme ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)' }]}>
+          <View style={[styles.modalContainer, { backgroundColor: colors.surface }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.modalTitle, { color: colors.error, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                Delete Pursuit
+              </Text>
+              <TouchableOpacity
+                style={[styles.modalCloseButton, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f5f5f5' }]}
+                onPress={() => {
+                  setShowDeleteModal(false);
+                  setSelectedTerminationReason(null);
+                }}
+              >
+                <Text style={[styles.modalCloseText, { color: colors.textSecondary }]}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalContent}>
+              <Text style={[styles.deleteConfirmTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_600SemiBold' : undefined }]}>
+                Are you sure you want to delete this pursuit?
+              </Text>
+
+              {teamMembers.length > 0 && (
+                <Text style={[styles.deleteConfirmWarning, { color: colors.error, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
+                  Are members aware and have they signed off on this pursuit termination?
+                </Text>
+              )}
+
+              <Text style={[styles.deleteReasonLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_600SemiBold' : undefined }]}>
+                Select a reason for Pod termination:
+              </Text>
+
+              {terminationReasons.map((reason) => (
+                <TouchableOpacity
+                  key={reason}
+                  style={[
+                    styles.terminationReasonOption,
+                    { borderColor: colors.border, backgroundColor: isNewTheme ? colors.surfaceAlt : '#f9f9f9' },
+                    selectedTerminationReason === reason && {
+                      borderColor: colors.error,
+                      backgroundColor: isNewTheme ? 'rgba(239, 68, 68, 0.1)' : '#fef2f2',
+                    },
+                  ]}
+                  onPress={() => setSelectedTerminationReason(reason)}
+                >
+                  <View style={[
+                    styles.terminationRadio,
+                    { borderColor: colors.border },
+                    selectedTerminationReason === reason && { borderColor: colors.error },
+                  ]}>
+                    {selectedTerminationReason === reason && (
+                      <View style={[styles.terminationRadioFill, { backgroundColor: colors.error }]} />
+                    )}
+                  </View>
+                  <Text style={[
+                    styles.terminationReasonText,
+                    { color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined },
+                    selectedTerminationReason === reason && { fontWeight: '700' },
+                  ]}>
+                    {reason}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+
+              {teamMembers.length > 0 && (
+                <Text style={[styles.deleteNoticeText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
+                  Members will be notified of pod termination.
+                </Text>
+              )}
+
+              <View style={styles.deleteModalButtons}>
+                <TouchableOpacity
+                  style={[styles.cancelRemovalButton, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f5f5f5' }]}
+                  onPress={() => {
+                    setShowDeleteModal(false);
+                    setSelectedTerminationReason(null);
+                  }}
+                >
+                  <Text style={[styles.cancelRemovalText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.confirmDeleteButton,
+                    { backgroundColor: colors.error },
+                    (!selectedTerminationReason || deletingPursuit) && styles.buttonDisabled,
+                  ]}
+                  onPress={handleDeletePursuit}
+                  disabled={!selectedTerminationReason || deletingPursuit}
+                >
+                  <Text style={[styles.confirmDeleteText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                    {deletingPursuit ? 'Deleting...' : 'Delete Pursuit'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
+    </View>
   );
 }
 
@@ -1726,6 +1943,83 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   confirmLeaveText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  // Delete pursuit modal styles
+  deleteConfirmTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  deleteConfirmWarning: {
+    fontSize: 14,
+    color: '#ef4444',
+    marginBottom: 20,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  deleteReasonLabel: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 12,
+  },
+  terminationReasonOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    marginBottom: 8,
+  },
+  terminationRadio: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: '#ddd',
+    marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  terminationRadioFill: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#ef4444',
+  },
+  terminationReasonText: {
+    fontSize: 14,
+    color: '#333',
+    flex: 1,
+  },
+  deleteNoticeText: {
+    fontSize: 13,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 16,
+    marginBottom: 8,
+    fontStyle: 'italic',
+  },
+  deleteModalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 20,
+    paddingBottom: 20,
+  },
+  confirmDeleteButton: {
+    flex: 1,
+    backgroundColor: '#ef4444',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  confirmDeleteText: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#fff',

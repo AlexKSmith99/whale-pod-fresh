@@ -14,6 +14,8 @@ import {
   Animated,
   Dimensions,
   StatusBar,
+  Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -22,6 +24,7 @@ import { colors as legacyColors, typography, spacing, borderRadius, shadows } fr
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
+import GradientBackground from '../components/ui/GradientBackground';
 
 const { height } = Dimensions.get('window');
 
@@ -57,7 +60,10 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [sendingReset, setSendingReset] = useState(false);
+  const { signIn, signUp, resetPassword } = useAuth();
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -98,6 +104,28 @@ export default function LoginScreen() {
       }
     } catch (error) {
       console.error('Error loading credentials:', error);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!resetEmail.trim()) {
+      Alert.alert('Missing Email', 'Please enter your email address.');
+      return;
+    }
+
+    setSendingReset(true);
+    try {
+      await resetPassword(resetEmail);
+      Alert.alert(
+        'Reset Email Sent',
+        'If an account exists with this email, you will receive a password reset link.',
+        [{ text: 'OK', onPress: () => setShowForgotPassword(false) }]
+      );
+      setResetEmail('');
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to send reset email');
+    } finally {
+      setSendingReset(false);
     }
   };
 
@@ -145,7 +173,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: isNewTheme ? colors.background : legacyColors.white }]}>
+    <GradientBackground style={styles.container}>
       <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={isNewTheme ? colors.background : legacyColors.white} />
       {isNewTheme && <GrainTexture opacity={0.06} />}
       {/* Decorative circles - white/green/purple theme */}
@@ -178,8 +206,8 @@ export default function LoginScreen() {
                   <Text style={styles.logoEmoji}>🐋</Text>
                 </View>
               </View>
-              <Text style={[styles.appName, { color: legacyColors.textPrimary }]}>Whale Pod</Text>
-              <Text style={[styles.tagline, { color: legacyColors.textSecondary }]}>
+              <Text style={[styles.appName, { color: isNewTheme ? loginColors.accent : legacyColors.textPrimary }]}>Whale Pod</Text>
+              <Text style={[styles.tagline, { color: isNewTheme ? colors.textSecondary : legacyColors.textSecondary }]}>
                 {isSignup ? 'Join the community' : 'Welcome back'}
               </Text>
             </Animated.View>
@@ -197,7 +225,7 @@ export default function LoginScreen() {
             >
               {/* Email Input */}
               <View style={styles.inputWrapper}>
-                <Text style={[styles.inputLabel, { color: legacyColors.textPrimary }]}>Email</Text>
+                <Text style={[styles.inputLabel, { color: isNewTheme ? loginColors.accent : legacyColors.textPrimary }]}>Email</Text>
                 <View
                   style={[
                     styles.inputContainer,
@@ -208,13 +236,13 @@ export default function LoginScreen() {
                   <Ionicons
                     name="mail-outline"
                     size={20}
-                    color={emailFocused ? loginColors.accent : colors.textTertiary}
+                    color={emailFocused ? loginColors.accent : (isNewTheme ? loginColors.accent : colors.textTertiary)}
                     style={styles.inputIcon}
                   />
           <TextInput
-            style={[styles.input, { color: legacyColors.textPrimary }]}
+            style={[styles.input, { color: isNewTheme ? loginColors.accent : legacyColors.textPrimary }]}
                     placeholder="Enter your email"
-                    placeholderTextColor={colors.textTertiary}
+                    placeholderTextColor={isNewTheme ? colors.textSecondary : colors.textTertiary}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -228,7 +256,7 @@ export default function LoginScreen() {
 
               {/* Password Input */}
               <View style={styles.inputWrapper}>
-                <Text style={[styles.inputLabel, { color: legacyColors.textPrimary }]}>Password</Text>
+                <Text style={[styles.inputLabel, { color: isNewTheme ? loginColors.accent : legacyColors.textPrimary }]}>Password</Text>
                 <View
                   style={[
                     styles.inputContainer,
@@ -239,13 +267,13 @@ export default function LoginScreen() {
                   <Ionicons
                     name="lock-closed-outline"
                     size={20}
-                    color={passwordFocused ? loginColors.accent : colors.textTertiary}
+                    color={passwordFocused ? loginColors.accent : (isNewTheme ? loginColors.accent : colors.textTertiary)}
                     style={styles.inputIcon}
           />
           <TextInput
-            style={[styles.input, { color: legacyColors.textPrimary }]}
+            style={[styles.input, { color: isNewTheme ? loginColors.accent : legacyColors.textPrimary }]}
                     placeholder="Enter your password"
-                    placeholderTextColor={colors.textTertiary}
+                    placeholderTextColor={isNewTheme ? colors.textSecondary : colors.textTertiary}
             value={password}
             onChangeText={setPassword}
                     secureTextEntry={!showPassword}
@@ -262,32 +290,44 @@ export default function LoginScreen() {
                     <Ionicons
                       name={showPassword ? 'eye-outline' : 'eye-off-outline'}
                       size={20}
-                      color={colors.textTertiary}
+                      color={isNewTheme ? loginColors.accent : colors.textTertiary}
                     />
                   </TouchableOpacity>
                 </View>
               </View>
 
-              {/* Remember Me - Only on Login */}
+              {/* Remember Me & Forgot Password - Only on Login */}
           {!isSignup && (
-            <TouchableOpacity
-                  style={styles.rememberMeContainer}
-              onPress={() => setRememberMe(!rememberMe)}
-              activeOpacity={0.7}
-            >
-                  <View
-                    style={[
-                      styles.checkbox,
-                      { borderColor: legacyColors.border, backgroundColor: isNewTheme ? colors.surface : legacyColors.white },
-                      rememberMe && [styles.checkboxChecked, { backgroundColor: loginColorsLight.accent, borderColor: loginColors.accent }],
-                    ]}
-                  >
-                    {rememberMe && (
-                      <Ionicons name="checkmark" size={14} color={isNewTheme ? colors.background : '#fff'} />
-                    )}
-              </View>
-                  <Text style={[styles.rememberMeText, { color: legacyColors.textSecondary }]}>Remember me</Text>
-            </TouchableOpacity>
+            <View style={styles.loginOptionsRow}>
+              <TouchableOpacity
+                    style={styles.rememberMeContainer}
+                onPress={() => setRememberMe(!rememberMe)}
+                activeOpacity={0.7}
+              >
+                    <View
+                      style={[
+                        styles.checkbox,
+                        { borderColor: legacyColors.border, backgroundColor: isNewTheme ? colors.surface : legacyColors.white },
+                        rememberMe && [styles.checkboxChecked, { backgroundColor: loginColorsLight.accent, borderColor: loginColors.accent }],
+                      ]}
+                    >
+                      {rememberMe && (
+                        <Ionicons name="checkmark" size={14} color={isNewTheme ? colors.background : '#fff'} />
+                      )}
+                </View>
+                    <Text style={[styles.rememberMeText, { color: isNewTheme ? loginColors.accent : legacyColors.textSecondary }]}>Remember me</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {
+                  setResetEmail(email);
+                  setShowForgotPassword(true);
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.forgotPasswordText, { color: loginColors.accent }]}>Forgot Password?</Text>
+              </TouchableOpacity>
+            </View>
           )}
 
               {/* Submit Button */}
@@ -310,7 +350,7 @@ export default function LoginScreen() {
               {/* Divider */}
               <View style={styles.dividerContainer}>
                 <View style={[styles.divider, { backgroundColor: colors.border }]} />
-                <Text style={[styles.dividerText, { color: legacyColors.textTertiary }]}>or</Text>
+                <Text style={[styles.dividerText, { color: isNewTheme ? colors.textSecondary : legacyColors.textTertiary }]}>or</Text>
                 <View style={[styles.divider, { backgroundColor: colors.border }]} />
               </View>
 
@@ -320,7 +360,7 @@ export default function LoginScreen() {
                 onPress={toggleMode}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.toggleText, { color: legacyColors.textSecondary }]}>
+                <Text style={[styles.toggleText, { color: isNewTheme ? colors.textSecondary : legacyColors.textSecondary }]}>
                   {isSignup
                     ? 'Already have an account? '
                     : "Don't have an account? "}
@@ -333,14 +373,66 @@ export default function LoginScreen() {
 
             {/* Footer */}
             <Animated.View style={[styles.footer, { opacity: fadeAnim }]}>
-              <Text style={[styles.footerText, { color: legacyColors.textTertiary }]}>
+              <Text style={[styles.footerText, { color: isNewTheme ? colors.textSecondary : legacyColors.textTertiary }]}>
                 By continuing, you agree to our Terms of Service
               </Text>
             </Animated.View>
         </ScrollView>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
-    </View>
+
+      {/* Forgot Password Modal */}
+      <Modal
+        visible={showForgotPassword}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setShowForgotPassword(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setShowForgotPassword(false)}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
+              <View style={[styles.modalContent, { backgroundColor: isNewTheme ? colors.surface : legacyColors.white }]}>
+                <View style={styles.modalHeader}>
+                  <Text style={[styles.modalTitle, { color: isNewTheme ? loginColors.accent : legacyColors.textPrimary }]}>Reset Password</Text>
+                  <TouchableOpacity onPress={() => setShowForgotPassword(false)} style={styles.modalClose}>
+                    <Ionicons name="close" size={24} color={isNewTheme ? colors.textSecondary : legacyColors.textSecondary} />
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={[styles.modalDescription, { color: isNewTheme ? colors.textSecondary : legacyColors.textSecondary }]}>
+                  Enter your email address and we'll send you a link to reset your password.
+                </Text>
+
+                <View style={[styles.modalInputContainer, { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.backgroundSecondary, borderColor: loginColors.accent }]}>
+                  <Ionicons name="mail-outline" size={20} color={loginColors.accent} style={styles.inputIcon} />
+                  <TextInput
+                    style={[styles.input, { color: isNewTheme ? loginColors.accent : legacyColors.textPrimary }]}
+                    placeholder="Enter your email"
+                    placeholderTextColor={colors.textTertiary}
+                    value={resetEmail}
+                    onChangeText={setResetEmail}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                  />
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.modalButton, { backgroundColor: loginColorsLight.accent }]}
+                  onPress={handleForgotPassword}
+                  disabled={sendingReset}
+                >
+                  {sendingReset ? (
+                    <ActivityIndicator color={isNewTheme ? colors.background : '#fff'} />
+                  ) : (
+                    <Text style={[styles.modalButtonText, { color: isNewTheme ? colors.background : '#fff' }]}>Send Reset Link</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+    </GradientBackground>
   );
 }
 
@@ -543,5 +635,70 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.xs,
     color: legacyColors.textTertiary,
     textAlign: 'center',
+  },
+  // Login options row (remember me + forgot password)
+  loginOptionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+    marginTop: spacing.xs,
+  },
+  forgotPasswordText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: typography.fontWeight.semibold,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: borderRadius['2xl'],
+    padding: spacing.xl,
+    ...shadows.lg,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  modalTitle: {
+    fontSize: typography.fontSize.xl,
+    fontWeight: typography.fontWeight.bold,
+  },
+  modalClose: {
+    padding: spacing.xs,
+  },
+  modalDescription: {
+    fontSize: typography.fontSize.base,
+    lineHeight: 22,
+    marginBottom: spacing.xl,
+  },
+  modalInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: borderRadius.lg,
+    borderWidth: 1.5,
+    paddingHorizontal: spacing.base,
+    height: 54,
+    marginBottom: spacing.xl,
+  },
+  modalButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacing.base,
+    paddingHorizontal: spacing.xl,
+  },
+  modalButtonText: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semibold,
   },
 });

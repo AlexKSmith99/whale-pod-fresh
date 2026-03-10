@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { messageService } from '../services/messageService';
+import { messageLikeService } from '../services/messageLikeService';
 import { notificationService } from '../services/notificationService';
+import { HapticManager } from '../services/hapticManager';
 import { supabase } from '../config/supabase';
 import { colors as legacyColors, typography, spacing } from '../theme/designSystem';
 import { useTheme } from '../theme/ThemeContext';
@@ -44,6 +46,8 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
   const [myProfile, setMyProfile] = useState<any>(null);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const [expandedMessageId, setExpandedMessageId] = useState<string | null>(null);
+  const [likes, setLikes] = useState<Record<string, string[]>>({});
+  const lastTapRef = useRef<Record<string, number>>({});
 
   const handleMenuPress = () => {
     if (showMenuButton && onMenuPress) {
@@ -111,6 +115,12 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
       if (user) {
         const data = await messageService.getConversation(user.id, partnerId);
         setMessages(data);
+        // Load likes for all messages
+        if (data.length > 0) {
+          const messageIds = data.map((m: any) => m.id);
+          const likesData = await messageLikeService.getLikesForMessages(messageIds, 'direct');
+          setLikes(likesData);
+        }
       }
     } catch (error) {
       console.error('Error loading messages:', error);
@@ -190,18 +200,16 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
     yesterday.setDate(yesterday.getDate() - 1);
     const isYesterday = date.toDateString() === yesterday.toDateString();
 
-    const timeStr = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-    
     if (isToday) {
-      return `Today at ${timeStr}`;
+      return 'Today';
     } else if (isYesterday) {
-      return `Yesterday at ${timeStr}`;
+      return 'Yesterday';
     } else {
-      return date.toLocaleDateString([], { 
-        month: 'short', 
+      return date.toLocaleDateString([], {
+        month: 'short',
         day: 'numeric',
-        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined 
-      }) + ` at ${timeStr}`;
+        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+      });
     }
   };
 
@@ -259,14 +267,16 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
       color: isNewTheme ? colors.background : legacyColors.white,
     },
     myMessageBubble: {
-      padding: spacing.md,
-      borderRadius: 16,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: 20,
       backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary,
       borderBottomRightRadius: 4,
     },
     theirMessageBubble: {
-      padding: spacing.md,
-      borderRadius: 16,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: 20,
       backgroundColor: isNewTheme ? colors.surface : legacyColors.white,
       borderBottomLeftRadius: 4,
       borderWidth: 1,
@@ -275,7 +285,7 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
     messageText: {
       fontSize: typography.fontSize.base,
       color: colors.textPrimary,
-      fontFamily: isNewTheme ? 'Magra_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined,
     },
     myMessageText: {
       color: isNewTheme ? colors.background : legacyColors.white,
@@ -291,14 +301,14 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
       paddingHorizontal: spacing.md,
       paddingVertical: spacing.xs,
       borderRadius: 12,
-      fontFamily: isNewTheme ? 'Magra_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined,
     },
     expandedTimestamp: {
       fontSize: 11,
       color: colors.textSecondary,
       marginTop: 4,
       marginBottom: 2,
-      fontFamily: isNewTheme ? 'Magra_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined,
     },
     inputContainer: {
       flexDirection: 'row' as const,
@@ -320,7 +330,7 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
       fontSize: typography.fontSize.base,
       backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.white,
       color: colors.textPrimary,
-      fontFamily: isNewTheme ? 'Magra_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined,
     },
     sendButton: {
       backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary,
@@ -373,6 +383,43 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
       fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
     },
   };
+
+  const handleToggleLike = useCallback(async (messageId: string) => {
+    if (!user) return;
+    try {
+      const liked = await messageLikeService.toggleLike(messageId, 'direct', user.id);
+      if (liked) {
+        HapticManager.pulse(1);
+      }
+      setLikes(prev => {
+        const updated = { ...prev };
+        if (liked) {
+          updated[messageId] = [...(updated[messageId] || []), user.id];
+        } else {
+          updated[messageId] = (updated[messageId] || []).filter(id => id !== user.id);
+          if (updated[messageId].length === 0) delete updated[messageId];
+        }
+        return updated;
+      });
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    }
+  }, [user]);
+
+  const handleMessageTap = useCallback((messageId: string) => {
+    const now = Date.now();
+    const lastTap = lastTapRef.current[messageId] || 0;
+
+    if (now - lastTap < 300) {
+      // Double tap - toggle like
+      handleToggleLike(messageId);
+      lastTapRef.current[messageId] = 0;
+    } else {
+      // Single tap - toggle timestamp
+      setExpandedMessageId(prev => prev === messageId ? null : messageId);
+      lastTapRef.current[messageId] = now;
+    }
+  }, [handleToggleLike]);
 
   const renderMessage = ({ item, index }: { item: any; index: number }) => {
     const isMyMessage = item.sender_id === user?.id;
@@ -429,11 +476,19 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
               <View style={styles.bubbleWrapper}>
                 <TouchableOpacity
                   activeOpacity={0.8}
-                  onPress={() => setExpandedMessageId(expandedMessageId === item.id ? null : item.id)}
+                  onPress={() => handleMessageTap(item.id)}
                   style={dynamicStyles.myMessageBubble}
                 >
                   <Text style={[dynamicStyles.messageText, dynamicStyles.myMessageText]}>{item.content}</Text>
                 </TouchableOpacity>
+                {likes[item.id] && likes[item.id].length > 0 && (
+                  <View style={[styles.likeIndicator, styles.likeIndicatorRight]}>
+                    <Text style={styles.likeHeart}>❤️</Text>
+                    {likes[item.id].length > 1 && (
+                      <Text style={[styles.likeCount, { color: colors.textSecondary }]}>{likes[item.id].length}</Text>
+                    )}
+                  </View>
+                )}
                 {expandedMessageId === item.id && (
                   <Text style={[dynamicStyles.expandedTimestamp, styles.expandedTimestampRight]}>
                     {new Date(item.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
@@ -454,11 +509,19 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
               <View style={styles.bubbleWrapper}>
                 <TouchableOpacity
                   activeOpacity={0.8}
-                  onPress={() => setExpandedMessageId(expandedMessageId === item.id ? null : item.id)}
+                  onPress={() => handleMessageTap(item.id)}
                   style={dynamicStyles.theirMessageBubble}
                 >
                   <Text style={dynamicStyles.messageText}>{item.content}</Text>
                 </TouchableOpacity>
+                {likes[item.id] && likes[item.id].length > 0 && (
+                  <View style={[styles.likeIndicator, styles.likeIndicatorLeft]}>
+                    <Text style={styles.likeHeart}>❤️</Text>
+                    {likes[item.id].length > 1 && (
+                      <Text style={[styles.likeCount, { color: colors.textSecondary }]}>{likes[item.id].length}</Text>
+                    )}
+                  </View>
+                )}
                 {expandedMessageId === item.id && (
                   <Text style={[dynamicStyles.expandedTimestamp, styles.expandedTimestampLeft]}>
                     {new Date(item.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
@@ -477,8 +540,8 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
       <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       {isNewTheme && <GrainTexture opacity={0.06} />}
       <View style={dynamicStyles.header}>
-        <TouchableOpacity onPress={handleMenuPress} style={styles.backButton}>
-          <Ionicons name={showMenuButton ? "ellipsis-vertical" : "arrow-back"} size={24} color={colors.textPrimary} />
+        <TouchableOpacity onPress={handleMenuPress} style={[styles.backButton, showMenuButton && { backgroundColor: isNewTheme ? 'rgba(168, 230, 163, 0.15)' : 'rgba(0,0,0,0.05)', borderRadius: 20, padding: 6 }]}>
+          <Ionicons name={showMenuButton ? "ellipsis-vertical" : "arrow-back"} size={showMenuButton ? 22 : 24} color={showMenuButton ? (isNewTheme ? colors.accentGreen : colors.textPrimary) : colors.textPrimary} />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.headerUserInfo}
@@ -644,8 +707,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   messageBubble: {
-    padding: 12,
-    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
   },
   myMessageBubble: {
     backgroundColor: '#0ea5e9',
@@ -681,6 +745,38 @@ const styles = StyleSheet.create({
   },
   bubbleWrapper: {
     maxWidth: '75%',
+  },
+  likeIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginTop: -8,
+    marginBottom: 4,
+    alignSelf: 'flex-start',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+    gap: 2,
+  },
+  likeIndicatorRight: {
+    alignSelf: 'flex-end',
+    marginRight: 8,
+  },
+  likeIndicatorLeft: {
+    alignSelf: 'flex-start',
+    marginLeft: 8,
+  },
+  likeHeart: {
+    fontSize: 12,
+  },
+  likeCount: {
+    fontSize: 11,
+    fontWeight: '600',
   },
   expandedTimestamp: {
     fontSize: 11,

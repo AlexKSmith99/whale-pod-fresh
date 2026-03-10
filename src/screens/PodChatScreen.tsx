@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -16,7 +16,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import PodMemberCollage from '../components/PodMemberCollage';
 import { podChatService, PodChatMessage } from '../services/podChatService';
+import { messageLikeService } from '../services/messageLikeService';
 import { notificationService } from '../services/notificationService';
+import { HapticManager } from '../services/hapticManager';
 import { supabase } from '../config/supabase';
 import { colors as legacyColors } from '../theme/designSystem';
 import { useTheme } from '../theme/ThemeContext';
@@ -53,6 +55,8 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const [myProfile, setMyProfile] = useState<any>(null);
   const [expandedMessageId, setExpandedMessageId] = useState<string | null>(null);
+  const [likes, setLikes] = useState<Record<string, string[]>>({});
+  const lastTapRef = useRef<Record<string, number>>({});
 
   // Update chatName when props change (e.g., when switching to a different chat)
   useEffect(() => {
@@ -114,6 +118,12 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
     try {
       const data = await podChatService.getMessages(pursuitId);
       setMessages(data);
+      // Load likes for all messages
+      if (data.length > 0) {
+        const messageIds = data.map((m: PodChatMessage) => m.id);
+        const likesData = await messageLikeService.getLikesForMessages(messageIds, 'pod');
+        setLikes(likesData);
+      }
     } catch (error) {
       console.error('Error loading pod chat messages:', error);
     } finally {
@@ -223,20 +233,55 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
     yesterday.setDate(yesterday.getDate() - 1);
     const isYesterday = date.toDateString() === yesterday.toDateString();
 
-    const timeStr = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-    
     if (isToday) {
-      return `Today at ${timeStr}`;
+      return 'Today';
     } else if (isYesterday) {
-      return `Yesterday at ${timeStr}`;
+      return 'Yesterday';
     } else {
-      return date.toLocaleDateString([], { 
-        month: 'short', 
+      return date.toLocaleDateString([], {
+        month: 'short',
         day: 'numeric',
-        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined 
-      }) + ` at ${timeStr}`;
+        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+      });
     }
   };
+
+  const handleToggleLike = useCallback(async (messageId: string) => {
+    if (!user) return;
+    try {
+      const liked = await messageLikeService.toggleLike(messageId, 'pod', user.id);
+      if (liked) {
+        HapticManager.pulse(1);
+      }
+      setLikes(prev => {
+        const updated = { ...prev };
+        if (liked) {
+          updated[messageId] = [...(updated[messageId] || []), user.id];
+        } else {
+          updated[messageId] = (updated[messageId] || []).filter(id => id !== user.id);
+          if (updated[messageId].length === 0) delete updated[messageId];
+        }
+        return updated;
+      });
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    }
+  }, [user]);
+
+  const handleMessageTap = useCallback((messageId: string) => {
+    const now = Date.now();
+    const lastTap = lastTapRef.current[messageId] || 0;
+
+    if (now - lastTap < 300) {
+      // Double tap - toggle like
+      handleToggleLike(messageId);
+      lastTapRef.current[messageId] = 0;
+    } else {
+      // Single tap - toggle timestamp
+      setExpandedMessageId(prev => prev === messageId ? null : messageId);
+      lastTapRef.current[messageId] = now;
+    }
+  }, [handleToggleLike]);
 
   const renderMessage = ({ item, index }: { item: PodChatMessage; index: number }) => {
     const isMyMessage = item.sender_id === user?.id;
@@ -275,7 +320,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
         {/* Time separator - shown when 1+ hour gap */}
         {showTimeSeparator && (
           <View style={styles.timeSeparator}>
-            <Text style={[styles.timeSeparatorText, { color: colors.textTertiary, backgroundColor: colors.surfaceAlt, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
+            <Text style={[styles.timeSeparatorText, { color: colors.textTertiary, backgroundColor: colors.surfaceAlt, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
               {formatTimeSeparator(item.created_at)}
             </Text>
           </View>
@@ -301,11 +346,19 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
                 <View style={styles.bubbleWrapper}>
                   <TouchableOpacity
                     activeOpacity={0.8}
-                    onPress={() => setExpandedMessageId(expandedMessageId === item.id ? null : item.id)}
+                    onPress={() => handleMessageTap(item.id)}
                     style={[styles.messageBubble, styles.myMessageBubble, { backgroundColor: isNewTheme ? colors.accentGreen : '#8b5cf6' }]}
                   >
-                    <Text style={[styles.messageText, styles.myMessageText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>{item.content}</Text>
+                    <Text style={[styles.messageText, styles.myMessageText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>{item.content}</Text>
                   </TouchableOpacity>
+                  {likes[item.id] && likes[item.id].length > 0 && (
+                    <View style={[styles.likeIndicator, styles.likeIndicatorRight]}>
+                      <Text style={styles.likeHeart}>❤️</Text>
+                      {likes[item.id].length > 1 && (
+                        <Text style={[styles.likeCount, { color: colors.textSecondary }]}>{likes[item.id].length}</Text>
+                      )}
+                    </View>
+                  )}
                   {expandedMessageId === item.id && (
                     <Text style={[styles.expandedTimestamp, styles.expandedTimestampRight, { color: colors.textTertiary }]}>
                       {new Date(item.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
@@ -334,11 +387,19 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
                 <View style={styles.bubbleWrapper}>
                   <TouchableOpacity
                     activeOpacity={0.8}
-                    onPress={() => setExpandedMessageId(expandedMessageId === item.id ? null : item.id)}
+                    onPress={() => handleMessageTap(item.id)}
                     style={[styles.messageBubble, styles.theirMessageBubble, { backgroundColor: colors.surface, borderColor: colors.border }]}
                   >
-                    <Text style={[styles.messageText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>{item.content}</Text>
+                    <Text style={[styles.messageText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>{item.content}</Text>
                   </TouchableOpacity>
+                  {likes[item.id] && likes[item.id].length > 0 && (
+                    <View style={[styles.likeIndicator, styles.likeIndicatorLeft]}>
+                      <Text style={styles.likeHeart}>❤️</Text>
+                      {likes[item.id].length > 1 && (
+                        <Text style={[styles.likeCount, { color: colors.textSecondary }]}>{likes[item.id].length}</Text>
+                      )}
+                    </View>
+                  )}
                   {expandedMessageId === item.id && (
                     <Text style={[styles.expandedTimestamp, styles.expandedTimestampLeft, { color: colors.textTertiary }]}>
                       {new Date(item.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
@@ -359,18 +420,13 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
       {isNewTheme && <GrainTexture opacity={0.06} />}
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={handleMenuPress} style={styles.backButton}>
-          <Ionicons name={showMenuButton ? "ellipsis-vertical" : "arrow-back"} size={24} color={colors.textPrimary} />
+        <TouchableOpacity onPress={handleMenuPress} style={[styles.backButton, showMenuButton && { backgroundColor: isNewTheme ? 'rgba(168, 230, 163, 0.15)' : 'rgba(0,0,0,0.05)', borderRadius: 20, padding: 6 }]}>
+          <Ionicons name={showMenuButton ? "ellipsis-vertical" : "arrow-back"} size={showMenuButton ? 22 : 24} color={showMenuButton ? (isNewTheme ? colors.accentGreen : colors.textPrimary) : colors.textPrimary} />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.headerInfo}
           onPress={() => setShowMembersModal(true)}
         >
-          {podPicture ? (
-            <Image source={{ uri: podPicture }} style={styles.groupImage} />
-          ) : (
-            <PodMemberCollage members={members} size={40} />
-          )}
           <View style={styles.headerTextContainer}>
             <Text style={[styles.headerTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]} numberOfLines={1}>
               {chatName}
@@ -405,10 +461,10 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Ionicons name="chatbubbles-outline" size={48} color={colors.textTertiary} />
-              <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
+              <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
                 {loading ? 'Loading...' : 'No messages yet'}
               </Text>
-              <Text style={[styles.emptySubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
+              <Text style={[styles.emptySubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
                 Start the conversation!
               </Text>
             </View>
@@ -419,7 +475,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
       {/* Input */}
       <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
         <TextInput
-          style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.background, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}
+          style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.background, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
           placeholder="Type a message..."
           placeholderTextColor={colors.textTertiary}
           value={newMessage}
@@ -497,7 +553,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
           <View style={[styles.renameModalContainer, { backgroundColor: colors.surface }]}>
             <Text style={[styles.renameModalTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Rename Chat</Text>
             <TextInput
-              style={[styles.renameInput, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.background, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}
+              style={[styles.renameInput, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.background, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
               value={tempChatName}
               onChangeText={setTempChatName}
               placeholder="Enter new chat name"
@@ -683,9 +739,42 @@ const styles = StyleSheet.create({
   bubbleWrapper: {
     maxWidth: '80%',
   },
+  likeIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginTop: -8,
+    marginBottom: 4,
+    alignSelf: 'flex-start',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+    gap: 2,
+  },
+  likeIndicatorRight: {
+    alignSelf: 'flex-end',
+    marginRight: 8,
+  },
+  likeIndicatorLeft: {
+    alignSelf: 'flex-start',
+    marginLeft: 8,
+  },
+  likeHeart: {
+    fontSize: 12,
+  },
+  likeCount: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
   messageBubble: {
-    padding: 12,
-    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
   },
   myMessageBubble: {
     backgroundColor: '#8b5cf6',

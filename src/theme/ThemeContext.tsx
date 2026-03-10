@@ -236,10 +236,10 @@ const newColors: ThemeColors = {
   surface: '#0F1B33',           // Card/surface navy
   surfaceAlt: '#111F3B',        // Alt sections
 
-  // Text colors - bright off-whites
-  textPrimary: '#F4F0E6',       // Main text - warm off-white
-  textSecondary: '#D8D2C8',     // Secondary text - muted
-  textTertiary: '#9A9690',      // Tertiary
+  // Text colors - bright whites
+  textPrimary: '#FFFFFF',       // Main text - pure white
+  textSecondary: '#F0F0F0',     // Secondary text - bright
+  textTertiary: '#CCCCCC',      // Tertiary - visible
   textInverse: '#0B1220',       // For light backgrounds
 
   // Borders - off-white with transparency
@@ -316,9 +316,9 @@ const baseTypography: Omit<ThemeTypography, 'fontFamily'> = {
 const oldTypography: ThemeTypography = {
   ...baseTypography,
   fontFamily: {
-    header: 'NothingYouCouldDo_400Regular',
-    body: 'System',
-    accent: 'System',
+    header: 'Inter_600SemiBold',
+    body: 'KleeOne_400Regular',
+    accent: 'Inter_500Medium',
     mono: 'Courier',
   },
 };
@@ -357,12 +357,21 @@ const newTheme: Theme = {
 // ============================================
 // CONTEXT
 // ============================================
+interface TransitionState {
+  isTransitioning: boolean;
+  fromColor: string;
+  toColor: string;
+}
+
 interface ThemeContextValue {
   theme: Theme;
   themeMode: ThemeMode;
   toggleTheme: () => void;
   setThemeMode: (mode: ThemeMode) => void;
   isNewTheme: boolean;
+  // Transition state
+  transitionState: TransitionState;
+  onTransitionComplete: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
@@ -376,6 +385,11 @@ interface ThemeProviderProps {
 
 export function ThemeProvider({ children, initialMode = 'old' }: ThemeProviderProps) {
   const [themeMode, setThemeModeState] = useState<ThemeMode>(initialMode);
+  const [transitionState, setTransitionState] = useState<TransitionState>({
+    isTransitioning: false,
+    fromColor: oldColors.background,
+    toColor: newColors.background,
+  });
 
   // Load saved theme preference on mount
   useEffect(() => {
@@ -403,8 +417,26 @@ export function ThemeProvider({ children, initialMode = 'old' }: ThemeProviderPr
 
   const toggleTheme = useCallback(() => {
     const newMode = themeMode === 'old' ? 'new' : 'old';
+    const fromColor = themeMode === 'old' ? oldColors.background : newColors.background;
+    const toColor = newMode === 'old' ? oldColors.background : newColors.background;
+
+    // Start the transition animation
+    setTransitionState({
+      isTransitioning: true,
+      fromColor,
+      toColor,
+    });
+
+    // Change the actual theme immediately so content updates behind the wave
     setThemeMode(newMode);
   }, [themeMode, setThemeMode]);
+
+  const onTransitionComplete = useCallback(() => {
+    setTransitionState(prev => ({
+      ...prev,
+      isTransitioning: false,
+    }));
+  }, []);
 
   const theme = themeMode === 'new' ? newTheme : oldTheme;
 
@@ -414,6 +446,8 @@ export function ThemeProvider({ children, initialMode = 'old' }: ThemeProviderPr
     toggleTheme,
     setThemeMode,
     isNewTheme: themeMode === 'new',
+    transitionState,
+    onTransitionComplete,
   };
 
   return (

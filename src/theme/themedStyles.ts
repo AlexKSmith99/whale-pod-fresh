@@ -7,17 +7,22 @@
  * - NothingYouCouldDo: Main screen headers
  * - JuliusSansOne: Titles, names, labels, dates
  * - Aboreto: Accent labels, tags, section headers
- * - Magra: Body text, descriptions, notifications, chats
+ * - KleeOne: Body text, descriptions, notifications, chats
  */
 import { typography, spacing, borderRadius, shadows, colors as legacyColors } from './designSystem';
 import { ThemeColors } from './ThemeContext';
 
 // Font constants for easy reference
+// Dark mode fonts
 const FONT_HEADER = 'NothingYouCouldDo_400Regular';
 const FONT_TITLE = 'JuliusSansOne_400Regular';
 const FONT_ACCENT = 'Aboreto_400Regular';
-const FONT_BODY = 'Magra_400Regular';
-const FONT_BODY_BOLD = 'Magra_700Bold';
+const FONT_BODY = 'KleeOne_400Regular';
+const FONT_BODY_BOLD = 'KleeOne_600SemiBold';
+// Light mode fonts
+const FONT_INTER = 'KleeOne_400Regular';
+const FONT_INTER_MEDIUM = 'KleeOne_600SemiBold';
+const FONT_INTER_SEMIBOLD = 'Inter_600SemiBold';
 
 /**
  * Generate dynamic styles based on current theme
@@ -61,7 +66,7 @@ export function getThemedStyles(colors: ThemeColors, isNewTheme: boolean) {
       color: colors.textSecondary,
       fontWeight: typography.fontWeight.medium as '500',
       marginBottom: spacing.xs,
-      fontFamily: isNewTheme ? FONT_ACCENT : undefined,
+      fontFamily: isNewTheme ? FONT_ACCENT : FONT_INTER_MEDIUM,
       textTransform: isNewTheme ? 'uppercase' as const : 'none' as const,
       letterSpacing: isNewTheme ? 1 : 0,
     },
@@ -70,7 +75,7 @@ export function getThemedStyles(colors: ThemeColors, isNewTheme: boolean) {
       fontSize: typography.fontSize['3xl'],
       fontWeight: typography.fontWeight.bold as '700',
       color: isNewTheme ? colors.accentGreen : colors.textPrimary,
-      fontFamily: FONT_HEADER,
+      fontFamily: isNewTheme ? FONT_HEADER : FONT_INTER_SEMIBOLD,
     },
 
     // ==================
@@ -91,20 +96,20 @@ export function getThemedStyles(colors: ThemeColors, isNewTheme: boolean) {
       fontWeight: typography.fontWeight.semibold as '600',
       color: colors.textPrimary,
       lineHeight: typography.fontSize.lg * typography.lineHeight.tight,
-      fontFamily: isNewTheme ? FONT_TITLE : undefined,
+      fontFamily: isNewTheme ? FONT_TITLE : FONT_INTER_SEMIBOLD,
     },
 
     cardDescription: {
       fontSize: typography.fontSize.base,
       color: colors.textSecondary,
       lineHeight: typography.fontSize.base * typography.lineHeight.normal,
-      fontFamily: isNewTheme ? FONT_BODY : undefined,
+      fontFamily: isNewTheme ? FONT_BODY : FONT_INTER,
     },
 
     cardSmallText: {
       fontSize: typography.fontSize.sm,
       color: colors.textSecondary,
-      fontFamily: isNewTheme ? FONT_BODY : undefined,
+      fontFamily: isNewTheme ? FONT_BODY : FONT_INTER,
     },
 
     // ==================
@@ -112,22 +117,22 @@ export function getThemedStyles(colors: ThemeColors, isNewTheme: boolean) {
     // ==================
     textPrimary: {
       color: colors.textPrimary,
-      fontFamily: isNewTheme ? FONT_BODY : undefined,
+      fontFamily: isNewTheme ? FONT_BODY : FONT_INTER,
     },
 
     textSecondary: {
       color: colors.textSecondary,
-      fontFamily: isNewTheme ? FONT_BODY : undefined,
+      fontFamily: isNewTheme ? FONT_BODY : FONT_INTER,
     },
 
     textTertiary: {
       color: colors.textTertiary,
-      fontFamily: isNewTheme ? FONT_BODY : undefined,
+      fontFamily: isNewTheme ? FONT_BODY : FONT_INTER,
     },
 
     textAccent: {
       color: isNewTheme ? colors.accentGreen : legacyColors.primary,
-      fontFamily: isNewTheme ? FONT_ACCENT : undefined,
+      fontFamily: isNewTheme ? FONT_ACCENT : FONT_INTER_MEDIUM,
       textTransform: isNewTheme ? 'uppercase' as const : 'none' as const,
       letterSpacing: isNewTheme ? 0.5 : 0,
     },
@@ -136,14 +141,14 @@ export function getThemedStyles(colors: ThemeColors, isNewTheme: boolean) {
       fontSize: typography.fontSize.base,
       color: colors.textPrimary,
       lineHeight: typography.fontSize.base * typography.lineHeight.normal,
-      fontFamily: isNewTheme ? FONT_BODY : undefined,
+      fontFamily: isNewTheme ? FONT_BODY : FONT_INTER,
     },
 
     labelText: {
       fontSize: typography.fontSize.sm,
       fontWeight: typography.fontWeight.medium as '500',
       color: colors.textSecondary,
-      fontFamily: isNewTheme ? FONT_TITLE : undefined,
+      fontFamily: isNewTheme ? FONT_TITLE : FONT_INTER_MEDIUM,
     },
 
     // ==================
@@ -161,7 +166,7 @@ export function getThemedStyles(colors: ThemeColors, isNewTheme: boolean) {
     inputText: {
       fontSize: typography.fontSize.base,
       color: colors.textPrimary,
-      fontFamily: isNewTheme ? FONT_BODY : undefined,
+      fontFamily: isNewTheme ? FONT_BODY : FONT_INTER,
     },
 
     searchContainer: {
@@ -189,7 +194,7 @@ export function getThemedStyles(colors: ThemeColors, isNewTheme: boolean) {
       color: isNewTheme ? colors.background : legacyColors.white,
       fontSize: typography.fontSize.base,
       fontWeight: typography.fontWeight.semibold as '600',
-      fontFamily: isNewTheme ? FONT_TITLE : undefined,
+      fontFamily: isNewTheme ? FONT_TITLE : FONT_INTER_SEMIBOLD,
     },
 
     buttonSecondary: {
@@ -205,7 +210,7 @@ export function getThemedStyles(colors: ThemeColors, isNewTheme: boolean) {
       color: colors.textPrimary,
       fontSize: typography.fontSize.base,
       fontWeight: typography.fontWeight.medium as '500',
-      fontFamily: isNewTheme ? FONT_TITLE : undefined,
+      fontFamily: isNewTheme ? FONT_TITLE : FONT_INTER_MEDIUM,
     },
 
     // ==================
@@ -224,7 +229,7 @@ export function getThemedStyles(colors: ThemeColors, isNewTheme: boolean) {
       fontSize: typography.fontSize.xs,
       fontWeight: typography.fontWeight.medium as '500',
       color: isNewTheme ? colors.accentGreen : legacyColors.primary,
-      fontFamily: isNewTheme ? FONT_ACCENT : undefined,
+      fontFamily: isNewTheme ? FONT_ACCENT : FONT_INTER_MEDIUM,
       textTransform: isNewTheme ? 'uppercase' as const : 'none' as const,
       letterSpacing: isNewTheme ? 0.5 : 0,
     },
@@ -240,7 +245,7 @@ export function getThemedStyles(colors: ThemeColors, isNewTheme: boolean) {
       fontSize: typography.fontSize.xs,
       fontWeight: typography.fontWeight.bold as '700',
       color: isNewTheme ? colors.background : legacyColors.white,
-      fontFamily: isNewTheme ? FONT_ACCENT : undefined,
+      fontFamily: isNewTheme ? FONT_ACCENT : FONT_INTER_SEMIBOLD,
     },
 
     // ==================
@@ -258,13 +263,13 @@ export function getThemedStyles(colors: ThemeColors, isNewTheme: boolean) {
       fontSize: typography.fontSize.base,
       fontWeight: typography.fontWeight.semibold as '600',
       color: colors.textPrimary,
-      fontFamily: isNewTheme ? FONT_TITLE : undefined,
+      fontFamily: isNewTheme ? FONT_TITLE : FONT_INTER_SEMIBOLD,
     },
 
     listItemSubtitle: {
       fontSize: typography.fontSize.sm,
       color: colors.textSecondary,
-      fontFamily: isNewTheme ? FONT_BODY : undefined,
+      fontFamily: isNewTheme ? FONT_BODY : FONT_INTER,
     },
 
     // ==================
@@ -274,7 +279,7 @@ export function getThemedStyles(colors: ThemeColors, isNewTheme: boolean) {
       fontSize: typography.fontSize.sm,
       fontWeight: typography.fontWeight.bold as '700',
       color: colors.textSecondary,
-      fontFamily: isNewTheme ? FONT_ACCENT : undefined,
+      fontFamily: isNewTheme ? FONT_ACCENT : FONT_INTER_MEDIUM,
       textTransform: 'uppercase' as const,
       letterSpacing: isNewTheme ? 1 : 0.5,
       paddingHorizontal: spacing.lg,
@@ -316,7 +321,7 @@ export function getThemedStyles(colors: ThemeColors, isNewTheme: boolean) {
       fontSize: typography.fontSize.xl,
       fontWeight: typography.fontWeight.bold as '700',
       color: colors.textPrimary,
-      fontFamily: isNewTheme ? FONT_TITLE : undefined,
+      fontFamily: isNewTheme ? FONT_TITLE : FONT_INTER_SEMIBOLD,
     },
 
     // ==================
@@ -355,7 +360,7 @@ export function getThemedStyles(colors: ThemeColors, isNewTheme: boolean) {
       fontWeight: typography.fontWeight.semibold as '600',
       color: colors.textPrimary,
       marginTop: spacing.lg,
-      fontFamily: isNewTheme ? FONT_TITLE : undefined,
+      fontFamily: isNewTheme ? FONT_TITLE : FONT_INTER_SEMIBOLD,
     },
 
     emptySubtext: {
@@ -363,7 +368,7 @@ export function getThemedStyles(colors: ThemeColors, isNewTheme: boolean) {
       color: colors.textSecondary,
       marginTop: spacing.sm,
       textAlign: 'center' as const,
-      fontFamily: isNewTheme ? FONT_BODY : undefined,
+      fontFamily: isNewTheme ? FONT_BODY : FONT_INTER,
     },
 
     // ==================

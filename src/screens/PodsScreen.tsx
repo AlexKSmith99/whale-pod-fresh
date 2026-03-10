@@ -7,6 +7,7 @@ import { colors as legacyColors } from '../theme/designSystem';
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
+import GradientBackground from '../components/ui/GradientBackground';
 
 interface Pod {
   id: string;
@@ -19,6 +20,8 @@ interface Pod {
   is_creator: boolean;
   membership_status?: string;
   removed_at?: string;
+  next_meeting_date?: string | null;
+  kickoff_date?: string | null;
 }
 
 interface Application {
@@ -61,7 +64,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
       // Get pursuits where user is the creator
       const { data: createdPursuits, error: createdError } = await supabase
         .from('pursuits')
-        .select('id, title, description, current_members_count, team_size_max, status, meeting_cadence, creator_id, location, decision_system, pursuit_types')
+        .select('id, title, description, current_members_count, team_size_max, status, meeting_cadence, creator_id, location, decision_system, pursuit_types, kickoff_date')
         .eq('creator_id', user.id);
 
       if (createdError) throw createdError;
@@ -81,7 +84,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
       if (activeMemberPursuitIds.length > 0) {
         const { data, error } = await supabase
           .from('pursuits')
-          .select('id, title, description, current_members_count, team_size_max, status, meeting_cadence, creator_id, location, decision_system, pursuit_types')
+          .select('id, title, description, current_members_count, team_size_max, status, meeting_cadence, creator_id, location, decision_system, pursuit_types, kickoff_date')
           .in('id', activeMemberPursuitIds);
 
         if (error) throw error;
@@ -90,9 +93,37 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
 
       // Combine active pods and mark which are created by user
       const allActivePods: Pod[] = [
-        ...(createdPursuits || []).map(p => ({ ...p, is_creator: true, membership_status: 'active' })),
-        ...memberPursuits.map(p => ({ ...p, is_creator: false, membership_status: 'active' }))
+        ...(createdPursuits || []).map(p => ({ ...p, is_creator: true, membership_status: 'active', next_meeting_date: null })),
+        ...memberPursuits.map(p => ({ ...p, is_creator: false, membership_status: 'active', next_meeting_date: null }))
       ];
+
+      // Fetch upcoming meetings for all pods
+      if (allActivePods.length > 0) {
+        const podIds = allActivePods.map(p => p.id);
+        const now = new Date().toISOString();
+
+        const { data: upcomingMeetings, error: meetingsError } = await supabase
+          .from('meetings')
+          .select('pursuit_id, scheduled_time')
+          .in('pursuit_id', podIds)
+          .gte('scheduled_time', now)
+          .order('scheduled_time', { ascending: true });
+
+        if (!meetingsError && upcomingMeetings) {
+          // Create a map of pursuit_id to next meeting date (first upcoming meeting)
+          const nextMeetingMap = new Map<string, string>();
+          upcomingMeetings.forEach(meeting => {
+            if (!nextMeetingMap.has(meeting.pursuit_id)) {
+              nextMeetingMap.set(meeting.pursuit_id, meeting.scheduled_time);
+            }
+          });
+
+          // Update pods with next meeting dates
+          allActivePods.forEach(pod => {
+            pod.next_meeting_date = nextMeetingMap.get(pod.id) || null;
+          });
+        }
+      }
 
       setPods(allActivePods);
 
@@ -160,11 +191,11 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
 
   if (loading) {
     return (
-      <View style={[styles.loadingContainer, themedStyles.container]}>
+      <GradientBackground style={styles.loadingContainer}>
         <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         {isNewTheme && <GrainTexture opacity={0.06} />}
         <ActivityIndicator size="large" color={themedStyles.accentIconColor} />
-      </View>
+      </GradientBackground>
     );
   }
 
@@ -203,7 +234,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
     return (
     <TouchableOpacity
       key={pod.id}
-      style={[styles.podCard, themedStyles.card, isPast && [styles.podCardPast, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f9fafb' }]]}
+      style={[styles.podCard, themedStyles.card, { borderWidth: isNewTheme ? 0.35 : 0.5, borderColor: isNewTheme ? colors.accentGreen : '#f0f0f0' }, isPast && [styles.podCardPast, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f9fafb' }]]}
       onPress={() => !isPast && onOpenPodDetails(pod)}
       activeOpacity={isPast ? 1 : 0.7}
       disabled={isPast}
@@ -228,10 +259,19 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
         {!isPast && (
           <View style={[
             styles.statusBadge,
-            themedStyles.tag,
-            pod.status === 'active' ? styles.statusActive : styles.statusPending
+            { backgroundColor: pod.status === 'active'
+              ? (isNewTheme ? 'rgba(134, 239, 172, 0.15)' : '#d1fae5')
+              : (isNewTheme ? 'rgba(252, 211, 77, 0.15)' : '#fef3c7')
+            }
           ]}>
-            <Text style={[styles.statusText, themedStyles.tagText]}>
+            <View style={[
+              styles.statusDot,
+              { backgroundColor: pod.status === 'active' ? colors.success : colors.warning }
+            ]} />
+            <Text style={[
+              styles.statusText,
+              { color: pod.status === 'active' ? colors.success : colors.warning }
+            ]}>
               {pod.status === 'awaiting_kickoff' ? 'Awaiting Kickoff' : 'Active'}
             </Text>
           </View>
@@ -274,15 +314,26 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
   };
 
   const renderActiveContent = () => {
-    // Sort pods so those with notifications appear first
+    // Sort pods:
+    // 1. Pods with upcoming meetings first, sorted by soonest meeting
+    // 2. Pods without meetings, sorted by most recent kickoff date
     const sortedPods = [...pods].sort((a, b) => {
-      const aCount = notificationCounts.get(a.id) || 0;
-      const bCount = notificationCounts.get(b.id) || 0;
-      // Pods with notifications come first
-      if (aCount > 0 && bCount === 0) return -1;
-      if (aCount === 0 && bCount > 0) return 1;
-      // If both have or don't have notifications, maintain original order
-      return 0;
+      const aHasMeeting = !!a.next_meeting_date;
+      const bHasMeeting = !!b.next_meeting_date;
+
+      // If both have meetings, sort by soonest meeting
+      if (aHasMeeting && bHasMeeting) {
+        return new Date(a.next_meeting_date!).getTime() - new Date(b.next_meeting_date!).getTime();
+      }
+
+      // Pods with meetings come first
+      if (aHasMeeting && !bHasMeeting) return -1;
+      if (!aHasMeeting && bHasMeeting) return 1;
+
+      // If neither has meetings, sort by most recent kickoff date
+      const aKickoff = a.kickoff_date ? new Date(a.kickoff_date).getTime() : 0;
+      const bKickoff = b.kickoff_date ? new Date(b.kickoff_date).getTime() : 0;
+      return bKickoff - aKickoff; // Most recent first
     });
 
     return (
@@ -321,7 +372,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
         <>
           <Text style={[styles.sectionLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined, textTransform: 'uppercase', letterSpacing: isNewTheme ? 1 : 0.5 }]}>Interview Requests</Text>
           {interviewPendingApps.map((app) => (
-            <View key={app.id} style={[styles.applicationCard, styles.interviewCard, themedStyles.card, { borderColor: themedStyles.accentIconColor, borderWidth: 2 }]}>
+            <View key={app.id} style={[styles.applicationCard, styles.interviewCard, themedStyles.card, { borderColor: themedStyles.accentIconColor, borderWidth: isNewTheme ? 0.35 : 1 }]}>
               <View style={styles.applicationHeader}>
                 <Text style={[styles.applicationTitle, themedStyles.cardTitle]}>{app.pursuits?.title}</Text>
                 <View style={[styles.interviewBadge, { backgroundColor: themedStyles.accentIconColor }]}>
@@ -350,7 +401,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
         <>
           {interviewPendingApps.length > 0 && <Text style={[styles.sectionLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined, textTransform: 'uppercase', letterSpacing: isNewTheme ? 1 : 0.5 }]}>Pending Review</Text>}
           {applications.map((app) => (
-            <View key={app.id} style={[styles.applicationCard, themedStyles.card]}>
+            <View key={app.id} style={[styles.applicationCard, themedStyles.card, { borderWidth: isNewTheme ? 0.35 : 0.5, borderColor: isNewTheme ? colors.accentGreen : '#f59e0b' }]}>
               <View style={styles.applicationHeader}>
                 <Text style={[styles.applicationTitle, themedStyles.cardTitle]}>{app.pursuits?.title}</Text>
                 <View style={[styles.pendingBadge, themedStyles.tag, { backgroundColor: colors.warning }]}>
@@ -376,7 +427,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
   );
 
   return (
-    <View style={[styles.container, themedStyles.container]}>
+    <GradientBackground style={styles.container}>
       <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       {isNewTheme && <GrainTexture opacity={0.06} />}
       <View style={[styles.header, themedStyles.header]}>
@@ -394,28 +445,22 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
         {activeFilter === 'past' && renderPastContent()}
         {activeFilter === 'pending' && renderPendingContent()}
       </ScrollView>
-    </View>
+    </GradientBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: legacyColors.background },
+  container: { flex: 1 },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { backgroundColor: '#fff', padding: 20, paddingTop: 60, borderBottomWidth: 0 },
+  header: { padding: 20, paddingTop: 60, borderBottomWidth: 0 },
   title: { fontSize: 28, fontWeight: 'bold', color: '#8b5cf6' },
   subtitle: { fontSize: 16, color: '#666', marginTop: 5 },
   filterTabs: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
     paddingHorizontal: 15,
     paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   filterTab: {
     flex: 1,
@@ -470,10 +515,21 @@ const styles = StyleSheet.create({
   creatorBadgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
   removedBadge: { backgroundColor: '#ef4444', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   removedBadgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
-  statusBadge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12 },
-  statusPending: { backgroundColor: '#fef3c7' },
-  statusActive: { backgroundColor: '#d1fae5' },
-  statusText: { fontSize: 11, fontWeight: '600', color: '#333' },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    gap: 6,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  statusText: { fontSize: 12, fontWeight: '600' },
   podDescription: { fontSize: 14, color: '#666', marginBottom: 14, lineHeight: 20 },
   podDescriptionPast: { color: '#9ca3af' },
   podInfo: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#f5f5f5' },

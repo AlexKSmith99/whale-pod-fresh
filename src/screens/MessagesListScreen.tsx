@@ -12,6 +12,9 @@ import {
   Platform,
   StatusBar,
   Dimensions,
+  Modal,
+  TextInput,
+  FlatList,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +22,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { messageService } from '../services/messageService';
 import { podChatService, PodChat } from '../services/podChatService';
 import { supabase } from '../config/supabase';
+import { connectionService } from '../services/connectionService';
 import ChatScreen from './ChatScreen';
 import PodChatScreen from './PodChatScreen';
 import PodMemberCollage from '../components/PodMemberCollage';
@@ -100,6 +104,10 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
   const sidebarAnim = useRef(new Animated.Value(0)).current;
   const hasAutoSelected = useRef(false);
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
+  const [showNewChatModal, setShowNewChatModal] = useState(false);
+  const [connections, setConnections] = useState<any[]>([]);
+  const [connectionsLoading, setConnectionsLoading] = useState(false);
+  const [connectionSearch, setConnectionSearch] = useState('');
 
   useEffect(() => {
     loadAllChats();
@@ -320,6 +328,48 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
     setSidebarOpen(!sidebarOpen);
   };
 
+  const openNewChatModal = async () => {
+    setShowNewChatModal(true);
+    setConnectionsLoading(true);
+    try {
+      const conns = await connectionService.getMyConnections(user!.id);
+      setConnections(conns);
+    } catch (error) {
+      console.error('Error loading connections:', error);
+    } finally {
+      setConnectionsLoading(false);
+    }
+  };
+
+  const handleSelectConnection = (conn: any) => {
+    setShowNewChatModal(false);
+    setConnectionSearch('');
+
+    const partnerId = conn.otherUserId;
+    const partnerEmail = conn.profile?.email || conn.profile?.name || 'User';
+
+    const chat: IndividualChat = {
+      type: 'individual',
+      partnerId,
+      partnerProfile: conn.profile,
+      partnerEmail,
+      lastMessage: undefined,
+      lastMessageTime: undefined,
+      isRead: true,
+      unreadCount: 0,
+    };
+    setSelectedChat(chat);
+  };
+
+  const filteredConnections = connections.filter((conn) => {
+    if (!connectionSearch) return true;
+    const name = (conn.profile?.name || '').toLowerCase();
+    const query = connectionSearch.toLowerCase();
+    if (name.startsWith(query)) return true;
+    const nameParts = name.split(' ');
+    return nameParts.some((part: string) => part.startsWith(query));
+  });
+
   const formatTime = (dateString?: string) => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -490,11 +540,16 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
               <Text style={[styles.headerGreeting, themedStyles.headerSubtitle]}>Your conversations</Text>
               <Text style={[styles.headerTitle, themedStyles.headerTitle]}>Chats</Text>
             </View>
-            {totalUnread > 0 && (
-              <View style={[styles.headerBadge, themedStyles.badge]}>
-                <Text style={[styles.headerBadgeText, themedStyles.badgeText]}>{totalUnread}</Text>
-              </View>
-            )}
+            <View style={styles.headerActions}>
+              {totalUnread > 0 && (
+                <View style={[styles.headerBadge, themedStyles.badge]}>
+                  <Text style={[styles.headerBadgeText, themedStyles.badgeText]}>{totalUnread}</Text>
+                </View>
+              )}
+              <TouchableOpacity onPress={openNewChatModal} style={styles.newChatButton}>
+                <Ionicons name="add-circle-outline" size={28} color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Filter Tabs */}
@@ -537,6 +592,93 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
             {filteredChats.map(chat => renderChatCard(chat))}
           </ScrollView>
         )}
+
+        {/* New Chat Modal */}
+        <Modal
+          visible={showNewChatModal}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => { setShowNewChatModal(false); setConnectionSearch(''); }}
+        >
+          <View style={[styles.newChatModalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+            <View style={[styles.newChatModalContainer, { backgroundColor: colors.background }]}>
+              <View style={[styles.newChatModalHeader, { borderBottomColor: colors.border }]}>
+                <Text style={[styles.newChatModalTitle, themedStyles.headerTitle, { fontSize: 20 }]}>New Chat</Text>
+                <TouchableOpacity onPress={() => { setShowNewChatModal(false); setConnectionSearch(''); }}>
+                  <Ionicons name="close" size={24} color={colors.textPrimary} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={[styles.newChatSearchContainer, { backgroundColor: colors.surfaceAlt }]}>
+                <Ionicons name="search" size={18} color={colors.textTertiary} style={{ marginRight: 8 }} />
+                <TextInput
+                  style={[styles.newChatSearchInput, { color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
+                  placeholder="Search connections..."
+                  placeholderTextColor={colors.textTertiary}
+                  value={connectionSearch}
+                  onChangeText={setConnectionSearch}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                {connectionSearch.length > 0 && (
+                  <TouchableOpacity onPress={() => setConnectionSearch('')}>
+                    <Ionicons name="close-circle" size={18} color={colors.textTertiary} />
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {connectionsLoading ? (
+                <View style={styles.newChatLoading}>
+                  <ActivityIndicator size="small" color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
+                  <Text style={[styles.newChatLoadingText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>Loading connections...</Text>
+                </View>
+              ) : filteredConnections.length === 0 ? (
+                <View style={styles.newChatEmpty}>
+                  <Ionicons name="people-outline" size={48} color={colors.textTertiary} />
+                  <Text style={[styles.newChatEmptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                    {connectionSearch ? 'No matches found' : 'No connections yet'}
+                  </Text>
+                  <Text style={[styles.newChatEmptyHint, { color: colors.textTertiary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
+                    {connectionSearch ? 'Try a different name' : 'Connect with people to start chatting'}
+                  </Text>
+                </View>
+              ) : (
+                <FlatList
+                  data={filteredConnections}
+                  keyExtractor={(item) => item.id || item.otherUserId}
+                  renderItem={({ item: conn }) => (
+                    <TouchableOpacity
+                      style={[styles.newChatConnectionCard, { borderBottomColor: colors.border }]}
+                      onPress={() => handleSelectConnection(conn)}
+                      activeOpacity={0.7}
+                    >
+                      {conn.profile?.profile_picture ? (
+                        <Image source={{ uri: conn.profile.profile_picture }} style={styles.newChatAvatar} />
+                      ) : (
+                        <View style={[styles.newChatAvatarPlaceholder, { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]}>
+                          <Text style={[styles.newChatAvatarText, { color: isNewTheme ? colors.background : '#fff' }]}>
+                            {(conn.profile?.name || '?')[0].toUpperCase()}
+                          </Text>
+                        </View>
+                      )}
+                      <View style={styles.newChatConnectionInfo}>
+                        <Text style={[styles.newChatConnectionName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                          {conn.profile?.name || 'Unknown'}
+                        </Text>
+                        {conn.profile?.bio && (
+                          <Text style={[styles.newChatConnectionBio, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]} numberOfLines={1}>
+                            {conn.profile.bio}
+                          </Text>
+                        )}
+                      </View>
+                      <Ionicons name="chatbubble-outline" size={20} color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
+                    </TouchableOpacity>
+                  )}
+                />
+              )}
+            </View>
+          </View>
+        </Modal>
       </View>
     );
   }
@@ -1010,5 +1152,112 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.semibold,
     color: legacyColors.white,
+  },
+
+  // Header actions
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  newChatButton: {
+    padding: 4,
+  },
+
+  // New Chat Modal
+  newChatModalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  newChatModalContainer: {
+    height: '85%',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    overflow: 'hidden',
+  },
+  newChatModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+  },
+  newChatModalTitle: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+  },
+  newChatSearchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  newChatSearchInput: {
+    flex: 1,
+    fontSize: 15,
+    padding: 0,
+  },
+  newChatLoading: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  newChatLoadingText: {
+    marginTop: 8,
+    fontSize: 14,
+  },
+  newChatEmpty: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  newChatEmptyText: {
+    fontSize: 18,
+    fontWeight: '600' as const,
+    marginTop: 12,
+  },
+  newChatEmptyHint: {
+    fontSize: 14,
+    marginTop: 8,
+    textAlign: 'center',
+    paddingHorizontal: 40,
+  },
+  newChatConnectionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  newChatAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
+  newChatAvatarPlaceholder: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  newChatAvatarText: {
+    fontSize: 20,
+    fontWeight: '600' as const,
+  },
+  newChatConnectionInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  newChatConnectionName: {
+    fontSize: 16,
+    fontWeight: '600' as const,
+  },
+  newChatConnectionBio: {
+    fontSize: 13,
+    marginTop: 2,
   },
 });

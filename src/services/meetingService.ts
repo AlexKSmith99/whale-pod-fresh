@@ -252,20 +252,30 @@ export const meetingService = {
 
   // Get kickoff proposals for a pursuit
   async getKickoffProposals(pursuitId: string) {
-    const { data, error } = await supabase
+    // First get proposals
+    const { data: proposals, error: proposalsError } = await supabase
       .from('kickoff_time_proposals')
-      .select(`
-        *,
-        user:profiles(
-          id,
-          name,
-          email
-        )
-      `)
+      .select('*')
       .eq('pursuit_id', pursuitId);
 
-    if (error) throw error;
-    return data;
+    if (proposalsError) throw proposalsError;
+    if (!proposals || proposals.length === 0) return [];
+
+    // Then fetch profiles separately
+    const userIds = [...new Set(proposals.map(p => p.user_id))];
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, name, email')
+      .in('id', userIds);
+
+    if (profilesError) throw profilesError;
+
+    // Combine proposals with their profiles
+    const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+    return proposals.map(proposal => ({
+      ...proposal,
+      user: profileMap.get(proposal.user_id) || null
+    }));
   },
 
   // Add agenda item
@@ -339,16 +349,30 @@ export const meetingService = {
 
   // Get meeting participants with profile info
   async getMeetingParticipants(meetingId: string) {
-    const { data, error } = await supabase
+    // First get participants
+    const { data: participants, error: participantsError } = await supabase
       .from('meeting_participants')
-      .select(`
-        *,
-        user:profiles(id, name, email, profile_picture)
-      `)
+      .select('*')
       .eq('meeting_id', meetingId);
 
-    if (error) throw error;
-    return data || [];
+    if (participantsError) throw participantsError;
+    if (!participants || participants.length === 0) return [];
+
+    // Then fetch profiles separately
+    const userIds = participants.map(p => p.user_id);
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, name, email, profile_picture')
+      .in('id', userIds);
+
+    if (profilesError) throw profilesError;
+
+    // Combine participants with their profiles
+    const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+    return participants.map(participant => ({
+      ...participant,
+      user: profileMap.get(participant.user_id) || null
+    }));
   },
 
   // Add participant to meeting
@@ -380,16 +404,30 @@ export const meetingService = {
 
   // Get pod members for adding to meeting
   async getPodMembers(pursuitId: string) {
-    const { data, error } = await supabase
+    // First get team members
+    const { data: members, error: membersError } = await supabase
       .from('team_members')
-      .select(`
-        user_id,
-        user:profiles(id, name, email, profile_picture)
-      `)
+      .select('user_id')
       .eq('pursuit_id', pursuitId)
       .in('status', ['active', 'accepted']);
 
-    if (error) throw error;
-    return data || [];
+    if (membersError) throw membersError;
+    if (!members || members.length === 0) return [];
+
+    // Then fetch profiles separately
+    const userIds = members.map(m => m.user_id);
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, name, email, profile_picture')
+      .in('id', userIds);
+
+    if (profilesError) throw profilesError;
+
+    // Combine members with their profiles
+    const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+    return members.map(member => ({
+      ...member,
+      user: profileMap.get(member.user_id) || null
+    }));
   },
 };

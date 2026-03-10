@@ -5,6 +5,11 @@ import { useFonts, NothingYouCouldDo_400Regular } from '@expo-google-fonts/nothi
 import { JuliusSansOne_400Regular } from '@expo-google-fonts/julius-sans-one';
 import { Aboreto_400Regular } from '@expo-google-fonts/aboreto';
 import { Magra_400Regular, Magra_700Bold } from '@expo-google-fonts/magra';
+import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
+import { KleeOne_400Regular, KleeOne_600SemiBold } from '@expo-google-fonts/klee-one';
+import { Lora_400Regular, Lora_500Medium, Lora_600SemiBold, Lora_700Bold } from '@expo-google-fonts/lora';
+import { Sora_400Regular, Sora_500Medium, Sora_600SemiBold, Sora_700Bold, Sora_800ExtraBold } from '@expo-google-fonts/sora';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { ThemeProvider } from './src/theme/ThemeContext';
 import { notificationService } from './src/services/notificationService';
@@ -13,6 +18,7 @@ import { podChatService } from './src/services/podChatService';
 import { hapticService } from './src/services/hapticService';
 import { supabase } from './src/config/supabase';
 import NotificationToast from './src/components/NotificationToast';
+import ThemeTransition from './src/components/ThemeTransition';
 import LoginScreen from './src/screens/LoginScreen';
 import VerifyEmailScreen from './src/screens/VerifyEmailScreen';
 import FeedScreen from './src/screens/FeedScreen';
@@ -37,7 +43,22 @@ import MeetingInvitationScreen from './src/screens/MeetingInvitationScreen';
 import InterviewTimeSlotProposalScreen from './src/screens/InterviewTimeSlotProposalScreen';
 import InterviewSchedulingScreen from './src/screens/InterviewSchedulingScreen';
 import WriteReviewScreen from './src/screens/WriteReviewScreen';
+import OnboardingScreen from './src/screens/OnboardingScreen';
 import { AGORA_APP_ID } from './src/services/agoraService';
+
+// Theme transition wrapper component
+function ThemeTransitionWrapper() {
+  const { transitionState, onTransitionComplete } = require('./src/theme/ThemeContext').useTheme();
+
+  return (
+    <ThemeTransition
+      isTransitioning={transitionState.isTransitioning}
+      fromColor={transitionState.fromColor}
+      toColor={transitionState.toColor}
+      onTransitionComplete={onTransitionComplete}
+    />
+  );
+}
 
 function AppContent() {
   const auth = useAuth();
@@ -100,6 +121,53 @@ function AppContent() {
   const [currentToast, setCurrentToast] = useState<any>(null);
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   const [locallyReadCount, setLocallyReadCount] = useState(0);
+
+  // Onboarding state
+  const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
+  const [checkingOnboarding, setCheckingOnboarding] = useState(true);
+
+  // Check onboarding status when user is authenticated
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      if (!auth.user) {
+        setCheckingOnboarding(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('onboarding_completed, name')
+          .eq('id', auth.user.id)
+          .single();
+
+        if (error) {
+          // Column may not exist yet - skip onboarding gate
+          console.log('Onboarding check skipped (column may not exist yet)');
+          setOnboardingCompleted(true);
+          return;
+        }
+
+        // Auto-complete for existing users who already have a profile
+        if (!data?.onboarding_completed && data?.name) {
+          await supabase
+            .from('profiles')
+            .update({ onboarding_completed: true })
+            .eq('id', auth.user.id);
+          setOnboardingCompleted(true);
+        } else {
+          setOnboardingCompleted(data?.onboarding_completed ?? true);
+        }
+      } catch (error) {
+        console.log('Onboarding check error, skipping:', error);
+        setOnboardingCompleted(true);
+      } finally {
+        setCheckingOnboarding(false);
+      }
+    };
+
+    checkOnboarding();
+  }, [auth.user]);
 
   // Load notification badge counts and set up real-time listener
   useEffect(() => {
@@ -630,6 +698,24 @@ function AppContent() {
     return <LoginScreen />;
   }
 
+  // Show loading while checking onboarding status
+  if (checkingOnboarding) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: themeColors.background }}>
+        <ActivityIndicator size="large" color={isNewTheme ? themeColors.accentGreen : '#6366F1'} />
+      </View>
+    );
+  }
+
+  // Show onboarding if not completed
+  if (!onboardingCompleted) {
+    return (
+      <OnboardingScreen
+        onComplete={() => setOnboardingCompleted(true)}
+      />
+    );
+  }
+
   // Navigation object to pass to screens
   const navigation = {
     navigate: (screen: string, params?: any) => {
@@ -872,7 +958,7 @@ if (viewingInterviewProposal) {
       pursuitTitle={viewingInterviewProposal.pursuitTitle}
       onClose={() => {
         setViewingInterviewProposal(null);
-        setCurrentScreen('Notifications');
+        setCurrentScreen('Pods');
       }}
       onSubmitted={() => {
         setViewingInterviewProposal(null);
@@ -1494,6 +1580,24 @@ const styles = StyleSheet.create({
   },
 });
 
+// Create a client with optimized defaults for mobile
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Cache data for 5 minutes
+      staleTime: 5 * 60 * 1000,
+      // Keep unused data in cache for 30 minutes
+      gcTime: 30 * 60 * 1000,
+      // Retry failed requests once
+      retry: 1,
+      // Don't refetch on window focus (mobile doesn't have this)
+      refetchOnWindowFocus: false,
+      // Don't refetch on reconnect automatically
+      refetchOnReconnect: false,
+    },
+  },
+});
+
 export default function App() {
   // Load all fonts globally
   const [fontsLoaded] = useFonts({
@@ -1502,6 +1606,20 @@ export default function App() {
     Aboreto_400Regular,
     Magra_400Regular,
     Magra_700Bold,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    KleeOne_400Regular,
+    KleeOne_600SemiBold,
+    Lora_400Regular,
+    Lora_500Medium,
+    Lora_600SemiBold,
+    Lora_700Bold,
+    Sora_400Regular,
+    Sora_500Medium,
+    Sora_600SemiBold,
+    Sora_700Bold,
+    Sora_800ExtraBold,
   });
 
   // Show loading while fonts load
@@ -1514,11 +1632,14 @@ export default function App() {
   }
 
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <AppContent />
-        <StatusBar style="auto" />
-      </AuthProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppContent />
+          <ThemeTransitionWrapper />
+          <StatusBar style="auto" />
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }

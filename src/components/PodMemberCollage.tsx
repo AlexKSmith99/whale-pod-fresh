@@ -23,132 +23,65 @@ const getColorForMember = (index: number): string => {
   return colors[index % colors.length];
 };
 
-// Calculate positions for bubbles floating inside the main circle (with gaps between)
-const getBubblePositions = (count: number, containerSize: number, bubbleSize: number) => {
-  const center = containerSize / 2;
-  const positions: { top: number; left: number }[] = [];
-  const gap = containerSize * 0.06; // Gap between bubbles
-
-  if (count === 1) {
-    positions.push({ top: center - bubbleSize / 2, left: center - bubbleSize / 2 });
-  } else if (count === 2) {
-    positions.push({ top: center - bubbleSize / 2, left: containerSize * 0.1 });
-    positions.push({ top: center - bubbleSize / 2, left: containerSize * 0.9 - bubbleSize });
-  } else if (count === 3) {
-    // Triangle formation with gaps
-    positions.push({ top: containerSize * 0.08, left: center - bubbleSize / 2 }); // top center
-    positions.push({ top: containerSize * 0.55, left: containerSize * 0.05 }); // bottom left
-    positions.push({ top: containerSize * 0.55, left: containerSize * 0.95 - bubbleSize }); // bottom right
-  } else if (count === 4) {
-    // 2x2 with gaps
-    const inset = containerSize * 0.08;
-    const spacing = containerSize - inset * 2 - bubbleSize * 2;
-    positions.push({ top: inset, left: inset }); // top left
-    positions.push({ top: inset, left: inset + bubbleSize + spacing }); // top right
-    positions.push({ top: inset + bubbleSize + spacing, left: inset }); // bottom left
-    positions.push({ top: inset + bubbleSize + spacing, left: inset + bubbleSize + spacing }); // bottom right
-  } else if (count === 5) {
-    // 2 on top, 1 middle, 2 on bottom
-    positions.push({ top: containerSize * 0.02, left: containerSize * 0.12 });
-    positions.push({ top: containerSize * 0.02, left: containerSize * 0.88 - bubbleSize });
-    positions.push({ top: center - bubbleSize / 2, left: center - bubbleSize / 2 });
-    positions.push({ top: containerSize * 0.7, left: containerSize * 0.12 });
-    positions.push({ top: containerSize * 0.7, left: containerSize * 0.88 - bubbleSize });
-  } else if (count === 6) {
-    // 2 rows of 3 with gaps
-    const topY = containerSize * 0.05;
-    const bottomY = containerSize * 0.58;
-    const leftX = containerSize * 0.02;
-    const centerX = center - bubbleSize / 2;
-    const rightX = containerSize * 0.98 - bubbleSize;
-    positions.push({ top: topY, left: leftX });
-    positions.push({ top: topY, left: centerX });
-    positions.push({ top: topY, left: rightX });
-    positions.push({ top: bottomY, left: leftX });
-    positions.push({ top: bottomY, left: centerX });
-    positions.push({ top: bottomY, left: rightX });
-  } else if (count === 7) {
-    // 3-1-3 formation with gaps
-    const topY = containerSize * 0.02;
-    const midY = center - bubbleSize / 2;
-    const bottomY = containerSize * 0.68;
-    const leftX = containerSize * 0.02;
-    const centerX = center - bubbleSize / 2;
-    const rightX = containerSize * 0.98 - bubbleSize;
-    positions.push({ top: topY, left: leftX });
-    positions.push({ top: topY, left: centerX });
-    positions.push({ top: topY, left: rightX });
-    positions.push({ top: midY, left: centerX });
-    positions.push({ top: bottomY, left: leftX });
-    positions.push({ top: bottomY, left: centerX });
-    positions.push({ top: bottomY, left: rightX });
-  } else {
-    // 8+: 3-2-3 formation with gaps
-    const topY = containerSize * 0.02;
-    const midY = center - bubbleSize / 2;
-    const bottomY = containerSize * 0.68;
-    const leftX = containerSize * 0.02;
-    const centerX = center - bubbleSize / 2;
-    const rightX = containerSize * 0.98 - bubbleSize;
-    positions.push({ top: topY, left: leftX });
-    positions.push({ top: topY, left: centerX });
-    positions.push({ top: topY, left: rightX });
-    positions.push({ top: midY, left: containerSize * 0.15 });
-    positions.push({ top: midY, left: containerSize * 0.85 - bubbleSize });
-    positions.push({ top: bottomY, left: leftX });
-    positions.push({ top: bottomY, left: centerX });
-    positions.push({ top: bottomY, left: rightX });
-  }
-
-  return positions;
-};
-
 export default function PodMemberCollage({ members, size, borderRadius, style }: PodMemberCollageProps) {
   const count = members.length;
-  const radius = borderRadius ?? size / 2;
 
   if (count === 0) {
     return (
-      <View style={[styles.container, { width: size, height: size, borderRadius: radius, backgroundColor: '#f3f4f6' }, style]}>
+      <View style={[styles.container, { width: size, height: size, borderRadius: borderRadius ?? size / 2, backgroundColor: '#f3f4f6' }, style]}>
         <Text style={[styles.initial, { fontSize: size * 0.4, color: '#9ca3af' }]}>?</Text>
       </View>
     );
   }
 
-  // Calculate bubble size based on member count (smaller to leave gaps)
-  const getBubbleSize = () => {
-    if (count === 1) return size * 0.65;
-    if (count === 2) return size * 0.42;
-    if (count <= 4) return size * 0.38;
-    if (count <= 6) return size * 0.3;
-    return size * 0.28;
-  };
+  // Bubble size is ~60% of container
+  const bubbleSize = size * 0.6;
+  const overlap = bubbleSize * 0.35;
+  const step = bubbleSize - overlap;
 
-  const bubbleSize = getBubbleSize();
-  const positions = getBubblePositions(Math.min(count, 8), size, bubbleSize);
-  const displayMembers = members.slice(0, 8);
-  const extraCount = count > 8 ? count - 7 : 0;
+  // Determine what to display: max 3 circles
+  // 1 member: 1 avatar
+  // 2 members: 2 avatars
+  // 3 members: 3 avatars
+  // 4+ members: 2 avatars + "+N" where N = count - 2
+  const displayCount = Math.min(count, 3);
+  const showOverflow = count > 3;
+  const overflowCount = count - 2;
 
-  const renderBubble = (member: Member, index: number, position: { top: number; left: number }, isOverflow = false) => {
+  // Total width of the overlapping row
+  const totalWidth = bubbleSize + (displayCount - 1) * step;
+  // Center the row horizontally in the container
+  const startLeft = (size - totalWidth) / 2;
+  // Center vertically
+  const topOffset = (size - bubbleSize) / 2;
+
+  const renderBubble = (index: number) => {
+    const left = startLeft + index * step;
+    const zIndex = displayCount - index; // first on top
+
     const bubbleStyle = {
       position: 'absolute' as const,
-      top: position.top,
-      left: position.left,
+      top: topOffset,
+      left,
       width: bubbleSize,
       height: bubbleSize,
       borderRadius: bubbleSize / 2,
-      borderWidth: 1.5,
-      borderColor: '#e5e7eb',
+      borderWidth: 2,
+      borderColor: '#1a1f36', // dark background border for clean overlap
       overflow: 'hidden' as const,
+      zIndex,
     };
 
-    if (isOverflow) {
+    // Show "+N" overflow on the last (3rd) position
+    if (showOverflow && index === 2) {
       return (
         <View key="overflow" style={[bubbleStyle, { backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' }]}>
-          <Text style={[styles.overflow, { fontSize: bubbleSize * 0.4 }]}>+{extraCount}</Text>
+          <Text style={[styles.overflow, { fontSize: bubbleSize * 0.35 }]}>+{overflowCount}</Text>
         </View>
       );
     }
+
+    const member = members[index];
 
     if (member.profile_picture) {
       return (
@@ -174,14 +107,8 @@ export default function PodMemberCollage({ members, size, borderRadius, style }:
   };
 
   return (
-    <View style={[styles.container, { width: size, height: size, borderRadius: radius, backgroundColor: 'transparent' }, style]}>
-      {displayMembers.map((member, index) => {
-        // If we have overflow, show +N on the last position
-        if (extraCount > 0 && index === 7) {
-          return renderBubble(member, index, positions[index], true);
-        }
-        return renderBubble(member, index, positions[index]);
-      })}
+    <View style={[styles.container, { width: size, height: size, borderRadius: borderRadius ?? size / 2 }, style]}>
+      {Array.from({ length: displayCount }, (_, i) => renderBubble(i))}
     </View>
   );
 }

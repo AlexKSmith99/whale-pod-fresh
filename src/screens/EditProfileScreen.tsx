@@ -17,6 +17,7 @@ import { supabase } from '../config/supabase';
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
+import GradientBackground from '../components/ui/GradientBackground';
 import { colors as legacyColors } from '../theme/designSystem';
 
 interface EditProfileScreenProps {
@@ -38,6 +39,8 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
   const [age, setAge] = useState('');
   const [gender, setGender] = useState('');
   const [hometown, setHometown] = useState('');
+  const [college, setCollege] = useState('');
+  const [work, setWork] = useState('');
   const [bio, setBio] = useState('');
   const [instagram, setInstagram] = useState('');
   const [linkedin, setLinkedin] = useState('');
@@ -67,6 +70,8 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
         setAge(data.age?.toString() || '');
         setGender(data.gender || '');
         setHometown(data.hometown || '');
+        setCollege(data.college || '');
+        setWork(data.work || '');
         setBio(data.bio || '');
         setInstagram(data.instagram || '');
         setLinkedin(data.linkedin || '');
@@ -187,6 +192,8 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
           age: age ? parseInt(age) : null,
           gender: gender || null,
           hometown: hometown || null,
+          college: college || null,
+          work: work || null,
           bio: bio || null,
           instagram: instagram || null,
           linkedin: linkedin || null,
@@ -211,16 +218,16 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
 
   if (loading) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+      <GradientBackground style={styles.loadingContainer}>
         <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         {isNewTheme && <GrainTexture opacity={0.06} />}
         <ActivityIndicator size="large" color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
-      </View>
+      </GradientBackground>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <GradientBackground style={styles.container}>
       <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       {isNewTheme && <GrainTexture opacity={0.06} />}
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
@@ -265,11 +272,9 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
             </TouchableOpacity>
           </View>
 
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Basic Info</Text>
-
           <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Name *</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
             placeholder="e.g., John Smith"
             placeholderTextColor={colors.textTertiary}
             value={name}
@@ -278,7 +283,7 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
 
           <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Age</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
             placeholder="e.g., 25"
             placeholderTextColor={colors.textTertiary}
             value={age}
@@ -288,25 +293,45 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
 
           <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Gender</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
             placeholder="e.g., Male, Female, Non-binary"
             placeholderTextColor={colors.textTertiary}
             value={gender}
             onChangeText={setGender}
           />
 
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Location</Text>
+
           <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Hometown</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
             placeholder="e.g., San Francisco, CA"
             placeholderTextColor={colors.textTertiary}
             value={hometown}
             onChangeText={setHometown}
           />
 
+          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>College</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
+            placeholder="e.g., NYU, UCLA"
+            placeholderTextColor={colors.textTertiary}
+            value={college}
+            onChangeText={setCollege}
+          />
+
+          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Work</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
+            placeholder="e.g., Software Engineer at Google"
+            placeholderTextColor={colors.textTertiary}
+            value={work}
+            onChangeText={setWork}
+          />
+
           <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Bio</Text>
           <TextInput
-            style={[styles.input, styles.textArea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}
+            style={[styles.input, styles.textArea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
             placeholder="Tell us about yourself..."
             placeholderTextColor={colors.textTertiary}
             value={bio}
@@ -319,7 +344,7 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
 
           <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Instagram</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
             placeholder="@username or full URL"
             placeholderTextColor={colors.textTertiary}
             value={instagram}
@@ -329,7 +354,7 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
 
           <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>LinkedIn</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
             placeholder="linkedin.com/in/username"
             placeholderTextColor={colors.textTertiary}
             value={linkedin}
@@ -339,7 +364,7 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
 
           <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Facebook</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
             placeholder="facebook.com/username"
             placeholderTextColor={colors.textTertiary}
             value={facebook}
@@ -349,7 +374,7 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
 
           <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>GitHub</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
             placeholder="github.com/username"
             placeholderTextColor={colors.textTertiary}
             value={github}
@@ -359,7 +384,7 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
 
           <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Portfolio Website</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
             placeholder="https://yourwebsite.com"
             placeholderTextColor={colors.textTertiary}
             value={portfolio}
@@ -368,7 +393,7 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
           />
         </View>
       </ScrollView>
-    </View>
+    </GradientBackground>
   );
 }
 

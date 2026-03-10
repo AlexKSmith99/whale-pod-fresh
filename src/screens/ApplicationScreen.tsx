@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, StatusBar } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator, Platform, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { useAuth } from '../contexts/AuthContext';
@@ -9,6 +9,7 @@ import { colors as legacyColors, typography, spacing } from '../theme/designSyst
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
+import GradientBackground from '../components/ui/GradientBackground';
 
 interface Props {
   pursuit: any;
@@ -24,6 +25,16 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
 
   const scrollViewRef = useRef<ScrollView>(null);
   const [answers, setAnswers] = useState<{ [key: number]: string }>({});
+
+  const scrollToQuestion = (index: number) => {
+    // Simple scroll based on estimated question position
+    // Each question block is approximately 180px tall
+    const estimatedY = 200 + (index * 180);
+    scrollViewRef.current?.scrollTo({
+      y: Math.max(0, estimatedY - 100),
+      animated: true,
+    });
+  };
   const [loading, setLoading] = useState(false);
   const [resumeFile, setResumeFile] = useState<{
     uri: string;
@@ -126,12 +137,6 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
       return;
     }
 
-    // Check if resume is required but not provided
-    if (pursuit.requires_resume && !resumeFile) {
-      Alert.alert('Resume Required', 'This pod requires a resume. Please upload your resume.');
-      return;
-    }
-
     setLoading(true);
     console.log('🚀 Starting application submission...');
     try {
@@ -182,11 +187,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
   const accentPurpleBorder = isNewTheme ? colors.primary : '#ddd6fe';
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-    >
+    <GradientBackground style={styles.container}>
       <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       {isNewTheme && <GrainTexture opacity={0.06} />}
 
@@ -201,12 +202,15 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
         ref={scrollViewRef}
         style={styles.scrollView}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={styles.scrollContent}
+        keyboardDismissMode="interactive"
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 }]}
+        showsVerticalScrollIndicator={true}
+        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
       >
         <View style={styles.content}>
           <View style={[styles.pursuitCard, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#e0f2fe', borderLeftColor: isNewTheme ? colors.accentGreen : '#0ea5e9' }]}>
             <Text style={[styles.pursuitTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{pursuit.title}</Text>
-            <Text style={[styles.pursuitDescription, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]} numberOfLines={2}>
+            <Text style={[styles.pursuitDescription, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]} numberOfLines={2}>
               {pursuit.description}
             </Text>
           </View>
@@ -215,11 +219,14 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
             <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined }]}>Application Questions</Text>
 
             {questions.map((question: string, index: number) => (
-              <View key={index} style={[styles.questionBlock, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }]}>
+              <View
+                key={index}
+                style={[styles.questionBlock, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }]}
+              >
                 <Text style={[styles.questionNumber, { color: isNewTheme ? colors.accentGreen : '#0ea5e9', fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined }]}>Question {index + 1}</Text>
-                <Text style={[styles.questionText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{question}</Text>
+                <Text style={[styles.questionText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>{question}</Text>
                 <TextInput
-                  style={[styles.answerInput, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#fafafa', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}
+                  style={[styles.answerInput, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#fafafa', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
                   placeholder="Your answer..."
                   placeholderTextColor={colors.textTertiary}
                   value={answers[index] || ''}
@@ -229,10 +236,10 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
                   spellCheck={true}
                   autoCorrect={true}
                   onFocus={() => {
-                    // Scroll to make the input visible when focused
+                    // Scroll to make this specific question visible
                     setTimeout(() => {
-                      scrollViewRef.current?.scrollToEnd({ animated: true });
-                    }, 300);
+                      scrollToQuestion(index);
+                    }, 100);
                   }}
                 />
               </View>
@@ -245,14 +252,14 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
               <View style={styles.resumeHeader}>
                 <Ionicons name="document-attach" size={24} color={accentPurple} />
                 <View style={styles.resumeHeaderText}>
-                  <Text style={[styles.resumeTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Resume Required</Text>
-                  <Text style={[styles.resumeSubtitle, { color: accentPurple, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined }]}>This pod requires a resume</Text>
+                  <Text style={[styles.resumeTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Resume / Portfolio</Text>
+                  <Text style={[styles.resumeSubtitle, { color: accentPurple, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined }]}>Optional — attach if you'd like</Text>
                 </View>
               </View>
 
               {!resumeFile ? (
                 <>
-                  <Text style={[styles.resumeInstructions, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
+                  <Text style={[styles.resumeInstructions, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
                     Upload your resume in PDF or Word format (max 10MB)
                   </Text>
 
@@ -266,7 +273,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
                   </TouchableOpacity>
 
                   <View style={styles.supportedFormats}>
-                    <Text style={[styles.supportedFormatsText, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
+                    <Text style={[styles.supportedFormatsText, { color: colors.textTertiary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
                       Supported: PDF, DOC, DOCX
                     </Text>
                   </View>
@@ -284,7 +291,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
                     <View style={styles.fileInfo}>
                       <Text style={[styles.fileName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]} numberOfLines={1}>{resumeFile.name}</Text>
                       {resumeFile.size && (
-                        <Text style={[styles.fileSize, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>{formatFileSize(resumeFile.size)}</Text>
+                        <Text style={[styles.fileSize, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>{formatFileSize(resumeFile.size)}</Text>
                       )}
                     </View>
                     <TouchableOpacity
@@ -308,7 +315,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
               {uploadingResume && (
                 <View style={styles.uploadingIndicator}>
                   <ActivityIndicator size="small" color={accentPurple} />
-                  <Text style={[styles.uploadingText, { color: accentPurple, fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>Uploading resume...</Text>
+                  <Text style={[styles.uploadingText, { color: accentPurple, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>Uploading resume...</Text>
                 </View>
               )}
             </View>
@@ -317,7 +324,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
           {pursuit.requires_interview && (
             <View style={[styles.infoBox, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#eff6ff', borderLeftColor: isNewTheme ? colors.accentGreen : '#0ea5e9' }]}>
               <Text style={styles.infoIcon}>🎤</Text>
-              <Text style={[styles.infoText, { color: isNewTheme ? colors.textSecondary : '#0369a1', fontFamily: isNewTheme ? 'Magra_400Regular' : undefined }]}>
+              <Text style={[styles.infoText, { color: isNewTheme ? colors.textSecondary : '#0369a1', fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
                 This pursuit requires an interview. You may be contacted for one.
               </Text>
             </View>
@@ -334,7 +341,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </GradientBackground>
   );
 }
 

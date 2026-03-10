@@ -51,23 +51,31 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
   }, [meeting, user]);
 
   const loadParticipants = async () => {
+    if (!meeting?.id) {
+      console.warn('loadParticipants: No meeting ID available');
+      setLoadingParticipants(false);
+      return;
+    }
     try {
       setLoadingParticipants(true);
       const data = await meetingService.getMeetingParticipants(meeting.id);
-      setParticipants(data);
-    } catch (error) {
-      console.error('Error loading participants:', error);
+      setParticipants(data || []);
+    } catch (error: any) {
+      console.error('Error loading participants:', error?.message || error);
     } finally {
       setLoadingParticipants(false);
     }
   };
 
   const loadPodMembers = async () => {
+    if (!meeting?.pursuit_id) {
+      return;
+    }
     try {
       const data = await meetingService.getPodMembers(meeting.pursuit_id);
-      setPodMembers(data);
-    } catch (error) {
-      console.error('Error loading pod members:', error);
+      setPodMembers(data || []);
+    } catch (error: any) {
+      console.error('Error loading pod members:', error?.message || error);
     }
   };
 
