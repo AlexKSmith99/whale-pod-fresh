@@ -169,7 +169,7 @@ export default function VideoCallScreen({
 
   // VideoCallScreen always uses a dark theme for video calls
   const vcBackground = isNewTheme ? colors.background : '#1a1a1a';
-  const vcAccent = isNewTheme ? colors.accentGreen : '#8b5cf6';
+  const vcAccent = isNewTheme ? colors.accentGreen : '#2D5016';
 
   return (
     <View style={[styles.container, { backgroundColor: vcBackground }]}>
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 2,
-    borderColor: '#8b5cf6',
+    borderColor: '#2D5016',
     backgroundColor: '#2a2a2a',
   },
   localVideo: {

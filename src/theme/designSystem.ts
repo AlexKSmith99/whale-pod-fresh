@@ -2,42 +2,42 @@
 // Clean, minimal, professional aesthetic
 
 export const colors = {
-  // Base colors - clean whites and off-whites
+  // Base colors - raw parchment
   white: '#FFFFFF',
-  background: '#FEFEFE',      // Very light off-white - barely darker than white
-  backgroundSecondary: '#F9FAFB', // Subtle secondary background
+  background: '#FAF9F6',
+  backgroundSecondary: '#F2F0EB',
 
-  // Text colors - high contrast for readability
-  textPrimary: '#1A1D1F',
-  textSecondary: '#6F767E',
-  textTertiary: '#9A9FA5',
+  // Text colors - high-contrast ink
+  textPrimary: '#1B1B18',
+  textSecondary: '#52524E',
+  textTertiary: '#8A8A85',
 
-  // Border colors - subtle
-  border: '#E8ECEF',
-  borderLight: '#F2F4F7',
+  // Border colors - hemp/linen
+  border: '#D6D3CC',
+  borderLight: '#E8E6E0',
 
-  // Accent colors - modern purple/blue
-  primary: '#6366F1',      // Indigo - main CTA color
-  primaryHover: '#4F46E5',
-  primaryLight: '#EEF2FF',
+  // Accent colors - forest green + sienna
+  primary: '#2D5016',
+  primaryHover: '#1E3A0E',
+  primaryLight: '#E4EDDE',
 
-  secondary: '#0EA5E9',    // Sky blue - secondary actions
-  secondaryHover: '#0284C7',
-  secondaryLight: '#F0F9FF',
+  secondary: '#A0522D',
+  secondaryHover: '#7A3E22',
+  secondaryLight: '#F5EBE3',
 
-  // Status colors
-  success: '#10B981',
-  successLight: '#D1FAE5',
+  // Status colors - earthy
+  success: '#2D6B2E',
+  successLight: '#E0F0E0',
 
-  warning: '#F59E0B',
-  warningLight: '#FEF3C7',
+  warning: '#B8860B',
+  warningLight: '#FDF3DC',
 
-  error: '#EF4444',
-  errorLight: '#FEE2E2',
+  error: '#8B2500',
+  errorLight: '#F5E0DB',
 
   // Disabled state
-  disabled: '#D1D5DB',
-  disabledText: '#9CA3AF',
+  disabled: '#C7C4BD',
+  disabledText: '#9E9B94',
 };
 
 export const typography = {

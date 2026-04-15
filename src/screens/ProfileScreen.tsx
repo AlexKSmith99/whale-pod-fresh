@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Linking, Image, Alert, Modal, TextInput, KeyboardAvoidingView, Platform, StatusBar, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Linking, Image, Alert, Modal, TextInput, KeyboardAvoidingView, Platform, StatusBar, Switch, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
@@ -37,6 +37,7 @@ const [selectedReviewee, setSelectedReviewee] = useState<any>(null);
 const [showMenu, setShowMenu] = useState(false);
 const [showPrivacyPreferences, setShowPrivacyPreferences] = useState(false);
 const [userPods, setUserPods] = useState<any[]>([]);
+const [activePhotoIdx, setActivePhotoIdx] = useState(0);
 const [podsLoading, setPodsLoading] = useState(false);
 
   useEffect(() => {
@@ -287,7 +288,6 @@ const handleRejectConnection = async (connectionId: string) => {
       <View style={[styles.header, themedStyles.surface]}>
         <View style={styles.headerTop}>
           <View>
-            <Text style={[styles.headerGreeting, themedStyles.headerSubtitle]}>Your</Text>
             <Text style={[styles.headerTitle, themedStyles.headerTitle]}>Profile</Text>
           </View>
           <TouchableOpacity onPress={() => setShowMenu(true)} style={styles.menuButton}>
@@ -373,16 +373,55 @@ const handleRejectConnection = async (connectionId: string) => {
       </Modal>
 
       <View style={styles.content}>
-        <View style={styles.avatarContainer}>
-          {profile?.profile_picture ? (
-            <Image source={{ uri: profile.profile_picture }} style={styles.avatarImage} />
-          ) : (
-            <View style={[styles.avatar, themedStyles.avatar]}>
-              <Text style={[styles.avatarText, themedStyles.avatarText]}>
-                {profile?.name?.charAt(0).toUpperCase() || '?'}
-              </Text>
+        {/* Swipeable photo gallery */}
+        {(() => {
+          const pics: string[] = profile?.profile_pictures?.length > 0
+            ? profile.profile_pictures
+            : profile?.profile_picture ? [profile.profile_picture] : [];
+          const galleryW = Dimensions.get('window').width - 40;
+          const galleryH = Dimensions.get('window').height * 0.38;
+
+          if (pics.length === 0) {
+            return (
+              <View style={{ marginHorizontal: 20, height: galleryH, borderRadius: 16, backgroundColor: isNewTheme ? colors.surfaceAlt : '#F2F0EB', justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
+                <Text style={{ fontSize: 40, color: isNewTheme ? colors.textSecondary : '#8A8A85' }}>{profile?.name?.charAt(0).toUpperCase() || '?'}</Text>
+              </View>
+            );
+          }
+
+          return (
+            <View style={{ marginHorizontal: 20, marginBottom: 12 }}>
+              <ScrollView
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onMomentumScrollEnd={(e) => {
+                  const idx = Math.round(e.nativeEvent.contentOffset.x / galleryW);
+                  setActivePhotoIdx(idx);
+                }}
+                style={{ borderRadius: 16, overflow: 'hidden' }}
+              >
+                {pics.map((pic: string, i: number) => (
+                  <Image
+                    key={i}
+                    source={{ uri: pic }}
+                    style={{ width: galleryW, height: galleryH, borderRadius: 16 }}
+                    resizeMode="cover"
+                  />
+                ))}
+              </ScrollView>
+              {pics.length > 1 && (
+                <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 8 }}>
+                  {pics.map((_: string, i: number) => (
+                    <View key={i} style={{ width: activePhotoIdx === i ? 18 : 6, height: 6, borderRadius: 3, backgroundColor: activePhotoIdx === i ? '#2D5016' : '#D6D3CC' }} />
+                  ))}
+                </View>
+              )}
             </View>
-          )}
+          );
+        })()}
+
+        <View style={{ alignItems: 'center', marginBottom: 16 }}>
           <Text style={[styles.name, themedStyles.textPrimary, { fontSize: typography.fontSize.xl, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{profile?.name || 'No name set'}</Text>
           <Text style={[styles.email, themedStyles.textTertiary]}>{profile?.email}</Text>
         </View>

@@ -249,10 +249,8 @@ export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClos
               </TouchableOpacity>
               {showDatePicker === index && Platform.OS === 'ios' && (
                 <Modal transparent animationType="fade" visible={showDatePicker === index}>
-                  <TouchableOpacity
+                  <View
                     style={[styles.pickerOverlay, { backgroundColor: isNewTheme ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)' }]}
-                    activeOpacity={1}
-                    onPress={() => setShowDatePicker(null)}
                   >
                     <View style={[styles.pickerModalContent, { backgroundColor: colors.surface }]}>
                       <DateTimePicker
@@ -276,7 +274,7 @@ export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClos
                         <Text style={[styles.doneButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Done</Text>
                       </TouchableOpacity>
                     </View>
-                  </TouchableOpacity>
+                  </View>
                 </Modal>
               )}
               {showDatePicker === index && Platform.OS === 'android' && (
@@ -305,10 +303,8 @@ export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClos
                   </TouchableOpacity>
                   {showStartTimePicker === index && Platform.OS === 'ios' && (
                     <Modal transparent animationType="fade" visible={showStartTimePicker === index}>
-                      <TouchableOpacity
+                      <View
                         style={[styles.pickerOverlay, { backgroundColor: isNewTheme ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)' }]}
-                        activeOpacity={1}
-                        onPress={() => setShowStartTimePicker(null)}
                       >
                         <View style={[styles.pickerModalContent, { backgroundColor: colors.surface }]}>
                           <DateTimePicker
@@ -332,7 +328,7 @@ export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClos
                             <Text style={[styles.doneButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Done</Text>
                           </TouchableOpacity>
                         </View>
-                      </TouchableOpacity>
+                      </View>
                     </Modal>
                   )}
                   {showStartTimePicker === index && Platform.OS === 'android' && (
@@ -359,10 +355,8 @@ export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClos
                   </TouchableOpacity>
                   {showEndTimePicker === index && Platform.OS === 'ios' && (
                     <Modal transparent animationType="fade" visible={showEndTimePicker === index}>
-                      <TouchableOpacity
+                      <View
                         style={[styles.pickerOverlay, { backgroundColor: isNewTheme ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)' }]}
-                        activeOpacity={1}
-                        onPress={() => setShowEndTimePicker(null)}
                       >
                         <View style={[styles.pickerModalContent, { backgroundColor: colors.surface }]}>
                           <DateTimePicker
@@ -386,7 +380,7 @@ export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClos
                             <Text style={[styles.doneButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Done</Text>
                           </TouchableOpacity>
                         </View>
-                      </TouchableOpacity>
+                      </View>
                     </Modal>
                   )}
                   {showEndTimePicker === index && Platform.OS === 'android' && (

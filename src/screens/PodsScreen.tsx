@@ -432,7 +432,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
       {isNewTheme && <GrainTexture opacity={0.06} />}
       <View style={[styles.header, themedStyles.header]}>
         <Text style={[styles.title, themedStyles.headerTitle]}>My Pods</Text>
-        <Text style={[styles.subtitle, themedStyles.cardDescription]}>Your teams & applications</Text>
+        <Text style={[styles.subtitle, themedStyles.cardDescription]}>Teams & applications</Text>
       </View>
 
       {renderFilterTabs()}
@@ -453,7 +453,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { padding: 20, paddingTop: 60, borderBottomWidth: 0 },
-  title: { fontSize: 28, fontWeight: 'bold', color: '#8b5cf6' },
+  title: { fontSize: 28, fontWeight: 'bold', color: '#2D5016' },
   subtitle: { fontSize: 16, color: '#666', marginTop: 5 },
   filterTabs: {
     flexDirection: 'row',
@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   filterTabActive: {
-    backgroundColor: '#8b5cf6',
+    backgroundColor: '#2D5016',
   },
   filterTabText: {
     fontSize: 13,
@@ -485,11 +485,11 @@ const styles = StyleSheet.create({
   applicationsSection: { backgroundColor: '#fef3c7', padding: 15, borderBottomWidth: 1, borderBottomColor: '#f59e0b' },
   applicationsTitle: { fontSize: 16, fontWeight: 'bold', color: '#92400e', marginBottom: 12 },
   applicationCard: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: '#f59e0b' },
-  interviewCard: { borderColor: '#8b5cf6', borderWidth: 2, backgroundColor: '#faf5ff' },
-  interviewBadge: { backgroundColor: '#8b5cf6', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  interviewCard: { borderColor: '#2D5016', borderWidth: 2, backgroundColor: '#E4EDDE' },
+  interviewBadge: { backgroundColor: '#2D5016', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   interviewBadgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
-  interviewPrompt: { fontSize: 13, color: '#7c3aed', marginTop: 10, marginBottom: 12, fontStyle: 'italic' },
-  proposeTimesButton: { backgroundColor: '#8b5cf6', borderRadius: 8, padding: 12, alignItems: 'center' },
+  interviewPrompt: { fontSize: 13, color: '#2D5016', marginTop: 10, marginBottom: 12, fontStyle: 'italic' },
+  proposeTimesButton: { backgroundColor: '#2D5016', borderRadius: 8, padding: 12, alignItems: 'center' },
   proposeTimesButtonText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
   sectionLabel: { fontSize: 14, fontWeight: '600', color: '#666', marginBottom: 10, marginTop: 5 },
   applicationHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
@@ -511,7 +511,7 @@ const styles = StyleSheet.create({
   notificationDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#ef4444', marginRight: 8 },
   podTitle: { fontSize: 19, fontWeight: 'bold', color: '#1a1a1a', flex: 1, marginRight: 8 },
   podTitlePast: { color: '#6b7280' },
-  creatorBadge: { backgroundColor: '#8b5cf6', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  creatorBadge: { backgroundColor: '#2D5016', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   creatorBadgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
   removedBadge: { backgroundColor: '#ef4444', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   removedBadgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
@@ -537,7 +537,7 @@ const styles = StyleSheet.create({
   infoIcon: { fontSize: 14, marginRight: 6 },
   infoText: { fontSize: 13, color: '#666', maxWidth: 150 },
   podFooter: { alignItems: 'flex-end' },
-  tapHint: { fontSize: 12, color: '#8b5cf6', fontWeight: '600' },
+  tapHint: { fontSize: 12, color: '#2D5016', fontWeight: '600' },
   pastPodInfo: { paddingTop: 12, borderTopWidth: 1, borderTopColor: '#f0f0f0' },
   pastPodDate: { fontSize: 12, color: '#9ca3af', fontStyle: 'italic' },
 });

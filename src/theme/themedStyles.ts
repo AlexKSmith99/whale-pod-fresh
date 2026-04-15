@@ -19,10 +19,15 @@ const FONT_TITLE = 'JuliusSansOne_400Regular';
 const FONT_ACCENT = 'Aboreto_400Regular';
 const FONT_BODY = 'KleeOne_400Regular';
 const FONT_BODY_BOLD = 'KleeOne_600SemiBold';
-// Light mode fonts
-const FONT_INTER = 'KleeOne_400Regular';
-const FONT_INTER_MEDIUM = 'KleeOne_600SemiBold';
-const FONT_INTER_SEMIBOLD = 'Inter_600SemiBold';
+// Light mode fonts - rustic, rugged, professional
+const FONT_LIGHT_HEADER = 'PlayfairDisplay_700Bold';
+const FONT_LIGHT_BODY = 'Sora_400Regular';
+const FONT_LIGHT_BODY_MEDIUM = 'Sora_500Medium';
+const FONT_LIGHT_ACCENT = 'Lora_600SemiBold';
+// Legacy aliases for backwards compat
+const FONT_INTER = FONT_LIGHT_BODY;
+const FONT_INTER_MEDIUM = FONT_LIGHT_BODY_MEDIUM;
+const FONT_INTER_SEMIBOLD = FONT_LIGHT_HEADER;
 
 /**
  * Generate dynamic styles based on current theme

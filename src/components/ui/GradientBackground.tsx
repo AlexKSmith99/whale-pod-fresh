@@ -20,15 +20,14 @@ export default function GradientBackground({ children, style }: GradientBackgrou
     );
   }
 
-  // Light mode: soft, low-contrast gradient
-  // warm ivory → gentle blush tint → cool jade haze → warm ivory
+  // Light mode: warm parchment gradient - rustic, earthy
   return (
     <LinearGradient
       colors={[
-        '#FDFCFA',   // warm off-white/ivory (top)
-        '#F5F0F2',   // gentle blush-blue tint (upper third)
-        '#F0F5F3',   // cool green/jade haze (center)
-        '#FDFCFA',   // warm off-white/ivory (bottom)
+        '#FAF9F6',   // raw parchment (top)
+        '#F2EFEA',   // weathered linen (upper third)
+        '#EDE9E1',   // warm sandstone (center)
+        '#FAF9F6',   // raw parchment (bottom)
       ]}
       locations={[0, 0.3, 0.55, 1]}
       style={[styles.container, style]}

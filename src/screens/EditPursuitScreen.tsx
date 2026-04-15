@@ -32,7 +32,7 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
   const colors = theme.colors;
   const themedStyles = getThemedStyles(colors, isNewTheme);
 
-  const primaryColor = isNewTheme ? colors.accentGreen : '#8b5cf6';
+  const primaryColor = isNewTheme ? colors.accentGreen : '#2D5016';
 
   const [title, setTitle] = useState(pursuit.title || '');
   const [description, setDescription] = useState(pursuit.description || '');
@@ -505,7 +505,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   saveButton: {
-    backgroundColor: '#8b5cf6',
+    backgroundColor: '#2D5016',
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -560,7 +560,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   changePictureText: {
-    color: '#8b5cf6',
+    color: '#2D5016',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -583,14 +583,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#f5f3ff',
     borderWidth: 2,
-    borderColor: '#8b5cf6',
+    borderColor: '#2D5016',
     borderStyle: 'dashed',
     borderRadius: 12,
     padding: 24,
     gap: 8,
   },
   addPictureText: {
-    color: '#8b5cf6',
+    color: '#2D5016',
     fontSize: 14,
     fontWeight: '600',
   },

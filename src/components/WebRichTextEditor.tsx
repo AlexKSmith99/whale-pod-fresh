@@ -89,22 +89,12 @@ export default function WebRichTextEditor({
             actions.setStrikethrough,
             actions.insertBulletsList,
             actions.insertOrderedList,
-            actions.heading1,
-            actions.heading2,
             actions.alignLeft,
             actions.alignCenter,
             actions.alignRight,
             actions.undo,
             actions.redo,
           ]}
-          iconMap={{
-            [actions.heading1]: ({ tintColor }: { tintColor: string }) => (
-              <Text style={[styles.toolbarIconText, { color: tintColor }]}>H1</Text>
-            ),
-            [actions.heading2]: ({ tintColor }: { tintColor: string }) => (
-              <Text style={[styles.toolbarIconText, { color: tintColor }]}>H2</Text>
-            ),
-          }}
         />
       )}
 

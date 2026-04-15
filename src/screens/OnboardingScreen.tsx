@@ -2,19 +2,49 @@ import React, { useState, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,
   Alert, Image, Dimensions, Animated, Platform, StatusBar, ActivityIndicator,
+  KeyboardAvoidingView,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
-import { useTheme } from '../theme/ThemeContext';
-import GradientBackground from '../components/ui/GradientBackground';
-import GrainTexture from '../components/ui/GrainTexture';
 import { PURSUIT_TYPES } from '../constants/pursuitTypes';
+import { US_CITIES } from '../constants/usCities';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const TOTAL_STEPS = 9;
+const TOTAL_STEPS = 11;
+
+// Design tokens
+const C = {
+  bg: '#F6FAF8',
+  ink: '#1B1B18',
+  muted: '#8A8A85',
+  accent: '#2D5016',
+  accentLine: '#A8D4B8',
+  border: '#CCD6D0',
+  white: '#FFFFFF',
+  gradientTop: '#DCE8E0',
+};
+
+const F = {
+  header: 'PlayfairDisplay_700Bold',
+  body: 'Sora_400Regular',
+  bodyMedium: 'Sora_600SemiBold',
+};
+
+// Section groups for progress dots
+const SECTION_MAP: Record<number, number> = {
+  0: 0, 1: 0,           // Set up your profile
+  2: 1, 3: 1, 4: 1,     // The Basics
+  5: 2, 6: 2,            // Your Details
+  7: 3,                  // Your interests
+  8: 4,                  // Preferences
+  9: 5,                  // Notifications
+  10: 6,                 // Welcome
+};
+const NUM_SECTIONS = 7;
 
 interface Props {
   onComplete: () => void;
@@ -22,15 +52,14 @@ interface Props {
 
 export default function OnboardingScreen({ onComplete }: Props) {
   const { user } = useAuth();
-  const { theme, isNewTheme } = useTheme();
-  const colors = theme.colors;
 
   const scrollViewRef = useRef<ScrollView>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const [currentStep, setCurrentStep] = useState(0);
-  const [name, setName] = useState('');
-  const [profilePicture, setProfilePicture] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [profilePictures, setProfilePictures] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [dateOfBirth, setDateOfBirth] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(Platform.OS === 'ios');
@@ -38,28 +67,27 @@ export default function OnboardingScreen({ onComplete }: Props) {
   const [customGender, setCustomGender] = useState('');
   const [hometown, setHometown] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [instagram, setInstagram] = useState('');
+  const [linkedin, setLinkedin] = useState('');
   const [interests, setInterests] = useState<string[]>([]);
   const [teamRolePreference, setTeamRolePreference] = useState('either');
   const [teamSizePreference, setTeamSizePreference] = useState('medium');
   const [saving, setSaving] = useState(false);
-
-  // Font helpers
-  const headlineFont = isNewTheme ? 'NothingYouCouldDo_400Regular' : 'Inter_600SemiBold';
-  const bodyFont = isNewTheme ? 'KleeOne_400Regular' : 'KleeOne_400Regular';
-  const bodyBoldFont = isNewTheme ? 'KleeOne_600SemiBold' : 'KleeOne_600SemiBold';
-  const accentFont = isNewTheme ? 'Aboreto_400Regular' : 'Inter_500Medium';
+  const [notificationPermissionGranted, setNotificationPermissionGranted] = useState(false);
 
   const canProceed = (step: number): boolean => {
     switch (step) {
-      case 0: return name.trim().length > 0;
-      case 1: return profilePicture.length > 0;
+      case 0: return firstName.trim().length > 0;
+      case 1: return profilePictures.length >= 3;
       case 2: return dateOfBirth !== null;
-      case 3: return true; // Gender is optional
+      case 3: return gender.length > 0;
       case 4: return hometown.trim().length > 0;
       case 5: return true; // Phone is optional
-      case 6: return interests.length >= 3;
-      case 7: return true; // Preferences have defaults
-      case 8: return true; // Welcome screen
+      case 6: return true; // Socials are optional
+      case 7: return interests.length >= 3;
+      case 8: return true; // Preferences have defaults
+      case 9: return true; // Notifications (optional)
+      case 10: return true; // Welcome screen
       default: return false;
     }
   };
@@ -67,8 +95,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
   const goToStep = (step: number) => {
     scrollViewRef.current?.scrollTo({ x: step * SCREEN_WIDTH, animated: true });
     setCurrentStep(step);
-    if (step === 8) {
-      // Animate welcome screen
+    if (step === 10) {
       fadeAnim.setValue(0);
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -79,7 +106,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
   };
 
   const handleNext = () => {
-    if (currentStep === 8) {
+    if (currentStep === 10) {
       handleComplete();
     } else if (canProceed(currentStep)) {
       goToStep(currentStep + 1);
@@ -108,29 +135,72 @@ export default function OnboardingScreen({ onComplete }: Props) {
     try {
       const age = dateOfBirth ? calculateAge(dateOfBirth) : null;
       const finalGender = gender === 'Other' ? customGender : gender;
+      const fullName = (firstName.trim() + ' ' + lastName.trim()).trim();
+
+      const updateData: Record<string, any> = {
+        name: fullName,
+        profile_picture: profilePictures[0] || '',
+        profile_pictures: profilePictures,
+        date_of_birth: dateOfBirth?.toISOString().split('T')[0],
+        age,
+        gender: finalGender || null,
+        hometown: hometown.trim(),
+        phone: phoneNumber.replace(/\D/g, '') || null,
+        interests,
+        team_role_preference: teamRolePreference,
+        team_size_preference: teamSizePreference,
+        onboarding_completed: true,
+        updated_at: new Date().toISOString(),
+      };
+
+      // Add socials - columns may not exist yet, so we include them
+      // and let Supabase ignore unknown columns or handle gracefully
+      if (instagram.trim()) updateData.instagram = instagram.trim();
+      if (linkedin.trim()) updateData.linkedin = linkedin.trim();
 
       const { error } = await supabase
         .from('profiles')
-        .update({
-          name: name.trim(),
-          profile_picture: profilePicture,
-          date_of_birth: dateOfBirth?.toISOString().split('T')[0],
-          age,
-          gender: finalGender || null,
-          hometown: hometown.trim(),
-          phone: phoneNumber.replace(/\D/g, '') || null,
-          interests,
-          team_role_preference: teamRolePreference,
-          team_size_preference: teamSizePreference,
-          onboarding_completed: true,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', user.id);
 
       if (error) throw error;
       onComplete();
     } catch (error: any) {
-      Alert.alert('Error', 'Failed to save profile: ' + error.message);
+      // If error is about instagram/linkedin columns not existing, retry without them
+      if (error.message?.includes('instagram') || error.message?.includes('linkedin')) {
+        try {
+          const age = dateOfBirth ? calculateAge(dateOfBirth) : null;
+          const finalGender = gender === 'Other' ? customGender : gender;
+          const fullName = (firstName.trim() + ' ' + lastName.trim()).trim();
+
+          const { error: retryError } = await supabase
+            .from('profiles')
+            .update({
+              name: fullName,
+              profile_picture: profilePictures[0] || '',
+        profile_pictures: profilePictures,
+              date_of_birth: dateOfBirth?.toISOString().split('T')[0],
+              age,
+              gender: finalGender || null,
+              hometown: hometown.trim(),
+              phone: phoneNumber.replace(/\D/g, '') || null,
+              interests,
+              team_role_preference: teamRolePreference,
+              team_size_preference: teamSizePreference,
+              onboarding_completed: true,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', user.id);
+
+          if (retryError) throw retryError;
+          onComplete();
+          return;
+        } catch (retryErr: any) {
+          Alert.alert('Error', 'Failed to save profile: ' + retryErr.message);
+        }
+      } else {
+        Alert.alert('Error', 'Failed to save profile: ' + error.message);
+      }
     } finally {
       setSaving(false);
     }
@@ -148,32 +218,42 @@ export default function OnboardingScreen({ onComplete }: Props) {
         return;
       }
 
+      const remaining = 6 - profilePictures.length;
+      if (remaining <= 0) {
+        Alert.alert('Maximum reached', 'You can upload up to 6 photos.');
+        return;
+      }
+
       const result = useCamera
         ? await ImagePicker.launchCameraAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
-            aspect: [1, 1],
+            aspect: [3, 4],
             quality: 0.5,
           })
         : await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            aspect: [1, 1],
+            allowsMultipleSelection: true,
+            selectionLimit: remaining,
             quality: 0.5,
           });
 
-      if (!result.canceled && result.assets[0]) {
-        await uploadImage(result.assets[0].uri);
+      if (!result.canceled && result.assets.length > 0) {
+        setUploading(true);
+        for (const asset of result.assets) {
+          await uploadImage(asset.uri);
+        }
+        setUploading(false);
       }
     } catch (error) {
       console.error('Error picking image:', error);
+      setUploading(false);
       Alert.alert('Error', 'Failed to pick image');
     }
   };
 
   const uploadImage = async (uri: string) => {
     if (!user) return;
-    setUploading(true);
     try {
       const formData = new FormData();
       const fileExt = uri.split('.').pop() || 'jpg';
@@ -206,12 +286,10 @@ export default function OnboardingScreen({ onComplete }: Props) {
         .from('profile-pictures')
         .getPublicUrl(fileName);
 
-      setProfilePicture(urlData.publicUrl);
+      setProfilePictures(prev => [...prev, urlData.publicUrl]);
     } catch (error: any) {
       console.error('Upload error:', error);
       Alert.alert('Error', 'Failed to upload photo: ' + error.message);
-    } finally {
-      setUploading(false);
     }
   };
 
@@ -227,230 +305,6 @@ export default function OnboardingScreen({ onComplete }: Props) {
   const maxDate = new Date();
   maxDate.setFullYear(maxDate.getFullYear() - 13);
 
-  const accentColor = isNewTheme ? colors.accentGreen : '#6366F1';
-
-  // ===== RENDER STEPS =====
-
-  const renderNameStep = () => (
-    <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
-      <View style={styles.stepContent}>
-        <Text style={[styles.emoji]}>👋</Text>
-        <Text style={[styles.headline, { color: colors.textPrimary, fontFamily: headlineFont }]}>
-          What should we call you?
-        </Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary, fontFamily: bodyFont }]}>
-          This is how you'll appear to your pod mates
-        </Text>
-        <TextInput
-          style={[styles.textInput, {
-            backgroundColor: isNewTheme ? colors.surfaceAlt : '#fff',
-            borderColor: colors.border,
-            color: colors.textPrimary,
-            fontFamily: bodyFont,
-          }]}
-          placeholder="Your name"
-          placeholderTextColor={colors.textTertiary}
-          value={name}
-          onChangeText={setName}
-          autoFocus
-          returnKeyType="next"
-          onSubmitEditing={() => canProceed(0) && handleNext()}
-        />
-      </View>
-    </View>
-  );
-
-  const renderPhotoStep = () => (
-    <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
-      <View style={styles.stepContent}>
-        <Text style={[styles.headline, { color: colors.textPrimary, fontFamily: headlineFont }]}>
-          Add a profile photo
-        </Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary, fontFamily: bodyFont }]}>
-          Help your pod mates recognize you
-        </Text>
-
-        <TouchableOpacity
-          style={[styles.photoPlaceholder, {
-            borderColor: profilePicture ? accentColor : colors.border,
-            backgroundColor: isNewTheme ? colors.surfaceAlt : '#f9f9f9',
-          }]}
-          onPress={() => pickImage(false)}
-          disabled={uploading}
-        >
-          {uploading ? (
-            <ActivityIndicator size="large" color={accentColor} />
-          ) : profilePicture ? (
-            <Image source={{ uri: profilePicture }} style={styles.photoImage} />
-          ) : (
-            <View style={styles.photoPlaceholderInner}>
-              <Ionicons name="camera-outline" size={40} color={colors.textTertiary} />
-              <Text style={[styles.photoPlaceholderText, { color: colors.textTertiary, fontFamily: bodyFont }]}>
-                Tap to add photo
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
-
-        <View style={styles.photoButtons}>
-          <TouchableOpacity
-            style={[styles.photoOptionButton, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f0f0f0' }]}
-            onPress={() => pickImage(true)}
-            disabled={uploading}
-          >
-            <Ionicons name="camera" size={20} color={accentColor} />
-            <Text style={[styles.photoOptionText, { color: colors.textPrimary, fontFamily: bodyBoldFont }]}>
-              Take Photo
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.photoOptionButton, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f0f0f0' }]}
-            onPress={() => pickImage(false)}
-            disabled={uploading}
-          >
-            <Ionicons name="images" size={20} color={accentColor} />
-            <Text style={[styles.photoOptionText, { color: colors.textPrimary, fontFamily: bodyBoldFont }]}>
-              Choose Photo
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
-  );
-
-  const renderBirthdayStep = () => (
-    <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
-      <View style={styles.stepContent}>
-        <Text style={[styles.emoji]}>🎂</Text>
-        <Text style={[styles.headline, { color: colors.textPrimary, fontFamily: headlineFont }]}>
-          When's your birthday?
-        </Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary, fontFamily: bodyFont }]}>
-          This helps us find age-appropriate pods for you
-        </Text>
-
-        {Platform.OS === 'android' && (
-          <TouchableOpacity
-            style={[styles.dateButton, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#fff', borderColor: colors.border }]}
-            onPress={() => setShowDatePicker(true)}
-          >
-            <Ionicons name="calendar-outline" size={22} color={accentColor} />
-            <Text style={[styles.dateButtonText, { color: dateOfBirth ? colors.textPrimary : colors.textTertiary, fontFamily: bodyFont }]}>
-              {dateOfBirth
-                ? dateOfBirth.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-                : 'Select your birthday'}
-            </Text>
-          </TouchableOpacity>
-        )}
-
-        {(showDatePicker || Platform.OS === 'ios') && (
-          <View style={styles.datePickerContainer}>
-            <DateTimePicker
-              value={dateOfBirth || maxDate}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              maximumDate={maxDate}
-              minimumDate={new Date(1920, 0, 1)}
-              onChange={(event, selectedDate) => {
-                if (Platform.OS === 'android') setShowDatePicker(false);
-                if (selectedDate) setDateOfBirth(selectedDate);
-              }}
-              textColor={colors.textPrimary}
-            />
-          </View>
-        )}
-
-        {dateOfBirth && (
-          <Text style={[styles.ageText, { color: accentColor, fontFamily: bodyBoldFont }]}>
-            You're {calculateAge(dateOfBirth)} years old
-          </Text>
-        )}
-      </View>
-    </View>
-  );
-
-  const renderGenderStep = () => {
-    const genderOptions = ['Male', 'Female', 'Non-binary', 'Other'];
-    return (
-      <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
-        <View style={styles.stepContent}>
-          <Text style={[styles.headline, { color: colors.textPrimary, fontFamily: headlineFont }]}>
-            How do you identify?
-          </Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary, fontFamily: bodyFont }]}>
-            Optional — skip if you prefer
-          </Text>
-
-          <View style={styles.pillContainer}>
-            {genderOptions.map(option => (
-              <TouchableOpacity
-                key={option}
-                style={[
-                  styles.pill,
-                  { borderColor: colors.border, backgroundColor: isNewTheme ? colors.surfaceAlt : '#fff' },
-                  gender === option && { borderColor: accentColor, backgroundColor: isNewTheme ? 'rgba(168, 230, 163, 0.15)' : '#EEF2FF' },
-                ]}
-                onPress={() => setGender(gender === option ? '' : option)}
-              >
-                <Text style={[
-                  styles.pillText,
-                  { color: colors.textPrimary, fontFamily: bodyFont },
-                  gender === option && { color: accentColor, fontFamily: bodyBoldFont },
-                ]}>
-                  {option}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {gender === 'Other' && (
-            <TextInput
-              style={[styles.textInput, {
-                backgroundColor: isNewTheme ? colors.surfaceAlt : '#fff',
-                borderColor: colors.border,
-                color: colors.textPrimary,
-                fontFamily: bodyFont,
-                marginTop: 16,
-              }]}
-              placeholder="How do you identify?"
-              placeholderTextColor={colors.textTertiary}
-              value={customGender}
-              onChangeText={setCustomGender}
-            />
-          )}
-        </View>
-      </View>
-    );
-  };
-
-  const renderLocationStep = () => (
-    <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
-      <View style={styles.stepContent}>
-        <Text style={[styles.emoji]}>📍</Text>
-        <Text style={[styles.headline, { color: colors.textPrimary, fontFamily: headlineFont }]}>
-          Where are you based?
-        </Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary, fontFamily: bodyFont }]}>
-          Helps match you with local pods
-        </Text>
-        <TextInput
-          style={[styles.textInput, {
-            backgroundColor: isNewTheme ? colors.surfaceAlt : '#fff',
-            borderColor: colors.border,
-            color: colors.textPrimary,
-            fontFamily: bodyFont,
-          }]}
-          placeholder="City, State"
-          placeholderTextColor={colors.textTertiary}
-          value={hometown}
-          onChangeText={setHometown}
-          returnKeyType="next"
-          onSubmitEditing={() => canProceed(4) && handleNext()}
-        />
-      </View>
-    </View>
-  );
-
   const formatPhoneDisplay = (text: string) => {
     const cleaned = text.replace(/\D/g, '');
     if (cleaned.length <= 3) return cleaned;
@@ -458,53 +312,421 @@ export default function OnboardingScreen({ onComplete }: Props) {
     return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6, 10)}`;
   };
 
-  const renderPhoneStep = () => (
+  const handleEnableNotifications = async () => {
+    try {
+      const Notifications = await import('expo-notifications');
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status === 'granted') {
+        setNotificationPermissionGranted(true);
+        if (user) {
+          const { notificationService } = await import('../services/notificationService');
+          notificationService.registerPushToken(user.id).catch(() => {});
+        }
+      }
+    } catch (err) {
+      console.log('Notification permission request failed:', err);
+    }
+  };
+
+  // ===== SHARED LAYOUT COMPONENTS =====
+
+  const getSectionTitle = (step: number): string => {
+    if (step <= 1) return 'Set up your profile';
+    if (step <= 4) return 'The Basics';
+    if (step <= 6) return 'Your Details';
+    if (step === 7) return 'Your interests';
+    if (step === 8) return 'Preferences';
+    if (step === 9) return 'Notifications';
+    return 'Welcome';
+  };
+
+  const getStepLabel = (step: number): string => {
+    switch (step) {
+      case 0: return 'You';
+      case 1: return 'Your photo';
+      case 2: return 'Your Birthday';
+      case 3: return 'How do you identify?';
+      case 4: return 'Where are you based?';
+      case 5: return 'Your phone number';
+      case 6: return 'Drop your socials';
+      case 7: return 'Pick at least 3';
+      case 8: return 'How do you like to work?';
+      case 9: return 'Stay connected';
+      case 10: return '';
+      default: return '';
+    }
+  };
+
+  const renderProgressDots = () => {
+    const currentSection = SECTION_MAP[currentStep] ?? 0;
+    return (
+      <View style={styles.progressDots}>
+        {Array.from({ length: NUM_SECTIONS }).map((_, i) => (
+          <View
+            key={i}
+            style={[
+              styles.dot,
+              i === currentSection && styles.dotActive,
+              i < currentSection && styles.dotCompleted,
+            ]}
+          />
+        ))}
+      </View>
+    );
+  };
+
+  const renderStepHeader = (step: number) => (
+    <View style={styles.headerArea}>
+      <View style={styles.headerRow}>
+        <Text style={styles.sectionTitle}>{getSectionTitle(step)}</Text>
+        {renderProgressDots()}
+      </View>
+      <View style={styles.accentLine} />
+      {getStepLabel(step) ? (
+        <Text style={styles.stepLabel}>{getStepLabel(step)}</Text>
+      ) : null}
+    </View>
+  );
+
+  const renderBottomNav = () => (
+    <View style={styles.bottomNav}>
+      {currentStep > 0 ? (
+        <TouchableOpacity onPress={handleBack} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+          <Ionicons name="chevron-back" size={28} color={C.ink} />
+        </TouchableOpacity>
+      ) : (
+        <View style={{ width: 28 }} />
+      )}
+
+      <TouchableOpacity
+        style={[
+          styles.forwardButton,
+          !canProceed(currentStep) && { opacity: 0.3 },
+        ]}
+        onPress={handleNext}
+        disabled={!canProceed(currentStep) || saving}
+      >
+        {saving ? (
+          <ActivityIndicator size="small" color={C.white} />
+        ) : (
+          <Ionicons name="chevron-forward" size={24} color={C.white} />
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+
+  // ===== RENDER STEPS =====
+
+  const renderNameStep = () => (
     <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
-      <View style={styles.stepContent}>
-        <Text style={[styles.emoji]}>📱</Text>
-        <Text style={[styles.headline, { color: colors.textPrimary, fontFamily: headlineFont }]}>
-          What's your number?
-        </Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary, fontFamily: bodyFont }]}>
-          Optional — so pod mates can reach you
-        </Text>
-        <View style={[styles.phoneInputRow, {
-          backgroundColor: isNewTheme ? colors.surfaceAlt : '#fff',
-          borderColor: colors.border,
-        }]}>
-          <Text style={[styles.phonePrefix, { color: colors.textSecondary, fontFamily: bodyBoldFont }]}>+1</Text>
+      <View style={styles.stepInner}>
+        {renderStepHeader(0)}
+        <View style={styles.contentArea}>
           <TextInput
-            style={[styles.phoneTextInput, {
-              color: colors.textPrimary,
-              fontFamily: bodyFont,
-            }]}
-            placeholder="(555) 123-4567"
-            placeholderTextColor={colors.textTertiary}
-            value={formatPhoneDisplay(phoneNumber)}
-            onChangeText={(text) => setPhoneNumber(text.replace(/\D/g, '').slice(0, 10))}
-            keyboardType="phone-pad"
-            maxLength={14}
+            style={styles.largeInput}
+            placeholder="First name"
+            placeholderTextColor={C.border}
+            value={firstName}
+            onChangeText={setFirstName}
+            autoFocus
+            returnKeyType="next"
+          />
+          <View style={styles.thinDivider} />
+          <TextInput
+            style={styles.largeInput}
+            placeholder="Last name"
+            placeholderTextColor={C.border}
+            value={lastName}
+            onChangeText={setLastName}
+            returnKeyType="next"
+            onSubmitEditing={() => canProceed(0) && handleNext()}
           />
         </View>
+        <Text style={styles.helperText}>This is how you'll appear to your pod mates</Text>
+        {renderBottomNav()}
+      </View>
+    </View>
+  );
+
+  const removePhoto = (index: number) => {
+    setProfilePictures(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const renderPhotoStep = () => (
+    <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
+      <View style={styles.stepInner}>
+        {renderStepHeader(1)}
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 20 }}>
+          <Text style={{ fontSize: 13, color: C.muted, fontFamily: F.body, marginBottom: 16 }}>
+            Add at least 3 photos of yourself ({profilePictures.length}/3 minimum)
+          </Text>
+
+          {/* Photo grid */}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+            {profilePictures.map((pic, i) => (
+              <View key={i} style={{ width: (SCREEN_WIDTH - 68) / 3, aspectRatio: 0.8, borderRadius: 12, overflow: 'hidden', backgroundColor: '#F2F0EB' }}>
+                <Image source={{ uri: pic }} style={{ width: '100%', height: '100%' }} />
+                <TouchableOpacity
+                  style={{ position: 'absolute', top: 4, right: 4, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}
+                  onPress={() => removePhoto(i)}
+                >
+                  <Ionicons name="close" size={14} color="#fff" />
+                </TouchableOpacity>
+                {i === 0 && (
+                  <View style={{ position: 'absolute', bottom: 4, left: 4, backgroundColor: C.accent, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                    <Text style={{ fontSize: 10, color: '#fff', fontWeight: '600' }}>Default</Text>
+                  </View>
+                )}
+              </View>
+            ))}
+            {/* Add photo button */}
+            {profilePictures.length < 6 && (
+              <TouchableOpacity
+                style={{ width: (SCREEN_WIDTH - 68) / 3, aspectRatio: 0.8, borderRadius: 12, backgroundColor: '#F2F0EB', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: C.border, borderStyle: 'dashed' }}
+                onPress={() => pickImage(false)}
+                disabled={uploading}
+              >
+                {uploading ? (
+                  <ActivityIndicator color={C.muted} />
+                ) : (
+                  <>
+                    <Ionicons name="add" size={28} color={C.muted} />
+                    <Text style={{ fontSize: 11, color: C.muted, fontFamily: F.body, marginTop: 4 }}>Add</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+            <TouchableOpacity
+              style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: 10, backgroundColor: '#F2F0EB' }}
+              onPress={() => pickImage(true)}
+              disabled={uploading}
+            >
+              <Ionicons name="camera-outline" size={18} color={C.ink} />
+              <Text style={{ fontSize: 14, color: C.ink, fontFamily: F.body }}>Camera</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: 10, backgroundColor: '#F2F0EB' }}
+              onPress={() => pickImage(false)}
+              disabled={uploading}
+            >
+              <Ionicons name="images-outline" size={18} color={C.ink} />
+              <Text style={{ fontSize: 14, color: C.ink, fontFamily: F.body }}>Library</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+        <Text style={styles.helperText}>Your first photo will be your default profile image</Text>
+        {renderBottomNav()}
+      </View>
+    </View>
+  );
+
+  const renderBirthdayStep = () => {
+    const mm = dateOfBirth ? String(dateOfBirth.getMonth() + 1).padStart(2, '0') : 'MM';
+    const dd = dateOfBirth ? String(dateOfBirth.getDate()).padStart(2, '0') : 'DD';
+    const yyyy = dateOfBirth ? String(dateOfBirth.getFullYear()) : 'YYYY';
+
+    return (
+      <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
+        <View style={styles.stepInner}>
+          {renderStepHeader(2)}
+          <View style={styles.contentArea}>
+            {/* Large date display */}
+            <TouchableOpacity
+              onPress={() => { if (Platform.OS === 'android') setShowDatePicker(true); }}
+              activeOpacity={0.7}
+            >
+              <Text style={[
+                styles.largeDateDisplay,
+                !dateOfBirth && { color: C.border },
+              ]}>
+                {mm}  {dd}  {yyyy}
+              </Text>
+            </TouchableOpacity>
+
+            {(showDatePicker || Platform.OS === 'ios') && (
+              <View style={{ marginTop: 16 }}>
+                <DateTimePicker
+                  value={dateOfBirth || maxDate}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  maximumDate={maxDate}
+                  minimumDate={new Date(1920, 0, 1)}
+                  onChange={(event, selectedDate) => {
+                    if (Platform.OS === 'android') setShowDatePicker(false);
+                    if (selectedDate) setDateOfBirth(selectedDate);
+                  }}
+                  textColor={C.ink}
+                />
+              </View>
+            )}
+          </View>
+          <Text style={styles.helperText}>We only show your age on your profile.</Text>
+          {renderBottomNav()}
+        </View>
+      </View>
+    );
+  };
+
+  const renderGenderStep = () => {
+    const genderOptions = ['Male', 'Female', 'Non-binary', 'Other'];
+    return (
+      <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
+        <View style={styles.stepInner}>
+          {renderStepHeader(3)}
+          <View style={styles.contentArea}>
+            <View style={styles.genderPills}>
+              {genderOptions.map(option => (
+                <TouchableOpacity
+                  key={option}
+                  style={[
+                    styles.genderPill,
+                    gender === option && styles.genderPillActive,
+                  ]}
+                  onPress={() => setGender(gender === option ? '' : option)}
+                >
+                  <Text style={[
+                    styles.genderPillText,
+                    gender === option && styles.genderPillTextActive,
+                  ]}>
+                    {option}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {gender === 'Other' && (
+              <TextInput
+                style={[styles.largeInput, { marginTop: 24 }]}
+                placeholder="How do you identify?"
+                placeholderTextColor={C.border}
+                value={customGender}
+                onChangeText={setCustomGender}
+              />
+            )}
+          </View>
+          <Text style={styles.helperText}>Used for personalizing your experience</Text>
+          {renderBottomNav()}
+        </View>
+      </View>
+    );
+  };
+
+  const locationSuggestions = hometown.trim().length >= 2
+    ? US_CITIES.filter(c => c.toLowerCase().startsWith(hometown.toLowerCase())).slice(0, 5)
+    : [];
+
+  const renderLocationStep = () => (
+    <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
+      <View style={styles.stepInner}>
+        {renderStepHeader(4)}
+        <View style={styles.contentArea}>
+          <TextInput
+            style={styles.largeInput}
+            placeholder="City, State"
+            placeholderTextColor={C.border}
+            value={hometown}
+            onChangeText={setHometown}
+            returnKeyType="next"
+            onSubmitEditing={() => canProceed(4) && handleNext()}
+          />
+          {locationSuggestions.length > 0 && (
+            <View style={{ marginTop: 12 }}>
+              {locationSuggestions.map(city => (
+                <TouchableOpacity
+                  key={city}
+                  style={{ paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.border }}
+                  onPress={() => setHometown(city)}
+                >
+                  <Text style={{ fontSize: 17, color: C.ink, fontFamily: F.body }}>{city}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
+        <Text style={styles.helperText}>Helps match you with local pods.</Text>
+        {renderBottomNav()}
+      </View>
+    </View>
+  );
+
+  const renderPhoneStep = () => (
+    <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
+      <View style={styles.stepInner}>
+        {renderStepHeader(5)}
+        <View style={styles.contentArea}>
+          <View style={styles.phoneRow}>
+            <Text style={styles.phonePrefix}>+1</Text>
+            <TextInput
+              style={styles.phoneLargeInput}
+              placeholder="(555) 123-4567"
+              placeholderTextColor={C.border}
+              value={formatPhoneDisplay(phoneNumber)}
+              onChangeText={(text) => setPhoneNumber(text.replace(/\D/g, '').slice(0, 10))}
+              keyboardType="phone-pad"
+              maxLength={14}
+            />
+          </View>
+        </View>
+        <Text style={styles.helperText}>We use your phone number to sign you in.</Text>
+        {renderBottomNav()}
+      </View>
+    </View>
+  );
+
+  const renderSocialsStep = () => (
+    <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
+      <View style={styles.stepInner}>
+        {renderStepHeader(6)}
+        <View style={styles.contentArea}>
+          <View style={styles.socialRow}>
+            <Text style={styles.socialLabel}>Instagram</Text>
+            <TextInput
+              style={styles.socialInput}
+              placeholder="@handle"
+              placeholderTextColor={C.border}
+              value={instagram}
+              onChangeText={setInstagram}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+          <View style={styles.thinDivider} />
+          <View style={styles.socialRow}>
+            <Text style={styles.socialLabel}>LinkedIn</Text>
+            <TextInput
+              style={styles.socialInput}
+              placeholder="linkedin.com/in/you"
+              placeholderTextColor={C.border}
+              value={linkedin}
+              onChangeText={setLinkedin}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+        </View>
+        <Text style={styles.helperText}>
+          Socials are used to ensure every person on Whale Pod is real. This is required for verification, but will not be shown on your profile.
+        </Text>
+        {renderBottomNav()}
       </View>
     </View>
   );
 
   const renderInterestsStep = () => (
     <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
-      <View style={styles.stepContentInterests}>
-        <Text style={[styles.headline, { color: colors.textPrimary, fontFamily: headlineFont }]}>
-          What are you into?
-        </Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary, fontFamily: bodyFont }]}>
-          Pick at least 3 interests that excite you
-        </Text>
-        <Text style={[styles.interestCount, { color: interests.length >= 3 ? accentColor : colors.textTertiary, fontFamily: bodyBoldFont }]}>
+      <View style={[styles.stepInner, { flex: 1 }]}>
+        {renderStepHeader(7)}
+        <Text style={[styles.interestCount, {
+          color: interests.length >= 3 ? C.accent : C.muted,
+        }]}>
           {interests.length} selected {interests.length < 3 ? `(${3 - interests.length} more needed)` : ''}
         </Text>
 
         <ScrollView
-          style={styles.interestsScroll}
+          style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.interestsGrid}
         >
@@ -515,15 +737,13 @@ export default function OnboardingScreen({ onComplete }: Props) {
                 key={type}
                 style={[
                   styles.interestPill,
-                  { borderColor: colors.border, backgroundColor: isNewTheme ? colors.surfaceAlt : '#fff' },
-                  selected && { borderColor: accentColor, backgroundColor: isNewTheme ? 'rgba(168, 230, 163, 0.15)' : '#EEF2FF' },
+                  selected && styles.interestPillActive,
                 ]}
                 onPress={() => toggleInterest(type)}
               >
                 <Text style={[
                   styles.interestPillText,
-                  { color: colors.textSecondary, fontFamily: bodyFont },
-                  selected && { color: accentColor, fontFamily: bodyBoldFont },
+                  selected && styles.interestPillTextActive,
                 ]}>
                   {type}
                 </Text>
@@ -531,348 +751,434 @@ export default function OnboardingScreen({ onComplete }: Props) {
             );
           })}
         </ScrollView>
+        {renderBottomNav()}
       </View>
     </View>
   );
 
   const renderPreferencesStep = () => {
     const roles = [
-      { key: 'leader', label: 'Lead the way', icon: '🎯', desc: 'I want to create and lead pods' },
-      { key: 'contributor', label: 'Contribute', icon: '🤝', desc: 'I prefer to join and participate' },
-      { key: 'either', label: 'Flexible', icon: '🔄', desc: 'I\'m open to either role' },
+      { key: 'leader', label: 'Lead the way', desc: 'I want to create and lead pods' },
+      { key: 'contributor', label: 'Contribute', desc: 'I prefer to join and participate' },
+      { key: 'either', label: 'Flexible', desc: "I'm open to either role" },
     ];
     const sizes = [
-      { key: 'small', label: 'Small (2-4)', icon: '👥' },
-      { key: 'medium', label: 'Medium (5-8)', icon: '👥👥' },
-      { key: 'large', label: 'Large (9+)', icon: '👥👥👥' },
+      { key: 'small', label: 'Small (2-4)' },
+      { key: 'medium', label: 'Medium (5-8)' },
+      { key: 'large', label: 'Large (9+)' },
     ];
 
     return (
       <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
-        <ScrollView style={styles.stepContentScroll} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-          <Text style={[styles.headline, { color: colors.textPrimary, fontFamily: headlineFont }]}>
-            How do you like to work?
-          </Text>
-
-          <Text style={[styles.prefSectionTitle, { color: colors.textPrimary, fontFamily: bodyBoldFont }]}>
-            Team Role
-          </Text>
-          {roles.map(role => (
-            <TouchableOpacity
-              key={role.key}
-              style={[
-                styles.prefCard,
-                { borderColor: colors.border, backgroundColor: isNewTheme ? colors.surfaceAlt : '#fff' },
-                teamRolePreference === role.key && { borderColor: accentColor, backgroundColor: isNewTheme ? 'rgba(168, 230, 163, 0.1)' : '#EEF2FF' },
-              ]}
-              onPress={() => setTeamRolePreference(role.key)}
-            >
-              <Text style={styles.prefIcon}>{role.icon}</Text>
-              <View style={styles.prefInfo}>
-                <Text style={[styles.prefLabel, { color: colors.textPrimary, fontFamily: bodyBoldFont }]}>
-                  {role.label}
-                </Text>
-                <Text style={[styles.prefDesc, { color: colors.textSecondary, fontFamily: bodyFont }]}>
-                  {role.desc}
-                </Text>
-              </View>
-              {teamRolePreference === role.key && (
-                <Ionicons name="checkmark-circle" size={24} color={accentColor} />
-              )}
-            </TouchableOpacity>
-          ))}
-
-          <Text style={[styles.prefSectionTitle, { color: colors.textPrimary, fontFamily: bodyBoldFont, marginTop: 24 }]}>
-            Preferred Team Size
-          </Text>
-          <View style={styles.sizeRow}>
-            {sizes.map(size => (
+        <View style={[styles.stepInner, { flex: 1 }]}>
+          {renderStepHeader(8)}
+          <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+            <Text style={styles.prefSection}>Team Role</Text>
+            {roles.map(role => (
               <TouchableOpacity
-                key={size.key}
+                key={role.key}
                 style={[
-                  styles.sizeCard,
-                  { borderColor: colors.border, backgroundColor: isNewTheme ? colors.surfaceAlt : '#fff' },
-                  teamSizePreference === size.key && { borderColor: accentColor, backgroundColor: isNewTheme ? 'rgba(168, 230, 163, 0.1)' : '#EEF2FF' },
+                  styles.prefCard,
+                  teamRolePreference === role.key && styles.prefCardActive,
                 ]}
-                onPress={() => setTeamSizePreference(size.key)}
+                onPress={() => setTeamRolePreference(role.key)}
               >
-                <Text style={styles.sizeIcon}>{size.icon}</Text>
-                <Text style={[
-                  styles.sizeLabel,
-                  { color: colors.textPrimary, fontFamily: bodyFont },
-                  teamSizePreference === size.key && { color: accentColor, fontFamily: bodyBoldFont },
-                ]}>
-                  {size.label}
-                </Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.prefCardLabel}>{role.label}</Text>
+                  <Text style={styles.prefCardDesc}>{role.desc}</Text>
+                </View>
+                {teamRolePreference === role.key && (
+                  <Ionicons name="checkmark-circle" size={22} color={C.accent} />
+                )}
               </TouchableOpacity>
             ))}
+
+            <Text style={[styles.prefSection, { marginTop: 28 }]}>Preferred Team Size</Text>
+            <View style={styles.sizeRow}>
+              {sizes.map(size => (
+                <TouchableOpacity
+                  key={size.key}
+                  style={[
+                    styles.sizeCard,
+                    teamSizePreference === size.key && styles.sizeCardActive,
+                  ]}
+                  onPress={() => setTeamSizePreference(size.key)}
+                >
+                  <Text style={[
+                    styles.sizeLabel,
+                    teamSizePreference === size.key && { color: C.accent, fontFamily: F.bodyMedium },
+                  ]}>
+                    {size.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+          {renderBottomNav()}
+        </View>
+      </View>
+    );
+  };
+
+  const renderNotificationStep = () => {
+    const notifItems = [
+      { icon: 'chatbubble-ellipses-outline' as const, text: 'New messages from pod mates' },
+      { icon: 'people-outline' as const, text: 'Pod updates and applications' },
+      { icon: 'calendar-outline' as const, text: 'Meeting reminders' },
+      { icon: 'hand-right-outline' as const, text: 'Connection requests' },
+    ];
+
+    return (
+      <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
+        <View style={styles.stepInner}>
+          {renderStepHeader(9)}
+          <View style={styles.contentArea}>
+            {notificationPermissionGranted ? (
+              <Ionicons name="checkmark-circle" size={48} color={C.accent} style={{ marginBottom: 20 }} />
+            ) : null}
+
+            <View style={styles.notifList}>
+              {notifItems.map(item => (
+                <View key={item.text} style={styles.notifItem}>
+                  <Ionicons name={item.icon} size={20} color={C.muted} />
+                  <Text style={styles.notifText}>{item.text}</Text>
+                </View>
+              ))}
+            </View>
+
+            {notificationPermissionGranted ? (
+              <Text style={[styles.helperText, { color: C.accent, fontFamily: F.bodyMedium }]}>
+                Notifications enabled!
+              </Text>
+            ) : (
+              <>
+                <TouchableOpacity
+                  style={styles.enableNotifBtn}
+                  onPress={handleEnableNotifications}
+                >
+                  <Ionicons name="notifications" size={18} color={C.white} />
+                  <Text style={styles.enableNotifText}>Enable Notifications</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => goToStep(currentStep + 1)}>
+                  <Text style={[styles.helperText, { marginTop: 16 }]}>Maybe later</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
-        </ScrollView>
+          {renderBottomNav()}
+        </View>
       </View>
     );
   };
 
   const renderWelcomeStep = () => (
     <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
-      <Animated.View style={[styles.stepContent, { opacity: fadeAnim, transform: [{ scale: fadeAnim.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }] }]}>
-        <Text style={styles.welcomeEmoji}>🐳</Text>
-        <Text style={[styles.welcomeHeadline, { color: colors.textPrimary, fontFamily: headlineFont }]}>
-          Welcome to the pod, {name}!
-        </Text>
-        <Text style={[styles.welcomeSubtitle, { color: colors.textSecondary, fontFamily: bodyFont }]}>
-          You're all set to start exploring pursuits and finding your team
-        </Text>
+      <Animated.View style={[styles.stepInner, {
+        opacity: fadeAnim,
+        transform: [{ scale: fadeAnim.interpolate({ inputRange: [0, 1], outputRange: [0.95, 1] }) }],
+      }]}>
+        {renderStepHeader(10)}
+        <View style={[styles.contentArea, { alignItems: 'center' }]}>
+          <Text style={styles.welcomeTitle}>
+            Welcome to the pod, {firstName}!
+          </Text>
+          <Text style={[styles.helperText, { textAlign: 'center', marginTop: 12, fontSize: 16 }]}>
+            You're all set to start exploring pursuits and finding your team
+          </Text>
+        </View>
+        <View style={styles.bottomNav}>
+          <View style={{ width: 28 }} />
+          <TouchableOpacity
+            style={styles.forwardButton}
+            onPress={handleComplete}
+            disabled={saving}
+          >
+            {saving ? (
+              <ActivityIndicator size="small" color={C.white} />
+            ) : (
+              <Ionicons name="chevron-forward" size={24} color={C.white} />
+            )}
+          </TouchableOpacity>
+        </View>
       </Animated.View>
     </View>
   );
 
   // ===== MAIN RENDER =====
 
-  const buttonLabel = currentStep === 8
-    ? (saving ? 'Saving...' : "Let's Go!")
-    : 'Next';
-
   return (
-    <GradientBackground style={styles.container}>
-      <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} />
-      {isNewTheme && <GrainTexture opacity={0.06} />}
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" />
+      {/* Subtle peach gradient at top */}
+      <LinearGradient
+        colors={[C.gradientTop, C.bg]}
+        style={styles.topGradient}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+      />
 
-      {/* Progress dots */}
-      <View style={styles.progressContainer}>
-        {Array.from({ length: TOTAL_STEPS }).map((_, index) => (
-          <View
-            key={index}
-            style={[
-              styles.progressDot,
-              { backgroundColor: colors.border },
-              index === currentStep && { backgroundColor: accentColor, width: 24 },
-              index < currentStep && { backgroundColor: accentColor },
-            ]}
-          />
-        ))}
-      </View>
-
-      {/* Step content */}
-      <ScrollView
-        ref={scrollViewRef}
-        horizontal
-        pagingEnabled
-        scrollEnabled={false}
-        showsHorizontalScrollIndicator={false}
-        style={styles.stepsScroll}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
       >
-        {renderNameStep()}
-        {renderPhotoStep()}
-        {renderBirthdayStep()}
-        {renderGenderStep()}
-        {renderLocationStep()}
-        {renderPhoneStep()}
-        {renderInterestsStep()}
-        {renderPreferencesStep()}
-        {renderWelcomeStep()}
-      </ScrollView>
-
-      {/* Navigation buttons */}
-      <View style={[styles.navContainer, { borderTopColor: colors.border }]}>
-        {currentStep > 0 ? (
-          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-            <Ionicons name="arrow-back" size={22} color={colors.textSecondary} />
-            <Text style={[styles.backText, { color: colors.textSecondary, fontFamily: bodyFont }]}>Back</Text>
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.backButton} />
-        )}
-
-        <TouchableOpacity
-          style={[
-            styles.nextButton,
-            { backgroundColor: accentColor },
-            !canProceed(currentStep) && styles.nextButtonDisabled,
-          ]}
-          onPress={handleNext}
-          disabled={!canProceed(currentStep) || saving}
+        <ScrollView
+          ref={scrollViewRef}
+          horizontal
+          pagingEnabled
+          scrollEnabled={false}
+          showsHorizontalScrollIndicator={false}
+          style={{ flex: 1 }}
         >
-          {saving ? (
-            <ActivityIndicator size="small" color={isNewTheme ? colors.background : '#fff'} />
-          ) : (
-            <Text style={[styles.nextText, { color: isNewTheme ? colors.background : '#fff', fontFamily: bodyBoldFont }]}>
-              {buttonLabel}
-            </Text>
-          )}
-        </TouchableOpacity>
-      </View>
-    </GradientBackground>
+          {renderNameStep()}
+          {renderPhotoStep()}
+          {renderBirthdayStep()}
+          {renderGenderStep()}
+          {renderLocationStep()}
+          {renderPhoneStep()}
+          {renderSocialsStep()}
+          {renderInterestsStep()}
+          {renderPreferencesStep()}
+          {renderNotificationStep()}
+          {renderWelcomeStep()}
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: C.bg,
   },
-  // Progress
-  progressContainer: {
+  topGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 220,
+  },
+
+  // Step layout
+  stepContainer: {
+    flex: 1,
+  },
+  stepInner: {
+    flex: 1,
+    paddingTop: Platform.OS === 'ios' ? 72 : 48,
+    paddingHorizontal: 28,
+    paddingBottom: Platform.OS === 'ios' ? 44 : 24,
+  },
+
+  // Header area
+  headerArea: {
+    marginBottom: 40,
+  },
+  headerRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 60,
-    paddingBottom: 12,
+    marginBottom: 14,
+  },
+  sectionTitle: {
+    fontFamily: F.header,
+    fontSize: 22,
+    color: C.ink,
+  },
+  progressDots: {
+    flexDirection: 'row',
     gap: 6,
   },
-  progressDot: {
+  dot: {
     width: 8,
     height: 8,
     borderRadius: 4,
+    backgroundColor: C.border,
   },
-  // Steps scroll
-  stepsScroll: {
-    flex: 1,
+  dotActive: {
+    backgroundColor: C.ink,
+    width: 20,
+    borderRadius: 4,
   },
-  stepContainer: {
-    flex: 1,
-    justifyContent: 'center',
+  dotCompleted: {
+    backgroundColor: C.ink,
   },
-  stepContent: {
-    paddingHorizontal: 32,
-    alignItems: 'center',
-  },
-  stepContentInterests: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 20,
-  },
-  stepContentScroll: {
-    flex: 1,
-    paddingHorizontal: 32,
-    paddingTop: 20,
-  },
-  // Typography
-  emoji: {
-    fontSize: 48,
+  accentLine: {
+    height: 2,
+    backgroundColor: C.accentLine,
     marginBottom: 16,
   },
-  headline: {
-    fontSize: 26,
-    fontWeight: '700',
-    textAlign: 'center',
+  stepLabel: {
+    fontFamily: F.body,
+    fontSize: 14,
+    color: C.muted,
+    letterSpacing: 0.3,
+  },
+
+  // Content
+  contentArea: {
+    flex: 1,
+    justifyContent: 'flex-start',
+    paddingTop: 8,
+  },
+
+  // Large text input (no box, just big text)
+  largeInput: {
+    fontFamily: F.bodyMedium,
+    fontSize: 40,
+    color: C.ink,
+    paddingVertical: 8,
+    borderWidth: 0,
+    backgroundColor: 'transparent',
+  },
+  thinDivider: {
+    height: 1,
+    backgroundColor: C.border,
+    marginVertical: 8,
+  },
+
+  // Helper text
+  helperText: {
+    fontFamily: F.body,
+    fontSize: 13,
+    color: C.muted,
+    lineHeight: 19,
     marginBottom: 8,
   },
-  subtitle: {
-    fontSize: 15,
-    textAlign: 'center',
-    marginBottom: 32,
-    lineHeight: 22,
+
+  // Bottom navigation
+  bottomNav: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 20,
+    paddingBottom: 4,
   },
-  // Text input
-  textInput: {
-    width: '100%',
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 17,
+  forwardButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: C.ink,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
+
   // Photo step
-  photoPlaceholder: {
+  photoCircle: {
     width: 140,
     height: 140,
     borderRadius: 70,
-    borderWidth: 2,
+    borderWidth: 1.5,
+    borderColor: C.border,
     borderStyle: 'dashed',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
     overflow: 'hidden',
+    marginBottom: 24,
   },
   photoImage: {
     width: 140,
     height: 140,
     borderRadius: 70,
   },
-  photoPlaceholderInner: {
-    alignItems: 'center',
-    gap: 8,
-  },
-  photoPlaceholderText: {
-    fontSize: 13,
-  },
-  photoButtons: {
+  photoActions: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 16,
   },
-  photoOptionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  photoActionBtn: {
     paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 10,
-  },
-  photoOptionText: {
-    fontSize: 14,
-  },
-  // Birthday
-  dateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    width: '100%',
+    paddingVertical: 10,
+    borderRadius: 20,
     borderWidth: 1,
-    borderRadius: 12,
-    padding: 16,
+    borderColor: C.border,
   },
-  dateButtonText: {
-    fontSize: 16,
+  photoActionText: {
+    fontFamily: F.bodyMedium,
+    fontSize: 14,
+    color: C.ink,
   },
-  datePickerContainer: {
-    alignItems: 'center',
-    marginTop: 8,
+
+  // Birthday large display
+  largeDateDisplay: {
+    fontFamily: F.bodyMedium,
+    fontSize: 40,
+    color: C.ink,
+    letterSpacing: 2,
   },
-  ageText: {
-    fontSize: 18,
-    marginTop: 16,
-    textAlign: 'center',
-  },
+
   // Gender pills
-  pillContainer: {
+  genderPills: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'center',
     gap: 10,
   },
-  pill: {
+  genderPill: {
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 28,
     borderWidth: 1.5,
+    borderColor: C.border,
+    backgroundColor: C.white,
   },
-  pillText: {
+  genderPillActive: {
+    borderColor: C.ink,
+    backgroundColor: C.ink,
+  },
+  genderPillText: {
+    fontFamily: F.body,
     fontSize: 15,
+    color: C.ink,
   },
+  genderPillTextActive: {
+    color: C.white,
+    fontFamily: F.bodyMedium,
+  },
+
   // Phone
-  phoneInputRow: {
-    width: '100%',
+  phoneRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    height: 56,
+    alignItems: 'baseline',
   },
   phonePrefix: {
-    fontSize: 17,
+    fontFamily: F.bodyMedium,
+    fontSize: 40,
+    color: C.ink,
     marginRight: 8,
   },
-  phoneTextInput: {
+  phoneLargeInput: {
     flex: 1,
-    fontSize: 17,
+    fontFamily: F.bodyMedium,
+    fontSize: 40,
+    color: C.ink,
     paddingVertical: 0,
   },
+
+  // Socials
+  socialRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  socialLabel: {
+    fontFamily: F.bodyMedium,
+    fontSize: 17,
+    color: C.ink,
+    width: 100,
+  },
+  socialInput: {
+    flex: 1,
+    fontFamily: F.body,
+    fontSize: 17,
+    color: C.ink,
+    paddingVertical: 4,
+  },
+
   // Interests
   interestCount: {
-    fontSize: 14,
+    fontFamily: F.bodyMedium,
+    fontSize: 13,
     marginBottom: 16,
-  },
-  interestsScroll: {
-    flex: 1,
   },
   interestsGrid: {
     flexDirection: 'row',
@@ -885,15 +1191,29 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 20,
     borderWidth: 1.5,
+    borderColor: C.border,
+    backgroundColor: C.white,
+  },
+  interestPillActive: {
+    borderColor: C.ink,
+    backgroundColor: C.ink,
   },
   interestPillText: {
+    fontFamily: F.body,
     fontSize: 14,
+    color: C.ink,
   },
+  interestPillTextActive: {
+    color: C.white,
+    fontFamily: F.bodyMedium,
+  },
+
   // Preferences
-  prefSectionTitle: {
-    fontSize: 17,
+  prefSection: {
+    fontFamily: F.bodyMedium,
+    fontSize: 16,
+    color: C.ink,
     marginBottom: 12,
-    marginTop: 8,
   },
   prefCard: {
     flexDirection: 'row',
@@ -901,21 +1221,24 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     borderWidth: 1.5,
+    borderColor: C.border,
+    backgroundColor: C.white,
     marginBottom: 10,
   },
-  prefIcon: {
-    fontSize: 28,
-    marginRight: 14,
+  prefCardActive: {
+    borderColor: C.accent,
+    backgroundColor: '#F0F5EC',
   },
-  prefInfo: {
-    flex: 1,
-  },
-  prefLabel: {
-    fontSize: 16,
+  prefCardLabel: {
+    fontFamily: F.bodyMedium,
+    fontSize: 15,
+    color: C.ink,
     marginBottom: 2,
   },
-  prefDesc: {
+  prefCardDesc: {
+    fontFamily: F.body,
     fontSize: 13,
+    color: C.muted,
   },
   sizeRow: {
     flexDirection: 'row',
@@ -924,66 +1247,61 @@ const styles = StyleSheet.create({
   sizeCard: {
     flex: 1,
     alignItems: 'center',
-    padding: 16,
+    paddingVertical: 16,
     borderRadius: 12,
     borderWidth: 1.5,
+    borderColor: C.border,
+    backgroundColor: C.white,
   },
-  sizeIcon: {
-    fontSize: 20,
-    marginBottom: 8,
+  sizeCardActive: {
+    borderColor: C.accent,
+    backgroundColor: '#F0F5EC',
   },
   sizeLabel: {
+    fontFamily: F.body,
     fontSize: 13,
+    color: C.ink,
     textAlign: 'center',
   },
-  // Welcome
-  welcomeEmoji: {
-    fontSize: 80,
-    marginBottom: 24,
+
+  // Notifications
+  notifList: {
+    gap: 16,
+    marginBottom: 28,
   },
-  welcomeHeadline: {
-    fontSize: 28,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  welcomeSubtitle: {
-    fontSize: 16,
-    textAlign: 'center',
-    lineHeight: 24,
-    paddingHorizontal: 16,
-  },
-  // Navigation
-  navContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    paddingBottom: 36,
-    borderTopWidth: 1,
-  },
-  backButton: {
+  notifItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    minWidth: 70,
+    gap: 12,
   },
-  backText: {
-    fontSize: 16,
+  notifText: {
+    fontFamily: F.body,
+    fontSize: 15,
+    color: C.ink,
+    lineHeight: 22,
   },
-  nextButton: {
-    paddingHorizontal: 36,
+  enableNotifBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 28,
     paddingVertical: 14,
     borderRadius: 28,
-    minWidth: 120,
-    alignItems: 'center',
+    backgroundColor: C.ink,
   },
-  nextButtonDisabled: {
-    opacity: 0.4,
+  enableNotifText: {
+    fontFamily: F.bodyMedium,
+    fontSize: 15,
+    color: C.white,
   },
-  nextText: {
-    fontSize: 17,
-    fontWeight: '600',
+
+  // Welcome
+  welcomeTitle: {
+    fontFamily: F.header,
+    fontSize: 32,
+    color: C.ink,
+    textAlign: 'center',
+    lineHeight: 42,
   },
 });

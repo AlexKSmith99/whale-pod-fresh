@@ -29,8 +29,8 @@ export default function InterviewTimeSlotProposalScreen({ applicationId, pursuit
   const { theme, isNewTheme } = useTheme();
   const colors = theme.colors;
   const themedStyles = getThemedStyles(colors, isNewTheme);
-  // Interview uses purple accent color (#8b5cf6)
-  const interviewAccent = '#8b5cf6';
+  // Interview uses purple accent color (#2D5016)
+  const interviewAccent = '#2D5016';
   const accentColor = isNewTheme ? colors.accentGreen : interviewAccent;
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([
     { date: new Date(), startTime: new Date(), endTime: new Date() }
@@ -226,7 +226,8 @@ export default function InterviewTimeSlotProposalScreen({ applicationId, pursuit
           applicationId,
           pursuitId,
           pursuitTitle,
-          applicantName
+          applicantName,
+          user?.id
         );
       }
 
@@ -259,7 +260,7 @@ export default function InterviewTimeSlotProposalScreen({ applicationId, pursuit
 
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
-          <View style={[styles.introSection, { backgroundColor: isNewTheme ? colors.primaryLight : '#f3e8ff' }]}>
+          <View style={[styles.introSection, { backgroundColor: isNewTheme ? colors.primaryLight : '#E4EDDE' }]}>
             <Text style={[styles.pursuitTitle, { color: accentColor, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{pursuitTitle}</Text>
             <Text style={[styles.introText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
               The creator wants to schedule an interview with you! Please propose your available time slots for the next week below.
@@ -294,10 +295,8 @@ export default function InterviewTimeSlotProposalScreen({ applicationId, pursuit
               </TouchableOpacity>
               {showDatePicker === index && Platform.OS === 'ios' && (
                 <Modal transparent animationType="fade" visible={showDatePicker === index}>
-                  <TouchableOpacity
+                  <View
                     style={[styles.pickerOverlay, { backgroundColor: isNewTheme ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)' }]}
-                    activeOpacity={1}
-                    onPress={() => setShowDatePicker(null)}
                   >
                     <View style={[styles.pickerModalContent, { backgroundColor: colors.surface }]}>
                       <DateTimePicker
@@ -321,7 +320,7 @@ export default function InterviewTimeSlotProposalScreen({ applicationId, pursuit
                         <Text style={[styles.doneButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Done</Text>
                       </TouchableOpacity>
                     </View>
-                  </TouchableOpacity>
+                  </View>
                 </Modal>
               )}
               {showDatePicker === index && Platform.OS === 'android' && (
@@ -350,10 +349,8 @@ export default function InterviewTimeSlotProposalScreen({ applicationId, pursuit
                   </TouchableOpacity>
                   {showStartTimePicker === index && Platform.OS === 'ios' && (
                     <Modal transparent animationType="fade" visible={showStartTimePicker === index}>
-                      <TouchableOpacity
+                      <View
                         style={[styles.pickerOverlay, { backgroundColor: isNewTheme ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)' }]}
-                        activeOpacity={1}
-                        onPress={() => setShowStartTimePicker(null)}
                       >
                         <View style={[styles.pickerModalContent, { backgroundColor: colors.surface }]}>
                           <DateTimePicker
@@ -377,7 +374,7 @@ export default function InterviewTimeSlotProposalScreen({ applicationId, pursuit
                             <Text style={[styles.doneButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Done</Text>
                           </TouchableOpacity>
                         </View>
-                      </TouchableOpacity>
+                      </View>
                     </Modal>
                   )}
                   {showStartTimePicker === index && Platform.OS === 'android' && (
@@ -404,10 +401,8 @@ export default function InterviewTimeSlotProposalScreen({ applicationId, pursuit
                   </TouchableOpacity>
                   {showEndTimePicker === index && Platform.OS === 'ios' && (
                     <Modal transparent animationType="fade" visible={showEndTimePicker === index}>
-                      <TouchableOpacity
+                      <View
                         style={[styles.pickerOverlay, { backgroundColor: isNewTheme ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)' }]}
-                        activeOpacity={1}
-                        onPress={() => setShowEndTimePicker(null)}
                       >
                         <View style={[styles.pickerModalContent, { backgroundColor: colors.surface }]}>
                           <DateTimePicker
@@ -431,7 +426,7 @@ export default function InterviewTimeSlotProposalScreen({ applicationId, pursuit
                             <Text style={[styles.doneButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Done</Text>
                           </TouchableOpacity>
                         </View>
-                      </TouchableOpacity>
+                      </View>
                     </Modal>
                   )}
                   {showEndTimePicker === index && Platform.OS === 'android' && (
@@ -504,7 +499,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing['4xl'],
   },
   introSection: {
-    backgroundColor: '#f3e8ff',
+    backgroundColor: '#E4EDDE',
     padding: spacing.lg,
     borderRadius: borderRadius.lg,
     marginBottom: spacing.xl,
@@ -512,7 +507,7 @@ const styles = StyleSheet.create({
   pursuitTitle: {
     fontSize: typography.fontSize.lg,
     fontWeight: typography.fontWeight.bold,
-    color: '#8b5cf6',
+    color: '#2D5016',
     marginBottom: spacing.sm,
   },
   introText: {
@@ -588,17 +583,17 @@ const styles = StyleSheet.create({
     backgroundColor: legacyColors.backgroundSecondary,
     borderRadius: borderRadius.base,
     borderWidth: 1,
-    borderColor: '#8b5cf6',
+    borderColor: '#2D5016',
     borderStyle: 'dashed',
     marginTop: spacing.base,
   },
   addSlotText: {
     fontSize: typography.fontSize.base,
-    color: '#8b5cf6',
+    color: '#2D5016',
     fontWeight: typography.fontWeight.semibold,
   },
   submitButton: {
-    backgroundColor: '#8b5cf6',
+    backgroundColor: '#2D5016',
     borderRadius: borderRadius.base,
     padding: spacing.lg,
     alignItems: 'center',

@@ -18,6 +18,7 @@ export interface PrivacyPreferences {
   reviews_allowlist: AllowlistValue[];
   pods_tab_allowlist: AllowlistValue[];
   connections_allowlist: AllowlistValue[];
+  additional_photos_allowlist: AllowlistValue[];
   pod_public_roster_listed: boolean;
   pod_public_roster_profile_clickable: boolean;
   created_at?: string;

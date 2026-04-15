@@ -16,6 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.whalepod.fresh",
+      "usesAppleSignIn": true,
       "infoPlist": {
         "NSCameraUsageDescription": "Whale Pod needs access to your camera for video calls with your pod team.",
         "NSMicrophoneUsageDescription": "Whale Pod needs access to your microphone for video calls with your pod team.",
@@ -46,7 +47,9 @@
           "cameraPermission": "Whale Pod needs access to your camera for video calls with your pod team."
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-apple-authentication",
+      "expo-web-browser"
     ],
     "extra": {
       "eas": {

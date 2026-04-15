@@ -200,7 +200,8 @@ export const meetingService = {
         pursuit.creator_id,
         pursuitId,
         pursuit.title,
-        memberName
+        memberName,
+        userId
       );
     } catch (notifError) {
       console.error('Error sending time proposal notification:', notifError);

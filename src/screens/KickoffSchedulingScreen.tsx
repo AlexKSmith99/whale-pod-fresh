@@ -509,10 +509,8 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
 
               {showDatePicker && Platform.OS === 'ios' && (
                 <Modal transparent animationType="fade" visible={showDatePicker}>
-                  <TouchableOpacity
+                  <View
                     style={[styles.pickerOverlay, { backgroundColor: isNewTheme ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)' }]}
-                    activeOpacity={1}
-                    onPress={() => setShowDatePicker(false)}
                   >
                     <View style={[styles.pickerModalContent, { backgroundColor: colors.surface }]}>
                       <DateTimePicker
@@ -531,7 +529,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                         <Text style={[styles.doneButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Done</Text>
                       </TouchableOpacity>
                     </View>
-                  </TouchableOpacity>
+                  </View>
                 </Modal>
               )}
               {showDatePicker && Platform.OS === 'android' && (
@@ -549,10 +547,8 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
 
               {showTimePicker && Platform.OS === 'ios' && (
                 <Modal transparent animationType="fade" visible={showTimePicker}>
-                  <TouchableOpacity
+                  <View
                     style={[styles.pickerOverlay, { backgroundColor: isNewTheme ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)' }]}
-                    activeOpacity={1}
-                    onPress={() => setShowTimePicker(false)}
                   >
                     <View style={[styles.pickerModalContent, { backgroundColor: colors.surface }]}>
                       <DateTimePicker
@@ -570,7 +566,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                         <Text style={[styles.doneButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Done</Text>
                       </TouchableOpacity>
                     </View>
-                  </TouchableOpacity>
+                  </View>
                 </Modal>
               )}
               {showTimePicker && Platform.OS === 'android' && (

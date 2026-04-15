@@ -10,7 +10,9 @@ import {
   ActivityIndicator,
   Image,
   StatusBar,
+  Dimensions,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
@@ -36,6 +38,7 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
   // Profile fields
   const [name, setName] = useState('');
   const [profilePicture, setProfilePicture] = useState('');
+  const [profilePictures, setProfilePictures] = useState<string[]>([]);
   const [age, setAge] = useState('');
   const [gender, setGender] = useState('');
   const [hometown, setHometown] = useState('');
@@ -67,6 +70,7 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
       if (data) {
         setName(data.name || '');
         setProfilePicture(data.profile_picture || '');
+        setProfilePictures(data.profile_pictures || (data.profile_picture ? [data.profile_picture] : []));
         setAge(data.age?.toString() || '');
         setGender(data.gender || '');
         setHometown(data.hometown || '');
@@ -88,7 +92,6 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
 
   const pickImage = async (useCamera: boolean) => {
     try {
-      // Request permissions
       const { status } = useCamera
         ? await ImagePicker.requestCameraPermissionsAsync()
         : await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -98,23 +101,32 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
         return;
       }
 
-      // Launch picker
+      const remaining = 6 - profilePictures.length;
+      if (remaining <= 0) {
+        Alert.alert('Maximum reached', 'You can upload up to 6 photos.');
+        return;
+      }
+
       const result = useCamera
         ? await ImagePicker.launchCameraAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
-            aspect: [1, 1],
+            aspect: [3, 4],
             quality: 0.5,
           })
         : await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            aspect: [1, 1],
+            allowsMultipleSelection: true,
+            selectionLimit: remaining,
             quality: 0.5,
           });
 
-      if (!result.canceled && result.assets[0]) {
-        await uploadImage(result.assets[0].uri);
+      if (!result.canceled && result.assets.length > 0) {
+        setUploading(true);
+        for (const asset of result.assets) {
+          await uploadImage(asset.uri);
+        }
+        setUploading(false);
       }
     } catch (error) {
       console.error('Error picking image:', error);
@@ -125,9 +137,7 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
   const uploadImage = async (uri: string) => {
     if (!user) return;
 
-    setUploading(true);
     try {
-      // Create form data
       const formData = new FormData();
       const fileExt = uri.split('.').pop() || 'jpg';
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
@@ -164,13 +174,12 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
         .from('profile-pictures')
         .getPublicUrl(fileName);
 
-      setProfilePicture(urlData.publicUrl);
-      Alert.alert('Success', 'Photo uploaded!');
+      const newUrl = urlData.publicUrl;
+      setProfilePictures(prev => [...prev, newUrl]);
+      if (!profilePicture) setProfilePicture(newUrl);
     } catch (error: any) {
       console.error('Upload error:', error);
       Alert.alert('Error', 'Failed to upload photo: ' + error.message);
-    } finally {
-      setUploading(false);
     }
   };
 
@@ -188,7 +197,8 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
         .from('profiles')
         .update({
           name: name.trim(),
-          profile_picture: profilePicture || null,
+          profile_picture: profilePictures[0] || profilePicture || null,
+          profile_pictures: profilePictures,
           age: age ? parseInt(age) : null,
           gender: gender || null,
           hometown: hometown || null,
@@ -242,35 +252,46 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
 
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Profile Picture</Text>
-          {profilePicture ? (
-            <Image source={{ uri: profilePicture }} style={[styles.previewImage, { borderColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]} />
-          ) : (
-            <View style={[styles.placeholderImage, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#e5e7eb', borderColor: colors.border }]}>
-              <Text style={[styles.placeholderText, { color: colors.textTertiary }]}>No photo yet</Text>
-            </View>
-          )}
-
-          <View style={styles.photoButtons}>
-            <TouchableOpacity
-              style={[styles.photoButton, { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]}
-              onPress={() => pickImage(true)}
-              disabled={uploading}
-            >
-              <Text style={[styles.photoButtonText, { color: isNewTheme ? colors.background : legacyColors.white }]}>
-                {uploading ? 'Uploading...' : 'Take Photo'}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.photoButton, { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]}
-              onPress={() => pickImage(false)}
-              disabled={uploading}
-            >
-              <Text style={[styles.photoButtonText, { color: isNewTheme ? colors.background : legacyColors.white }]}>
-                {uploading ? 'Uploading...' : 'Choose Photo'}
-              </Text>
-            </TouchableOpacity>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Photos</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+            {profilePictures.map((pic, i) => (
+              <View key={i} style={{ width: (Dimensions.get('window').width - 56) / 3, aspectRatio: 0.85, borderRadius: 10, overflow: 'hidden', backgroundColor: '#F2F0EB' }}>
+                <Image source={{ uri: pic }} style={{ width: '100%', height: '100%' }} />
+                <TouchableOpacity
+                  style={{ position: 'absolute', top: 4, right: 4, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}
+                  onPress={() => setProfilePictures(prev => prev.filter((_, idx) => idx !== i))}
+                >
+                  <Ionicons name="close" size={12} color="#fff" />
+                </TouchableOpacity>
+                {i === 0 && (
+                  <View style={{ position: 'absolute', bottom: 4, left: 4, backgroundColor: '#2D5016', paddingHorizontal: 5, paddingVertical: 2, borderRadius: 4 }}>
+                    <Text style={{ fontSize: 9, color: '#fff', fontWeight: '600' }}>Default</Text>
+                  </View>
+                )}
+              </View>
+            ))}
+            {profilePictures.length < 6 && (
+              <TouchableOpacity
+                style={{ width: (Dimensions.get('window').width - 56) / 3, aspectRatio: 0.85, borderRadius: 10, backgroundColor: '#F2F0EB', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#D6D3CC', borderStyle: 'dashed' }}
+                onPress={() => pickImage(false)}
+                disabled={uploading}
+              >
+                {uploading ? (
+                  <ActivityIndicator color="#8A8A85" />
+                ) : (
+                  <Ionicons name="add" size={24} color="#8A8A85" />
+                )}
+              </TouchableOpacity>
+            )}
           </View>
+          <TouchableOpacity
+            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 8, backgroundColor: '#F2F0EB', marginBottom: 8 }}
+            onPress={() => pickImage(true)}
+            disabled={uploading}
+          >
+            <Ionicons name="camera-outline" size={16} color="#1B1B18" />
+            <Text style={{ fontSize: 14, color: '#1B1B18' }}>Take Photo</Text>
+          </TouchableOpacity>
 
           <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Name *</Text>
           <TextInput

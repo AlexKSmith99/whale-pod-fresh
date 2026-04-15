@@ -193,7 +193,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
   };
 
   // Dynamic accent color for purple elements
-  const accentPurple = isNewTheme ? colors.primary : '#8b5cf6';
+  const accentPurple = isNewTheme ? colors.primary : '#2D5016';
   const accentPurpleLight = isNewTheme ? colors.primaryLight : '#f5f3ff';
   const accentPurpleBorder = isNewTheme ? colors.primary : '#ddd6fe';
 
@@ -281,7 +281,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
                             Applied {new Date(app.created_at).toLocaleDateString()}
                           </Text>
                           {app.status === 'interview_pending' && (
-                            <View style={[styles.interviewStatusBadge, { backgroundColor: isNewTheme ? colors.primaryLight : '#f3e8ff' }]}>
+                            <View style={[styles.interviewStatusBadge, { backgroundColor: isNewTheme ? colors.primaryLight : '#E4EDDE' }]}>
                               <Text style={[styles.interviewStatusText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>⏳ Awaiting time proposals</Text>
                             </View>
                           )}
@@ -314,7 +314,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
                           style={[styles.resumeAttachment, { backgroundColor: accentPurpleLight, borderColor: accentPurpleBorder }]}
                           onPress={() => Linking.openURL(app.resume_url)}
                         >
-                          <View style={[styles.resumeIconContainer, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#ede9fe' }]}>
+                          <View style={[styles.resumeIconContainer, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#E4EDDE' }]}>
                             <Ionicons name="document-text" size={20} color={accentPurple} />
                           </View>
                           <View style={styles.resumeInfo}>
@@ -435,7 +435,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
                               style={[styles.resumeAttachment, { backgroundColor: accentPurpleLight, borderColor: accentPurpleBorder }]}
                               onPress={() => Linking.openURL(app.resume_url)}
                             >
-                              <View style={[styles.resumeIconContainer, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#ede9fe' }]}>
+                              <View style={[styles.resumeIconContainer, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#E4EDDE' }]}>
                                 <Ionicons name="document-text" size={20} color={accentPurple} />
                               </View>
                               <View style={styles.resumeInfo}>

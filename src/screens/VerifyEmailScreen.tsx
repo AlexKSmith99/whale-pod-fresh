@@ -25,12 +25,12 @@ const { height } = Dimensions.get('window');
 
 // Light mode login colors
 const loginColorsLight = {
-  accent: '#6366F1',
-  accentLight: '#EEF2FF',
+  accent: '#2D5016',
+  accentLight: '#E4EDDE',
   green: '#10B981',
   greenLight: '#D1FAE5',
-  purple: '#8B5CF6',
-  purpleLight: '#EDE9FE',
+  purple: '#2D5016',
+  purpleLight: '#E4EDDE',
 };
 
 // Dark mode login colors
@@ -39,7 +39,7 @@ const loginColorsDark = {
   accentLight: 'rgba(168, 230, 163, 0.15)',
   green: '#A8E6A3',
   greenLight: 'rgba(168, 230, 163, 0.15)',
-  purple: '#818CF8',
+  purple: '#2D5016',
   purpleLight: 'rgba(129, 140, 248, 0.15)',
 };
 
@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 56,
     borderRadius: borderRadius.lg,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: legacyColors.border,
     backgroundColor: legacyColors.backgroundSecondary,
     fontSize: typography.fontSize['2xl'],

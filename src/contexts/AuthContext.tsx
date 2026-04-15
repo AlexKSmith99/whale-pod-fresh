@@ -1,7 +1,9 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../config/supabase';
 import { notificationService } from '../services/notificationService';
+import * as WebBrowser from 'expo-web-browser';
 
 interface AuthContextType {
   user: any;
@@ -18,6 +20,8 @@ interface AuthContextType {
   sendPhoneVerificationCode: (phone: string) => Promise<void>;
   verifyPhoneCode: (phone: string, code: string) => Promise<boolean>;
   clearPhoneVerification: () => void;
+  signInWithApple: () => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -164,6 +168,75 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await AsyncStorage.removeItem('saved_password');
   };
 
+  const signInWithApple = async () => {
+    // Dynamically import to avoid crashes on Android
+    const AppleAuthentication = await import('expo-apple-authentication');
+
+    const credential = await AppleAuthentication.signInAsync({
+      requestedScopes: [
+        AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+        AppleAuthentication.AppleAuthenticationScope.EMAIL,
+      ],
+    });
+
+    if (!credential.identityToken) {
+      throw new Error('No identity token received from Apple');
+    }
+
+    const { error } = await supabase.auth.signInWithIdToken({
+      provider: 'apple',
+      token: credential.identityToken,
+    });
+
+    if (error) throw error;
+
+    // Apple only sends name on first sign-in — store it if available
+    if (credential.fullName?.givenName) {
+      const fullName = [credential.fullName.givenName, credential.fullName.familyName].filter(Boolean).join(' ');
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (currentUser) {
+        await supabase
+          .from('profiles')
+          .update({ name: fullName })
+          .eq('id', currentUser.id)
+          .is('name', null);
+      }
+    }
+  };
+
+  const signInWithGoogle = async () => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: 'whalepod://auth/callback',
+        skipBrowserRedirect: true,
+      },
+    });
+
+    if (error) throw error;
+    if (!data.url) throw new Error('No OAuth URL returned');
+
+    const result = await WebBrowser.openAuthSessionAsync(
+      data.url,
+      'whalepod://auth/callback'
+    );
+
+    if (result.type === 'success') {
+      const url = new URL(result.url);
+      // Supabase puts tokens in the URL hash fragment
+      const hashParams = new URLSearchParams(url.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+
+      if (accessToken && refreshToken) {
+        await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+      }
+    }
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -180,6 +253,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       sendPhoneVerificationCode,
       verifyPhoneCode,
       clearPhoneVerification,
+      signInWithApple,
+      signInWithGoogle,
     }}>
       {children}
     </AuthContext.Provider>

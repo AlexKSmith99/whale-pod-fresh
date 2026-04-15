@@ -182,8 +182,8 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
   };
 
   // Dynamic accent color for purple elements
-  const accentPurple = isNewTheme ? colors.primary : '#8b5cf6';
-  const accentPurpleLight = isNewTheme ? colors.primaryLight : '#f3e8ff';
+  const accentPurple = isNewTheme ? colors.primary : '#2D5016';
+  const accentPurpleLight = isNewTheme ? colors.primaryLight : '#E4EDDE';
   const accentPurpleBorder = isNewTheme ? colors.primary : '#ddd6fe';
 
   return (
@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 12,
     padding: 20,
-    borderWidth: 2,
+    borderWidth: 1,
     borderStyle: 'dashed',
     gap: 10,
   },

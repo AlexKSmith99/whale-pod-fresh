@@ -42,42 +42,42 @@ import { getThemedStyles } from '../../theme/themedStyles';
 import GrainTexture from '../../components/ui/GrainTexture';
 import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../../theme/designSystem';
 
-// Sharp, bold color palette - crisp whites, deep greens, strong contrast
+// Aligned with light mode design system — parchment, forest green, sienna
 const softTheme = {
-  // Backgrounds - clean, crisp
-  bg: '#FAFAFA',              // Clean off-white
+  // Backgrounds — warm parchment palette
+  bg: '#FAF9F6',              // Raw parchment (matches designSystem)
   bgCard: '#FFFFFF',          // Pure white cards
-  bgElevated: '#F5F7F6',      // Light gray-green tint
-  bgHover: '#EDF2EF',         // Hover state
+  bgElevated: '#F2F0EB',     // Warm gray (backgroundSecondary)
+  bgHover: '#E8E6E0',        // borderLight tone
   bgDocument: '#FFFFFF',      // Pure white for documents
-  bgGradientStart: '#F0F5F2', // Subtle mint
-  bgGradientMid: '#F8FAFA',   // Near white
-  bgGradientEnd: '#FAFAFA',   // Off-white
+  bgGradientStart: '#F2F0EB',
+  bgGradientMid: '#FAF9F6',
+  bgGradientEnd: '#FAF9F6',
 
-  // Accent - deep forest green (darker, bolder)
-  accent: '#2D5A45',          // Deep forest green
-  accentLight: 'rgba(45, 90, 69, 0.15)',
-  accentDim: 'rgba(45, 90, 69, 0.08)',
-  accentSoft: '#4A7A62',      // Medium forest green
+  // Accent — forest green (matches legacyColors.primary)
+  accent: '#2D5016',          // Forest green
+  accentLight: '#E4EDDE',     // primaryLight
+  accentDim: 'rgba(45, 80, 22, 0.08)',
+  accentSoft: '#4A7A2E',      // Medium forest green
 
-  // Secondary - deep teal blue
-  secondary: '#1E4D5C',       // Deep teal
-  secondaryLight: 'rgba(30, 77, 92, 0.12)',
+  // Secondary — sienna / burnt orange
+  secondary: '#A0522D',       // Sienna
+  secondaryLight: '#F5EBE3',  // secondaryLight
 
-  // Text - sharp, high contrast
-  text: '#1A1A1A',            // Near black
-  textSecondary: '#3D3D3D',   // Dark gray
-  textMuted: '#6B6B6B',       // Medium gray
+  // Text — high-contrast ink
+  text: '#1B1B18',            // Near black (textPrimary)
+  textSecondary: '#52524E',   // Dark gray (textSecondary)
+  textMuted: '#8A8A85',       // Medium gray (textTertiary)
 
-  // Borders & Dividers - visible, defined
-  border: '#2D5A45',          // Green borders (darker)
-  divider: '#D0D8D4',         // Visible divider
+  // Borders & Dividers — hemp / linen
+  border: '#D6D3CC',          // Natural border
+  divider: '#E8E6E0',         // Soft divider (borderLight)
 
   // Status
-  success: '#2D5A45',         // Matches accent
-  error: '#B54040',           // Strong red
-  highlight: 'rgba(45, 90, 69, 0.25)',
-  highlightActive: 'rgba(45, 90, 69, 0.4)',
+  success: '#2D6B2E',         // Green
+  error: '#8B2500',           // Deep red
+  highlight: 'rgba(45, 80, 22, 0.20)',
+  highlightActive: 'rgba(45, 80, 22, 0.35)',
 };
 
 // Keep for backwards compatibility
@@ -150,6 +150,10 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
   const [submittingRole, setSubmittingRole] = useState(false);
   const [isCreator, setIsCreator] = useState(false);
 
+  // Edit access state — tracks which pages a non-creator has been granted access to
+  const [editAccess, setEditAccess] = useState<{ guide: boolean; rules: boolean; roles: boolean }>({ guide: false, rules: false, roles: false });
+  const [requestingAccess, setRequestingAccess] = useState<string | null>(null);
+
   // Sidebar state
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const sidebarAnim = useRef(new Animated.Value(0)).current;
@@ -200,6 +204,48 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
   const handleWriteReview = (revieweeId: string, revieweeName: string, revieweePhoto?: string) => {
     setRevieweeInfo({ revieweeId, revieweeName, revieweePhoto });
     setShowWriteReview(true);
+  };
+
+  // Request edit access — sends notification to pod creator
+  const handleRequestEditAccess = async (page: 'guide' | 'rules' | 'roles') => {
+    if (!selectedPodId || !user) return;
+    setRequestingAccess(page);
+    try {
+      const { data: pursuit } = await supabase
+        .from('pursuits')
+        .select('creator_id, title')
+        .eq('id', selectedPodId)
+        .single();
+      if (!pursuit) return;
+
+      const userName = user.name || user.email?.split('@')[0] || 'A member';
+      const pageLabel = page === 'guide' ? 'Pod Guide' : page === 'rules' ? 'Pod Rules' : 'Pod Roles';
+      await notificationService.sendPushNotification(
+        [pursuit.creator_id],
+        `${userName} requested edit access`,
+        `${userName} wants to edit the ${pageLabel} page for "${pursuit.title}"`,
+        { type: 'edit_access_request', pursuitId: selectedPodId, requesterId: user.id, page },
+        'edit_access_request',
+        selectedPodId,
+        'pursuit'
+      );
+      Alert.alert('Request Sent', 'The pod leader will be notified of your request.');
+    } catch (error) {
+      console.error('Error requesting edit access:', error);
+      Alert.alert('Error', 'Failed to send request');
+    } finally {
+      setRequestingAccess(null);
+    }
+  };
+
+  // Grant edit access — called by pod creator from notification
+  const handleGrantEditAccess = (page: 'guide' | 'rules' | 'roles') => {
+    setEditAccess(prev => ({ ...prev, [page]: true }));
+  };
+
+  // Check if user can edit a given page
+  const canEditPage = (page: 'guide' | 'rules' | 'roles') => {
+    return isCreator || editAccess[page];
   };
 
   const toggleSidebar = () => {
@@ -1178,17 +1224,36 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
     );
   };
 
+  // Build inline meeting header HTML — shared between read and edit modes
+  const buildMeetingHeadersHtml = () => {
+    const upcomingMeetings = podMeetings.filter(m => new Date(m.scheduled_time) >= new Date());
+    const pastMeetings = podMeetings.filter(m => new Date(m.scheduled_time) < new Date()).slice(0, 5);
+    let html = '';
+    upcomingMeetings.forEach((m) => {
+      html += `<p style="margin:10px 0 2px; font-size:13px; color:#8A8A85;"><i>${m.title} — ${formatMeetingDateTime(m.scheduled_time)}</i></p>`;
+    });
+    pastMeetings.forEach((m) => {
+      html += `<p style="margin:10px 0 2px; font-size:13px; color:#8A8A85; opacity:0.55;"><i>${m.title} — ${formatMeetingDateTime(m.scheduled_time)}</i></p>`;
+    });
+    return html;
+  };
+
   const renderAgendaTab = () => {
-    // Full-screen rich text edit mode
+    const meetingHeadersHtml = buildMeetingHeadersHtml();
+
+    // Full-screen rich text edit mode — include meeting headers as read-only context
     if (isInEditMode) {
+      const editContent = meetingHeadersHtml
+        ? meetingHeadersHtml + '<hr style="border:none;border-top:1px solid #E8E6E0;margin:12px 0;">' + (agendaDocumentHtml || '')
+        : agendaDocumentHtml;
+
       return (
         <WebRichTextEditor
-          initialContent={agendaDocumentHtml}
+          initialContent={editContent}
           onChange={handleAgendaContentChange}
           onSave={saveAgendaDocument}
           onCancel={() => {
             setIsInEditMode(false);
-            // Reload to discard changes
             loadAgendaDocument();
           }}
           placeholder="Start typing your meeting notes..."
@@ -1206,414 +1271,361 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
       );
     }
 
-    // Read mode - show HTML content rendered or empty state
+    const fullHtml = meetingHeadersHtml + (agendaDocumentHtml || '');
+
     return (
-      <View style={styles.documentContainerCompact}>
-        {/* Document Header with Edit Button */}
-        <View style={styles.documentHeaderCompact}>
-          <Text style={styles.agendaTitle}>Meeting Agenda & Notes</Text>
+      <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+        {/* Minimal header bar */}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 }}>
+          <Text style={{ fontSize: 18, fontWeight: '600', color: theme.text, fontFamily: 'Sora_600SemiBold' }}>Pod Doc</Text>
           <TouchableOpacity
-            style={styles.editButton}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: theme.bgElevated }}
             onPress={() => setIsInEditMode(true)}
           >
-            <Ionicons name="create-outline" size={18} color={theme.accent} />
-            <Text style={styles.editButtonText}>Edit</Text>
+            <Ionicons name="create-outline" size={16} color={theme.textSecondary} />
+            <Text style={{ fontSize: 14, color: theme.textSecondary, fontFamily: 'Sora_400Regular' }}>Edit</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Document Content */}
-        <ScrollView
-          style={styles.documentScrollCompact}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Meeting Headers */}
-          {podMeetings.length > 0 && (
-            <View style={styles.meetingHeadersSection}>
-              {podMeetings.filter(m => new Date(m.scheduled_time) >= new Date()).length > 0 && (
-                <>
-                  <Text style={styles.meetingsSectionLabel}>📅 UPCOMING MEETINGS</Text>
-                  {podMeetings
-                    .filter(m => new Date(m.scheduled_time) >= new Date())
-                    .map((meeting) => (
-                      <View key={meeting.id} style={styles.meetingHeaderBlock}>
-                        <Text style={styles.meetingHeaderTitle}>{meeting.title}</Text>
-                        <Text style={styles.meetingHeaderDate}>{formatMeetingDateTime(meeting.scheduled_time)}</Text>
-                      </View>
-                    ))}
-                </>
-              )}
-              {podMeetings.filter(m => new Date(m.scheduled_time) < new Date()).length > 0 && (
-                <>
-                  <Text style={[styles.meetingsSectionLabel, { marginTop: 16 }]}>📋 PAST MEETINGS</Text>
-                  {podMeetings
-                    .filter(m => new Date(m.scheduled_time) < new Date())
-                    .slice(0, 5)
-                    .map((meeting) => (
-                      <View key={meeting.id} style={[styles.meetingHeaderBlock, { opacity: 0.7 }]}>
-                        <Text style={styles.meetingHeaderTitle}>{meeting.title}</Text>
-                        <Text style={styles.meetingHeaderDate}>{formatMeetingDateTime(meeting.scheduled_time)}</Text>
-                      </View>
-                    ))}
-                </>
-              )}
+        {/* Full-page document */}
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }}>
+          {fullHtml ? (
+            <View style={{ flex: 1, paddingHorizontal: 20, minHeight: SCREEN_HEIGHT - 280 }}>
+              <WebView
+                originWhitelist={['*']}
+                source={{
+                  html: `
+                    <!DOCTYPE html>
+                    <html>
+                      <head>
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+                        <style>
+                          * { margin: 0; padding: 0; box-sizing: border-box; }
+                          body {
+                            font-family: Georgia, 'Times New Roman', serif;
+                            font-size: 16px;
+                            line-height: 1.7;
+                            color: #1B1B18;
+                            background-color: #FFFFFF;
+                            padding: 12px 0;
+                            word-wrap: break-word;
+                          }
+                          p { margin-bottom: 14px; }
+                          h1, h2, h3 { color: #1B1B18; margin-bottom: 8px; margin-top: 20px; }
+                          h1 { font-size: 24px; }
+                          h2 { font-size: 20px; }
+                          h3 { font-size: 17px; }
+                          strong, b { font-weight: 700; }
+                          em, i { font-style: italic; }
+                          u { text-decoration: underline; }
+                          ul, ol { margin-left: 20px; margin-bottom: 14px; }
+                          li { margin-bottom: 4px; }
+                          blockquote {
+                            border-left: 3px solid #D6D3CC;
+                            padding-left: 14px;
+                            margin: 14px 0;
+                            color: #52524E;
+                            font-style: italic;
+                          }
+                          a { color: #2D5016; }
+                          code {
+                            background-color: #F2F0EB;
+                            padding: 2px 6px;
+                            border-radius: 4px;
+                            font-family: monospace;
+                            font-size: 14px;
+                          }
+                          pre {
+                            background-color: #F2F0EB;
+                            padding: 14px;
+                            border-radius: 8px;
+                            overflow-x: auto;
+                            margin: 14px 0;
+                          }
+                          hr {
+                            border: none;
+                            border-top: 1px solid #E8E6E0;
+                            margin: 20px 0;
+                          }
+                        </style>
+                      </head>
+                      <body>${fullHtml}</body>
+                    </html>
+                  `
+                }}
+                style={[styles.htmlWebView, { minHeight: SCREEN_HEIGHT - 300 }]}
+                scrollEnabled={false}
+                showsVerticalScrollIndicator={false}
+                showsHorizontalScrollIndicator={false}
+              />
+            </View>
+          ) : (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 80 }}>
+              <Ionicons name="document-text-outline" size={40} color={theme.textMuted} />
+              <Text style={{ fontSize: 16, color: theme.textMuted, marginTop: 12, fontFamily: 'Sora_400Regular' }}>Tap Edit to start writing</Text>
             </View>
           )}
-
-          {/* Document Content */}
-          <View style={styles.documentContentSection}>
-            <Text style={styles.meetingsSectionLabel}>📝 NOTES</Text>
-            {agendaDocumentHtml ? (
-              <View style={styles.htmlContentContainer}>
-                <WebView
-                  originWhitelist={['*']}
-                  source={{
-                    html: `
-                      <!DOCTYPE html>
-                      <html>
-                        <head>
-                          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-                          <style>
-                            * {
-                              margin: 0;
-                              padding: 0;
-                              box-sizing: border-box;
-                            }
-                            body {
-                              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                              font-size: 15px;
-                              line-height: 1.6;
-                              color: #1A1A1A;
-                              background-color: transparent;
-                              padding: 8px 0;
-                              word-wrap: break-word;
-                            }
-                            p {
-                              margin-bottom: 12px;
-                            }
-                            h1, h2, h3 {
-                              color: #1A1A1A;
-                              margin-bottom: 8px;
-                              margin-top: 16px;
-                            }
-                            h1 { font-size: 24px; }
-                            h2 { font-size: 20px; }
-                            h3 { font-size: 17px; }
-                            strong, b {
-                              font-weight: 700;
-                              color: #1A1A1A;
-                            }
-                            em, i {
-                              font-style: italic;
-                            }
-                            u {
-                              text-decoration: underline;
-                            }
-                            ul, ol {
-                              margin-left: 20px;
-                              margin-bottom: 12px;
-                            }
-                            li {
-                              margin-bottom: 4px;
-                            }
-                            blockquote {
-                              border-left: 3px solid #2D5A45;
-                              padding-left: 12px;
-                              margin: 12px 0;
-                              color: #6B6B6B;
-                              font-style: italic;
-                            }
-                            a {
-                              color: #2D5A45;
-                            }
-                            code {
-                              background-color: rgba(45, 90, 69, 0.08);
-                              padding: 2px 6px;
-                              border-radius: 4px;
-                              font-family: monospace;
-                              font-size: 13px;
-                            }
-                            pre {
-                              background-color: rgba(45, 90, 69, 0.08);
-                              padding: 12px;
-                              border-radius: 8px;
-                              overflow-x: auto;
-                              margin: 12px 0;
-                            }
-                            hr {
-                              border: none;
-                              border-top: 1px solid #D0D8D4;
-                              margin: 16px 0;
-                            }
-                          </style>
-                        </head>
-                        <body>${agendaDocumentHtml}</body>
-                      </html>
-                    `
-                  }}
-                  style={styles.htmlWebView}
-                  scrollEnabled={false}
-                  showsVerticalScrollIndicator={false}
-                  showsHorizontalScrollIndicator={false}
-                  injectedJavaScript={`
-                    window.ReactNativeWebView.postMessage(document.body.scrollHeight.toString());
-                    true;
-                  `}
-                  onMessage={(event) => {
-                    // Could use this to dynamically set height if needed
-                  }}
-                />
-              </View>
-            ) : (
-              <View style={styles.emptyDocContainer}>
-                <Ionicons name="document-text-outline" size={48} color={theme.textMuted} />
-                <Text style={styles.emptyDocText}>No notes yet</Text>
-                <Text style={styles.emptyDocSubtext}>Tap Edit to start adding meeting notes</Text>
-              </View>
-            )}
-          </View>
-          <View style={{ height: 100 }} />
         </ScrollView>
       </View>
     );
   };
 
   const renderPodDocTab = () => {
+    const canEdit = canEditPage('guide');
     return (
-      <ScrollView style={styles.documentContainer}>
-        <View style={styles.podDocHeader}>
-          <Text style={styles.podDocTitle}>📄 Pod Doc</Text>
-          <TouchableOpacity
-            style={[styles.saveDocButton, docSaving && styles.saveDocButtonDisabled]}
-            onPress={handleSavePodDoc}
-            disabled={docSaving}
-          >
-            {docSaving ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text style={styles.saveDocButtonText}>Save</Text>
-            )}
-          </TouchableOpacity>
+      <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 }}>
+          <Text style={{ fontSize: 18, fontWeight: '600', color: theme.text, fontFamily: 'Sora_600SemiBold' }}>Pod Guide</Text>
+          {canEdit ? (
+            <TouchableOpacity
+              style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, backgroundColor: theme.accent }}
+              onPress={handleSavePodDoc}
+              disabled={docSaving}
+            >
+              {docSaving ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={{ fontSize: 14, color: '#fff', fontWeight: '600', fontFamily: 'Sora_600SemiBold' }}>Save</Text>
+              )}
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: theme.bgElevated }}
+              onPress={() => handleRequestEditAccess('guide')}
+              disabled={requestingAccess === 'guide'}
+            >
+              {requestingAccess === 'guide' ? (
+                <ActivityIndicator size="small" color={theme.textMuted} />
+              ) : (
+                <>
+                  <Ionicons name="lock-closed-outline" size={14} color={theme.textMuted} />
+                  <Text style={{ fontSize: 13, color: theme.textMuted, fontFamily: 'Sora_400Regular' }}>Request edit access</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
         </View>
 
-        <View style={styles.podDocSection}>
-          <Text style={styles.podDocSectionTitle}>🎯 Pod Mission</Text>
-          <Text style={styles.podDocSectionHint}>What is the core purpose of this pod?</Text>
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: theme.textMuted, marginBottom: 8, marginTop: 8, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.5, textTransform: 'uppercase' }}>Mission</Text>
           <TextInput
-            style={styles.podDocInput}
+            style={[styles.podDocInput, { borderWidth: 0, backgroundColor: theme.bgElevated }]}
             value={docMission}
             onChangeText={setDocMission}
-            placeholder="Define your pod's mission..."
+            placeholder="What is this pod about?"
             placeholderTextColor={theme.textMuted}
             multiline
             textAlignVertical="top"
+            editable={canEdit}
           />
-        </View>
 
-        <View style={styles.podDocSection}>
-          <Text style={styles.podDocSectionTitle}>⭐ Northstar Vision</Text>
-          <Text style={styles.podDocSectionHint}>What does success look like for this pod?</Text>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: theme.textMuted, marginBottom: 8, marginTop: 24, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.5, textTransform: 'uppercase' }}>Vision</Text>
           <TextInput
-            style={styles.podDocInput}
+            style={[styles.podDocInput, { borderWidth: 0, backgroundColor: theme.bgElevated }]}
             value={docNorthstar}
             onChangeText={setDocNorthstar}
-            placeholder="Describe your vision of success..."
+            placeholder="What does success look like?"
             placeholderTextColor={theme.textMuted}
             multiline
             textAlignVertical="top"
+            editable={canEdit}
           />
-        </View>
 
-        <View style={styles.podDocSection}>
-          <Text style={styles.podDocSectionTitle}>📚 Shared Reference Notes</Text>
-          <Text style={styles.podDocSectionHint}>Important links, resources, and ongoing notes</Text>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: theme.textMuted, marginBottom: 8, marginTop: 24, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.5, textTransform: 'uppercase' }}>References</Text>
           <TextInput
-            style={[styles.podDocInput, { minHeight: 200 }]}
+            style={[styles.podDocInput, { minHeight: 200, borderWidth: 0, backgroundColor: theme.bgElevated }]}
             value={docReference}
             onChangeText={setDocReference}
-            placeholder="Add links, resources, or reference notes..."
+            placeholder="Links, resources, notes..."
             placeholderTextColor={theme.textMuted}
             multiline
             textAlignVertical="top"
+            editable={canEdit}
           />
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </View>
     );
   };
 
   const renderPodRulesTab = () => {
+    const canEdit = canEditPage('rules');
     return (
-      <ScrollView style={styles.documentContainer}>
-        <View style={styles.podDocHeader}>
-          <Text style={styles.podDocTitle}>📜 Pod Rules</Text>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
+      <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 }}>
+          <Text style={{ fontSize: 18, fontWeight: '600', color: theme.text, fontFamily: 'Sora_600SemiBold' }}>Pod Rules</Text>
+          {canEdit ? (
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity
+                style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: theme.bgElevated }}
+                onPress={handleUseRulesTemplate}
+              >
+                <Text style={{ fontSize: 14, color: theme.textSecondary, fontFamily: 'Sora_400Regular' }}>Template</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, backgroundColor: theme.accent }}
+                onPress={handleSavePodRules}
+                disabled={rulesSaving}
+              >
+                {rulesSaving ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={{ fontSize: 14, color: '#fff', fontWeight: '600', fontFamily: 'Sora_600SemiBold' }}>Save</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          ) : (
             <TouchableOpacity
-              style={styles.templateButton}
-              onPress={handleUseRulesTemplate}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: theme.bgElevated }}
+              onPress={() => handleRequestEditAccess('rules')}
+              disabled={requestingAccess === 'rules'}
             >
-              <Text style={styles.templateButtonText}>Use Template</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.saveDocButton, rulesSaving && styles.saveDocButtonDisabled]}
-              onPress={handleSavePodRules}
-              disabled={rulesSaving}
-            >
-              {rulesSaving ? (
-                <ActivityIndicator size="small" color="#fff" />
+              {requestingAccess === 'rules' ? (
+                <ActivityIndicator size="small" color={theme.textMuted} />
               ) : (
-                <Text style={styles.saveDocButtonText}>Save</Text>
+                <>
+                  <Ionicons name="lock-closed-outline" size={14} color={theme.textMuted} />
+                  <Text style={{ fontSize: 13, color: theme.textMuted, fontFamily: 'Sora_400Regular' }}>Request edit access</Text>
+                </>
               )}
             </TouchableOpacity>
-          </View>
+          )}
         </View>
 
-        <Text style={styles.rulesHint}>
-          Define the rules, guidelines, and expectations for this pod
-        </Text>
-
-        <TextInput
-          style={[styles.podDocInput, { minHeight: 400 }]}
-          value={rulesContent}
-          onChangeText={setRulesContent}
-          placeholder="Add your pod rules and guidelines...
-
-Example:
-**Pod Guidelines**
-1. Be respectful and supportive
-2. Communicate schedule changes early
-3. Come prepared to meetings
-4. Keep discussions focused"
-          placeholderTextColor={theme.textMuted}
-          multiline
-          textAlignVertical="top"
-        />
-      </ScrollView>
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 20, paddingBottom: 100 }}>
+          <TextInput
+            style={[styles.podDocInput, { minHeight: SCREEN_HEIGHT - 280, borderWidth: 0, backgroundColor: theme.bgElevated }]}
+            value={rulesContent}
+            onChangeText={setRulesContent}
+            placeholder="Guidelines and expectations for this pod..."
+            placeholderTextColor={theme.textMuted}
+            multiline
+            textAlignVertical="top"
+            editable={canEdit}
+          />
+        </ScrollView>
+      </View>
     );
   };
 
   const renderRolesTab = () => {
+    const canEdit = canEditPage('roles');
     return (
-      <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
-        {teamMembers.map((member) => {
-          const memberRole = roles.find((r) => r.user_id === member.id);
-          const canEditRole = isCreator || member.id === user?.id;
+      <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 }}>
+          <Text style={{ fontSize: 18, fontWeight: '600', color: theme.text, fontFamily: 'Sora_600SemiBold' }}>Pod Roles</Text>
+          {!canEdit && (
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: theme.bgElevated }}
+              onPress={() => handleRequestEditAccess('roles')}
+              disabled={requestingAccess === 'roles'}
+            >
+              {requestingAccess === 'roles' ? (
+                <ActivityIndicator size="small" color={theme.textMuted} />
+              ) : (
+                <>
+                  <Ionicons name="lock-closed-outline" size={14} color={theme.textMuted} />
+                  <Text style={{ fontSize: 13, color: theme.textMuted, fontFamily: 'Sora_400Regular' }}>Request edit access</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}>
+          {teamMembers.map((member) => {
+            const memberRole = roles.find((r) => r.user_id === member.id);
+            const canEditRole = canEdit && (isCreator || member.id === user?.id);
 
-          return (
-            <View key={member.id} style={styles.roleCard}>
-              <View style={styles.roleHeader}>
-                <TouchableOpacity
-                  style={styles.memberInfo}
-                  onPress={() => handleViewProfile(member.id)}
-                >
-                  {member.profile_picture ? (
-                    <Image source={{ uri: member.profile_picture }} style={styles.memberAvatarImage} />
-                  ) : (
-                    <View style={styles.memberAvatar}>
-                      <Text style={styles.memberAvatarText}>{getUserInitials(member)}</Text>
-                    </View>
-                  )}
-                  <View style={styles.memberNameContainer}>
-                    <Text style={styles.memberNameText}>{member.name || 'Unknown'}</Text>
-                    <Text style={styles.viewProfileLink}>View profile →</Text>
-                  </View>
-                </TouchableOpacity>
-                {canEditRole && (
+            return (
+              <View key={member.id} style={{ backgroundColor: theme.bgElevated, borderRadius: 12, padding: 16, marginBottom: 10 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <TouchableOpacity
-                    onPress={() => handleOpenRoleModal(member, memberRole)}
-                    style={styles.roleEditBtn}
+                    style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: 12 }}
+                    onPress={() => handleViewProfile(member.id)}
                   >
-                    <Ionicons name={memberRole ? "pencil-outline" : "add"} size={18} color={theme.accent} />
+                    {member.profile_picture ? (
+                      <Image source={{ uri: member.profile_picture }} style={{ width: 44, height: 44, borderRadius: 22 }} />
+                    ) : (
+                      <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: theme.accent, justifyContent: 'center', alignItems: 'center' }}>
+                        <Text style={{ fontSize: 15, fontWeight: '600', color: '#fff' }}>{getUserInitials(member)}</Text>
+                      </View>
+                    )}
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 16, fontWeight: '600', color: theme.text, fontFamily: 'Sora_600SemiBold' }}>{member.name || 'Unknown'}</Text>
+                      {memberRole && (
+                        <Text style={{ fontSize: 14, color: theme.textSecondary, marginTop: 2, fontFamily: 'Sora_400Regular' }}>{memberRole.role_title}</Text>
+                      )}
+                    </View>
                   </TouchableOpacity>
-                )}
-              </View>
-              {memberRole ? (
-                <View style={styles.roleContent}>
-                  <Text style={styles.roleTitleText}>{memberRole.role_title}</Text>
-                  {memberRole.role_description && (
-                    <Text style={styles.roleDescText}>{memberRole.role_description}</Text>
-                  )}
-                  {canEditRole && memberRole && (
+                  {canEditRole && (
                     <TouchableOpacity
-                      onPress={() => handleDeleteRole(memberRole.id)}
-                      style={styles.roleDeleteBtn}
+                      onPress={() => handleOpenRoleModal(member, memberRole)}
+                      style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center' }}
                     >
-                      <Ionicons name="trash-outline" size={14} color={theme.error} />
-                      <Text style={styles.roleDeleteText}>Remove role</Text>
+                      <Ionicons name={memberRole ? "pencil-outline" : "add"} size={16} color={theme.textSecondary} />
                     </TouchableOpacity>
                   )}
                 </View>
-              ) : (
-                <Text style={styles.noRoleText}>No role assigned</Text>
-              )}
-            </View>
-          );
-        })}
-        <View style={{ height: 100 }} />
-      </ScrollView>
+                {memberRole?.role_description && (
+                  <Text style={{ fontSize: 14, color: theme.textSecondary, lineHeight: 20, marginTop: 10, paddingLeft: 56, fontFamily: 'Sora_400Regular' }}>{memberRole.role_description}</Text>
+                )}
+              </View>
+            );
+          })}
+        </ScrollView>
+      </View>
     );
   };
 
   const renderMediaTab = () => {
     return (
-      <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.uploadRow}>
-          <TouchableOpacity
-            style={[styles.uploadBtn, uploadingMedia && styles.uploadBtnDisabled]}
-            onPress={() => pickMedia(false)}
-            disabled={uploadingMedia}
-            activeOpacity={0.8}
-          >
-            {uploadingMedia ? (
-              <ActivityIndicator color={theme.accent} size="small" />
-            ) : (
-              <>
-                <Ionicons name="images-outline" size={22} color={theme.accent} />
-                <Text style={styles.uploadBtnText}>Library</Text>
-              </>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.uploadBtn, uploadingMedia && styles.uploadBtnDisabled]}
-            onPress={() => pickMedia(true)}
-            disabled={uploadingMedia}
-            activeOpacity={0.8}
-          >
-            {uploadingMedia ? (
-              <ActivityIndicator color={theme.accent} size="small" />
-            ) : (
-              <>
-                <Ionicons name="camera-outline" size={22} color={theme.accent} />
-                <Text style={styles.uploadBtnText}>Camera</Text>
-              </>
-            )}
-          </TouchableOpacity>
+      <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 }}>
+          <Text style={{ fontSize: 18, fontWeight: '600', color: theme.text, fontFamily: 'Sora_600SemiBold' }}>Media</Text>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: theme.bgElevated }}
+              onPress={() => pickMedia(false)}
+              disabled={uploadingMedia}
+            >
+              {uploadingMedia ? (
+                <ActivityIndicator color={theme.textSecondary} size="small" />
+              ) : (
+                <>
+                  <Ionicons name="images-outline" size={16} color={theme.textSecondary} />
+                  <Text style={{ fontSize: 14, color: theme.textSecondary, fontFamily: 'Sora_400Regular' }}>Library</Text>
+                </>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: theme.bgElevated }}
+              onPress={() => pickMedia(true)}
+              disabled={uploadingMedia}
+            >
+              <Ionicons name="camera-outline" size={16} color={theme.textSecondary} />
+              <Text style={{ fontSize: 14, color: theme.textSecondary, fontFamily: 'Sora_400Regular' }}>Camera</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {mediaItems.length === 0 ? (
-          <View style={styles.emptyState}>
-            <View style={styles.emptyIconContainer}>
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}>
+          {mediaItems.length === 0 ? (
+            <View style={{ alignItems: 'center', paddingVertical: 80 }}>
               <Ionicons name="images-outline" size={40} color={theme.textMuted} />
+              <Text style={{ fontSize: 16, color: theme.textMuted, marginTop: 12, fontFamily: 'Sora_400Regular' }}>No media yet</Text>
             </View>
-            <Text style={styles.emptyTitle}>No media yet</Text>
-            <Text style={styles.emptySubtitle}>Share photos and videos with your team</Text>
-          </View>
-        ) : (
-          <View style={styles.mediaGrid}>
-            {mediaItems.map((item, index) => (
-              <TouchableOpacity
-                key={item.id}
-                style={styles.mediaItem}
-                onPress={() => openImageViewer(index)}
-                activeOpacity={0.9}
-              >
-                <Image source={{ uri: item.photo_url }} style={styles.mediaImage} />
-                <View style={styles.mediaOverlay}>
-                  <Text style={styles.mediaUploader} numberOfLines={1}>
-                    {item.uploader_name || 'Unknown'}
-                  </Text>
+          ) : (
+            <View style={styles.mediaGrid}>
+              {mediaItems.map((item, index) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={[styles.mediaItem, { borderWidth: 0, borderRadius: 10 }]}
+                  onPress={() => openImageViewer(index)}
+                  activeOpacity={0.9}
+                >
+                  <Image source={{ uri: item.photo_url }} style={styles.mediaImage} />
                   {item.uploaded_by === user?.id && (
                     <TouchableOpacity
-                      style={styles.mediaDeleteBtn}
+                      style={{ position: 'absolute', top: 6, right: 6, width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}
                       onPress={(e) => {
                         e.stopPropagation();
                         handleDeleteMedia(item.id);
@@ -1622,13 +1634,12 @@ Example:
                       <Ionicons name="trash-outline" size={14} color="#fff" />
                     </TouchableOpacity>
                   )}
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-        <View style={{ height: 100 }} />
-      </ScrollView>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </ScrollView>
+      </View>
     );
   };
 
@@ -1699,7 +1710,7 @@ Example:
                 <Image source={{ uri: selectedPod.default_picture }} style={styles.headerPodPicture} />
               )}
               <Text style={styles.podName} numberOfLines={1}>{selectedPod.title}</Text>
-              <Ionicons name="chevron-down" size={16} color={theme.accent} />
+              <Ionicons name="chevron-down" size={16} color={theme.textMuted} />
             </TouchableOpacity>
           )}
         </View>
@@ -1733,7 +1744,7 @@ Example:
             }
           ]}
         >
-          <Text style={styles.sidebarTitle}>Your Pods</Text>
+          <Text style={styles.sidebarTitle}>Pods</Text>
           <ScrollView style={styles.podList} showsVerticalScrollIndicator={false}>
             {pods.map((pod) => (
               <TouchableOpacity
@@ -1772,7 +1783,7 @@ Example:
                     const getTabIcon = () => {
                       switch (tab) {
                         case 'agenda': return 'flash-outline'; // Energy, action items, dynamic flow
-                        case 'doc': return 'layers-outline'; // Layered information, depth
+                        case 'doc': return 'binoculars-outline'; // Pod Guide - overview/vision
                         case 'rules': return 'shield-checkmark-outline'; // Protection, guidelines, structure
                         case 'roles': return 'finger-print-outline'; // Identity, uniqueness
                         case 'media': return 'aperture-outline'; // Creative lens, visual focus
@@ -1790,7 +1801,7 @@ Example:
                         <Ionicons
                           name={getTabIcon() as any}
                           size={24}
-                          color={isActive ? '#FFFFFF' : theme.accent}
+                          color={isActive ? theme.text : theme.textMuted}
                         />
                       </TouchableOpacity>
                     );
@@ -1958,10 +1969,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingTop: Platform.OS === 'ios' ? 54 : 16,
-    paddingBottom: 14,
+    paddingBottom: 12,
     backgroundColor: softTheme.bgCard,
-    borderBottomWidth: 2,
-    borderBottomColor: softTheme.border,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: softTheme.divider,
   },
   backBtn: {
     width: 44,
@@ -1974,11 +1985,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 22,
-    fontWeight: '400',
-    color: softTheme.accent,
-    letterSpacing: 1,
-    fontFamily: 'NothingYouCouldDo_400Regular',
+    fontSize: 20,
+    fontWeight: '700',
+    color: softTheme.text,
+    letterSpacing: 0.3,
+    fontFamily: 'PlayfairDisplay_700Bold',
   },
   podSelector: {
     flexDirection: 'row',
@@ -1987,18 +1998,18 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   podName: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: softTheme.text,
+    fontSize: 15,
+    fontWeight: '500',
+    color: softTheme.textSecondary,
     maxWidth: 220,
-    fontFamily: 'Lora_700Bold',
+    fontFamily: 'Sora_400Regular',
   },
   headerPodPicture: {
     width: 28,
     height: 28,
     borderRadius: 14,
     marginRight: 6,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: softTheme.border,
   },
   menuBtn: {
@@ -2031,7 +2042,7 @@ const styles = StyleSheet.create({
     zIndex: 20,
     paddingTop: 20,
     paddingHorizontal: 16,
-    borderRightWidth: 2,
+    borderRightWidth: 1,
     borderRightColor: softTheme.border,
   },
   sidebarTitle: {
@@ -2060,7 +2071,7 @@ const styles = StyleSheet.create({
   podItemActive: {
     backgroundColor: localDarkTheme.accentLight,
     borderColor: localDarkTheme.accent,
-    borderWidth: 2,
+    borderWidth: 1,
   },
   podItemText: {
     flex: 1,
@@ -2085,7 +2096,7 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     marginRight: 12,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: localDarkTheme.border,
   },
   podItemPlaceholder: {
@@ -2096,7 +2107,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: localDarkTheme.border,
   },
 
@@ -2110,23 +2121,26 @@ const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
     marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 14,
+    marginTop: 12,
+    marginBottom: 10,
     backgroundColor: softTheme.bgElevated,
-    borderRadius: 16,
-    padding: 6,
-    borderWidth: 2,
-    borderColor: softTheme.border,
+    borderRadius: 12,
+    padding: 4,
   },
   tab: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 12,
+    borderRadius: 10,
   },
   tabActive: {
-    backgroundColor: softTheme.accent,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
   },
   tabText: {
     fontSize: 14,
@@ -2202,7 +2216,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 20,
     minHeight: SCREEN_HEIGHT - 280,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: softTheme.border,
   },
   documentTouchable: {
@@ -2235,7 +2249,7 @@ const styles = StyleSheet.create({
     backgroundColor: softTheme.bgElevated,
     borderRadius: 10,
     padding: 16,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: softTheme.accent,
   },
   editModeActions: {
@@ -2250,7 +2264,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 8,
     backgroundColor: softTheme.bgElevated,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: softTheme.divider,
   },
   editModeCancelText: {
@@ -2455,7 +2469,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: 'transparent',
   },
   colorOptionActive: {
@@ -2545,7 +2559,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: localDarkTheme.border,
   },
   emptyTitle: {
@@ -2570,7 +2584,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 18,
     marginBottom: 14,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: localDarkTheme.border,
   },
   roleHeader: {
@@ -2597,7 +2611,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: localDarkTheme.border,
   },
   memberAvatarText: {
@@ -2623,14 +2637,12 @@ const styles = StyleSheet.create({
     fontFamily: 'Lora_600SemiBold',
   },
   roleEditBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: localDarkTheme.accentLight,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: localDarkTheme.bgElevated,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: localDarkTheme.accent,
   },
   roleContent: {
     paddingLeft: 62,
@@ -2682,7 +2694,7 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     borderRadius: 14,
     gap: 12,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: localDarkTheme.border,
   },
   uploadBtnDisabled: {
@@ -2707,7 +2719,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: 'hidden',
     backgroundColor: localDarkTheme.bgCard,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: localDarkTheme.border,
   },
   mediaImage: {
@@ -2747,9 +2759,9 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '90%',
-    borderTopWidth: 3,
-    borderLeftWidth: 3,
-    borderRightWidth: 3,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
     borderColor: localDarkTheme.border,
   },
   modalHeader: {
@@ -2757,14 +2769,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 24,
-    borderBottomWidth: 2,
+    borderBottomWidth: 1,
     borderBottomColor: localDarkTheme.border,
   },
   modalTitle: {
     fontSize: 24,
     fontWeight: '800',
     color: localDarkTheme.text,
-    fontFamily: 'Sora_800ExtraBold',
+    fontFamily: 'PlayfairDisplay_700Bold',
     letterSpacing: 0.5,
   },
   modalClose: {
@@ -2774,7 +2786,7 @@ const styles = StyleSheet.create({
     backgroundColor: localDarkTheme.bgElevated,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: localDarkTheme.border,
   },
   modalBody: {
@@ -2805,7 +2817,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: localDarkTheme.text,
     fontFamily: 'Lora_400Regular',
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: localDarkTheme.border,
   },
   textArea: {
@@ -2816,7 +2828,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 24,
     gap: 14,
-    borderTopWidth: 2,
+    borderTopWidth: 1,
     borderTopColor: localDarkTheme.border,
   },
   cancelBtn: {
@@ -2825,7 +2837,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: localDarkTheme.bgElevated,
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: localDarkTheme.border,
   },
   cancelBtnText: {
@@ -2905,14 +2917,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 20,
-    borderBottomWidth: 2,
+    borderBottomWidth: 1,
     borderBottomColor: localDarkTheme.border,
   },
   podDocTitle: {
     fontSize: 26,
     fontWeight: '800',
     color: localDarkTheme.text,
-    fontFamily: 'Sora_800ExtraBold',
+    fontFamily: 'PlayfairDisplay_700Bold',
     letterSpacing: 1,
   },
   saveDocButton: {
@@ -2935,7 +2947,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderRadius: 8,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: softTheme.border,
   },
   templateButtonText: {
@@ -2946,7 +2958,7 @@ const styles = StyleSheet.create({
   },
   podDocSection: {
     padding: 16,
-    borderBottomWidth: 2,
+    borderBottomWidth: 1,
     borderBottomColor: softTheme.divider,
   },
   podDocSectionTitle: {
@@ -2970,7 +2982,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: softTheme.text,
     minHeight: 120,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: softTheme.border,
     fontFamily: 'Lora_400Regular',
   },
@@ -3040,7 +3052,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 12,
     paddingTop: 16,
-    borderTopWidth: 2,
+    borderTopWidth: 1,
     borderTopColor: softTheme.border,
   },
   notesAreaLabel: {
@@ -3131,7 +3143,7 @@ const styles = StyleSheet.create({
     color: localDarkTheme.text,
     marginBottom: 20,
     textAlign: 'center',
-    fontFamily: 'Sora_800ExtraBold',
+    fontFamily: 'PlayfairDisplay_700Bold',
     letterSpacing: 0.5,
   },
   textSettingsLabel: {
@@ -3299,25 +3311,23 @@ const styles = StyleSheet.create({
   editButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    backgroundColor: localDarkTheme.accentLight,
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: localDarkTheme.bgElevated,
     borderRadius: 8,
-    borderWidth: 2,
-    borderColor: localDarkTheme.accent,
   },
   editButtonText: {
     fontSize: 14,
-    color: localDarkTheme.accent,
-    fontWeight: '700',
-    fontFamily: 'Lora_700Bold',
+    color: localDarkTheme.textSecondary,
+    fontWeight: '500',
+    fontFamily: 'Sora_400Regular',
   },
   meetingHeadersSection: {
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 20,
-    borderBottomWidth: 2,
+    borderBottomWidth: 1,
     borderBottomColor: localDarkTheme.border,
   },
   documentContentSection: {
@@ -3329,7 +3339,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginTop: 12,
     minHeight: 180,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: localDarkTheme.border,
   },
   htmlWebView: {

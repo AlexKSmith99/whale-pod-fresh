@@ -22,6 +22,7 @@ import { reviewService, REVIEW_ATTRIBUTES } from '../services/reviewService';
 import { privacyService, ViewerRelationship } from '../services/privacyService';
 import PodMemberCollage from '../components/PodMemberCollage';
 import { colors as legacyColors, typography, spacing } from '../theme/designSystem';
+import { possessivePronoun } from '../utils/pronouns';
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
@@ -273,7 +274,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
             <Ionicons name="shield-checkmark" size={32} color={colors.textSecondary} />
             <Text style={[styles.privateTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Private Profile</Text>
             <Text style={[styles.privateDescription, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
-              This user has restricted access to their profile. Connect with them to see more.
+              {`This user has restricted access to ${possessivePronoun(profile?.gender)} profile. Connect with them to see more.`}
             </Text>
           </View>
 

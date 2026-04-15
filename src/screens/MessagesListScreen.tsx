@@ -482,14 +482,9 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
 
           <View style={styles.chatInfo}>
             <View style={styles.chatHeader}>
-              <View style={styles.chatNameRow}>
-                <Text style={[styles.chatName, themedStyles.listItemTitle, hasUnread && styles.chatNameUnread]} numberOfLines={1}>
-                  {chat.custom_name || chat.pursuit_title}
-                </Text>
-                <View style={[styles.podBadge, themedStyles.tag]}>
-                  <Text style={[styles.podBadgeText, themedStyles.tagText]}>Pod</Text>
-                </View>
-              </View>
+              <Text style={[styles.chatName, themedStyles.listItemTitle, hasUnread && styles.chatNameUnread, { flex: 1, marginRight: 8 }]} numberOfLines={1}>
+                {chat.custom_name || chat.pursuit_title}
+              </Text>
               <Text style={[styles.chatTime, themedStyles.textTertiary, hasUnread && { color: themedStyles.accentIconColor }]}>
                 {formatTime(chat.last_message_time)}
               </Text>
@@ -537,7 +532,6 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
         <View style={[styles.header, themedStyles.header]}>
           <View style={styles.headerTop}>
             <View>
-              <Text style={[styles.headerGreeting, themedStyles.headerSubtitle]}>Your conversations</Text>
               <Text style={[styles.headerTitle, themedStyles.headerTitle]}>Chats</Text>
             </View>
             <View style={styles.headerActions}>

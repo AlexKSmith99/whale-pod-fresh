@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, StatusBar, TextInput, Modal, KeyboardAvoidingView, Platform, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, StatusBar, TextInput, Modal, KeyboardAvoidingView, Platform, Image, Animated } from 'react-native';
+import { useCardPress } from '../hooks/useCardPress';
 import { Ionicons } from '@expo/vector-icons';
 import { pursuitService } from '../services/pursuitService';
 import { useAuth } from '../contexts/AuthContext';
@@ -328,6 +329,39 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
     </Modal>
   ));
 
+  // Colorful tag colors for light mode
+  const getTagColor = (tagName: string, isType: boolean): { bg: string; text: string } => {
+    if (isNewTheme) return { bg: 'rgba(168, 230, 163, 0.15)', text: colors.accentGreen };
+    const TAG_MAP: Record<string, { bg: string; text: string }> = {
+      Accountability: { bg: '#F5F0E8', text: '#7A5B2B' },
+      AI:             { bg: '#E8EDF5', text: '#3E4F7A' },
+      Art:            { bg: '#F5E8F0', text: '#7A3E6A' },
+      Business:       { bg: '#E8EDF5', text: '#3E4F7A' },
+      'Career Development': { bg: '#EDF5E8', text: '#4A7234' },
+      Discussion:     { bg: '#F0E8F5', text: '#5B3A8B' },
+      Education:      { bg: '#E8F0EA', text: '#2D5F3E' },
+      Explore:        { bg: '#E6F2F5', text: '#2B6B7A' },
+      Fitness:        { bg: '#FCF0E6', text: '#925B2B' },
+      Friends:        { bg: '#FDF6EC', text: '#8B6914' },
+      Fun:            { bg: '#FFF8E1', text: '#7A6514' },
+      Health:         { bg: '#E8F5ED', text: '#2D6B3E' },
+      Hobby:          { bg: '#EDF5E8', text: '#4A7234' },
+      Lifestyle:      { bg: '#F5E8F0', text: '#7A3E6A' },
+      'Mental Health': { bg: '#E8F0EA', text: '#2D5F3E' },
+      Music:          { bg: '#F0E8F5', text: '#5B3A8B' },
+      Nature:         { bg: '#E8F5ED', text: '#2D6B3E' },
+      Networking:     { bg: '#E8E8F5', text: '#4A3E7A' },
+      'New Endeavor': { bg: '#E8F5F0', text: '#2B7A5B' },
+      'Side Hustle':  { bg: '#FFF8E1', text: '#7A6514' },
+      'Start-Ups':    { bg: '#FCF0E6', text: '#925B2B' },
+      Technology:     { bg: '#E8EDF5', text: '#3E4F7A' },
+      Travel:         { bg: '#E6F2F5', text: '#2B6B7A' },
+    };
+    return TAG_MAP[tagName] || (isType
+      ? { bg: '#E4EDDE', text: '#2D5016' }
+      : { bg: '#F5EBE3', text: '#A0522D' });
+  };
+
   // Dynamic styles based on theme
   const dynamicStyles = {
     container: {
@@ -342,19 +376,19 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
       borderBottomColor: colors.border,
     },
     headerGreeting: {
-      fontSize: typography.fontSize.sm,
+      fontSize: isNewTheme ? typography.fontSize.sm : 14,
       color: colors.textSecondary,
       fontWeight: typography.fontWeight.medium as '500',
       marginBottom: spacing.xs,
-      fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'Aboreto_400Regular' : 'Sora_500Medium',
       textTransform: isNewTheme ? 'uppercase' as const : 'none' as const,
-      letterSpacing: isNewTheme ? 1 : 0,
+      letterSpacing: isNewTheme ? 1 : 0.5,
     },
     headerTitle: {
-      fontSize: typography.fontSize['3xl'],
+      fontSize: isNewTheme ? typography.fontSize['3xl'] : 30,
       fontWeight: typography.fontWeight.bold as '700',
       color: isNewTheme ? colors.accentGreen : colors.textPrimary,
-      fontFamily: 'NothingYouCouldDo_400Regular',
+      fontFamily: isNewTheme ? 'NothingYouCouldDo_400Regular' : 'PlayfairDisplay_700Bold',
     },
     searchContainer: {
       flexDirection: 'row' as const,
@@ -376,29 +410,33 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
       fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
     },
     card: {
-      backgroundColor: isNewTheme ? colors.surface : legacyColors.white,
-      borderRadius: borderRadius.lg,
-      padding: spacing.lg,
-      marginBottom: spacing.base,
+      backgroundColor: isNewTheme ? colors.surface : '#FFFFFF',
+      borderRadius: isNewTheme ? borderRadius.lg : 16,
+      padding: isNewTheme ? spacing.lg : 24,
+      marginBottom: isNewTheme ? spacing.base : 20,
       ...shadows.base,
-      shadowColor: isNewTheme ? '#000' : '#000',
-      borderWidth: isNewTheme ? 0.75 : 0.5,
-      borderColor: isNewTheme ? colors.accentGreen : legacyColors.borderLight,
+      shadowColor: isNewTheme ? '#000' : '#1B1B18',
+      shadowOffset: isNewTheme ? shadows.base.shadowOffset : { width: 0, height: 4 },
+      shadowOpacity: isNewTheme ? shadows.base.shadowOpacity : 0.07,
+      shadowRadius: isNewTheme ? shadows.base.shadowRadius : 14,
+      elevation: isNewTheme ? shadows.base.elevation : 3,
+      borderWidth: isNewTheme ? 0.75 : 0,
+      borderColor: isNewTheme ? colors.accentGreen : 'transparent',
     },
     cardTitle: {
       flex: 1,
-      fontSize: typography.fontSize.lg,
-      fontWeight: typography.fontWeight.semibold as '600',
+      fontSize: isNewTheme ? typography.fontSize.lg : 21,
+      fontWeight: typography.fontWeight.bold as '700',
       color: colors.textPrimary,
-      lineHeight: typography.fontSize.lg * typography.lineHeight.tight,
-      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+      lineHeight: isNewTheme ? typography.fontSize.lg * typography.lineHeight.tight : 21 * 1.25,
+      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : 'PlayfairDisplay_700Bold',
     },
     cardDescription: {
       fontSize: typography.fontSize.base,
       color: colors.textSecondary,
-      lineHeight: typography.fontSize.base * typography.lineHeight.normal,
-      marginBottom: spacing.md,
-      fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined,
+      lineHeight: isNewTheme ? typography.fontSize.base * typography.lineHeight.normal : 15 * 1.6,
+      marginBottom: isNewTheme ? spacing.md : 16,
+      fontFamily: isNewTheme ? 'KleeOne_400Regular' : 'Sora_400Regular',
     },
     filterButton: {
       flexDirection: 'row' as const,
@@ -424,18 +462,18 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
     tag: {
       backgroundColor: isNewTheme ? 'rgba(168, 230, 163, 0.15)' : legacyColors.primaryLight,
       paddingHorizontal: spacing.md,
-      paddingVertical: spacing.xs,
+      paddingVertical: isNewTheme ? spacing.xs : 6,
       borderRadius: borderRadius.full,
       borderWidth: isNewTheme ? 1 : 0,
       borderColor: isNewTheme ? colors.accentGreenMuted : 'transparent',
     },
     tagText: {
-      fontSize: typography.fontSize.xs,
-      fontWeight: typography.fontWeight.medium as '500',
+      fontSize: isNewTheme ? typography.fontSize.xs : 12,
+      fontWeight: isNewTheme ? typography.fontWeight.medium as '500' : typography.fontWeight.semibold as '600',
       color: isNewTheme ? colors.accentGreen : legacyColors.primary,
-      fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'Aboreto_400Regular' : 'Lora_600SemiBold',
       textTransform: isNewTheme ? 'uppercase' as const : 'none' as const,
-      letterSpacing: isNewTheme ? 0.5 : 0,
+      letterSpacing: isNewTheme ? 0.5 : 0.3,
     },
   };
 
@@ -450,7 +488,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
       <View style={dynamicStyles.header}>
         <View style={styles.headerTop}>
           <View>
-            <Text style={dynamicStyles.headerGreeting}>Discover</Text>
+            <Text style={dynamicStyles.headerGreeting}>{''}</Text>
             <Text style={dynamicStyles.headerTitle}>Whale Pods</Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -921,15 +959,16 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
               <Text style={[styles.emptySubtext, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Be the first to create one!</Text>
             </View>
           ) : (
-            pursuits.map((pursuit) => (
-              <TouchableOpacity
+            pursuits.flatMap((pursuit, index) => {
+              const card = (
+              <PursuitCardWrapper
                 key={pursuit.id}
                 style={dynamicStyles.card}
+                isNewTheme={isNewTheme}
                 onPress={() => {
                   HapticManager.lightTap();
                   setSelectedPursuit(pursuit);
                 }}
-                activeOpacity={0.7}
               >
                 {/* Header with Title and Status */}
                 <View style={styles.cardHeader}>
@@ -964,7 +1003,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
                 </View>
 
                 {/* Description */}
-                <Text style={dynamicStyles.cardDescription} numberOfLines={3}>
+                <Text style={dynamicStyles.cardDescription} numberOfLines={isNewTheme ? 3 : 5}>
                   {pursuit.description}
                 </Text>
 
@@ -973,25 +1012,33 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
                   (pursuit.pursuit_categories && pursuit.pursuit_categories.length > 0)) && (
                   <View style={styles.tags}>
                     {/* Pursuit Types */}
-                    {pursuit.pursuit_types && pursuit.pursuit_types.slice(0, 2).map((type: string, index: number) => (
-                      <View key={`type-${index}`} style={dynamicStyles.tag}>
-                        <Text style={dynamicStyles.tagText}>{type}</Text>
-                      </View>
-                    ))}
+                    {pursuit.pursuit_types && pursuit.pursuit_types.slice(0, isNewTheme ? 2 : 3).map((type: string, index: number) => {
+                      const tagColor = getTagColor(type, true);
+                      return (
+                        <View key={`type-${index}`} style={[dynamicStyles.tag, !isNewTheme && {
+                          backgroundColor: tagColor.bg,
+                        }]}>
+                          <Text style={[dynamicStyles.tagText, !isNewTheme && { color: tagColor.text }]}>{type}</Text>
+                        </View>
+                      );
+                    })}
                     {/* Categories */}
-                    {pursuit.pursuit_categories && pursuit.pursuit_categories.slice(0, 2).map((category: string, index: number) => (
-                      <View key={`cat-${index}`} style={[dynamicStyles.tag, {
-                        backgroundColor: isNewTheme ? 'rgba(129, 140, 248, 0.15)' : legacyColors.secondaryLight,
-                        borderColor: isNewTheme ? 'rgba(129, 140, 248, 0.3)' : 'transparent',
-                      }]}>
-                        <Text style={[dynamicStyles.tagText, { color: isNewTheme ? colors.primary : legacyColors.secondary }]}>{category}</Text>
-                      </View>
-                    ))}
+                    {pursuit.pursuit_categories && pursuit.pursuit_categories.slice(0, 2).map((category: string, index: number) => {
+                      const tagColor = getTagColor(category, false);
+                      return (
+                        <View key={`cat-${index}`} style={[dynamicStyles.tag, {
+                          backgroundColor: isNewTheme ? 'rgba(129, 140, 248, 0.15)' : tagColor.bg,
+                          borderColor: isNewTheme ? 'rgba(129, 140, 248, 0.3)' : 'transparent',
+                        }]}>
+                          <Text style={[dynamicStyles.tagText, { color: isNewTheme ? colors.primary : tagColor.text }]}>{category}</Text>
+                        </View>
+                      );
+                    })}
                     {/* Show +N if more items */}
-                    {((pursuit.pursuit_types?.length || 0) + (pursuit.pursuit_categories?.length || 0) > 4) && (
+                    {((pursuit.pursuit_types?.length || 0) + (pursuit.pursuit_categories?.length || 0) > 5) && (
                       <View style={dynamicStyles.tag}>
                         <Text style={dynamicStyles.tagText}>
-                          +{((pursuit.pursuit_types?.length || 0) + (pursuit.pursuit_categories?.length || 0)) - 4}
+                          +{((pursuit.pursuit_types?.length || 0) + (pursuit.pursuit_categories?.length || 0)) - 5}
                         </Text>
                       </View>
                     )}
@@ -1078,12 +1125,46 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
                     )}
                   </View>
                 </View>
-              </TouchableOpacity>
-            ))
+              </PursuitCardWrapper>
+              );
+              return [card];
+            })
           )}
         </View>
       </ScrollView>
     </GradientBackground>
+  );
+}
+
+// Card wrapper with press animation for light mode
+function PursuitCardWrapper({ children, style, isNewTheme, onPress }: {
+  children: React.ReactNode;
+  style: any;
+  isNewTheme: boolean;
+  onPress: () => void;
+}) {
+  const { scale, onPressIn, onPressOut } = useCardPress({ haptic: !isNewTheme });
+
+  if (isNewTheme) {
+    return (
+      <TouchableOpacity style={style} onPress={onPress} activeOpacity={0.7}>
+        {children}
+      </TouchableOpacity>
+    );
+  }
+
+  return (
+    <Animated.View style={{ transform: [{ scale }] }}>
+      <TouchableOpacity
+        style={style}
+        onPress={onPress}
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
+        activeOpacity={1}
+      >
+        {children}
+      </TouchableOpacity>
+    </Animated.View>
   );
 }
 

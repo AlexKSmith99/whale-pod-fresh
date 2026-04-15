@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import { supabase } from '../config/supabase';
+import { fetchPossessivePronoun } from '../utils/pronouns';
 
 // Lazy load notification modules to avoid startup crashes
 let Notifications: any = null;
@@ -275,12 +276,14 @@ export const notificationService = {
     creatorId: string,
     pursuitId: string,
     pursuitName: string,
-    applicantName: string
+    applicantName: string,
+    applicantId?: string
   ) {
+    const pronoun = applicantId ? await fetchPossessivePronoun(applicantId) : 'their';
     await this.sendPushNotification(
       [creatorId],
       `${applicantName} applied to join "${pursuitName}"`,
-      'Review their application in the Pods tab',
+      `Review ${pronoun} application in the Pods tab`,
       {
         type: 'application_received',
         pursuitId,
@@ -425,10 +428,11 @@ export const notificationService = {
     requesterName: string,
     requesterId: string
   ) {
+    const pronoun = await fetchPossessivePronoun(requesterId);
     await this.sendPushNotification(
       [recipientId],
       `${requesterName} wants to connect with you`,
-      'View their profile and accept or decline',
+      `View ${pronoun} profile and accept or decline`,
       {
         type: 'connection_request',
         requesterId,
@@ -506,11 +510,13 @@ export const notificationService = {
     creatorId: string,
     pursuitId: string,
     pursuitName: string,
-    memberName: string
+    memberName: string,
+    memberId?: string
   ) {
+    const pronoun = memberId ? await fetchPossessivePronoun(memberId) : 'their';
     await this.sendPushNotification(
       [creatorId],
-      `${memberName} submitted their availability for "${pursuitName}"`,
+      `${memberName} submitted ${pronoun} availability for "${pursuitName}"`,
       'Review time proposals and schedule the kickoff meeting',
       {
         type: 'time_proposal',
@@ -788,12 +794,14 @@ export const notificationService = {
     applicationId: string,
     pursuitId: string,
     pursuitName: string,
-    applicantName: string
+    applicantName: string,
+    applicantId?: string
   ) {
+    const pronoun = applicantId ? await fetchPossessivePronoun(applicantId) : 'their';
     await this.sendPushNotification(
       [creatorId],
-      `${applicantName} submitted their interview availability for "${pursuitName}"`,
-      'Review their times and schedule the interview',
+      `${applicantName} submitted ${pronoun} interview availability for "${pursuitName}"`,
+      `Review ${pronoun} times and schedule the interview`,
       {
         type: 'interview_times_submitted',
         applicationId,

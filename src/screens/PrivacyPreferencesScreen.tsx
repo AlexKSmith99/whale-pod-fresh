@@ -142,7 +142,7 @@ export default function PrivacyPreferencesScreen({ onBack }: PrivacyPreferencesS
   };
 
   const updateAllowlist = (
-    field: 'profile_access_allowlist' | 'socials_allowlist' | 'reviews_allowlist' | 'pods_tab_allowlist' | 'connections_allowlist',
+    field: 'profile_access_allowlist' | 'socials_allowlist' | 'reviews_allowlist' | 'pods_tab_allowlist' | 'connections_allowlist' | 'additional_photos_allowlist',
     newValue: AllowlistValue[]
   ) => {
     if (!preferences) return;
@@ -248,6 +248,17 @@ export default function PrivacyPreferencesScreen({ onBack }: PrivacyPreferencesS
           description="Who can open and view your profile page. Note: If you're a Pod creator, your base profile is always publicly accessible."
           value={preferences?.profile_access_allowlist || ['everyone']}
           onChange={(newValue) => updateAllowlist('profile_access_allowlist', newValue)}
+          colors={colors}
+          accentColor={accentColor}
+          isNewTheme={isNewTheme}
+        />
+
+        {/* Additional Photos */}
+        <AllowlistSection
+          title="Additional Photos"
+          description="Who can see your photos beyond the default profile image."
+          value={(preferences as any)?.additional_photos_allowlist || ['connections', 'pod_members']}
+          onChange={(newValue) => updateAllowlist('additional_photos_allowlist', newValue)}
           colors={colors}
           accentColor={accentColor}
           isNewTheme={isNewTheme}

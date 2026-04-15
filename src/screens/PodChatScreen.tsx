@@ -24,6 +24,8 @@ import { colors as legacyColors } from '../theme/designSystem';
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
+import PursuitDetailScreen from './PursuitDetailScreen';
+import TeamWorkspaceScreen from './team/TeamWorkspaceScreen';
 
 interface Props {
   pursuitId: string;
@@ -53,6 +55,8 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
   const [tempChatName, setTempChatName] = useState('');
   const flatListRef = useRef<FlatList>(null);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const [activeView, setActiveView] = useState<'chat' | 'pod' | 'board'>('chat');
+  const [pursuitData, setPursuitData] = useState<any>(null);
   const [myProfile, setMyProfile] = useState<any>(null);
   const [expandedMessageId, setExpandedMessageId] = useState<string | null>(null);
   const [likes, setLikes] = useState<Record<string, string[]>>({});
@@ -62,6 +66,16 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
   useEffect(() => {
     setChatName(customName || pursuitTitle);
   }, [customName, pursuitTitle]);
+
+  // Fetch pursuit data when switching to pod detail view
+  useEffect(() => {
+    if (activeView === 'pod' && !pursuitData) {
+      (async () => {
+        const { data } = await supabase.from('pursuits').select('*').eq('id', pursuitId).single();
+        if (data) setPursuitData(data);
+      })();
+    }
+  }, [activeView, pursuitId]);
 
   const handleMenuPress = () => {
     if (showMenuButton && onMenuPress) {
@@ -347,7 +361,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
                   <TouchableOpacity
                     activeOpacity={0.8}
                     onPress={() => handleMessageTap(item.id)}
-                    style={[styles.messageBubble, styles.myMessageBubble, { backgroundColor: isNewTheme ? colors.accentGreen : '#8b5cf6' }]}
+                    style={[styles.messageBubble, styles.myMessageBubble, { backgroundColor: isNewTheme ? colors.accentGreen : '#2D5016' }]}
                   >
                     <Text style={[styles.messageText, styles.myMessageText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>{item.content}</Text>
                   </TouchableOpacity>
@@ -419,75 +433,107 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
       <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       {isNewTheme && <GrainTexture opacity={0.06} />}
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={handleMenuPress} style={[styles.backButton, showMenuButton && { backgroundColor: isNewTheme ? 'rgba(168, 230, 163, 0.15)' : 'rgba(0,0,0,0.05)', borderRadius: 20, padding: 6 }]}>
-          <Ionicons name={showMenuButton ? "ellipsis-vertical" : "arrow-back"} size={showMenuButton ? 22 : 24} color={showMenuButton ? (isNewTheme ? colors.accentGreen : colors.textPrimary) : colors.textPrimary} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.headerInfo}
-          onPress={() => setShowMembersModal(true)}
-        >
-          <View style={styles.headerTextContainer}>
-            <Text style={[styles.headerTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]} numberOfLines={1}>
+      <View style={{ backgroundColor: '#FFFFFF', paddingTop: 50, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E8E6E0' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 12 }}>
+          <TouchableOpacity onPress={onBack} style={{ padding: 4 }}>
+            <Ionicons name="chevron-back" size={24} color="#1B1B18" />
+          </TouchableOpacity>
+          <View style={{ flex: 1, alignItems: 'center' }}>
+            <Text style={{ fontSize: 17, fontWeight: '600', color: '#1B1B18', fontFamily: 'Sora_600SemiBold' }} numberOfLines={1}>
               {chatName}
             </Text>
-            <Text style={[styles.memberCount, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+            <Text style={{ fontSize: 12, color: '#8A8A85', fontFamily: 'Sora_400Regular', marginTop: 1 }}>
               {members.length} members
             </Text>
           </View>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.menuButton}
-          onPress={() => {
-            setTempChatName(chatName);
-            setShowRenameModal(true);
-          }}
-        >
-          <Ionicons name="create-outline" size={20} color={colors.textPrimary} />
-        </TouchableOpacity>
+          <TouchableOpacity onPress={() => setShowOptionsMenu(true)} style={{ padding: 4 }}>
+            <Ionicons name="ellipsis-horizontal" size={20} color="#1B1B18" />
+          </TouchableOpacity>
+        </View>
+        {/* Tab bar: Chat / Pod Detail / Team Board */}
+        <View style={{ flexDirection: 'row', paddingHorizontal: 16 }}>
+          {([
+            { key: 'chat', label: 'Chat' },
+            { key: 'pod', label: 'Pod Detail' },
+            { key: 'board', label: 'Team Board' },
+          ] as const).map(tab => {
+            const active = activeView === tab.key;
+            return (
+              <TouchableOpacity
+                key={tab.key}
+                style={{ flex: 1, paddingVertical: 10, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: active ? '#2D5016' : 'transparent' }}
+                onPress={() => setActiveView(tab.key)}
+              >
+                <Text style={{ fontSize: 14, fontWeight: active ? '600' : '400', color: active ? '#2D5016' : '#8A8A85', fontFamily: active ? 'Sora_600SemiBold' : 'Sora_400Regular' }}>
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       </View>
 
-      {/* Messages */}
-      <View style={{ flex: 1 }}>
-        <FlatList
-          ref={flatListRef}
-          data={[...messages].reverse()}
-          renderItem={({ item, index }) => renderMessage({ item, index: messages.length - 1 - index })}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.messagesList}
-          inverted={true}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Ionicons name="chatbubbles-outline" size={48} color={colors.textTertiary} />
-              <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
-                {loading ? 'Loading...' : 'No messages yet'}
-              </Text>
-              <Text style={[styles.emptySubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
-                Start the conversation!
-              </Text>
-            </View>
-          }
-        />
-      </View>
+      {/* Chat view */}
+      {activeView === 'chat' && (
+        <>
+          <View style={{ flex: 1 }}>
+            <FlatList
+              ref={flatListRef}
+              data={[...messages].reverse()}
+              renderItem={({ item, index }) => renderMessage({ item, index: messages.length - 1 - index })}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.messagesList}
+              inverted={true}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="interactive"
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <Ionicons name="chatbubbles-outline" size={48} color={colors.textTertiary} />
+                  <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
+                    {loading ? 'Loading...' : 'No messages yet'}
+                  </Text>
+                  <Text style={[styles.emptySubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
+                    Start the conversation!
+                  </Text>
+                </View>
+              }
+            />
+          </View>
+          <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+            <TextInput
+              style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.background, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
+              placeholder="Type a message..."
+              placeholderTextColor={colors.textTertiary}
+              value={newMessage}
+              onChangeText={setNewMessage}
+              multiline
+              spellCheck={true}
+              autoCorrect={true}
+            />
+            <TouchableOpacity style={[styles.sendButton, { backgroundColor: isNewTheme ? colors.accentGreen : '#2D5016' }]} onPress={handleSend}>
+              <Ionicons name="send" size={24} color={isNewTheme ? colors.background : '#fff'} />
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
 
-      {/* Input */}
-      <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
-        <TextInput
-          style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.background, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
-          placeholder="Type a message..."
-          placeholderTextColor={colors.textTertiary}
-          value={newMessage}
-          onChangeText={setNewMessage}
-          multiline
-          spellCheck={true}
-          autoCorrect={true}
+      {/* Pod Detail view — rendered inline */}
+      {activeView === 'pod' && pursuitData && (
+        <PursuitDetailScreen
+          pursuit={pursuitData}
+          onBack={() => setActiveView('chat')}
+          isOwner={pursuitData.creator_id === user?.id}
+          navigation={navigation}
         />
-        <TouchableOpacity style={[styles.sendButton, { backgroundColor: isNewTheme ? colors.accentGreen : '#8b5cf6' }]} onPress={handleSend}>
-          <Ionicons name="send" size={24} color={isNewTheme ? colors.background : '#fff'} />
-        </TouchableOpacity>
-      </View>
+      )}
+
+      {/* Team Board view — rendered inline */}
+      {activeView === 'board' && (
+        <TeamWorkspaceScreen
+          onBack={() => setActiveView('chat')}
+          initialPursuitId={pursuitId}
+        />
+      )}
 
       {/* Members Modal */}
       <Modal
@@ -530,7 +576,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
                   <View style={styles.memberInfo}>
                     <Text style={[styles.memberName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{item.name || 'Team Member'}</Text>
                     {item.isCreator && (
-                      <View style={[styles.creatorBadge, { backgroundColor: isNewTheme ? colors.accentGreen : '#8b5cf6' }]}>
+                      <View style={[styles.creatorBadge, { backgroundColor: isNewTheme ? colors.accentGreen : '#2D5016' }]}>
                         <Text style={[styles.creatorBadgeText, { color: isNewTheme ? colors.background : '#fff' }]}>Creator</Text>
                       </View>
                     )}
@@ -568,7 +614,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
                 <Text style={[styles.cancelButtonText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.saveButton, { backgroundColor: isNewTheme ? colors.accentGreen : '#8b5cf6' }]}
+                style={[styles.saveButton, { backgroundColor: isNewTheme ? colors.accentGreen : '#2D5016' }]}
                 onPress={handleRename}
               >
                 <Text style={[styles.saveButtonText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Save</Text>
@@ -642,7 +688,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#8b5cf6',
+    backgroundColor: '#2D5016',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -726,11 +772,13 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
   timeSeparatorText: {
-    fontSize: 12,
-    color: '#999',
-    backgroundColor: '#f5f5f5',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    fontSize: 11,
+    color: '#8A8A85',
+    backgroundColor: '#F2F0EB',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 10,
+    fontFamily: 'Sora_400Regular',
   },
   avatarPlaceholder: {
     width: 32,
@@ -777,14 +825,12 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   myMessageBubble: {
-    backgroundColor: '#8b5cf6',
+    backgroundColor: '#2D5016',
     borderBottomRightRadius: 4,
   },
   theirMessageBubble: {
-    backgroundColor: '#fff',
+    backgroundColor: '#F2F0EB',
     borderBottomLeftRadius: 4,
-    borderWidth: 1,
-    borderColor: legacyColors.border,
   },
   messageText: {
     fontSize: 15,
@@ -809,25 +855,28 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     flexDirection: 'row',
-    padding: 10,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
+    padding: 12,
+    paddingBottom: 28,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E8E6E0',
     alignItems: 'flex-end',
   },
   input: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    paddingVertical: 8,
+    borderWidth: 0,
+    backgroundColor: '#F2F0EB',
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     marginRight: 10,
     maxHeight: 100,
     fontSize: 15,
+    fontFamily: 'Sora_400Regular',
+    color: '#1B1B18',
   },
   sendButton: {
-    backgroundColor: '#8b5cf6',
+    backgroundColor: '#2D5016',
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -911,7 +960,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   creatorBadge: {
-    backgroundColor: '#8b5cf6',
+    backgroundColor: '#2D5016',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,
@@ -963,7 +1012,7 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     flex: 1,
-    backgroundColor: '#8b5cf6',
+    backgroundColor: '#2D5016',
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',

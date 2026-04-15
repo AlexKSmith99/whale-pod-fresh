@@ -52,7 +52,8 @@ export const applicationService = {
           pursuit.creator_id,
           data.pursuit_id,
           pursuit.title,
-          applicantName
+          applicantName,
+          data.applicant_id
         );
 
         console.log('✅ Notification sent successfully!');

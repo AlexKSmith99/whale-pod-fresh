@@ -9,6 +9,7 @@ import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-goog
 import { KleeOne_400Regular, KleeOne_600SemiBold } from '@expo-google-fonts/klee-one';
 import { Lora_400Regular, Lora_500Medium, Lora_600SemiBold, Lora_700Bold } from '@expo-google-fonts/lora';
 import { Sora_400Regular, Sora_500Medium, Sora_600SemiBold, Sora_700Bold, Sora_800ExtraBold } from '@expo-google-fonts/sora';
+import { PlayfairDisplay_600SemiBold, PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { ThemeProvider } from './src/theme/ThemeContext';
@@ -711,7 +712,7 @@ function AppContent() {
   if (!onboardingCompleted) {
     return (
       <OnboardingScreen
-        onComplete={() => setOnboardingCompleted(true)}
+        onComplete={() => { setOnboardingCompleted(true); setCurrentScreen('Feed'); }}
       />
     );
   }
@@ -1620,6 +1621,8 @@ export default function App() {
     Sora_600SemiBold,
     Sora_700Bold,
     Sora_800ExtraBold,
+    PlayfairDisplay_600SemiBold,
+    PlayfairDisplay_700Bold,
   });
 
   // Show loading while fonts load
