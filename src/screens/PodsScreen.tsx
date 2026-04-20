@@ -234,11 +234,14 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
     return (
     <TouchableOpacity
       key={pod.id}
-      style={[styles.podCard, themedStyles.card, { borderWidth: isNewTheme ? 0.35 : 0.5, borderColor: isNewTheme ? colors.accentGreen : '#f0f0f0' }, isPast && [styles.podCardPast, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f9fafb' }]]}
+      style={[styles.podCard, themedStyles.card, { borderWidth: isNewTheme ? 0.35 : 0.5, borderColor: isNewTheme ? colors.accentGreen : '#f0f0f0', overflow: 'hidden' }, isPast && [styles.podCardPast, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f9fafb' }]]}
       onPress={() => !isPast && onOpenPodDetails(pod)}
       activeOpacity={isPast ? 1 : 0.7}
       disabled={isPast}
     >
+      {!isPast && (
+        <View style={[styles.cardAccentLine, { backgroundColor: pod.status === 'active' ? colors.success : colors.warning }]} pointerEvents="none" />
+      )}
       <View style={styles.podHeader}>
         <View style={styles.podTitleRow}>
           <View style={styles.titleWithDot}>
@@ -264,10 +267,6 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
               : (isNewTheme ? 'rgba(252, 211, 77, 0.15)' : '#fef3c7')
             }
           ]}>
-            <View style={[
-              styles.statusDot,
-              { backgroundColor: pod.status === 'active' ? colors.success : colors.warning }
-            ]} />
             <Text style={[
               styles.statusText,
               { color: pod.status === 'active' ? colors.success : colors.warning }
@@ -284,15 +283,19 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
 
       {!isPast ? (
         <>
-          <View style={[styles.podInfo, { borderTopColor: colors.border }]}>
+          {/* Decorative dot divider */}
+          <View style={styles.dotDivider}>
+            <View style={[styles.dotDividerDot, { backgroundColor: colors.accentGreen }]} />
+            <View style={[styles.dotDividerDot, { backgroundColor: colors.accentGreen }]} />
+            <View style={[styles.dotDividerDot, { backgroundColor: colors.accentGreen }]} />
+          </View>
+          <View style={[styles.podInfo, { borderTopWidth: 0 }]}>
             <View style={styles.infoItem}>
-              <Text style={styles.infoIcon}>👥</Text>
               <Text style={[styles.infoText, themedStyles.cardSmallText]}>
                 {pod.current_members_count}/{pod.team_size_max} members
               </Text>
             </View>
             <View style={styles.infoItem}>
-              <Text style={styles.infoIcon}>📅</Text>
               <Text style={[styles.infoText, themedStyles.cardSmallText]} numberOfLines={1}>
                 {pod.meeting_cadence}
               </Text>
@@ -344,7 +347,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
         <View style={styles.emptyState}>
           <Text style={styles.emptyEmoji}>🌊</Text>
           <Text style={[styles.emptyText, themedStyles.emptyText]}>No active pods</Text>
-          <Text style={[styles.emptyHint, themedStyles.emptySubtext]}>Create a pursuit or apply to join a team</Text>
+          <Text style={[styles.emptyHint, themedStyles.emptySubtext]}>Create a pod or apply to join a team</Text>
         </View>
       )}
     </View>
@@ -387,7 +390,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
               </Text>
               <TouchableOpacity
                 style={[styles.proposeTimesButton, themedStyles.buttonPrimary]}
-                onPress={() => onOpenInterviewProposal?.(app.id, app.pursuit_id, app.pursuits?.title || 'Pursuit')}
+                onPress={() => onOpenInterviewProposal?.(app.id, app.pursuit_id, app.pursuits?.title || 'Pod')}
               >
                 <Text style={[styles.proposeTimesButtonText, themedStyles.buttonPrimaryText]}>Propose Interview Times</Text>
               </TouchableOpacity>
@@ -420,7 +423,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
         <View style={styles.emptyState}>
           <Text style={styles.emptyEmoji}>📝</Text>
           <Text style={[styles.emptyText, themedStyles.emptyText]}>No pending applications</Text>
-          <Text style={[styles.emptyHint, themedStyles.emptySubtext]}>Apply to pursuits and track your applications here</Text>
+          <Text style={[styles.emptyHint, themedStyles.emptySubtext]}>Apply to pods and track your applications here</Text>
         </View>
       )}
     </View>
@@ -503,7 +506,10 @@ const styles = StyleSheet.create({
   emptyEmoji: { fontSize: 64, marginBottom: 20 },
   emptyText: { fontSize: 20, fontWeight: 'bold', color: '#999', marginBottom: 8 },
   emptyHint: { fontSize: 14, color: '#ccc', textAlign: 'center', paddingHorizontal: 40 },
-  podCard: { backgroundColor: '#fff', borderRadius: 16, padding: 18, marginBottom: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 4, borderWidth: 1, borderColor: '#f0f0f0' },
+  podCard: { backgroundColor: '#fff', borderRadius: 16, padding: 18, marginBottom: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12, elevation: 5, borderWidth: 1, borderColor: '#f0f0f0' },
+  cardAccentLine: { position: 'absolute', top: 0, left: 0, bottom: 0, width: 3, borderTopLeftRadius: 16, borderBottomLeftRadius: 16 },
+  dotDivider: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 4, marginVertical: 12 },
+  dotDividerDot: { width: 3, height: 3, borderRadius: 1.5, opacity: 0.6 },
   podCardPast: { backgroundColor: '#f9fafb', opacity: 0.8, borderColor: '#e5e7eb' },
   podHeader: { marginBottom: 12 },
   podTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },

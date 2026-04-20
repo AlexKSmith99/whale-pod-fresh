@@ -83,7 +83,7 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
 
       if (error) throw error;
 
-      Alert.alert('Success', 'Pursuit updated successfully!', [
+      Alert.alert('Success', 'Pod updated successfully!', [
         {
           text: 'OK',
           onPress: () => {
@@ -102,8 +102,8 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
 
   const handleDelete = () => {
     Alert.alert(
-      'Delete Pursuit',
-      'Are you sure you want to delete this pursuit? This action cannot be undone. All team members will be removed and all data will be lost.',
+      'Delete Pod',
+      'Are you sure you want to delete this pod? This action cannot be undone. All team members will be removed and all data will be lost.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -113,7 +113,7 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
             setDeleting(true);
             try {
               await pursuitService.deletePursuit(pursuit.id);
-              Alert.alert('Deleted', 'Pursuit deleted successfully', [
+              Alert.alert('Deleted', 'Pod deleted successfully', [
                 {
                   text: 'OK',
                   onPress: () => {
@@ -229,7 +229,7 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
         <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         {isNewTheme && <GrainTexture opacity={0.06} />}
         <ActivityIndicator size="large" color="#ef4444" />
-        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Deleting pursuit...</Text>
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Deleting pod...</Text>
       </View>
     );
   }
@@ -243,7 +243,7 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
           <Ionicons name="close" size={28} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Edit Pursuit</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Edit Pod</Text>
         <View style={{ width: 28 }} />
       </View>
 
@@ -319,7 +319,7 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
             style={[styles.input, styles.textArea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
             value={description}
             onChangeText={setDescription}
-            placeholder="Describe your pursuit in detail..."
+            placeholder="Describe your pod in detail..."
             placeholderTextColor={colors.textTertiary}
             multiline
             numberOfLines={6}
@@ -402,7 +402,7 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
         {/* Delete Button */}
         <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
           <Ionicons name="trash-outline" size={20} color="#fff" />
-          <Text style={styles.deleteButtonText}>Delete Pursuit</Text>
+          <Text style={styles.deleteButtonText}>Delete Pod</Text>
         </TouchableOpacity>
 
         <View style={{ height: 40 }} />

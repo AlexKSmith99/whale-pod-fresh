@@ -62,12 +62,12 @@ export default function RemovalReasonScreen({ pursuitTitle, reason, removedAt, o
           <View style={[styles.noteCard, { backgroundColor: isNewTheme ? colors.primaryLight : '#eff6ff', borderLeftColor: primaryColor }]}>
             <Text style={styles.noteIcon}>💡</Text>
             <Text style={[styles.noteText, { color: isNewTheme ? colors.textSecondary : '#0369a1' }]}>
-              This pod will now appear in your "Past" pods section. You can still browse other pursuits and apply to join new teams.
+              This pod will now appear in your "Past" pods section. You can still browse other pods and apply to join new teams.
             </Text>
           </View>
 
           <TouchableOpacity style={[styles.browseButton, { backgroundColor: primaryColor }]} onPress={onBack}>
-            <Text style={[styles.browseButtonText, { color: isNewTheme ? colors.background : legacyColors.white }]}>Browse Pursuits</Text>
+            <Text style={[styles.browseButtonText, { color: isNewTheme ? colors.background : legacyColors.white }]}>Browse Pods</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

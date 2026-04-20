@@ -9,7 +9,7 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>🐋 Whale Pod</Text>
       <Text style={styles.subtitle}>Welcome{user?.name ? `, ${user.name}` : ''}!</Text>
-      <Text style={styles.text}>Your pursuit feed will go here</Text>
+      <Text style={styles.text}>Your pod feed will go here</Text>
       <TouchableOpacity style={styles.button} onPress={signOut}>
         <Text style={styles.buttonText}>Sign Out</Text>
       </TouchableOpacity>

@@ -412,11 +412,13 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
           style={[
             styles.chatCard,
             themedStyles.listItem,
+            { position: 'relative' },
             isSelected && { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.primaryLight, borderLeftWidth: 3, borderLeftColor: themedStyles.accentIconColor }
           ]}
           onPress={() => selectChat(chat)}
           activeOpacity={0.7}
         >
+          {hasUnread && !isSelected && <View style={[styles.chatUnreadAccentBar, { backgroundColor: themedStyles.accentIconColor }]} pointerEvents="none" />}
           <View style={styles.avatarContainer}>
             {chat.partnerProfile?.profile_picture ? (
               <Image
@@ -463,11 +465,13 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
           style={[
             styles.chatCard,
             themedStyles.listItem,
+            { position: 'relative' },
             isSelected && { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.primaryLight, borderLeftWidth: 3, borderLeftColor: themedStyles.accentIconColor }
           ]}
           onPress={() => selectChat(chat)}
           activeOpacity={0.7}
         >
+          {hasUnread && !isSelected && <View style={[styles.chatUnreadAccentBar, { backgroundColor: themedStyles.accentIconColor }]} pointerEvents="none" />}
           <View style={styles.avatarContainer}>
             {chat.default_picture ? (
               <Image
@@ -955,6 +959,14 @@ const styles = StyleSheet.create({
     backgroundColor: legacyColors.primaryLight,
     borderLeftWidth: 3,
     borderLeftColor: legacyColors.primary,
+  },
+  chatUnreadAccentBar: {
+    position: 'absolute',
+    left: 0,
+    top: 10,
+    bottom: 10,
+    width: 3,
+    borderRadius: 2,
   },
   avatarContainer: {
     position: 'relative',

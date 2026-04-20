@@ -170,7 +170,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
 
       Alert.alert(
         '🎉 Application Submitted!',
-        'The pursuit creator will review your application and get back to you.',
+        'The pod creator will review your application and get back to you.',
         [{ text: 'OK', onPress: onSubmitted }]
       );
     } catch (error: any) {
@@ -195,7 +195,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Text style={[styles.backText, { color: isNewTheme ? colors.accentGreen : '#0ea5e9' }]}>← Cancel</Text>
         </TouchableOpacity>
-        <Text style={[styles.title, { color: isNewTheme ? colors.accentGreen : colors.textPrimary, fontFamily: isNewTheme ? 'NothingYouCouldDo_400Regular' : undefined }]}>Apply to Pursuit</Text>
+        <Text style={[styles.title, { color: isNewTheme ? colors.accentGreen : colors.textPrimary, fontFamily: isNewTheme ? 'NothingYouCouldDo_400Regular' : undefined }]}>Apply to Pod</Text>
       </View>
 
       <ScrollView
@@ -325,7 +325,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
             <View style={[styles.infoBox, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#eff6ff', borderLeftColor: isNewTheme ? colors.accentGreen : '#0ea5e9' }]}>
               <Text style={styles.infoIcon}>🎤</Text>
               <Text style={[styles.infoText, { color: isNewTheme ? colors.textSecondary : '#0369a1', fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
-                This pursuit requires an interview. You may be contacted for one.
+                This pod requires an interview. You may be contacted for one.
               </Text>
             </View>
           )}

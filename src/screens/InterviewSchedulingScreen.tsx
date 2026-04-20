@@ -50,6 +50,8 @@ export default function InterviewSchedulingScreen({
   const [proposedTimes, setProposedTimes] = useState<any[]>([]);
   const [timezone, setTimezone] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [applicationStatus, setApplicationStatus] = useState<string>('');
+  const [scheduledTime, setScheduledTime] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<any>(null);
   const [meetingType, setMeetingType] = useState<'in_person' | 'video' | 'hybrid'>('video');
   const [location, setLocation] = useState('');
@@ -71,7 +73,7 @@ export default function InterviewSchedulingScreen({
 
       const { data, error } = await supabase
         .from('pursuit_applications')
-        .select('id, status, interview_proposed_times, interview_timezone')
+        .select('id, status, interview_proposed_times, interview_timezone, interview_scheduled_time')
         .eq('id', applicationId)
         .single();
 
@@ -84,6 +86,8 @@ export default function InterviewSchedulingScreen({
 
       setProposedTimes(data.interview_proposed_times || []);
       setTimezone(data.interview_timezone || 'America/New_York');
+      setApplicationStatus(data.status || '');
+      setScheduledTime(data.interview_scheduled_time || null);
     } catch (error) {
       console.error('Error loading proposed times:', error);
       Alert.alert('Error', 'Failed to load proposed interview times');
@@ -240,6 +244,57 @@ export default function InterviewSchedulingScreen({
       ]
     );
   };
+
+  // If the interview is already scheduled, show a summary with a link to the Calendar
+  if (!loading && applicationStatus === 'interview_scheduled' && scheduledTime) {
+    const scheduled = new Date(scheduledTime);
+    const dateStr = scheduled.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+    const timeStr = scheduled.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+        {isNewTheme && <GrainTexture opacity={0.06} />}
+        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <Ionicons name="close" size={28} color={colors.textPrimary} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'NothingYouCouldDo_400Regular' : undefined }]}>Interview Scheduled</Text>
+          <View style={{ width: 28 }} />
+        </View>
+
+        <ScrollView style={styles.scrollView}>
+          <View style={styles.content}>
+            <View style={[styles.introSection, { backgroundColor: isNewTheme ? colors.primaryLight : '#f3e8ff', alignItems: 'center' }]}>
+              <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(134, 239, 172, 0.25)', justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
+                <Ionicons name="checkmark-circle" size={36} color={colors.success} />
+              </View>
+              <Text style={[styles.pursuitTitle, { color: accentColor, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined, textAlign: 'center' }]}>{pursuitTitle}</Text>
+              <Text style={[styles.applicantLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined, textAlign: 'center' }]}>Interview with:</Text>
+              <Text style={[styles.applicantName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined, textAlign: 'center' }]}>{applicantName}</Text>
+              <Text style={[styles.introText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined, textAlign: 'center', marginTop: 12, fontSize: 16, fontWeight: '600' }]}>
+                Scheduled for {timeStr}
+              </Text>
+              <Text style={[styles.introText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined, textAlign: 'center', marginTop: 4 }]}>
+                {dateStr}
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.scheduleButton, { backgroundColor: accentColor, marginTop: 12 }]}
+              onPress={onScheduled}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="calendar" size={18} color={isNewTheme ? colors.background : '#fff'} style={{ marginRight: 8 }} />
+              <Text style={[styles.scheduleButtonText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                View Meeting Details on Calendar
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -694,6 +749,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#8b5cf6',
     borderRadius: borderRadius.base,
     padding: spacing.lg,
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
     marginTop: spacing.xl,
     ...shadows.base,

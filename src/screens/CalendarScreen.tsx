@@ -201,6 +201,11 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
       overflow: 'hidden' as const,
       marginBottom: spacing.sm,
       padding: 0,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 10,
+      elevation: 4,
     },
     meetingTitle: {
       ...themedStyles.cardTitle,

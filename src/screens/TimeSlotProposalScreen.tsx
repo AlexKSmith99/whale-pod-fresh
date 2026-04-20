@@ -217,8 +217,14 @@ export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClos
           <View style={[styles.introSection, { backgroundColor: isNewTheme ? colors.primaryLight : legacyColors.primaryLight }]}>
             <Text style={[styles.pursuitTitle, { color: accentColor, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{pursuitTitle}</Text>
             <Text style={[styles.introText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
-              The kickoff meeting has been activated! Please propose your available time slots below.
-              Your team creator will review all proposals and select the final meeting time.
+              The kickoff meeting has been activated! Your team creator will review everyone's proposals and pick the final meeting time.
+            </Text>
+          </View>
+
+          <View style={[styles.emphasisCallout, { backgroundColor: isNewTheme ? 'rgba(252, 211, 77, 0.12)' : '#FEF3C7', borderLeftColor: colors.warning }]}>
+            <Ionicons name="alert-circle" size={18} color={colors.warning} style={{ marginRight: 10, marginTop: 1 }} />
+            <Text style={[styles.emphasisText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+              <Text style={{ fontWeight: '700' }}>Submit every time slot in the next 7 days that works for you.</Text> The more overlap across your team, the faster the creator can lock in a kickoff that works for everyone.
             </Text>
           </View>
 
@@ -467,6 +473,19 @@ const styles = StyleSheet.create({
   introText: {
     fontSize: typography.fontSize.sm,
     color: legacyColors.textSecondary,
+    lineHeight: 20,
+  },
+  emphasisCallout: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: spacing.base,
+    borderRadius: borderRadius.md,
+    borderLeftWidth: 3,
+    marginBottom: spacing.xl,
+  },
+  emphasisText: {
+    flex: 1,
+    fontSize: typography.fontSize.sm,
     lineHeight: 20,
   },
   sectionTitle: {

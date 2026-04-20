@@ -65,8 +65,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       email,
       password,
       options: {
-        // Don't automatically sign in - require email verification first
-        emailRedirectTo: undefined,
         data: phone ? { phone } : undefined,
       }
     });
@@ -79,12 +77,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .update({ phone })
         .eq('id', data.user.id);
     }
-
-    // Send OTP verification code
-    await sendVerificationCode(email);
-
-    // Store email for verification screen
-    setPendingVerificationEmail(email);
   };
 
   const sendVerificationCode = async (email: string) => {

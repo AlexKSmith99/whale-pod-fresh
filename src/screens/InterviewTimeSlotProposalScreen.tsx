@@ -263,8 +263,14 @@ export default function InterviewTimeSlotProposalScreen({ applicationId, pursuit
           <View style={[styles.introSection, { backgroundColor: isNewTheme ? colors.primaryLight : '#E4EDDE' }]}>
             <Text style={[styles.pursuitTitle, { color: accentColor, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{pursuitTitle}</Text>
             <Text style={[styles.introText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
-              The creator wants to schedule an interview with you! Please propose your available time slots for the next week below.
-              They will review your times and select the final interview time.
+              The creator wants to schedule an interview with you! They will review your times and pick the final interview slot.
+            </Text>
+          </View>
+
+          <View style={[styles.emphasisCallout, { backgroundColor: isNewTheme ? 'rgba(252, 211, 77, 0.12)' : '#FEF3C7', borderLeftColor: colors.warning }]}>
+            <Ionicons name="alert-circle" size={18} color={colors.warning} style={{ marginRight: 10, marginTop: 1 }} />
+            <Text style={[styles.emphasisText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+              <Text style={{ fontWeight: '700' }}>Submit every time slot in the next 7 days that works for you.</Text> The more availability you share, the easier it is to lock in a time — and the faster you'll hear back.
             </Text>
           </View>
 
@@ -513,6 +519,19 @@ const styles = StyleSheet.create({
   introText: {
     fontSize: typography.fontSize.sm,
     color: legacyColors.textSecondary,
+    lineHeight: 20,
+  },
+  emphasisCallout: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: spacing.base,
+    borderRadius: borderRadius.md,
+    borderLeftWidth: 3,
+    marginBottom: spacing.xl,
+  },
+  emphasisText: {
+    flex: 1,
+    fontSize: typography.fontSize.sm,
     lineHeight: 20,
   },
   sectionTitle: {

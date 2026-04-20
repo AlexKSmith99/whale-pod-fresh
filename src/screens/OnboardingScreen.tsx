@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,
   Alert, Image, Dimensions, Animated, Platform, StatusBar, ActivityIndicator,
@@ -14,7 +14,7 @@ import { US_CITIES } from '../constants/usCities';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const TOTAL_STEPS = 11;
+const TOTAL_STEPS = 12;
 
 // Design tokens
 const C = {
@@ -38,11 +38,11 @@ const F = {
 const SECTION_MAP: Record<number, number> = {
   0: 0, 1: 0,           // Set up your profile
   2: 1, 3: 1, 4: 1,     // The Basics
-  5: 2, 6: 2,            // Your Details
-  7: 3,                  // Your interests
-  8: 4,                  // Preferences
-  9: 5,                  // Notifications
-  10: 6,                 // Welcome
+  5: 2, 6: 2, 7: 2,     // Your Details
+  8: 3,                  // Your interests
+  9: 4,                  // Preferences
+  10: 5,                 // Notifications
+  11: 6,                 // Welcome
 };
 const NUM_SECTIONS = 7;
 
@@ -51,7 +51,7 @@ interface Props {
 }
 
 export default function OnboardingScreen({ onComplete }: Props) {
-  const { user } = useAuth();
+  const { user, sendPhoneVerificationCode, verifyPhoneCode } = useAuth();
 
   const scrollViewRef = useRef<ScrollView>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -63,10 +63,27 @@ export default function OnboardingScreen({ onComplete }: Props) {
   const [uploading, setUploading] = useState(false);
   const [dateOfBirth, setDateOfBirth] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(Platform.OS === 'ios');
+  const [birthMonth, setBirthMonth] = useState('');
+  const [birthDay, setBirthDay] = useState('');
+  const [birthYear, setBirthYear] = useState('');
+  const birthDayRef = useRef<TextInput>(null);
+  const birthYearRef = useRef<TextInput>(null);
   const [gender, setGender] = useState('');
   const [customGender, setCustomGender] = useState('');
   const [hometown, setHometown] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState(() => {
+    const p = user?.phone || '';
+    return p.startsWith('1') && p.length === 11 ? p.slice(1) : p;
+  });
+  const [phoneCodeSent, setPhoneCodeSent] = useState(false);
+  const [phoneOtpCode, setPhoneOtpCode] = useState('');
+  const [phoneSending, setPhoneSending] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(!!user?.phone);
+  const [phoneError, setPhoneError] = useState('');
+  const [email, setEmail] = useState('');
+  const [bio, setBio] = useState('');
+  const [college, setCollege] = useState('');
+  const [work, setWork] = useState('');
   const [instagram, setInstagram] = useState('');
   const [linkedin, setLinkedin] = useState('');
   const [interests, setInterests] = useState<string[]>([]);
@@ -82,12 +99,13 @@ export default function OnboardingScreen({ onComplete }: Props) {
       case 2: return dateOfBirth !== null;
       case 3: return gender.length > 0;
       case 4: return hometown.trim().length > 0;
-      case 5: return true; // Phone is optional
+      case 5: return email.trim().length > 0 && email.includes('@') && email.includes('.');
       case 6: return true; // Socials are optional
-      case 7: return interests.length >= 3;
-      case 8: return true; // Preferences have defaults
-      case 9: return true; // Notifications (optional)
-      case 10: return true; // Welcome screen
+      case 7: return true; // Bio/College/Work are optional
+      case 8: return interests.length >= 3;
+      case 9: return true; // Preferences have defaults
+      case 10: return true; // Notifications (optional)
+      case 11: return true; // Welcome screen
       default: return false;
     }
   };
@@ -95,7 +113,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
   const goToStep = (step: number) => {
     scrollViewRef.current?.scrollTo({ x: step * SCREEN_WIDTH, animated: true });
     setCurrentStep(step);
-    if (step === 10) {
+    if (step === 11) {
       fadeAnim.setValue(0);
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -105,8 +123,42 @@ export default function OnboardingScreen({ onComplete }: Props) {
     }
   };
 
+  const handleSendPhoneCode = async () => {
+    if (phoneNumber.replace(/\D/g, '').length < 10) return;
+    setPhoneSending(true);
+    setPhoneError('');
+    try {
+      await sendPhoneVerificationCode(phoneNumber.replace(/\D/g, ''));
+      setPhoneCodeSent(true);
+    } catch (err: any) {
+      setPhoneError(err?.message || 'Failed to send code');
+    } finally {
+      setPhoneSending(false);
+    }
+  };
+
+  const handleVerifyPhoneOtp = async () => {
+    if (phoneOtpCode.length !== 6) return;
+    setPhoneSending(true);
+    setPhoneError('');
+    try {
+      const ok = await verifyPhoneCode(phoneNumber.replace(/\D/g, ''), phoneOtpCode);
+      if (ok) {
+        setPhoneVerified(true);
+        goToStep(currentStep + 1);
+      } else {
+        setPhoneError('Incorrect code. Try again.');
+        setPhoneOtpCode('');
+      }
+    } catch (err: any) {
+      setPhoneError(err?.message || 'Verification failed');
+    } finally {
+      setPhoneSending(false);
+    }
+  };
+
   const handleNext = () => {
-    if (currentStep === 10) {
+    if (currentStep === 11) {
       handleComplete();
     } else if (canProceed(currentStep)) {
       goToStep(currentStep + 1);
@@ -146,6 +198,10 @@ export default function OnboardingScreen({ onComplete }: Props) {
         gender: finalGender || null,
         hometown: hometown.trim(),
         phone: phoneNumber.replace(/\D/g, '') || null,
+        email: email.trim() || null,
+        bio: bio.trim() || null,
+        college: college.trim() || null,
+        work: work.trim() || null,
         interests,
         team_role_preference: teamRolePreference,
         team_size_preference: teamSizePreference,
@@ -226,13 +282,13 @@ export default function OnboardingScreen({ onComplete }: Props) {
 
       const result = useCamera
         ? await ImagePicker.launchCameraAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            mediaTypes: ['images'],
             allowsEditing: true,
             aspect: [3, 4],
             quality: 0.5,
           })
         : await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            mediaTypes: ['images'],
             allowsMultipleSelection: true,
             selectionLimit: remaining,
             quality: 0.5,
@@ -333,10 +389,10 @@ export default function OnboardingScreen({ onComplete }: Props) {
   const getSectionTitle = (step: number): string => {
     if (step <= 1) return 'Set up your profile';
     if (step <= 4) return 'The Basics';
-    if (step <= 6) return 'Your Details';
-    if (step === 7) return 'Your interests';
-    if (step === 8) return 'Preferences';
-    if (step === 9) return 'Notifications';
+    if (step <= 7) return 'Your Details';
+    if (step === 8) return 'Your interests';
+    if (step === 9) return 'Preferences';
+    if (step === 10) return 'Notifications';
     return 'Welcome';
   };
 
@@ -347,12 +403,13 @@ export default function OnboardingScreen({ onComplete }: Props) {
       case 2: return 'Your Birthday';
       case 3: return 'How do you identify?';
       case 4: return 'Where are you based?';
-      case 5: return 'Your phone number';
+      case 5: return 'Your email';
       case 6: return 'Drop your socials';
-      case 7: return 'Pick at least 3';
-      case 8: return 'How do you like to work?';
-      case 9: return 'Stay connected';
-      case 10: return '';
+      case 7: return 'A bit more about you';
+      case 8: return 'Pick at least 3';
+      case 9: return 'How do you like to work?';
+      case 10: return 'Stay connected';
+      case 11: return '';
       default: return '';
     }
   };
@@ -524,44 +581,75 @@ export default function OnboardingScreen({ onComplete }: Props) {
   );
 
   const renderBirthdayStep = () => {
-    const mm = dateOfBirth ? String(dateOfBirth.getMonth() + 1).padStart(2, '0') : 'MM';
-    const dd = dateOfBirth ? String(dateOfBirth.getDate()).padStart(2, '0') : 'DD';
-    const yyyy = dateOfBirth ? String(dateOfBirth.getFullYear()) : 'YYYY';
+    const updateDate = (m: string, d: string, y: string) => {
+      const mNum = parseInt(m, 10);
+      const dNum = parseInt(d, 10);
+      const yNum = parseInt(y, 10);
+      if (
+        m.length > 0 && d.length > 0 && y.length === 4 &&
+        mNum >= 1 && mNum <= 12 &&
+        dNum >= 1 && dNum <= 31 &&
+        yNum >= 1920 && yNum <= new Date().getFullYear()
+      ) {
+        setDateOfBirth(new Date(yNum, mNum - 1, dNum));
+      } else {
+        setDateOfBirth(null);
+      }
+    };
 
     return (
       <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
         <View style={styles.stepInner}>
           {renderStepHeader(2)}
           <View style={styles.contentArea}>
-            {/* Large date display */}
-            <TouchableOpacity
-              onPress={() => { if (Platform.OS === 'android') setShowDatePicker(true); }}
-              activeOpacity={0.7}
-            >
-              <Text style={[
-                styles.largeDateDisplay,
-                !dateOfBirth && { color: C.border },
-              ]}>
-                {mm}  {dd}  {yyyy}
-              </Text>
-            </TouchableOpacity>
-
-            {(showDatePicker || Platform.OS === 'ios') && (
-              <View style={{ marginTop: 16 }}>
-                <DateTimePicker
-                  value={dateOfBirth || maxDate}
-                  mode="date"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  maximumDate={maxDate}
-                  minimumDate={new Date(1920, 0, 1)}
-                  onChange={(event, selectedDate) => {
-                    if (Platform.OS === 'android') setShowDatePicker(false);
-                    if (selectedDate) setDateOfBirth(selectedDate);
-                  }}
-                  textColor={C.ink}
-                />
-              </View>
-            )}
+            <View style={styles.dateRow}>
+              <TextInput
+                style={styles.dateField}
+                placeholder="MM"
+                placeholderTextColor={C.border}
+                keyboardType="number-pad"
+                maxLength={2}
+                value={birthMonth}
+                autoFocus={currentStep === 2}
+                onChangeText={(t) => {
+                  const v = t.replace(/\D/g, '');
+                  setBirthMonth(v);
+                  updateDate(v, birthDay, birthYear);
+                  if (v.length === 2) birthDayRef.current?.focus();
+                }}
+              />
+              <Text style={styles.dateSeparator}>/</Text>
+              <TextInput
+                ref={birthDayRef}
+                style={styles.dateField}
+                placeholder="DD"
+                placeholderTextColor={C.border}
+                keyboardType="number-pad"
+                maxLength={2}
+                value={birthDay}
+                onChangeText={(t) => {
+                  const v = t.replace(/\D/g, '');
+                  setBirthDay(v);
+                  updateDate(birthMonth, v, birthYear);
+                  if (v.length === 2) birthYearRef.current?.focus();
+                }}
+              />
+              <Text style={styles.dateSeparator}>/</Text>
+              <TextInput
+                ref={birthYearRef}
+                style={[styles.dateField, styles.dateFieldYear]}
+                placeholder="YYYY"
+                placeholderTextColor={C.border}
+                keyboardType="number-pad"
+                maxLength={4}
+                value={birthYear}
+                onChangeText={(t) => {
+                  const v = t.replace(/\D/g, '');
+                  setBirthYear(v);
+                  updateDate(birthMonth, birthDay, v);
+                }}
+              />
+            </View>
           </View>
           <Text style={styles.helperText}>We only show your age on your profile.</Text>
           {renderBottomNav()}
@@ -652,25 +740,24 @@ export default function OnboardingScreen({ onComplete }: Props) {
     </View>
   );
 
-  const renderPhoneStep = () => (
+  const renderEmailStep = () => (
     <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
       <View style={styles.stepInner}>
         {renderStepHeader(5)}
         <View style={styles.contentArea}>
-          <View style={styles.phoneRow}>
-            <Text style={styles.phonePrefix}>+1</Text>
-            <TextInput
-              style={styles.phoneLargeInput}
-              placeholder="(555) 123-4567"
-              placeholderTextColor={C.border}
-              value={formatPhoneDisplay(phoneNumber)}
-              onChangeText={(text) => setPhoneNumber(text.replace(/\D/g, '').slice(0, 10))}
-              keyboardType="phone-pad"
-              maxLength={14}
-            />
-          </View>
+          <TextInput
+            style={styles.emailInput}
+            placeholder="your@email.com"
+            placeholderTextColor={C.border}
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoFocus
+          />
         </View>
-        <Text style={styles.helperText}>We use your phone number to sign you in.</Text>
+        <Text style={styles.helperText}>For account recovery and pod updates.</Text>
         {renderBottomNav()}
       </View>
     </View>
@@ -715,10 +802,57 @@ export default function OnboardingScreen({ onComplete }: Props) {
     </View>
   );
 
+  const renderAboutYouStep = () => (
+    <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
+      <View style={styles.stepInner}>
+        {renderStepHeader(7)}
+        <View style={styles.contentArea}>
+          <View style={styles.aboutYouField}>
+            <Text style={styles.aboutYouLabel}>Bio</Text>
+            <TextInput
+              style={styles.aboutYouTextArea}
+              placeholder="Tell people a bit about yourself..."
+              placeholderTextColor={C.border}
+              value={bio}
+              onChangeText={setBio}
+              multiline
+              numberOfLines={3}
+              maxLength={200}
+              textAlignVertical="top"
+            />
+            <Text style={styles.aboutYouCharCount}>{bio.length}/200</Text>
+          </View>
+          <View style={styles.aboutYouField}>
+            <Text style={styles.aboutYouLabel}>College</Text>
+            <TextInput
+              style={styles.aboutYouInput}
+              placeholder="Where did/do you go to school?"
+              placeholderTextColor={C.border}
+              value={college}
+              onChangeText={setCollege}
+            />
+          </View>
+          <View style={styles.aboutYouField}>
+            <Text style={styles.aboutYouLabel}>Work</Text>
+            <TextInput
+              style={styles.aboutYouInput}
+              placeholder="What do you do?"
+              placeholderTextColor={C.border}
+              value={work}
+              onChangeText={setWork}
+            />
+          </View>
+        </View>
+        <Text style={styles.helperText}>All optional — you can always add these later.</Text>
+        {renderBottomNav()}
+      </View>
+    </View>
+  );
+
   const renderInterestsStep = () => (
     <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
       <View style={[styles.stepInner, { flex: 1 }]}>
-        {renderStepHeader(7)}
+        {renderStepHeader(8)}
         <Text style={[styles.interestCount, {
           color: interests.length >= 3 ? C.accent : C.muted,
         }]}>
@@ -771,7 +905,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
     return (
       <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
         <View style={[styles.stepInner, { flex: 1 }]}>
-          {renderStepHeader(8)}
+          {renderStepHeader(9)}
           <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
             <Text style={styles.prefSection}>Team Role</Text>
             {roles.map(role => (
@@ -831,7 +965,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
     return (
       <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
         <View style={styles.stepInner}>
-          {renderStepHeader(9)}
+          {renderStepHeader(10)}
           <View style={styles.contentArea}>
             {notificationPermissionGranted ? (
               <Ionicons name="checkmark-circle" size={48} color={C.accent} style={{ marginBottom: 20 }} />
@@ -877,13 +1011,13 @@ export default function OnboardingScreen({ onComplete }: Props) {
         opacity: fadeAnim,
         transform: [{ scale: fadeAnim.interpolate({ inputRange: [0, 1], outputRange: [0.95, 1] }) }],
       }]}>
-        {renderStepHeader(10)}
+        {renderStepHeader(11)}
         <View style={[styles.contentArea, { alignItems: 'center' }]}>
           <Text style={styles.welcomeTitle}>
             Welcome to the pod, {firstName}!
           </Text>
           <Text style={[styles.helperText, { textAlign: 'center', marginTop: 12, fontSize: 16 }]}>
-            You're all set to start exploring pursuits and finding your team
+            You're all set to start exploring pods and finding your team
           </Text>
         </View>
         <View style={styles.bottomNav}>
@@ -935,8 +1069,9 @@ export default function OnboardingScreen({ onComplete }: Props) {
           {renderBirthdayStep()}
           {renderGenderStep()}
           {renderLocationStep()}
-          {renderPhoneStep()}
+          {renderEmailStep()}
           {renderSocialsStep()}
+          {renderAboutYouStep()}
           {renderInterestsStep()}
           {renderPreferencesStep()}
           {renderNotificationStep()}
@@ -1106,6 +1241,31 @@ const styles = StyleSheet.create({
     color: C.ink,
     letterSpacing: 2,
   },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  dateField: {
+    fontFamily: F.bodyMedium,
+    fontSize: 40,
+    color: C.ink,
+    borderBottomWidth: 2,
+    borderBottomColor: C.border,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    textAlign: 'center',
+    minWidth: 70,
+  },
+  dateFieldYear: {
+    minWidth: 110,
+  },
+  dateSeparator: {
+    fontFamily: F.bodyMedium,
+    fontSize: 40,
+    color: C.border,
+  },
 
   // Gender pills
   genderPills: {
@@ -1146,12 +1306,89 @@ const styles = StyleSheet.create({
     color: C.ink,
     marginRight: 8,
   },
+  aboutYouField: {
+    marginBottom: 20,
+  },
+  aboutYouLabel: {
+    fontFamily: F.bodyMedium,
+    fontSize: 14,
+    color: C.muted,
+    marginBottom: 8,
+  },
+  aboutYouInput: {
+    fontFamily: F.body,
+    fontSize: 17,
+    color: C.ink,
+    borderBottomWidth: 1.5,
+    borderBottomColor: C.border,
+    paddingVertical: 8,
+  },
+  aboutYouTextArea: {
+    fontFamily: F.body,
+    fontSize: 17,
+    color: C.ink,
+    borderWidth: 1.5,
+    borderColor: C.border,
+    borderRadius: 12,
+    padding: 12,
+    minHeight: 80,
+  },
+  aboutYouCharCount: {
+    fontFamily: F.body,
+    fontSize: 12,
+    color: C.muted,
+    textAlign: 'right',
+    marginTop: 4,
+  },
+  emailInput: {
+    fontFamily: F.bodyMedium,
+    fontSize: 28,
+    color: C.ink,
+    borderBottomWidth: 2,
+    borderBottomColor: C.border,
+    paddingVertical: 8,
+  },
   phoneLargeInput: {
     flex: 1,
     fontFamily: F.bodyMedium,
     fontSize: 40,
     color: C.ink,
     paddingVertical: 0,
+  },
+  phoneErrorText: {
+    fontFamily: F.body,
+    fontSize: 14,
+    color: '#B0413E',
+    marginTop: 12,
+  },
+  otpPromptText: {
+    fontFamily: F.body,
+    fontSize: 16,
+    color: C.muted,
+    marginBottom: 6,
+  },
+  otpPhoneText: {
+    fontFamily: F.bodyMedium,
+    fontSize: 22,
+    color: C.ink,
+    marginBottom: 24,
+  },
+  otpInput: {
+    fontFamily: F.bodyMedium,
+    fontSize: 40,
+    color: C.ink,
+    letterSpacing: 8,
+    textAlign: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: C.border,
+    paddingVertical: 6,
+    minWidth: 220,
+  },
+  otpChangeText: {
+    fontFamily: F.bodyMedium,
+    fontSize: 14,
+    color: C.accent,
+    textAlign: 'center',
   },
 
   // Socials

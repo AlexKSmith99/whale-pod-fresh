@@ -21,7 +21,7 @@ import { supabase } from './src/config/supabase';
 import NotificationToast from './src/components/NotificationToast';
 import ThemeTransition from './src/components/ThemeTransition';
 import LoginScreen from './src/screens/LoginScreen';
-import VerifyEmailScreen from './src/screens/VerifyEmailScreen';
+import IntroAnimation from './src/components/IntroAnimation';
 import FeedScreen from './src/screens/FeedScreen';
 import CreateScreen from './src/screens/CreateScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
@@ -126,6 +126,7 @@ function AppContent() {
   // Onboarding state
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
+  const [introDone, setIntroDone] = useState(false);
 
   // Check onboarding status when user is authenticated
   useEffect(() => {
@@ -203,6 +204,7 @@ function AppContent() {
                 body: newNotification.body,
                 type: newNotification.type,
                 id: newNotification.id,
+                notificationId: newNotification.id,
                 data: newNotification.data, // Include data for interview navigation
               });
             }
@@ -474,6 +476,7 @@ function AppContent() {
           body: mostRecent.body,
           type: mostRecent.type,
           id: mostRecent.id,
+          notificationId: mostRecent.id,
           data: mostRecent.data,
         });
       } else {
@@ -677,25 +680,10 @@ function AppContent() {
     );
   }
 
-  // Show verification screen if signup is pending email verification
-  if (auth.pendingVerificationEmail) {
-    return (
-      <VerifyEmailScreen
-        email={auth.pendingVerificationEmail}
-        onVerify={async (code) => {
-          await auth.verifyEmail(auth.pendingVerificationEmail!, code);
-        }}
-        onResendCode={async () => {
-          await auth.sendVerificationCode(auth.pendingVerificationEmail!);
-        }}
-        onBack={() => {
-          auth.clearPendingVerification();
-        }}
-      />
-    );
-  }
-
   if (!auth.user) {
+    if (!introDone) {
+      return <IntroAnimation onComplete={() => setIntroDone(true)} />;
+    }
     return <LoginScreen />;
   }
 
@@ -1161,7 +1149,19 @@ if (teamBoardPursuitId) {
           // Handle navigation based on notification type - matching NotificationsScreen behavior
           const type = currentToast?.type;
           const data = currentToast?.data;
+          const notificationId = currentToast?.notificationId;
           const relatedId = data?.pursuitId || data?.applicationId || data?.meetingId;
+
+          // Mark the notification as read so its red highlight/badge clears
+          // while the notification itself remains visible in the Notifications tab.
+          if (notificationId) {
+            try {
+              await notificationService.markAsRead(notificationId);
+              loadBadgeCounts();
+            } catch (err) {
+              console.error('Error marking tapped notification as read:', err);
+            }
+          }
 
           try {
             // Helper to navigate to pod detail

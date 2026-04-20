@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, StatusBar, TextInput, Modal, KeyboardAvoidingView, Platform, Image, Animated } from 'react-native';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, StatusBar, TextInput, Modal, KeyboardAvoidingView, Platform, Image, Animated, Easing } from 'react-native';
 import { useCardPress } from '../hooks/useCardPress';
 import { Ionicons } from '@expo/vector-icons';
 import { pursuitService } from '../services/pursuitService';
@@ -12,6 +12,13 @@ import { SkeletonFeedList } from '../components/ui/Skeleton';
 import PursuitDetailScreen from './PursuitDetailScreen';
 import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
 import { useFonts, KleeOne_400Regular } from '@expo-google-fonts/klee-one';
+import {
+  ActiveGradientBorder,
+  HotFlameIcon,
+  calculateEngagement,
+  fetchEngagementData,
+  EngagementState,
+} from '../components/ui/PodEngagementIndicator';
 
 // Location suggestions for autocomplete
 const LOCATION_SUGGESTIONS = [
@@ -55,7 +62,21 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
   const [pursuits, setPursuits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPursuit, setSelectedPursuit] = useState<any>(null);
+  const unfoldAnim = useRef(new Animated.Value(0)).current;
   const [searchQuery, setSearchQuery] = useState('');
+  const [engagementMap, setEngagementMap] = useState<Record<string, EngagementState>>({});
+
+  // Search input focus animation (border glow)
+  const searchFocusAnim = useRef(new Animated.Value(0)).current;
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  useEffect(() => {
+    Animated.timing(searchFocusAnim, {
+      toValue: isSearchFocused ? 1 : 0,
+      duration: 220,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: false,
+    }).start();
+  }, [isSearchFocused, searchFocusAnim]);
 
   // Filter states
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
@@ -124,6 +145,30 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
 
       const data = await pursuitService.getPursuits(filters);
       setPursuits(data);
+
+      // Fetch engagement data in parallel for all visible pods (batched queries)
+      if (data && data.length > 0) {
+        const ids = data.map((p: any) => p.id).filter(Boolean);
+        try {
+          const raw = await fetchEngagementData(ids);
+          const map: Record<string, EngagementState> = {};
+          for (const pod of data) {
+            const bucket = raw[pod.id] || { meetingsCount: 0, chatCount: 0, recentAcceptances: 0 };
+            map[pod.id] = calculateEngagement(
+              pod,
+              bucket.meetingsCount,
+              bucket.chatCount,
+              bucket.recentAcceptances
+            );
+          }
+          setEngagementMap(map);
+        } catch (e) {
+          // Non-fatal; just skip indicators
+          console.warn('engagement fetch failed:', e);
+        }
+      } else {
+        setEngagementMap({});
+      }
     } catch (error) {
       console.error('Error loading pursuits:', error);
     } finally {
@@ -143,8 +188,8 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
 
   const handleDelete = async () => {
     Alert.alert(
-      'Delete Pursuit',
-      'Are you sure you want to delete this pursuit?',
+      'Delete Pod',
+      'Are you sure you want to delete this pod?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -155,7 +200,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
               await pursuitService.deletePursuit(selectedPursuit.id);
               setSelectedPursuit(null);
               loadPursuits();
-              Alert.alert('Success', 'Pursuit deleted!');
+              Alert.alert('Success', 'Pod deleted!');
             } catch (error: any) {
               Alert.alert('Error', error.message);
             }
@@ -199,9 +244,28 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
 
   if (selectedPursuit) {
     return (
+      <Animated.View
+        style={{
+          flex: 1,
+          opacity: unfoldAnim,
+          transform: [
+            { scaleY: unfoldAnim },
+            {
+              translateY: unfoldAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [-400, 0],
+              }),
+            },
+          ],
+        }}
+      >
       <PursuitDetailScreen
         pursuit={selectedPursuit}
-        onBack={() => setSelectedPursuit(null)}
+        onBack={() => {
+          Animated.timing(unfoldAnim, { toValue: 0, duration: 260, useNativeDriver: true }).start(() => {
+            setSelectedPursuit(null);
+          });
+        }}
         onDelete={handleDelete}
         isOwner={selectedPursuit.creator_id === user?.id}
         onViewProfile={(userId, userEmail) => {
@@ -220,10 +284,11 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
           }
         }}
       />
+      </Animated.View>
     );
   }
 
-  // Filter Button Component
+  // Filter Button Component — with press scale animation (Animated.spring) and raised look.
   const FilterButton = ({
     label,
     count,
@@ -234,35 +299,64 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
     onPress: () => void;
   }) => {
     const isActive = count !== null && count > 0;
+    const btnScale = useRef(new Animated.Value(1)).current;
+
+    const handlePressIn = () => {
+      Animated.spring(btnScale, {
+        toValue: 0.97,
+        useNativeDriver: true,
+        speed: 50,
+        bounciness: 4,
+      }).start();
+    };
+    const handlePressOut = () => {
+      Animated.spring(btnScale, {
+        toValue: 1,
+        useNativeDriver: true,
+        speed: 40,
+        bounciness: 8,
+      }).start();
+    };
+
     return (
-      <TouchableOpacity
-        style={[
-          dynamicStyles.filterButton,
-          isActive && dynamicStyles.filterButtonActive
-        ]}
-        onPress={() => {
-          HapticManager.selection();
-          onPress();
-        }}
-        activeOpacity={0.7}
-      >
-        <Text style={[
-          dynamicStyles.filterButtonText,
-          isActive && { color: isNewTheme ? colors.background : legacyColors.white }
-        ]}>
-          {label}
-        </Text>
-        {isActive && (
-          <View style={[styles.filterBadge, { backgroundColor: isNewTheme ? colors.background : legacyColors.white }]}>
-            <Text style={[styles.filterBadgeText, { color: isNewTheme ? colors.accentGreen : legacyColors.primary }]}>{count}</Text>
-          </View>
-        )}
-        <Ionicons
-          name="chevron-down"
-          size={16}
-          color={isActive ? (isNewTheme ? colors.background : legacyColors.white) : colors.textSecondary}
-        />
-      </TouchableOpacity>
+      <Animated.View style={{ transform: [{ scale: btnScale }] }}>
+        <TouchableOpacity
+          style={[
+            dynamicStyles.filterButton,
+            isActive && dynamicStyles.filterButtonActive,
+            // "Inner glow" for active chip
+            isActive && {
+              shadowColor: isNewTheme ? colors.accentGreen : legacyColors.primary,
+              shadowOpacity: 0.35,
+              shadowRadius: 8,
+            },
+          ]}
+          onPress={() => {
+            HapticManager.selection();
+            onPress();
+          }}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          activeOpacity={0.85}
+        >
+          <Text style={[
+            dynamicStyles.filterButtonText,
+            isActive && { color: isNewTheme ? colors.background : legacyColors.white }
+          ]}>
+            {label}
+          </Text>
+          {isActive && (
+            <View style={[styles.filterBadge, { backgroundColor: isNewTheme ? colors.background : legacyColors.white }]}>
+              <Text style={[styles.filterBadgeText, { color: isNewTheme ? colors.accentGreen : legacyColors.primary }]}>{count}</Text>
+            </View>
+          )}
+          <Ionicons
+            name="chevron-down"
+            size={16}
+            color={isActive ? (isNewTheme ? colors.background : legacyColors.white) : colors.textSecondary}
+          />
+        </TouchableOpacity>
+      </Animated.View>
     );
   };
 
@@ -396,11 +490,16 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
       backgroundColor: isNewTheme ? colors.surfaceAlt : colors.backgroundSecondary,
       marginHorizontal: spacing.lg,
       paddingHorizontal: spacing.base,
-      borderRadius: borderRadius.base,
+      // Pill-shaped container
+      borderRadius: 24,
       height: 44,
       marginBottom: spacing.base,
-      borderWidth: isNewTheme ? 1 : 0,
-      borderColor: colors.border,
+      // Subtle shadow
+      shadowColor: '#000',
+      shadowOpacity: 0.08,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 3,
     },
     searchInput: {
       flex: 1,
@@ -414,14 +513,17 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
       borderRadius: isNewTheme ? borderRadius.lg : 16,
       padding: isNewTheme ? spacing.lg : 24,
       marginBottom: isNewTheme ? spacing.base : 20,
-      ...shadows.base,
-      shadowColor: isNewTheme ? '#000' : '#1B1B18',
-      shadowOffset: isNewTheme ? shadows.base.shadowOffset : { width: 0, height: 4 },
-      shadowOpacity: isNewTheme ? shadows.base.shadowOpacity : 0.07,
-      shadowRadius: isNewTheme ? shadows.base.shadowRadius : 14,
-      elevation: isNewTheme ? shadows.base.elevation : 3,
+      // Pop: stronger elevation
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.08,
+      shadowRadius: 12,
+      elevation: 5,
       borderWidth: isNewTheme ? 0.75 : 0,
       borderColor: isNewTheme ? colors.accentGreen : 'transparent',
+      // Room for the 3px left accent line rendered as a child view
+      overflow: 'hidden' as const,
+      position: 'relative' as const,
     },
     cardTitle: {
       flex: 1,
@@ -448,6 +550,12 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
       borderWidth: 1,
       borderColor: isNewTheme ? colors.border : legacyColors.borderLight,
       gap: spacing.xs,
+      // Slight elevation
+      shadowColor: '#000',
+      shadowOpacity: 0.08,
+      shadowRadius: 6,
+      shadowOffset: { width: 0, height: 2 },
+      elevation: 2,
     },
     filterButtonActive: {
       backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary,
@@ -524,23 +632,36 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
           </View>
         </View>
 
-        {/* Modern Search Bar */}
-        <View style={dynamicStyles.searchContainer}>
+        {/* Modern Search Bar — rounded pill with animated green glow on focus */}
+        <Animated.View
+          style={[
+            dynamicStyles.searchContainer,
+            {
+              borderWidth: searchFocusAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 2] }),
+              borderColor: searchFocusAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [colors.border, colors.accentGreen],
+              }) as unknown as string,
+            },
+          ]}
+        >
           <Ionicons name="search" size={18} color={colors.textTertiary} />
           <TextInput
             style={dynamicStyles.searchInput}
-            placeholder="Search pursuits..."
+            placeholder="Search pods..."
             placeholderTextColor={colors.textTertiary}
             value={searchQuery}
             onChangeText={setSearchQuery}
             onSubmitEditing={handleSearch}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
               <Ionicons name="close-circle" size={18} color={colors.textTertiary} />
             </TouchableOpacity>
           )}
-        </View>
+        </Animated.View>
 
         {/* Modern Filter Buttons */}
         <ScrollView
@@ -555,7 +676,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
             onPress={() => setShowStatusModal(true)}
           />
           <FilterButton
-            label="Pursuit Type"
+            label="Pod Type"
             count={getFilterCount(pursuitTypeFilter)}
             onPress={() => setShowPursuitTypeModal(true)}
           />
@@ -629,7 +750,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
       <FilterModal
         visible={showPursuitTypeModal}
         onClose={() => setShowPursuitTypeModal(false)}
-        title="Filter by Pursuit Type"
+        title="Filter by Pod Type"
         options={['Education', 'Friends', 'Problem', 'Business', 'Lifestyle', 'Hobby', 'Fitness', 'Side Hustle', 'Travel', 'Discussion', 'New Endeavor', 'Accountability', 'Networking', 'Health', 'Personal Growth', 'Career Growth', 'Hangout', 'Socialize', 'Explore', 'Nature', 'Social Media', 'Spiritual', 'Religion', 'Mental Health', 'Art', 'Music', 'Sport']}
         selectedValues={pursuitTypeFilter}
         onToggle={(value) => toggleFilter(pursuitTypeFilter, setPursuitTypeFilter, value)}
@@ -955,21 +1076,54 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
               <View style={[styles.emptyIconContainer, { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.backgroundSecondary }]}>
                 <Ionicons name="search-outline" size={48} color={colors.textTertiary} />
               </View>
-              <Text style={[styles.emptyText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>No pursuits found</Text>
+              <Text style={[styles.emptyText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>No pods found</Text>
               <Text style={[styles.emptySubtext, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Be the first to create one!</Text>
             </View>
           ) : (
             pursuits.flatMap((pursuit, index) => {
+              const engagement = engagementMap[pursuit.id] || { isActive: false, isHot: false };
+
+              // Left accent line color logic
+              let accentLineColor = colors.accentGreen;
+              if (engagement.isHot && engagement.isActive) accentLineColor = '#FF6B35';
+              else if (engagement.isActive) accentLineColor = '#4D96FF';
+              else if (engagement.isHot) accentLineColor = '#FF6B35';
+
+              const cardBg = isNewTheme ? colors.surface : '#FFFFFF';
+
               const card = (
-              <PursuitCardWrapper
+              <ActiveGradientBorder
                 key={pursuit.id}
-                style={dynamicStyles.card}
+                enabled={engagement.isActive}
+                borderRadius={isNewTheme ? borderRadius.lg : 16}
+                thickness={2.5}
+                backgroundColor={cardBg}
+              >
+              <PursuitCardWrapper
+                style={[
+                  dynamicStyles.card,
+                  // When wrapped in the gradient border, drop the card's own margin/shadow
+                  engagement.isActive && { marginBottom: 0, shadowOpacity: 0, elevation: 0 },
+                ]}
                 isNewTheme={isNewTheme}
                 onPress={() => {
                   HapticManager.lightTap();
+                  unfoldAnim.setValue(0);
                   setSelectedPursuit(pursuit);
+                  Animated.spring(unfoldAnim, {
+                    toValue: 1,
+                    tension: 55,
+                    friction: 10,
+                    useNativeDriver: true,
+                  }).start();
                 }}
               >
+                {/* Left 3px accent line */}
+                <View style={[styles.cardAccentLine, { backgroundColor: accentLineColor }]} pointerEvents="none" />
+
+                {/* Hot flame icon in top-right */}
+                <HotFlameIcon enabled={engagement.isHot} size={22} />
+
                 {/* Header with Title and Status */}
                 <View style={styles.cardHeader}>
                   <View style={styles.cardTitleContainer}>
@@ -989,10 +1143,6 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
                       : (isNewTheme ? 'rgba(252, 211, 77, 0.15)' : legacyColors.warningLight)
                     }
                   ]}>
-                    <View style={[
-                      styles.statusDot,
-                      { backgroundColor: pursuit.status === 'active' ? colors.success : colors.warning }
-                    ]} />
                     <Text style={[
                       styles.statusText,
                       { color: pursuit.status === 'active' ? colors.success : colors.warning }
@@ -1045,17 +1195,18 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
                   </View>
                 )}
 
-                {/* Divider */}
-                <View style={[styles.divider, { backgroundColor: colors.border }]} />
+                {/* Decorative dot divider — 3 small accentGreen dots, centered */}
+                <View style={styles.dotDivider}>
+                  <View style={[styles.dotDividerDot, { backgroundColor: colors.accentGreen }]} />
+                  <View style={[styles.dotDividerDot, { backgroundColor: colors.accentGreen }]} />
+                  <View style={[styles.dotDividerDot, { backgroundColor: colors.accentGreen }]} />
+                </View>
 
                 {/* Footer */}
                 <View style={styles.cardFooter}>
                   <View style={styles.footerTopRow}>
                   <View style={styles.infoRow}>
                     <View style={styles.infoItem}>
-                      <View style={[styles.iconContainer, { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.backgroundSecondary }]}>
-                        <Ionicons name="people" size={14} color={colors.textSecondary} />
-                      </View>
                       <Text style={[styles.infoText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
                         {pursuit.current_members_count}/{pursuit.team_size_max}
                       </Text>
@@ -1063,9 +1214,6 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
 
                     {pursuit.location && (
                       <View style={styles.infoItemFlex}>
-                        <View style={[styles.iconContainer, { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.backgroundSecondary }]}>
-                          <Ionicons name="location" size={14} color={colors.textSecondary} />
-                        </View>
                         <Text style={[styles.infoTextFlex, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]} numberOfLines={1}>
                           {pursuit.neighborhood
                             ? `${pursuit.neighborhood}, ${pursuit.location.split(',')[0]}`
@@ -1076,9 +1224,6 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
 
                     {pursuit.meeting_cadence && (
                       <View style={styles.infoItemFlex}>
-                        <View style={[styles.iconContainer, { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.backgroundSecondary }]}>
-                          <Ionicons name="calendar" size={14} color={colors.textSecondary} />
-                        </View>
                         <Text style={[styles.infoTextFlex, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]} numberOfLines={1}>
                           {pursuit.meeting_cadence}
                         </Text>
@@ -1126,6 +1271,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
                   </View>
                 </View>
               </PursuitCardWrapper>
+              </ActiveGradientBorder>
               );
               return [card];
             })
@@ -1136,22 +1282,14 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
   );
 }
 
-// Card wrapper with press animation for light mode
+// Card wrapper with press animation — always scales to 0.98 on press (Animated.spring)
 function PursuitCardWrapper({ children, style, isNewTheme, onPress }: {
   children: React.ReactNode;
   style: any;
   isNewTheme: boolean;
   onPress: () => void;
 }) {
-  const { scale, onPressIn, onPressOut } = useCardPress({ haptic: !isNewTheme });
-
-  if (isNewTheme) {
-    return (
-      <TouchableOpacity style={style} onPress={onPress} activeOpacity={0.7}>
-        {children}
-      </TouchableOpacity>
-    );
-  }
+  const { scale, onPressIn, onPressOut } = useCardPress({ haptic: !isNewTheme, scaleDown: 0.98 });
 
   return (
     <Animated.View style={{ transform: [{ scale }] }}>
@@ -1499,6 +1637,39 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: legacyColors.borderLight,
     marginBottom: spacing.md,
+  },
+
+  // Decorative dot divider (three accentGreen dots)
+  dotDivider: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: spacing.md,
+    marginTop: spacing.xs,
+  },
+
+  dotDividerDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 2,
+    opacity: 0.7,
+  },
+
+  // 3px-wide left accent line painted as an absolute child of the card
+  cardAccentLine: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    width: 3,
+    borderTopLeftRadius: borderRadius.lg,
+    borderBottomLeftRadius: borderRadius.lg,
+  },
+
+  // Wrapper for the active-gradient border path (gives spacing below per-card)
+  cardOuterWrap: {
+    marginBottom: 16,
   },
 
   // Footer

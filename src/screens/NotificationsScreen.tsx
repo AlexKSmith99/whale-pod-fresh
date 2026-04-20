@@ -282,6 +282,8 @@ export default function NotificationsScreen({ navigation }: any) {
         onPress={() => handleNotificationPress(item)}
         activeOpacity={0.7}
       >
+        {/* Left accent bar for unread */}
+        {isUnread && <View style={styles.cardAccentBar} pointerEvents="none" />}
         {/* Icon */}
         <View style={[styles.iconCircle, isUnread && styles.iconCircleUnread]}>
           <Ionicons
@@ -528,11 +530,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: CARD_HEIGHT,
     paddingVertical: 10,
+    paddingLeft: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#E8E6E0',
+    position: 'relative',
   },
   cardUnread: {
     backgroundColor: '#F2F7F0',
+  },
+  cardAccentBar: {
+    position: 'absolute',
+    left: 0,
+    top: 8,
+    bottom: 8,
+    width: 3,
+    borderRadius: 2,
+    backgroundColor: '#2D5016',
   },
 
   // Icon
