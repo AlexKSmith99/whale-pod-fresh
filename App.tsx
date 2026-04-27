@@ -45,6 +45,8 @@ import InterviewTimeSlotProposalScreen from './src/screens/InterviewTimeSlotProp
 import InterviewSchedulingScreen from './src/screens/InterviewSchedulingScreen';
 import WriteReviewScreen from './src/screens/WriteReviewScreen';
 import OnboardingScreen from './src/screens/OnboardingScreen';
+import LegalScreen, { LegalDoc } from './src/screens/LegalScreen';
+import PieTabBar, { PieTabKey } from './src/components/ui/PieTabBar';
 import { AGORA_APP_ID } from './src/services/agoraService';
 
 // Theme transition wrapper component
@@ -71,6 +73,8 @@ function AppContent() {
   const [chatOpenedFromUserId, setChatOpenedFromUserId] = useState<string | null>(null);
   const [podDetailOpenedFromUserId, setPodDetailOpenedFromUserId] = useState<string | null>(null);
   const [teamBoardPursuitId, setTeamBoardPursuitId] = useState<string | null>(null);
+  const [teamBoardSubTab, setTeamBoardSubTab] = useState<string | null>(null);
+  const [viewingLegalDoc, setViewingLegalDoc] = useState<LegalDoc | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [showCreateMeeting, setShowCreateMeeting] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState<any | null>(null);
@@ -759,6 +763,7 @@ function AppContent() {
         })();
       } else if (screen === 'TeamBoard' && params?.pursuitId) {
         setTeamBoardPursuitId(params.pursuitId);
+        setTeamBoardSubTab(params.subTab || null);
       } else if (screen === 'Pods') {
         setCurrentScreen('Pods');
       } else if (screen === 'Calendar') {
@@ -792,6 +797,8 @@ function AppContent() {
           revieweeName: params.revieweeName || 'User',
           revieweePhoto: params.revieweePhoto,
         });
+      } else if (screen === 'Legal' && params?.doc) {
+        setViewingLegalDoc(params.doc as LegalDoc);
       }
     },
     goBack: () => {
@@ -807,21 +814,149 @@ function AppContent() {
     },
   };
 
+  // Clears every overlay/sub-screen state so a tab tap pops back to the tab's root.
+  const resetSubScreens = () => {
+    setViewingUserId(null);
+    setShowConnections(false);
+    setViewingLegalDoc(null);
+    setChatPartnerId(null);
+    setChatPartnerEmail(null);
+    setChatOpenedFromUserId(null);
+    setViewingPodDetail(null);
+    setPodDetailSubScreen(null);
+    setPodDetailFromNotifications(false);
+    setPodDetailOpenedFromUserId(null);
+    setTeamBoardPursuitId(null);
+    setTeamBoardSubTab(null);
+    setViewingRemovalReason(null);
+    setViewingMemberLeft(null);
+    setViewingMeetingInvitation(null);
+    setViewingInterviewProposal(null);
+    setViewingInterviewScheduling(null);
+    setViewingWriteReview(null);
+  };
+
+  const onTabPress = (target: string) => {
+    hapticService.lightTap();
+    resetSubScreens();
+    setCurrentScreen(target);
+    if (target === 'Pods') clearBadgeForTab('Pods');
+    if (target === 'Calendar') clearBadgeForTab('Calendar');
+    if (target === 'Profile') clearBadgeForTab('Profile');
+  };
+
+  const renderTabBar = () => isNewTheme ? (
+    <PieTabBar
+      active={
+        currentScreen === 'Feed' ? 'feed'
+        : currentScreen === 'Pods' ? 'pods'
+        : currentScreen === 'Calendar' ? 'calendar'
+        : currentScreen === 'Messages' ? 'messages'
+        : currentScreen === 'Notifications' ? 'alerts'
+        : currentScreen === 'Profile' ? 'profile'
+        : 'feed'
+      }
+      onChange={(k: PieTabKey) => {
+        const map: Record<PieTabKey, string> = {
+          feed: 'Feed', pods: 'Pods', calendar: 'Calendar',
+          messages: 'Messages', alerts: 'Notifications', profile: 'Profile',
+        };
+        onTabPress(map[k]);
+      }}
+      badges={{
+        messages: Math.max(0, unreadMessageCount - locallyReadCount),
+        pods: badgeCounts.pods,
+        calendar: badgeCounts.calendar,
+        alerts: badgeCounts.notifications,
+        profile: badgeCounts.connections,
+      }}
+    />
+  ) : (
+    <View style={[styles.tabBar, {
+      backgroundColor: themeColors.tabBarBackground,
+      borderTopColor: themeColors.tabBarBorder,
+    }]}>
+      <TouchableOpacity style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : '#f0f0f0' }]} onPress={() => onTabPress('Feed')}>
+        <Text style={[styles.tabIcon, { opacity: currentScreen === 'Feed' ? 1 : 0.4 }]}>🌊</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : '#f0f0f0' }]}
+        onPress={() => onTabPress('Messages')}
+      >
+        <View style={styles.tabContent}>
+          <Text style={[styles.tabIcon, { opacity: currentScreen === 'Messages' ? 1 : 0.4 }]}>🫧</Text>
+          {(() => {
+            const effectiveUnreadCount = Math.max(0, unreadMessageCount - locallyReadCount);
+            return effectiveUnreadCount > 0 && currentScreen !== 'Messages' ? (
+              <View style={[styles.badge, { backgroundColor: isNewTheme ? themeColors.accentGreen : '#ef4444' }]}>
+                <Text style={[styles.badgeText, { color: isNewTheme ? themeColors.background : '#fff' }]}>{effectiveUnreadCount}</Text>
+              </View>
+            ) : null;
+          })()}
+        </View>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : '#f0f0f0' }]}
+        onPress={() => onTabPress('Pods')}
+      >
+        <View style={styles.tabContent}>
+          <Text style={[styles.tabIcon, { opacity: currentScreen === 'Pods' ? 1 : 0.4 }]}>🐳</Text>
+          {badgeCounts.pods > 0 && (
+            <View style={[styles.badge, { backgroundColor: isNewTheme ? themeColors.accentGreen : '#ef4444' }]}>
+              <Text style={[styles.badgeText, { color: isNewTheme ? themeColors.background : '#fff' }]}>{badgeCounts.pods}</Text>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : '#f0f0f0' }]}
+        onPress={() => onTabPress('Calendar')}
+      >
+        <View style={styles.tabContent}>
+          <Text style={[styles.tabIcon, { opacity: currentScreen === 'Calendar' ? 1 : 0.4 }]}>🌙</Text>
+          {badgeCounts.calendar > 0 && (
+            <View style={[styles.badge, { backgroundColor: isNewTheme ? themeColors.accentGreen : '#ef4444' }]}>
+              <Text style={[styles.badgeText, { color: isNewTheme ? themeColors.background : '#fff' }]}>{badgeCounts.calendar}</Text>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : '#f0f0f0' }]}
+        onPress={() => onTabPress('Notifications')}
+      >
+        <View style={styles.tabContent}>
+          <Text style={[styles.tabIcon, { opacity: currentScreen === 'Notifications' ? 1 : 0.4 }]}>✦</Text>
+          {badgeCounts.notifications > 0 && (
+            <View style={[styles.badge, { backgroundColor: isNewTheme ? themeColors.accentGreen : '#ef4444' }]}>
+              <Text style={[styles.badgeText, { color: isNewTheme ? themeColors.background : '#fff' }]}>{badgeCounts.notifications}</Text>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.tab, { borderRightWidth: 0 }]}
+        onPress={() => onTabPress('Profile')}
+      >
+        <View style={styles.tabContent}>
+          <Text style={[styles.tabIcon, { opacity: currentScreen === 'Profile' ? 1 : 0.4 }]}>🪷</Text>
+          {badgeCounts.connections > 0 && (
+            <View style={[styles.badge, { backgroundColor: isNewTheme ? themeColors.accentGreen : '#ef4444' }]}>
+              <Text style={[styles.badgeText, { color: isNewTheme ? themeColors.background : '#fff' }]}>{badgeCounts.connections}</Text>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+    </View>
+  );
+
   // Show Create Pursuit screen as modal
   if (showCreate) {
     return (
-      <View style={{ flex: 1 }}>
-        <CreateScreen onClose={() => {
-          setShowCreate(false);
-          setCurrentScreen('Feed');
-        }} />
-        <TouchableOpacity
-          style={styles.closeCreateButton}
-          onPress={() => setShowCreate(false)}
-        >
-          <Text style={styles.closeCreateText}>✕ Close</Text>
-        </TouchableOpacity>
-      </View>
+      <CreateScreen onClose={() => {
+        setShowCreate(false);
+        setCurrentScreen('Feed');
+      }} />
     );
   }
 
@@ -893,155 +1028,195 @@ if (videoCallChannel) {
 // Show Removal Reason screen
 if (viewingRemovalReason) {
   return (
-    <RemovalReasonScreen
-      pursuitTitle={viewingRemovalReason.pursuitTitle}
-      reason={viewingRemovalReason.reason}
-      removedAt={viewingRemovalReason.removedAt}
-      onBack={() => {
-        setViewingRemovalReason(null);
-        setCurrentScreen('Feed');
-      }}
-    />
+    <View style={{ flex: 1 }}>
+      <RemovalReasonScreen
+        pursuitTitle={viewingRemovalReason.pursuitTitle}
+        reason={viewingRemovalReason.reason}
+        removedAt={viewingRemovalReason.removedAt}
+        onBack={() => {
+          setViewingRemovalReason(null);
+          setCurrentScreen('Feed');
+        }}
+      />
+      {renderTabBar()}
+    </View>
   );
 }
 
 // Show Member Left screen (for creators when a member leaves)
 if (viewingMemberLeft) {
   return (
-    <MemberLeftScreen
-      pursuitTitle={viewingMemberLeft.pursuitTitle}
-      memberName={viewingMemberLeft.memberName}
-      reason={viewingMemberLeft.reason}
-      leftAt={viewingMemberLeft.leftAt}
-      onBack={() => {
-        setViewingMemberLeft(null);
-        setCurrentScreen('Notifications');
-      }}
-    />
+    <View style={{ flex: 1 }}>
+      <MemberLeftScreen
+        pursuitTitle={viewingMemberLeft.pursuitTitle}
+        memberName={viewingMemberLeft.memberName}
+        reason={viewingMemberLeft.reason}
+        leftAt={viewingMemberLeft.leftAt}
+        onBack={() => {
+          setViewingMemberLeft(null);
+          setCurrentScreen('Notifications');
+        }}
+      />
+      {renderTabBar()}
+    </View>
   );
 }
 
 // Show Meeting Invitation screen
 if (viewingMeetingInvitation) {
   return (
-    <MeetingInvitationScreen
-      meetingId={viewingMeetingInvitation}
-      onBack={() => {
-        setViewingMeetingInvitation(null);
-        setCurrentScreen('Notifications');
-      }}
-      onResponded={() => {
-        setViewingMeetingInvitation(null);
-        setCurrentScreen('Calendar');
-      }}
-    />
+    <View style={{ flex: 1 }}>
+      <MeetingInvitationScreen
+        meetingId={viewingMeetingInvitation}
+        onBack={() => {
+          setViewingMeetingInvitation(null);
+          setCurrentScreen('Notifications');
+        }}
+        onResponded={() => {
+          setViewingMeetingInvitation(null);
+          setCurrentScreen('Calendar');
+        }}
+      />
+      {renderTabBar()}
+    </View>
   );
 }
 
 // Show Interview Time Slot Proposal screen (for applicants to propose interview times)
 if (viewingInterviewProposal) {
   return (
-    <InterviewTimeSlotProposalScreen
-      applicationId={viewingInterviewProposal.applicationId}
-      pursuitId={viewingInterviewProposal.pursuitId}
-      pursuitTitle={viewingInterviewProposal.pursuitTitle}
-      onClose={() => {
-        setViewingInterviewProposal(null);
-        setCurrentScreen('Pods');
-      }}
-      onSubmitted={() => {
-        setViewingInterviewProposal(null);
-        setCurrentScreen('Pods');
-      }}
-    />
+    <View style={{ flex: 1 }}>
+      <InterviewTimeSlotProposalScreen
+        applicationId={viewingInterviewProposal.applicationId}
+        pursuitId={viewingInterviewProposal.pursuitId}
+        pursuitTitle={viewingInterviewProposal.pursuitTitle}
+        onClose={() => {
+          setViewingInterviewProposal(null);
+          setCurrentScreen('Pods');
+        }}
+        onSubmitted={() => {
+          setViewingInterviewProposal(null);
+          setCurrentScreen('Pods');
+        }}
+      />
+      {renderTabBar()}
+    </View>
   );
 }
 
 // Show Interview Scheduling screen (for creators to schedule the interview)
 if (viewingInterviewScheduling) {
   return (
-    <InterviewSchedulingScreen
-      applicationId={viewingInterviewScheduling.applicationId}
-      pursuitId={viewingInterviewScheduling.pursuitId}
-      pursuitTitle={viewingInterviewScheduling.pursuitTitle}
-      applicantId={viewingInterviewScheduling.applicantId}
-      applicantName={viewingInterviewScheduling.applicantName}
-      onClose={() => {
-        setViewingInterviewScheduling(null);
-        setCurrentScreen('Notifications');
-      }}
-      onScheduled={() => {
-        setViewingInterviewScheduling(null);
-        setCurrentScreen('Calendar');
-      }}
-    />
+    <View style={{ flex: 1 }}>
+      <InterviewSchedulingScreen
+        applicationId={viewingInterviewScheduling.applicationId}
+        pursuitId={viewingInterviewScheduling.pursuitId}
+        pursuitTitle={viewingInterviewScheduling.pursuitTitle}
+        applicantId={viewingInterviewScheduling.applicantId}
+        applicantName={viewingInterviewScheduling.applicantName}
+        onClose={() => {
+          setViewingInterviewScheduling(null);
+          setCurrentScreen('Notifications');
+        }}
+        onScheduled={() => {
+          setViewingInterviewScheduling(null);
+          setCurrentScreen('Calendar');
+        }}
+      />
+      {renderTabBar()}
+    </View>
   );
 }
 
 // Show Write Review screen
 if (viewingWriteReview) {
   return (
-    <WriteReviewScreen
-      route={{ params: viewingWriteReview }}
-      navigation={{
-        ...navigation,
-        goBack: () => setViewingWriteReview(null),
-      }}
-    />
+    <View style={{ flex: 1 }}>
+      <WriteReviewScreen
+        route={{ params: viewingWriteReview }}
+        navigation={{
+          ...navigation,
+          goBack: () => setViewingWriteReview(null),
+        }}
+      />
+      {renderTabBar()}
+    </View>
   );
 }
 
 // Show User Profile screen (before chat so it takes priority when clicked from chat)
 if (viewingUserId) {
   return (
-    <UserProfileScreen
-      route={{ params: { userId: viewingUserId } }}
-      navigation={navigation}
-      onWriteReview={(revieweeId: string, revieweeName: string, revieweePhoto?: string) => {
-        setViewingWriteReview({
-          revieweeId,
-          revieweeName,
-          revieweePhoto,
-        });
-      }}
-    />
+    <View style={{ flex: 1 }}>
+      <UserProfileScreen
+        route={{ params: { userId: viewingUserId } }}
+        navigation={navigation}
+        onWriteReview={(revieweeId: string, revieweeName: string, revieweePhoto?: string) => {
+          setViewingWriteReview({
+            revieweeId,
+            revieweeName,
+            revieweePhoto,
+          });
+        }}
+      />
+      {renderTabBar()}
+    </View>
   );
 }
 
 // Show Connections screen
 if (showConnections) {
-  return <ConnectionsScreen navigation={navigation} />;
+  return (
+    <View style={{ flex: 1 }}>
+      <ConnectionsScreen navigation={navigation} />
+      {renderTabBar()}
+    </View>
+  );
+}
+
+// Show Legal doc viewer (Terms / Privacy / Support)
+if (viewingLegalDoc) {
+  return (
+    <View style={{ flex: 1 }}>
+      <LegalScreen doc={viewingLegalDoc} onBack={() => setViewingLegalDoc(null)} />
+      {renderTabBar()}
+    </View>
+  );
 }
 
 // Show chat screen if a conversation is selected
 if (chatPartnerId && chatPartnerEmail) {
   return (
-    <KeyboardAvoidingView 
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-    >
-      <ChatScreen
-        partnerId={chatPartnerId}
-        partnerEmail={chatPartnerEmail}
-        navigation={navigation}
-        onBack={() => {
-          // If we came from a user profile, go back to it
-          if (chatOpenedFromUserId) {
-            setViewingUserId(chatOpenedFromUserId);
-            setChatOpenedFromUserId(null);
-          }
-          setChatPartnerId(null);
-        setChatPartnerEmail(null);
-      }}
-    />
-    </KeyboardAvoidingView>
+    <View style={{ flex: 1 }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
+        <ChatScreen
+          partnerId={chatPartnerId}
+          partnerEmail={chatPartnerEmail}
+          navigation={navigation}
+          onBack={() => {
+            // If we came from a user profile, go back to it
+            if (chatOpenedFromUserId) {
+              setViewingUserId(chatOpenedFromUserId);
+              setChatOpenedFromUserId(null);
+            }
+            setChatPartnerId(null);
+            setChatPartnerEmail(null);
+          }}
+        />
+      </KeyboardAvoidingView>
+      {renderTabBar()}
+    </View>
   );
 }
 
 // Show Pod Detail Screen if viewing from Pods tab
 if (viewingPodDetail) {
   return (
+    <View style={{ flex: 1 }}>
     <PursuitDetailScreen
       pursuit={viewingPodDetail}
       initialSubScreen={podDetailSubScreen}
@@ -1116,18 +1291,25 @@ if (viewingPodDetail) {
         setCurrentScreen('Messages');
       }}
     />
+      {renderTabBar()}
+    </View>
   );
 }
 
 // Show Team Workspace if a pursuit board is selected
 if (teamBoardPursuitId) {
   return (
-    <TeamWorkspaceScreen
-      initialPursuitId={teamBoardPursuitId}
-      onBack={() => {
-        setTeamBoardPursuitId(null);
-      }}
-    />
+    <View style={{ flex: 1 }}>
+      <TeamWorkspaceScreen
+        initialPursuitId={teamBoardPursuitId}
+        initialSubTab={teamBoardSubTab as any}
+        onBack={() => {
+          setTeamBoardPursuitId(null);
+          setTeamBoardSubTab(null);
+        }}
+      />
+      {renderTabBar()}
+    </View>
   );
 }
 
@@ -1328,6 +1510,25 @@ if (teamBoardPursuitId) {
                 });
                 break;
 
+              case 'role_edit_requested':
+              case 'role_edit_approved':
+                if (data?.pursuitId) {
+                  setTeamBoardPursuitId(data.pursuitId);
+                  setTeamBoardSubTab('roles');
+                } else {
+                  setCurrentScreen('Notifications');
+                }
+                break;
+
+              case 'edit_access_request':
+                if (data?.pursuitId) {
+                  setTeamBoardPursuitId(data.pursuitId);
+                  setTeamBoardSubTab(data?.page || 'roles');
+                } else {
+                  setCurrentScreen('Notifications');
+                }
+                break;
+
               default:
                 // Default: navigate to notifications tab
                 setCurrentScreen('Notifications');
@@ -1388,116 +1589,7 @@ if (teamBoardPursuitId) {
       {currentScreen === 'Notifications' && <NotificationsScreen navigation={navigation} />}
       {currentScreen === 'Profile' && <ProfileScreen navigation={navigation} />}
 
-      <View style={[styles.tabBar, {
-        backgroundColor: themeColors.tabBarBackground,
-        borderTopColor: themeColors.tabBarBorder,
-      }]}>
-        <TouchableOpacity style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : '#f0f0f0' }]} onPress={() => {
-          hapticService.lightTap();
-          setCurrentScreen('Feed');
-        }}>
-          <Text style={[styles.tabIcon, { opacity: currentScreen === 'Feed' ? 1 : 0.4 }]}>
-            🌊
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : '#f0f0f0' }]}
-          onPress={() => {
-            hapticService.lightTap();
-            setCurrentScreen('Messages');
-          }}
-        >
-          <View style={styles.tabContent}>
-            <Text style={[styles.tabIcon, { opacity: currentScreen === 'Messages' ? 1 : 0.4 }]}>
-              🫧
-            </Text>
-            {(() => {
-              // Adjust unread count by subtracting locally-read conversations
-              const effectiveUnreadCount = Math.max(0, unreadMessageCount - locallyReadCount);
-              return effectiveUnreadCount > 0 && currentScreen !== 'Messages' ? (
-                <View style={[styles.badge, { backgroundColor: isNewTheme ? themeColors.accentGreen : '#ef4444' }]}>
-                  <Text style={[styles.badgeText, { color: isNewTheme ? themeColors.background : '#fff' }]}>{effectiveUnreadCount}</Text>
-                </View>
-              ) : null;
-            })()}
-          </View>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : '#f0f0f0' }]}
-          onPress={() => {
-            hapticService.lightTap();
-            setCurrentScreen('Pods');
-            clearBadgeForTab('Pods');
-          }}
-        >
-          <View style={styles.tabContent}>
-            <Text style={[styles.tabIcon, { opacity: currentScreen === 'Pods' ? 1 : 0.4 }]}>
-              🐳
-            </Text>
-            {badgeCounts.pods > 0 && (
-              <View style={[styles.badge, { backgroundColor: isNewTheme ? themeColors.accentGreen : '#ef4444' }]}>
-                <Text style={[styles.badgeText, { color: isNewTheme ? themeColors.background : '#fff' }]}>{badgeCounts.pods}</Text>
-              </View>
-            )}
-          </View>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : '#f0f0f0' }]}
-          onPress={() => {
-            hapticService.lightTap();
-            setCurrentScreen('Calendar');
-            clearBadgeForTab('Calendar');
-          }}
-        >
-          <View style={styles.tabContent}>
-            <Text style={[styles.tabIcon, { opacity: currentScreen === 'Calendar' ? 1 : 0.4 }]}>
-              🌙
-            </Text>
-            {badgeCounts.calendar > 0 && (
-              <View style={[styles.badge, { backgroundColor: isNewTheme ? themeColors.accentGreen : '#ef4444' }]}>
-                <Text style={[styles.badgeText, { color: isNewTheme ? themeColors.background : '#fff' }]}>{badgeCounts.calendar}</Text>
-              </View>
-            )}
-          </View>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : '#f0f0f0' }]}
-          onPress={() => {
-            hapticService.lightTap();
-            setCurrentScreen('Notifications');
-          }}
-        >
-          <View style={styles.tabContent}>
-            <Text style={[styles.tabIcon, { opacity: currentScreen === 'Notifications' ? 1 : 0.4 }]}>
-              ✦
-            </Text>
-            {badgeCounts.notifications > 0 && (
-              <View style={[styles.badge, { backgroundColor: isNewTheme ? themeColors.accentGreen : '#ef4444' }]}>
-                <Text style={[styles.badgeText, { color: isNewTheme ? themeColors.background : '#fff' }]}>{badgeCounts.notifications}</Text>
-              </View>
-            )}
-          </View>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, { borderRightWidth: 0 }]}
-          onPress={() => {
-            hapticService.lightTap();
-            setCurrentScreen('Profile');
-            clearBadgeForTab('Profile');
-          }}
-        >
-          <View style={styles.tabContent}>
-            <Text style={[styles.tabIcon, { opacity: currentScreen === 'Profile' ? 1 : 0.4 }]}>
-              🪷
-            </Text>
-            {badgeCounts.connections > 0 && (
-              <View style={[styles.badge, { backgroundColor: isNewTheme ? themeColors.accentGreen : '#ef4444' }]}>
-                <Text style={[styles.badgeText, { color: isNewTheme ? themeColors.background : '#fff' }]}>{badgeCounts.connections}</Text>
-              </View>
-            )}
-          </View>
-        </TouchableOpacity>
-      </View>
+      {renderTabBar()}
 
       {/* Meeting Detail Modal */}
       {selectedMeeting && (

@@ -259,7 +259,7 @@ export default function InterviewSchedulingScreen({
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Ionicons name="close" size={28} color={colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'NothingYouCouldDo_400Regular' : undefined }]}>Interview Scheduled</Text>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : undefined }]}>Interview Scheduled</Text>
           <View style={{ width: 28 }} />
         </View>
 
@@ -269,13 +269,13 @@ export default function InterviewSchedulingScreen({
               <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(134, 239, 172, 0.25)', justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
                 <Ionicons name="checkmark-circle" size={36} color={colors.success} />
               </View>
-              <Text style={[styles.pursuitTitle, { color: accentColor, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined, textAlign: 'center' }]}>{pursuitTitle}</Text>
-              <Text style={[styles.applicantLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined, textAlign: 'center' }]}>Interview with:</Text>
-              <Text style={[styles.applicantName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined, textAlign: 'center' }]}>{applicantName}</Text>
-              <Text style={[styles.introText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined, textAlign: 'center', marginTop: 12, fontSize: 16, fontWeight: '600' }]}>
+              <Text style={[styles.pursuitTitle, { color: accentColor, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined, textAlign: 'center' }]}>{pursuitTitle}</Text>
+              <Text style={[styles.applicantLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined, textAlign: 'center' }]}>Interview with:</Text>
+              <Text style={[styles.applicantName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined, textAlign: 'center' }]}>{applicantName}</Text>
+              <Text style={[styles.introText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined, textAlign: 'center', marginTop: 12, fontSize: 16, fontWeight: '600' }]}>
                 Scheduled for {timeStr}
               </Text>
-              <Text style={[styles.introText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined, textAlign: 'center', marginTop: 4 }]}>
+              <Text style={[styles.introText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined, textAlign: 'center', marginTop: 4 }]}>
                 {dateStr}
               </Text>
             </View>
@@ -286,7 +286,7 @@ export default function InterviewSchedulingScreen({
               activeOpacity={0.85}
             >
               <Ionicons name="calendar" size={18} color={isNewTheme ? colors.background : '#fff'} style={{ marginRight: 8 }} />
-              <Text style={[styles.scheduleButtonText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+              <Text style={[styles.scheduleButtonText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                 View Meeting Details on Calendar
               </Text>
             </TouchableOpacity>
@@ -305,29 +305,29 @@ export default function InterviewSchedulingScreen({
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
           <Ionicons name="close" size={28} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'NothingYouCouldDo_400Regular' : undefined }]}>Schedule Interview</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : undefined }]}>Schedule Interview</Text>
         <View style={{ width: 28 }} />
       </View>
 
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
           <View style={[styles.introSection, { backgroundColor: isNewTheme ? colors.primaryLight : '#f3e8ff' }]}>
-            <Text style={[styles.pursuitTitle, { color: accentColor, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{pursuitTitle}</Text>
-            <Text style={[styles.applicantLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>Interview with:</Text>
-            <Text style={[styles.applicantName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{applicantName}</Text>
-            <Text style={[styles.introText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
+            <Text style={[styles.pursuitTitle, { color: accentColor, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{pursuitTitle}</Text>
+            <Text style={[styles.applicantLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Interview with:</Text>
+            <Text style={[styles.applicantName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{applicantName}</Text>
+            <Text style={[styles.introText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
               Review the proposed times below and select when to schedule the interview.
             </Text>
           </View>
 
           {/* Proposed Times */}
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'NothingYouCouldDo_400Regular' : undefined }]}>Proposed Interview Times</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : undefined }]}>Proposed Interview Times</Text>
 
           {proposedTimes.length === 0 ? (
             <View style={[styles.emptyState, { backgroundColor: colors.surface }]}>
               <Ionicons name="time-outline" size={48} color={colors.textTertiary} />
-              <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>No times proposed yet</Text>
-              <Text style={[styles.emptySubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>The applicant hasn't submitted their availability</Text>
+              <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>No times proposed yet</Text>
+              <Text style={[styles.emptySubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>The applicant hasn't submitted their availability</Text>
             </View>
           ) : (
             proposedTimes.map((slot, index) => {
@@ -350,14 +350,14 @@ export default function InterviewSchedulingScreen({
                   }}
                 >
                   <View style={styles.timeSlotInfo}>
-                    <Text style={[styles.timeSlotDate, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                    <Text style={[styles.timeSlotDate, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                       {new Date(slot.date).toLocaleDateString('en-US', {
                         weekday: 'short',
                         month: 'short',
                         day: 'numeric'
                       })}
                     </Text>
-                    <Text style={[styles.timeSlotTime, { color: accentColor, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                    <Text style={[styles.timeSlotTime, { color: accentColor, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                       {formatTime12Hour(slot.start_time)} - {formatTime12Hour(slot.end_time)}
                     </Text>
                   </View>
@@ -390,11 +390,11 @@ export default function InterviewSchedulingScreen({
               <View style={styles.customTimeTextContainer}>
                 <Text style={[
                   styles.customTimeButtonText,
-                  { color: useCustomTime ? accentColor : colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }
+                  { color: useCustomTime ? accentColor : colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }
                 ]}>
                   Schedule for a different time
                 </Text>
-                <Text style={[styles.customTimeSubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
+                <Text style={[styles.customTimeSubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                   Choose your own date and time
                 </Text>
               </View>
@@ -407,13 +407,13 @@ export default function InterviewSchedulingScreen({
           {/* Custom Date/Time Picker */}
           {useCustomTime && (
             <View style={[styles.customTimePickerSection, { backgroundColor: colors.surface }]}>
-              <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Select Date</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Select Date</Text>
               <TouchableOpacity
                 style={[styles.dateTimeButton, { backgroundColor: colors.backgroundSecondary }]}
                 onPress={() => setShowDatePicker(!showDatePicker)}
               >
                 <Ionicons name="calendar" size={20} color={accentColor} />
-                <Text style={[styles.dateTimeButtonText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                <Text style={[styles.dateTimeButtonText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                   {customDate.toLocaleDateString('en-US', {
                     weekday: 'long',
                     month: 'long',
@@ -443,7 +443,7 @@ export default function InterviewSchedulingScreen({
                         style={[styles.doneButton, { backgroundColor: accentColor }]}
                         onPress={() => setShowDatePicker(false)}
                       >
-                        <Text style={[styles.doneButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Done</Text>
+                        <Text style={[styles.doneButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Done</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -462,13 +462,13 @@ export default function InterviewSchedulingScreen({
                 />
               )}
 
-              <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Select Time</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Select Time</Text>
               <TouchableOpacity
                 style={[styles.dateTimeButton, { backgroundColor: colors.backgroundSecondary }]}
                 onPress={() => setShowTimePicker(!showTimePicker)}
               >
                 <Ionicons name="time" size={20} color={accentColor} />
-                <Text style={[styles.dateTimeButtonText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                <Text style={[styles.dateTimeButtonText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                   {customTime.toLocaleTimeString('en-US', {
                     hour: 'numeric',
                     minute: '2-digit',
@@ -496,7 +496,7 @@ export default function InterviewSchedulingScreen({
                         style={[styles.doneButton, { backgroundColor: accentColor }]}
                         onPress={() => setShowTimePicker(false)}
                       >
-                        <Text style={[styles.doneButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Done</Text>
+                        <Text style={[styles.doneButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Done</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -519,7 +519,7 @@ export default function InterviewSchedulingScreen({
           {/* Meeting Type Selection */}
           {(selectedTime || useCustomTime) && (
             <>
-              <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'NothingYouCouldDo_400Regular' : undefined }]}>Meeting Type</Text>
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : undefined }]}>Meeting Type</Text>
               <View style={styles.chipContainer}>
                 {(['in_person', 'video', 'hybrid'] as const).map((type) => (
                   <TouchableOpacity
@@ -533,7 +533,7 @@ export default function InterviewSchedulingScreen({
                   >
                     <Text style={[
                       styles.chipText,
-                      { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined },
+                      { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined },
                       meetingType === type && { color: isNewTheme ? colors.background : legacyColors.white }
                     ]}>
                       {type === 'in_person' ? 'In Person' : type === 'video' ? 'Video' : 'Hybrid'}
@@ -545,7 +545,7 @@ export default function InterviewSchedulingScreen({
               {/* Location (if needed) */}
               {(meetingType === 'in_person' || meetingType === 'hybrid') && (
                 <>
-                  <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Location</Text>
+                  <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Location</Text>
                   <TextInput
                     style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.borderLight, color: colors.textPrimary }]}
                     placeholder="e.g., Coffee Shop, Office"
@@ -557,7 +557,7 @@ export default function InterviewSchedulingScreen({
               )}
 
               {/* Duration */}
-              <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Duration (minutes)</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Duration (minutes)</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.borderLight, color: colors.textPrimary }]}
                 placeholder="30"
@@ -573,7 +573,7 @@ export default function InterviewSchedulingScreen({
                 onPress={handleScheduleInterview}
                 disabled={loading}
               >
-                <Text style={[styles.scheduleButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                <Text style={[styles.scheduleButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                   {loading ? 'Scheduling...' : 'Schedule Interview'}
                 </Text>
               </TouchableOpacity>

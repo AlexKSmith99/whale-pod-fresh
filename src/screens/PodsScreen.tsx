@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator, StatusBar, Image } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
 import { notificationService } from '../services/notificationService';
@@ -8,6 +8,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
 import GradientBackground from '../components/ui/GradientBackground';
+import { HotFlameIcon, JalapenoIndicator, calculateEngagement, fetchEngagementData, EngagementState } from '../components/ui/PodEngagementIndicator';
 
 interface Pod {
   id: string;
@@ -51,6 +52,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<FilterType>('active');
   const [notificationCounts, setNotificationCounts] = useState<Map<string, number>>(new Map());
+  const [engagementMap, setEngagementMap] = useState<Record<string, EngagementState>>({});
 
   useEffect(() => {
     loadData();
@@ -64,7 +66,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
       // Get pursuits where user is the creator
       const { data: createdPursuits, error: createdError } = await supabase
         .from('pursuits')
-        .select('id, title, description, current_members_count, team_size_max, status, meeting_cadence, creator_id, location, decision_system, pursuit_types, kickoff_date')
+        .select(`id, title, description, current_members_count, team_size_max, status, meeting_cadence, creator_id, location, neighborhood, decision_system, pursuit_types, pursuit_categories, kickoff_date, team_members!team_members_pursuit_id_fkey(user_id, status, user:profiles!team_members_user_id_fkey(id, name, profile_picture))`)
         .eq('creator_id', user.id);
 
       if (createdError) throw createdError;
@@ -84,7 +86,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
       if (activeMemberPursuitIds.length > 0) {
         const { data, error } = await supabase
           .from('pursuits')
-          .select('id, title, description, current_members_count, team_size_max, status, meeting_cadence, creator_id, location, decision_system, pursuit_types, kickoff_date')
+          .select(`id, title, description, current_members_count, team_size_max, status, meeting_cadence, creator_id, location, neighborhood, decision_system, pursuit_types, pursuit_categories, kickoff_date, team_members!team_members_pursuit_id_fkey(user_id, status, user:profiles!team_members_user_id_fkey(id, name, profile_picture))`)
           .in('id', activeMemberPursuitIds);
 
         if (error) throw error;
@@ -126,6 +128,24 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
       }
 
       setPods(allActivePods);
+
+      // Fetch engagement (flame/jalapeño) data in the background for active pods
+      if (allActivePods.length > 0) {
+        (async () => {
+          try {
+            const ids = allActivePods.map(p => p.id);
+            const data = await fetchEngagementData(ids);
+            const map: Record<string, EngagementState> = {};
+            allActivePods.forEach(pod => {
+              const d = data[pod.id] || { meetingsCount: 0, chatCount: 0, recentAcceptances: 0, boardCount: 0 };
+              map[pod.id] = calculateEngagement(pod, d.meetingsCount, d.chatCount, d.recentAcceptances, d.boardCount);
+            });
+            setEngagementMap(map);
+          } catch (err) {
+            console.warn('PodsScreen engagement fetch error:', err);
+          }
+        })();
+      }
 
       // Get past memberships (removed status)
       const { data: pastMemberships, error: pastMemberError } = await supabase
@@ -230,90 +250,149 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
 
   const renderPodCard = (pod: Pod, isPast: boolean = false) => {
     const hasNotifications = !isPast && notificationCounts.get(pod.id) && notificationCounts.get(pod.id)! > 0;
+    const activeMembers = ((pod as any).team_members || []).filter((m: any) => m.status === 'active' || m.status === 'accepted');
+    const engagement: EngagementState = engagementMap[pod.id] || { isHot: false, spiceLevel: 0 };
 
     return (
-    <TouchableOpacity
-      key={pod.id}
-      style={[styles.podCard, themedStyles.card, { borderWidth: isNewTheme ? 0.35 : 0.5, borderColor: isNewTheme ? colors.accentGreen : '#f0f0f0', overflow: 'hidden' }, isPast && [styles.podCardPast, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f9fafb' }]]}
-      onPress={() => !isPast && onOpenPodDetails(pod)}
-      activeOpacity={isPast ? 1 : 0.7}
-      disabled={isPast}
-    >
-      {!isPast && (
-        <View style={[styles.cardAccentLine, { backgroundColor: pod.status === 'active' ? colors.success : colors.warning }]} pointerEvents="none" />
-      )}
-      <View style={styles.podHeader}>
-        <View style={styles.podTitleRow}>
-          <View style={styles.titleWithDot}>
-            {hasNotifications && <View style={styles.notificationDot} />}
-            <Text style={[styles.podTitle, themedStyles.cardTitle, isPast && { color: colors.textSecondary }]} numberOfLines={1}>{pod.title}</Text>
-          </View>
-          {pod.is_creator && !isPast && (
-            <View style={[styles.creatorBadge, themedStyles.tag, { backgroundColor: themedStyles.accentIconColor }]}>
-              <Text style={[styles.creatorBadgeText, themedStyles.tagText, { color: isNewTheme ? colors.background : '#fff' }]}>CREATOR</Text>
+      <TouchableOpacity
+        key={pod.id}
+        style={[
+          styles.podCard,
+          themedStyles.card,
+          { borderWidth: 0.5, borderColor: isNewTheme ? 'rgba(168, 230, 163, 0.25)' : '#f0f0f0', overflow: 'hidden' },
+          isPast && [styles.podCardPast, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f9fafb' }],
+        ]}
+        onPress={() => !isPast && onOpenPodDetails(pod)}
+        activeOpacity={isPast ? 1 : 0.7}
+        disabled={isPast}
+      >
+        {!isPast && (
+          <View style={[styles.cardAccentLine, { backgroundColor: pod.status === 'active' ? colors.success : colors.warning }]} pointerEvents="none" />
+        )}
+
+        {/* Engagement badge: flame (pre-kickoff hot) or jalapeños (post-kickoff activity) */}
+        {!isPast && (engagement.isHot ? (
+          <HotFlameIcon enabled={true} size={22} />
+        ) : (
+          <JalapenoIndicator count={engagement.spiceLevel} />
+        ))}
+
+        {/* Header */}
+        <View style={styles.podHeader}>
+          <View style={styles.podTitleRow}>
+            <View style={styles.titleWithDot}>
+              {hasNotifications && <View style={styles.notificationDot} />}
+              <Text style={[styles.podTitle, themedStyles.cardTitle, isPast && { color: colors.textSecondary }]} numberOfLines={2}>{pod.title}</Text>
             </View>
-          )}
-          {isPast && (
-            <View style={styles.removedBadge}>
-              <Text style={[styles.removedBadgeText, themedStyles.tagText]}>REMOVED</Text>
+            {pod.is_creator && !isPast && (
+              <View style={[styles.creatorBadge, themedStyles.tag, { backgroundColor: themedStyles.accentIconColor }]}>
+                <Text style={[styles.creatorBadgeText, themedStyles.tagText, { color: isNewTheme ? colors.background : '#fff' }]}>YOURS</Text>
+              </View>
+            )}
+            {isPast && (
+              <View style={styles.removedBadge}>
+                <Text style={[styles.removedBadgeText, themedStyles.tagText]}>REMOVED</Text>
+              </View>
+            )}
+          </View>
+          {!isPast && (
+            <View style={[
+              styles.statusBadge,
+              { backgroundColor: pod.status === 'active'
+                ? (isNewTheme ? 'rgba(134, 239, 172, 0.15)' : '#d1fae5')
+                : (isNewTheme ? 'rgba(252, 211, 77, 0.15)' : '#fef3c7')
+              }
+            ]}>
+              <Text style={[styles.statusText, { color: pod.status === 'active' ? colors.success : colors.warning }]}>
+                {pod.status === 'awaiting_kickoff' ? 'Awaiting Kickoff' : 'Active'}
+              </Text>
             </View>
           )}
         </View>
-        {!isPast && (
-          <View style={[
-            styles.statusBadge,
-            { backgroundColor: pod.status === 'active'
-              ? (isNewTheme ? 'rgba(134, 239, 172, 0.15)' : '#d1fae5')
-              : (isNewTheme ? 'rgba(252, 211, 77, 0.15)' : '#fef3c7')
-            }
-          ]}>
-            <Text style={[
-              styles.statusText,
-              { color: pod.status === 'active' ? colors.success : colors.warning }
-            ]}>
-              {pod.status === 'awaiting_kickoff' ? 'Awaiting Kickoff' : 'Active'}
+
+        {/* Description */}
+        <Text style={[styles.podDescription, themedStyles.cardDescription]} numberOfLines={isNewTheme ? 3 : 5}>
+          {pod.description}
+        </Text>
+
+        {/* Tags - pursuit types + categories */}
+        {(((pod as any).pursuit_types && (pod as any).pursuit_types.length > 0) ||
+          ((pod as any).pursuit_categories && (pod as any).pursuit_categories.length > 0)) && (
+          <View style={styles.podTags}>
+            {((pod as any).pursuit_types || []).slice(0, isNewTheme ? 2 : 3).map((type: string, i: number) => (
+              <View key={`t-${i}`} style={[styles.podTag, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#F2F0EB' }]}>
+                <Text style={[styles.podTagText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{type}</Text>
+              </View>
+            ))}
+            {((pod as any).pursuit_categories || []).slice(0, 2).map((cat: string, i: number) => (
+              <View key={`c-${i}`} style={[styles.podTag, { backgroundColor: 'rgba(129, 140, 248, 0.15)', borderColor: 'rgba(129, 140, 248, 0.3)', borderWidth: 1 }]}>
+                <Text style={[styles.podTagText, { color: isNewTheme ? colors.primary : '#6366F1', fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{cat}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {!isPast ? (
+          <>
+            {/* Footer: info + avatar stack */}
+            <View style={[styles.podFooterRow, { marginTop: 12 }]}>
+              <View style={styles.podInfoInline}>
+                <Text style={[styles.infoText, themedStyles.cardSmallText]}>
+                  {pod.current_members_count}/{pod.team_size_max}
+                </Text>
+                {(pod as any).location && (
+                  <Text style={[styles.infoText, themedStyles.cardSmallText, { flex: 1 }]} numberOfLines={1}>
+                    {(pod as any).neighborhood
+                      ? `${(pod as any).neighborhood}, ${((pod as any).location || '').split(',')[0]}`
+                      : (pod as any).location}
+                  </Text>
+                )}
+                {pod.meeting_cadence && (
+                  <Text style={[styles.infoText, themedStyles.cardSmallText, { flex: 1 }]} numberOfLines={1}>
+                    {pod.meeting_cadence}
+                  </Text>
+                )}
+              </View>
+
+              {activeMembers.length > 0 && (
+                <View style={styles.podAvatarStack}>
+                  {activeMembers.slice(0, 3).map((member: any, i: number) => (
+                    <View
+                      key={member.user_id}
+                      style={[
+                        styles.podStackedAvatar,
+                        { marginLeft: i === 0 ? 0 : -8, zIndex: 10 - i, borderColor: isNewTheme ? colors.surface : '#fff' }
+                      ]}
+                    >
+                      {member.user?.profile_picture ? (
+                        <Image source={{ uri: member.user.profile_picture }} style={styles.podStackedAvatarImage} />
+                      ) : (
+                        <View style={[styles.podStackedAvatarImage, { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary, justifyContent: 'center', alignItems: 'center' }]}>
+                          <Text style={{ color: isNewTheme ? colors.background : '#fff', fontSize: 10, fontWeight: '600' }}>
+                            {member.user?.name?.charAt(0).toUpperCase() || '?'}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  ))}
+                  {activeMembers.length > 3 && (
+                    <View style={[styles.podStackedAvatar, { marginLeft: -8, zIndex: 5, backgroundColor: isNewTheme ? colors.surfaceAlt : '#F2F0EB', borderColor: isNewTheme ? colors.surface : '#fff', justifyContent: 'center', alignItems: 'center' }]}>
+                      <Text style={{ color: colors.textSecondary, fontSize: 10, fontWeight: '600' }}>+{activeMembers.length - 3}</Text>
+                    </View>
+                  )}
+                </View>
+              )}
+            </View>
+          </>
+        ) : (
+          <View style={[styles.pastPodInfo, { borderTopColor: colors.border }]}>
+            <Text style={[styles.pastPodDate, themedStyles.cardSmallText]}>
+              No longer a member
             </Text>
           </View>
         )}
-      </View>
-
-      <Text style={[styles.podDescription, themedStyles.cardDescription]} numberOfLines={2}>
-        {pod.description}
-      </Text>
-
-      {!isPast ? (
-        <>
-          {/* Decorative dot divider */}
-          <View style={styles.dotDivider}>
-            <View style={[styles.dotDividerDot, { backgroundColor: colors.accentGreen }]} />
-            <View style={[styles.dotDividerDot, { backgroundColor: colors.accentGreen }]} />
-            <View style={[styles.dotDividerDot, { backgroundColor: colors.accentGreen }]} />
-          </View>
-          <View style={[styles.podInfo, { borderTopWidth: 0 }]}>
-            <View style={styles.infoItem}>
-              <Text style={[styles.infoText, themedStyles.cardSmallText]}>
-                {pod.current_members_count}/{pod.team_size_max} members
-              </Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Text style={[styles.infoText, themedStyles.cardSmallText]} numberOfLines={1}>
-                {pod.meeting_cadence}
-              </Text>
-            </View>
-          </View>
-          <View style={styles.podFooter}>
-            <Text style={[styles.tapHint, themedStyles.textAccent]}>Tap to view details →</Text>
-          </View>
-        </>
-      ) : (
-        <View style={[styles.pastPodInfo, { borderTopColor: colors.border }]}>
-          <Text style={[styles.pastPodDate, themedStyles.cardSmallText]}>
-            No longer a member
-          </Text>
-        </View>
-      )}
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
   };
 
   const renderActiveContent = () => {
@@ -373,7 +452,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
       {/* Interview Requests - show first with action required */}
       {interviewPendingApps.length > 0 && (
         <>
-          <Text style={[styles.sectionLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined, textTransform: 'uppercase', letterSpacing: isNewTheme ? 1 : 0.5 }]}>Interview Requests</Text>
+          <Text style={[styles.sectionLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : undefined, textTransform: 'uppercase', letterSpacing: isNewTheme ? 1 : 0.5 }]}>Interview Requests</Text>
           {interviewPendingApps.map((app) => (
             <View key={app.id} style={[styles.applicationCard, styles.interviewCard, themedStyles.card, { borderColor: themedStyles.accentIconColor, borderWidth: isNewTheme ? 0.35 : 1 }]}>
               <View style={styles.applicationHeader}>
@@ -402,7 +481,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
       {/* Regular pending applications */}
       {applications.length > 0 && (
         <>
-          {interviewPendingApps.length > 0 && <Text style={[styles.sectionLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined, textTransform: 'uppercase', letterSpacing: isNewTheme ? 1 : 0.5 }]}>Pending Review</Text>}
+          {interviewPendingApps.length > 0 && <Text style={[styles.sectionLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : undefined, textTransform: 'uppercase', letterSpacing: isNewTheme ? 1 : 0.5 }]}>Pending Review</Text>}
           {applications.map((app) => (
             <View key={app.id} style={[styles.applicationCard, themedStyles.card, { borderWidth: isNewTheme ? 0.35 : 0.5, borderColor: isNewTheme ? colors.accentGreen : '#f59e0b' }]}>
               <View style={styles.applicationHeader}>
@@ -506,10 +585,18 @@ const styles = StyleSheet.create({
   emptyEmoji: { fontSize: 64, marginBottom: 20 },
   emptyText: { fontSize: 20, fontWeight: 'bold', color: '#999', marginBottom: 8 },
   emptyHint: { fontSize: 14, color: '#ccc', textAlign: 'center', paddingHorizontal: 40 },
-  podCard: { backgroundColor: '#fff', borderRadius: 16, padding: 18, marginBottom: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12, elevation: 5, borderWidth: 1, borderColor: '#f0f0f0' },
-  cardAccentLine: { position: 'absolute', top: 0, left: 0, bottom: 0, width: 3, borderTopLeftRadius: 16, borderBottomLeftRadius: 16 },
+  podCard: { backgroundColor: '#fff', borderRadius: 14, padding: 18, marginBottom: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12, elevation: 5, borderWidth: 1, borderColor: '#f0f0f0' },
+  cardAccentLine: { position: 'absolute', top: 0, left: 0, bottom: 0, width: 3 },
   dotDivider: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 4, marginVertical: 12 },
   dotDividerDot: { width: 3, height: 3, borderRadius: 1.5, opacity: 0.6 },
+  podTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
+  podTag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  podTagText: { fontSize: 11, fontWeight: '500', letterSpacing: 0.3 },
+  podFooterRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  podInfoInline: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  podAvatarStack: { flexDirection: 'row', alignItems: 'center', marginLeft: 10 },
+  podStackedAvatar: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, overflow: 'hidden' },
+  podStackedAvatarImage: { width: '100%', height: '100%' },
   podCardPast: { backgroundColor: '#f9fafb', opacity: 0.8, borderColor: '#e5e7eb' },
   podHeader: { marginBottom: 12 },
   podTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },

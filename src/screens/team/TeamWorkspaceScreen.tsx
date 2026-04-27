@@ -27,6 +27,8 @@ import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { galleryService, GalleryPhoto } from '../../services/galleryService';
 import { notificationService } from '../../services/notificationService';
+import { roleService } from '../../services/roleService';
+import { POD_ROLES, ROLE_MANAGER_TITLE } from '../../constants/podRoles';
 import {
   podDocService,
   podRulesService,
@@ -80,23 +82,50 @@ const softTheme = {
   highlightActive: 'rgba(45, 80, 22, 0.35)',
 };
 
+// Pie-style dark theme for the TeamBoard — pure black, lime accent.
+const darkPieTheme = {
+  bg: '#000000',
+  bgCard: '#161616',
+  bgElevated: '#1F1F1F',
+  bgHover: '#252525',
+  bgDocument: '#0F0F0F',
+  bgGradientStart: '#0A0A0A',
+  bgGradientMid: '#000000',
+  bgGradientEnd: '#000000',
+  accent: '#C8FF6B',
+  accentLight: 'rgba(200, 255, 107, 0.15)',
+  accentDim: 'rgba(200, 255, 107, 0.08)',
+  accentSoft: '#94C44E',
+  secondary: '#FCD34D',
+  secondaryLight: 'rgba(252, 211, 77, 0.15)',
+  text: '#FFFFFF',
+  textSecondary: 'rgba(255, 255, 255, 0.78)',
+  textMuted: 'rgba(255, 255, 255, 0.50)',
+  border: 'rgba(255, 255, 255, 0.10)',
+  divider: 'rgba(255, 255, 255, 0.06)',
+  success: '#C8FF6B',
+  error: '#FCA5A5',
+  highlight: 'rgba(200, 255, 107, 0.20)',
+  highlightActive: 'rgba(200, 255, 107, 0.35)',
+};
+
 // Keep for backwards compatibility
 const localDarkTheme = softTheme;
 
-// Helper function to get local theme colors - always use soft theme for TeamBoard
+// Helper function to get local theme colors based on app theme.
 function getLocalTheme(isNewTheme: boolean, colors: any) {
-  // Always use the soft, airy theme for TeamBoard regardless of app theme
-  return softTheme;
+  return isNewTheme ? darkPieTheme : softTheme;
 }
 
 const SIDEBAR_WIDTH = 260;
 
+type SubTab = 'agenda' | 'roles' | 'media' | 'doc' | 'rules';
+
 interface Props {
   onBack: () => void;
   initialPursuitId?: string;
+  initialSubTab?: SubTab;
 }
-
-type SubTab = 'agenda' | 'roles' | 'media' | 'doc' | 'rules';
 
 interface DocumentEdit {
   id: string;
@@ -106,7 +135,7 @@ interface DocumentEdit {
   profiles: { name: string; email: string };
 }
 
-export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props) {
+export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialSubTab }: Props) {
   const { theme: appTheme, isNewTheme } = useTheme();
   const appColors = appTheme.colors;
   const themedStyles = getThemedStyles(appColors, isNewTheme);
@@ -115,7 +144,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
   const { user } = useAuth();
   const [pods, setPods] = useState<any[]>([]);
   const [selectedPodId, setSelectedPodId] = useState<string | null>(null);
-  const [activeSubTab, setActiveSubTab] = useState<SubTab>('agenda');
+  const [activeSubTab, setActiveSubTab] = useState<SubTab>(initialSubTab ?? 'agenda');
   const [loading, setLoading] = useState(true);
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
   const [contributions, setContributions] = useState<DocumentEdit[]>([]);
@@ -142,13 +171,22 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
   const [fullDocumentText, setFullDocumentText] = useState('');
   const [isInEditMode, setIsInEditMode] = useState(false);
 
-  // Role assignment modal state
+  // Role assignment modal state (legacy single-role modal — superseded by multi-role editor below)
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [editingRole, setEditingRole] = useState<any | null>(null);
   const [roleTitle, setRoleTitle] = useState('');
   const [roleDescription, setRoleDescription] = useState('');
   const [submittingRole, setSubmittingRole] = useState(false);
   const [isCreator, setIsCreator] = useState(false);
+
+  // Multi-role editor (new)
+  const [canEditRolesForPod, setCanEditRolesForPod] = useState(false);
+  const [userRoleMap, setUserRoleMap] = useState<Record<string, string[]>>({});
+  const [showRoleEditor, setShowRoleEditor] = useState(false);
+  const [roleEditorMember, setRoleEditorMember] = useState<any | null>(null);
+  const [selectedRoleTitles, setSelectedRoleTitles] = useState<Set<string>>(new Set());
+  const [savingRoles, setSavingRoles] = useState(false);
+  const [pendingRoleRequests, setPendingRoleRequests] = useState<any[]>([]);
 
   // Edit access state — tracks which pages a non-creator has been granted access to
   const [editAccess, setEditAccess] = useState<{ guide: boolean; rules: boolean; roles: boolean }>({ guide: false, rules: false, roles: false });
@@ -206,33 +244,38 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
     setShowWriteReview(true);
   };
 
-  // Request edit access — sends notification to pod creator
+  // Request edit access. For 'roles' this hits the real role_edit_requests flow;
+  // for guide/rules it keeps the legacy one-way push-notification stub.
   const handleRequestEditAccess = async (page: 'guide' | 'rules' | 'roles') => {
     if (!selectedPodId || !user) return;
     setRequestingAccess(page);
     try {
-      const { data: pursuit } = await supabase
-        .from('pursuits')
-        .select('creator_id, title')
-        .eq('id', selectedPodId)
-        .single();
-      if (!pursuit) return;
-
-      const userName = user.name || user.email?.split('@')[0] || 'A member';
-      const pageLabel = page === 'guide' ? 'Pod Guide' : page === 'rules' ? 'Pod Rules' : 'Pod Roles';
-      await notificationService.sendPushNotification(
-        [pursuit.creator_id],
-        `${userName} requested edit access`,
-        `${userName} wants to edit the ${pageLabel} page for "${pursuit.title}"`,
-        { type: 'edit_access_request', pursuitId: selectedPodId, requesterId: user.id, page },
-        'edit_access_request',
-        selectedPodId,
-        'pursuit'
-      );
-      Alert.alert('Request Sent', 'The pod leader will be notified of your request.');
-    } catch (error) {
+      if (page === 'roles') {
+        await roleService.requestRoleEditAccess(selectedPodId, user.id);
+        Alert.alert('Request Sent', 'Pod editors will review your request.');
+      } else {
+        const { data: pursuit } = await supabase
+          .from('pursuits')
+          .select('creator_id, title')
+          .eq('id', selectedPodId)
+          .single();
+        if (!pursuit) return;
+        const userName = user.name || user.email?.split('@')[0] || 'A member';
+        const pageLabel = page === 'guide' ? 'Pod Guide' : 'Pod Rules';
+        await notificationService.sendPushNotification(
+          [pursuit.creator_id],
+          `${userName} requested edit access`,
+          `${userName} wants to edit the ${pageLabel} page for "${pursuit.title}"`,
+          { type: 'edit_access_request', pursuitId: selectedPodId, requesterId: user.id, page },
+          'edit_access_request',
+          selectedPodId,
+          'pursuit'
+        );
+        Alert.alert('Request Sent', 'The pod leader will be notified of your request.');
+      }
+    } catch (error: any) {
       console.error('Error requesting edit access:', error);
-      Alert.alert('Error', 'Failed to send request');
+      Alert.alert('Error', error?.message || 'Failed to send request');
     } finally {
       setRequestingAccess(null);
     }
@@ -243,9 +286,68 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
     setEditAccess(prev => ({ ...prev, [page]: true }));
   };
 
-  // Check if user can edit a given page
+  // Check if user can edit a given page. For 'roles' we use the real permission
+  // check from roleService (creator OR Role Manager role) instead of in-memory flag.
   const canEditPage = (page: 'guide' | 'rules' | 'roles') => {
+    if (page === 'roles') return canEditRolesForPod;
     return isCreator || editAccess[page];
+  };
+
+  // ---- Multi-role editor ----
+  const openRoleEditor = (member: any) => {
+    if (!canEditRolesForPod) return;
+    const existing = userRoleMap[member.id] || [];
+    setRoleEditorMember(member);
+    setSelectedRoleTitles(new Set(existing));
+    setShowRoleEditor(true);
+  };
+
+  const toggleRoleSelection = (title: string) => {
+    setSelectedRoleTitles(prev => {
+      const next = new Set(prev);
+      if (next.has(title)) next.delete(title);
+      else next.add(title);
+      return next;
+    });
+  };
+
+  const saveRoleEditor = async () => {
+    if (!selectedPodId || !roleEditorMember) return;
+    setSavingRoles(true);
+    try {
+      await roleService.setMemberRoles(selectedPodId, roleEditorMember.id, Array.from(selectedRoleTitles));
+      await loadRoles();
+      setShowRoleEditor(false);
+      setRoleEditorMember(null);
+    } catch (err: any) {
+      console.error('Save roles failed:', err);
+      Alert.alert('Error', err?.message || 'Failed to update roles');
+    } finally {
+      setSavingRoles(false);
+    }
+  };
+
+  // ---- Role-edit request approval / rejection (shown to editors) ----
+  const handleApproveRoleRequest = async (requestId: string) => {
+    if (!user) return;
+    try {
+      await roleService.approveRoleEditRequest(requestId, user.id);
+      await loadRoles();
+    } catch (err: any) {
+      console.error('Approve failed:', err);
+      Alert.alert('Error', err?.message || 'Failed to approve request');
+    }
+  };
+
+  const handleRejectRoleRequest = async (requestId: string) => {
+    if (!user) return;
+    try {
+      await roleService.rejectRoleEditRequest(requestId, user.id);
+      await loadRoles();
+    } catch (err: any) {
+      console.error('Reject failed:', err);
+      Alert.alert('Error', err?.message || 'Failed to reject request');
+    }
   };
 
   const toggleSidebar = () => {
@@ -437,7 +539,32 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
         .eq('pursuit_id', selectedPodId);
 
       if (error) throw error;
-      setRoles(data || []);
+      const rows = data || [];
+      setRoles(rows);
+      setUserRoleMap(roleService.buildUserRoleMap(rows));
+
+      // Permission check + pending requests (for editors only)
+      if (user) {
+        const allowed = await roleService.canEditRoles(selectedPodId, user.id);
+        setCanEditRolesForPod(allowed);
+        if (allowed) {
+          const reqs = await roleService.getPendingRoleEditRequests(selectedPodId);
+          // Hydrate each request with the requester's profile for display
+          if (reqs.length > 0) {
+            const ids = reqs.map(r => r.requester_id);
+            const { data: profiles } = await supabase
+              .from('profiles')
+              .select('id, name, email, profile_picture')
+              .in('id', ids);
+            const byId = new Map((profiles || []).map(p => [p.id, p]));
+            setPendingRoleRequests(reqs.map(r => ({ ...r, requester: byId.get(r.requester_id) || null })));
+          } else {
+            setPendingRoleRequests([]);
+          }
+        } else {
+          setPendingRoleRequests([]);
+        }
+      }
     } catch (error) {
       console.error('Error loading roles:', error);
     }
@@ -1224,16 +1351,19 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
     );
   };
 
-  // Build inline meeting header HTML — shared between read and edit modes
+  // Build inline meeting header HTML — shared between read and edit modes.
+  // Note: italic styling is applied on the <p> block (CSS), NOT via an <i> tag.
+  // That prevents the italic/gray formatting from bleeding into new paragraphs
+  // when the user presses Enter below a header in the editor.
   const buildMeetingHeadersHtml = () => {
     const upcomingMeetings = podMeetings.filter(m => new Date(m.scheduled_time) >= new Date());
     const pastMeetings = podMeetings.filter(m => new Date(m.scheduled_time) < new Date()).slice(0, 5);
     let html = '';
     upcomingMeetings.forEach((m) => {
-      html += `<p style="margin:10px 0 2px; font-size:13px; color:#8A8A85;"><i>${m.title} — ${formatMeetingDateTime(m.scheduled_time)}</i></p>`;
+      html += `<p style="margin:10px 0 2px; font-size:13px; color:#8A8A85; font-style:italic;">${m.title} — ${formatMeetingDateTime(m.scheduled_time)}</p>`;
     });
     pastMeetings.forEach((m) => {
-      html += `<p style="margin:10px 0 2px; font-size:13px; color:#8A8A85; opacity:0.55;"><i>${m.title} — ${formatMeetingDateTime(m.scheduled_time)}</i></p>`;
+      html += `<p style="margin:10px 0 2px; font-size:13px; color:#8A8A85; font-style:italic; opacity:0.55;">${m.title} — ${formatMeetingDateTime(m.scheduled_time)}</p>`;
     });
     return html;
   };
@@ -1243,9 +1373,14 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
 
     // Full-screen rich text edit mode — include meeting headers as read-only context
     if (isInEditMode) {
+      // After the meeting headers + divider, start the writable area with a clean
+      // default paragraph so the cursor lands in non-italic/non-gray body text.
+      const bodyHtml = agendaDocumentHtml && agendaDocumentHtml.trim().length > 0
+        ? agendaDocumentHtml
+        : '<p><br></p>';
       const editContent = meetingHeadersHtml
-        ? meetingHeadersHtml + '<hr style="border:none;border-top:1px solid #E8E6E0;margin:12px 0;">' + (agendaDocumentHtml || '')
-        : agendaDocumentHtml;
+        ? meetingHeadersHtml + '<hr style="border:none;border-top:1px solid #E8E6E0;margin:12px 0;">' + bodyHtml
+        : bodyHtml;
 
       return (
         <WebRichTextEditor
@@ -1274,7 +1409,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
     const fullHtml = meetingHeadersHtml + (agendaDocumentHtml || '');
 
     return (
-      <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+      <View style={{ flex: 1, backgroundColor: theme.bgDocument }}>
         {/* Minimal header bar */}
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 }}>
           <Text style={{ fontSize: 18, fontWeight: '600', color: theme.text, fontFamily: 'Sora_600SemiBold' }}>Pod Doc</Text>
@@ -1373,7 +1508,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
   const renderPodDocTab = () => {
     const canEdit = canEditPage('guide');
     return (
-      <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+      <View style={{ flex: 1, backgroundColor: theme.bgDocument }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 }}>
           <Text style={{ fontSize: 18, fontWeight: '600', color: theme.text, fontFamily: 'Sora_600SemiBold' }}>Pod Guide</Text>
           {canEdit ? (
@@ -1450,7 +1585,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
   const renderPodRulesTab = () => {
     const canEdit = canEditPage('rules');
     return (
-      <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+      <View style={{ flex: 1, backgroundColor: theme.bgDocument }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 }}>
           <Text style={{ fontSize: 18, fontWeight: '600', color: theme.text, fontFamily: 'Sora_600SemiBold' }}>Pod Rules</Text>
           {canEdit ? (
@@ -1508,9 +1643,9 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
   };
 
   const renderRolesTab = () => {
-    const canEdit = canEditPage('roles');
+    const canEdit = canEditRolesForPod;
     return (
-      <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+      <View style={{ flex: 1, backgroundColor: theme.bgDocument }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 }}>
           <Text style={{ fontSize: 18, fontWeight: '600', color: theme.text, fontFamily: 'Sora_600SemiBold' }}>Pod Roles</Text>
           {!canEdit && (
@@ -1530,18 +1665,51 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
             </TouchableOpacity>
           )}
         </View>
+
         <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}>
+          {/* Pending role-edit requests — shown only to editors */}
+          {canEdit && pendingRoleRequests.length > 0 && (
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: theme.textSecondary, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 8, fontFamily: 'Sora_600SemiBold' }}>
+                Pending access requests
+              </Text>
+              {pendingRoleRequests.map(req => (
+                <View key={req.id} style={{ backgroundColor: '#FEF3C7', borderRadius: 12, padding: 14, marginBottom: 8, borderLeftWidth: 3, borderLeftColor: '#F59E0B' }}>
+                  <Text style={{ fontSize: 14, color: '#1B1B18', marginBottom: 10, fontFamily: 'Sora_400Regular' }}>
+                    <Text style={{ fontWeight: '600' }}>{req.requester?.name || req.requester?.email?.split('@')[0] || 'A member'}</Text> wants to manage pod roles.
+                  </Text>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <TouchableOpacity
+                      onPress={() => handleApproveRoleRequest(req.id)}
+                      style={{ flex: 1, backgroundColor: theme.accent, borderRadius: 8, paddingVertical: 8, alignItems: 'center' }}
+                    >
+                      <Text style={{ color: '#fff', fontWeight: '600', fontFamily: 'Sora_600SemiBold' }}>Approve</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => handleRejectRoleRequest(req.id)}
+                      style={{ flex: 1, backgroundColor: theme.bgDocument, borderWidth: 1, borderColor: theme.textSecondary, borderRadius: 8, paddingVertical: 8, alignItems: 'center' }}
+                    >
+                      <Text style={{ color: theme.textSecondary, fontWeight: '600', fontFamily: 'Sora_600SemiBold' }}>Decline</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Member list */}
           {teamMembers.map((member) => {
-            const memberRole = roles.find((r) => r.user_id === member.id);
-            const canEditRole = canEdit && (isCreator || member.id === user?.id);
+            const memberRoles = userRoleMap[member.id] || [];
 
             return (
-              <View key={member.id} style={{ backgroundColor: theme.bgElevated, borderRadius: 12, padding: 16, marginBottom: 10 }}>
+              <TouchableOpacity
+                key={member.id}
+                activeOpacity={canEdit ? 0.7 : 1}
+                onPress={() => canEdit ? openRoleEditor(member) : handleViewProfile(member.id)}
+                style={{ backgroundColor: theme.bgElevated, borderRadius: 12, padding: 16, marginBottom: 10 }}
+              >
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <TouchableOpacity
-                    style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: 12 }}
-                    onPress={() => handleViewProfile(member.id)}
-                  >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: 12 }}>
                     {member.profile_picture ? (
                       <Image source={{ uri: member.profile_picture }} style={{ width: 44, height: 44, borderRadius: 22 }} />
                     ) : (
@@ -1551,24 +1719,26 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
                     )}
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 16, fontWeight: '600', color: theme.text, fontFamily: 'Sora_600SemiBold' }}>{member.name || 'Unknown'}</Text>
-                      {memberRole && (
-                        <Text style={{ fontSize: 14, color: theme.textSecondary, marginTop: 2, fontFamily: 'Sora_400Regular' }}>{memberRole.role_title}</Text>
+                      {memberRoles.length > 0 ? (
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                          {memberRoles.map(roleTitle => (
+                            <View key={roleTitle} style={{ backgroundColor: theme.bgDocument, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 }}>
+                              <Text style={{ fontSize: 12, color: theme.textSecondary, fontFamily: 'Sora_600SemiBold' }}>{roleTitle}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      ) : (
+                        <Text style={{ fontSize: 13, color: theme.textMuted, marginTop: 4, fontStyle: 'italic', fontFamily: 'Sora_400Regular' }}>No roles yet</Text>
                       )}
                     </View>
-                  </TouchableOpacity>
-                  {canEditRole && (
-                    <TouchableOpacity
-                      onPress={() => handleOpenRoleModal(member, memberRole)}
-                      style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center' }}
-                    >
-                      <Ionicons name={memberRole ? "pencil-outline" : "add"} size={16} color={theme.textSecondary} />
-                    </TouchableOpacity>
+                  </View>
+                  {canEdit && (
+                    <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: theme.bgDocument, justifyContent: 'center', alignItems: 'center' }}>
+                      <Ionicons name="pencil-outline" size={14} color={theme.textSecondary} />
+                    </View>
                   )}
                 </View>
-                {memberRole?.role_description && (
-                  <Text style={{ fontSize: 14, color: theme.textSecondary, lineHeight: 20, marginTop: 10, paddingLeft: 56, fontFamily: 'Sora_400Regular' }}>{memberRole.role_description}</Text>
-                )}
-              </View>
+              </TouchableOpacity>
             );
           })}
         </ScrollView>
@@ -1578,7 +1748,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
 
   const renderMediaTab = () => {
     return (
-      <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+      <View style={{ flex: 1, backgroundColor: theme.bgDocument }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 }}>
           <Text style={{ fontSize: 18, fontWeight: '600', color: theme.text, fontFamily: 'Sora_600SemiBold' }}>Media</Text>
           <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -1818,6 +1988,91 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId }: Props)
           )}
         </View>
       </View>
+
+      {/* Multi-role editor — bottom sheet with role checklist */}
+      <Modal visible={showRoleEditor} animationType="slide" transparent>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}
+        >
+          <View style={{ backgroundColor: theme.bgDocument, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '85%', paddingBottom: 24 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E8E6E0' }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 17, fontWeight: '600', color: '#1B1B18', fontFamily: 'Sora_600SemiBold' }}>
+                  Assign roles
+                </Text>
+                <Text style={{ fontSize: 13, color: '#8A8A85', marginTop: 2, fontFamily: 'Sora_400Regular' }}>
+                  {roleEditorMember?.name || 'Team Member'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowRoleEditor(false)}
+                style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#F2F0EB', justifyContent: 'center', alignItems: 'center' }}
+              >
+                <Ionicons name="close" size={18} color="#52524E" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {(['core', 'optional'] as const).map(tier => (
+                <View key={tier} style={{ paddingTop: 12 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#8A8A85', textTransform: 'uppercase', letterSpacing: 0.8, paddingHorizontal: 20, marginBottom: 6, fontFamily: 'Sora_600SemiBold' }}>
+                    {tier === 'core' ? 'Core roles' : 'Optional roles'}
+                  </Text>
+                  {POD_ROLES.filter(r => r.tier === tier).map(role => {
+                    const selected = selectedRoleTitles.has(role.title);
+                    return (
+                      <TouchableOpacity
+                        key={role.title}
+                        onPress={() => toggleRoleSelection(role.title)}
+                        style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#F2F0EB' }}
+                      >
+                        <View style={{
+                          width: 22, height: 22, borderRadius: 6,
+                          borderWidth: 2,
+                          borderColor: selected ? '#2D5016' : '#D6D3CC',
+                          backgroundColor: selected ? '#2D5016' : '#FFFFFF',
+                          alignItems: 'center', justifyContent: 'center', marginRight: 12,
+                        }}>
+                          {selected && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 15, fontWeight: '600', color: '#1B1B18', fontFamily: 'Sora_600SemiBold' }}>
+                            {role.title}
+                          </Text>
+                          <Text style={{ fontSize: 13, color: '#8A8A85', marginTop: 2, fontFamily: 'Sora_400Regular' }}>
+                            {role.description}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              ))}
+            </ScrollView>
+
+            <View style={{ flexDirection: 'row', gap: 10, paddingHorizontal: 20, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#E8E6E0' }}>
+              <TouchableOpacity
+                onPress={() => setShowRoleEditor(false)}
+                style={{ flex: 1, backgroundColor: '#F2F0EB', borderRadius: 10, paddingVertical: 12, alignItems: 'center' }}
+              >
+                <Text style={{ fontSize: 15, fontWeight: '600', color: '#52524E', fontFamily: 'Sora_600SemiBold' }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={saveRoleEditor}
+                disabled={savingRoles}
+                style={{ flex: 1, backgroundColor: '#2D5016', borderRadius: 10, paddingVertical: 12, alignItems: 'center', opacity: savingRoles ? 0.6 : 1 }}
+              >
+                {savingRoles ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: '#FFFFFF', fontFamily: 'Sora_600SemiBold' }}>Save</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {/* Role Modal */}
       <Modal visible={showRoleModal} animationType="slide" transparent>

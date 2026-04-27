@@ -227,43 +227,43 @@ const oldColors: ThemeColors = {
 };
 
 // ============================================
-// NEW THEME (Dark Navy - Edgy/Exciting)
+// NEW THEME (Pure Black + Lime — Pie/Partiful aesthetic)
 // ============================================
 const newColors: ThemeColors = {
-  // Base backgrounds - dark navy blues
-  background: '#0B1220',        // Primary dark navy
-  backgroundSecondary: '#0D1526', // Slightly lighter
-  surface: '#0F1B33',           // Card/surface navy
-  surfaceAlt: '#111F3B',        // Alt sections
+  // Pure black backgrounds with subtle elevation
+  background: '#000000',
+  backgroundSecondary: '#0A0A0A',
+  surface: '#161616',
+  surfaceAlt: '#1F1F1F',
 
-  // Text colors - bright whites
-  textPrimary: '#FFFFFF',       // Main text - pure white
-  textSecondary: '#F0F0F0',     // Secondary text - bright
-  textTertiary: '#CCCCCC',      // Tertiary - visible
-  textInverse: '#0B1220',       // For light backgrounds
+  // Crisp white text
+  textPrimary: '#FFFFFF',
+  textSecondary: 'rgba(255, 255, 255, 0.78)',
+  textTertiary: 'rgba(255, 255, 255, 0.50)',
+  textInverse: '#000000',
 
-  // Borders - off-white with transparency
-  border: 'rgba(244, 240, 230, 0.2)',      // Subtle off-white border
-  borderLight: 'rgba(244, 240, 230, 0.1)', // Very subtle
-  borderActive: '#A8E6A3',                  // Green for active states
+  // Borders — barely-there white
+  border: 'rgba(255, 255, 255, 0.10)',
+  borderLight: 'rgba(255, 255, 255, 0.06)',
+  borderActive: '#C8FF6B',
 
-  // Primary accent (keep indigo for CTAs)
-  primary: '#818CF8',           // Lighter indigo for dark bg
-  primaryHover: '#A5B4FC',
-  primaryLight: 'rgba(129, 140, 248, 0.15)',
+  // Primary CTA — keep indigo as a fallback for some legacy spots
+  primary: '#C8FF6B',
+  primaryHover: '#D8FF8B',
+  primaryLight: 'rgba(200, 255, 107, 0.15)',
 
-  // Secondary accent (green - main accent)
-  secondary: '#A8E6A3',         // Faded bright light green
-  secondaryHover: '#86EFAC',
-  secondaryLight: 'rgba(168, 230, 163, 0.15)',
+  // Secondary accent (lime green)
+  secondary: '#C8FF6B',
+  secondaryHover: '#D8FF8B',
+  secondaryLight: 'rgba(200, 255, 107, 0.15)',
 
-  // Accent greens (prominent in new theme)
-  accentGreen: '#A8E6A3',       // Primary green accent
-  accentGreenMuted: '#7FBF92',  // Muted green
+  // Accent greens — bright lime, the brand color of the new dark theme
+  accentGreen: '#C8FF6B',
+  accentGreenMuted: '#94C44E',
 
-  // Status colors (adjusted for dark bg)
-  success: '#86EFAC',
-  successLight: 'rgba(134, 239, 172, 0.15)',
+  // Status colors
+  success: '#C8FF6B',
+  successLight: 'rgba(200, 255, 107, 0.15)',
   warning: '#FCD34D',
   warningLight: 'rgba(252, 211, 77, 0.15)',
   error: '#FCA5A5',
@@ -272,15 +272,15 @@ const newColors: ThemeColors = {
   // Other
   white: '#FFFFFF',
   black: '#000000',
-  disabled: 'rgba(244, 240, 230, 0.3)',
-  disabledText: 'rgba(244, 240, 230, 0.4)',
-  overlay: 'rgba(0, 0, 0, 0.7)',
+  disabled: 'rgba(255, 255, 255, 0.30)',
+  disabledText: 'rgba(255, 255, 255, 0.40)',
+  overlay: 'rgba(0, 0, 0, 0.80)',
 
-  // Tab bar
-  tabBarBackground: '#0D1526',
-  tabBarBorder: 'rgba(244, 240, 230, 0.1)',
-  tabIconInactive: 'rgba(244, 240, 230, 0.4)',
-  tabIconActive: '#A8E6A3',
+  // Tab bar — floating pill
+  tabBarBackground: '#161616',
+  tabBarBorder: 'rgba(255, 255, 255, 0.10)',
+  tabIconInactive: 'rgba(255, 255, 255, 0.45)',
+  tabIconActive: '#C8FF6B',
 };
 
 // Typography (shared structure, font families differ)
@@ -327,8 +327,8 @@ const newTypography: ThemeTypography = {
   ...baseTypography,
   fontFamily: {
     header: 'NothingYouCouldDo_400Regular',
-    body: 'JuliusSansOne_400Regular',
-    accent: 'Aboreto_400Regular',
+    body: 'Sora_400Regular',
+    accent: 'Sora_600SemiBold',
     mono: 'Courier',
   },
 };

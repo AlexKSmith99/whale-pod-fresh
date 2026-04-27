@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,
   Alert, Switch, Modal, FlatList, StatusBar, Keyboard, Dimensions,
@@ -7,30 +7,66 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../theme/ThemeContext';
 import { pursuitService } from '../services/pursuitService';
 import LocationMapView from '../components/ui/LocationMapView';
-import { PURSUIT_TYPES } from '../constants/pursuitTypes';
+import PodCoverImagePicker from '../components/ui/PodCoverImagePicker';
+import { POD_TYPES, POD_CATEGORIES } from '../constants/pursuitTypes';
 import { NEIGHBORHOODS } from '../constants/neighborhoods';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const TOTAL_PAGES = 3;
 
-// Design tokens (matching OnboardingScreen)
-const C = {
-  bg: '#F6FAF8',
+// Design tokens — Light defaults; the in-component `C` derived below overrides
+// these when dark theme is active so this screen flips palette + Pie aesthetics.
+const C_LIGHT = {
+  bg: '#FFFFFF',
+  surface: '#FFFFFF',
+  surfaceAlt: '#F7F6F2',
   ink: '#1B1B18',
   muted: '#8A8A85',
+  placeholder: '#A8A89E',
   accent: '#2D5016',
-  accentLine: '#A8D4B8',
-  border: '#CCD6D0',
+  accentDeep: '#1A3308',
+  accentText: '#2D5016',
+  accentLine: '#2D5016',
+  accentTint: '#E4EDDE',
+  tintRed: '#FCE8E6',
+  tintBlue: '#E6EEFC',
+  tintYellow: '#FEF3C7',
+  border: '#E5E1D8',
   white: '#FFFFFF',
-  gradientTop: '#DCE8E0',
+  gradientTop: '#FFFFFF',
 };
 
+const C_DARK = {
+  bg: '#000000',
+  surface: '#161616',
+  surfaceAlt: '#1F1F1F',
+  ink: '#FFFFFF',
+  muted: 'rgba(255,255,255,0.50)',
+  placeholder: 'rgba(255,255,255,0.55)',
+  accent: '#C8FF6B',
+  accentDeep: '#C8FF6B',
+  accentText: '#9BC568',
+  accentLine: '#C8FF6B',
+  accentTint: 'rgba(200, 255, 107, 0.10)',
+  tintRed: 'rgba(252, 165, 165, 0.18)',
+  tintBlue: 'rgba(129, 140, 248, 0.18)',
+  tintYellow: 'rgba(252, 211, 77, 0.18)',
+  border: 'rgba(255, 255, 255, 0.10)',
+  white: '#000000',
+  gradientTop: '#000000',
+};
+
+// Module-level alias points at the light palette so the existing StyleSheet
+// definitions don't break. Inside the component we overwrite with a theme-correct copy.
+const C: any = { ...C_LIGHT };
+
 const F = {
-  title: 'NothingYouCouldDo_400Regular',
-  header: 'PlayfairDisplay_700Bold',
-  body: 'Sora_400Regular',
+  title: 'PlayfairDisplay_700Bold',           // Matches "Whale Pods" header font
+  header: 'PlayfairDisplay_700Bold',          // Section titles use the same stack for consistency
+  body: 'Sora_400Regular',                    // body text
   bodyMedium: 'Sora_600SemiBold',
 };
 
@@ -129,12 +165,19 @@ interface Props {
 
 export default function CreateScreen({ onClose }: Props = {}) {
   const { user } = useAuth();
+  const { isNewTheme } = useTheme();
+  // Mutate the module-level C palette so inline `C.X` references in JSX pick the
+  // right theme. Then build the StyleSheet from the same C so it stays in sync.
+  const themePalette = isNewTheme ? C_DARK : C_LIGHT;
+  Object.assign(C, themePalette);
+  const styles = React.useMemo(() => makeStyles(themePalette), [isNewTheme]);
   const scrollViewRef = useRef<ScrollView>(null);
 
   const [currentPage, setCurrentPage] = useState(0);
 
   // Basic Info
   const [title, setTitle] = useState('');
+  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [teamSizeMin, setTeamSizeMin] = useState('2');
   const [teamSizeMax, setTeamSizeMax] = useState('8');
@@ -154,11 +197,13 @@ export default function CreateScreen({ onClose }: Props = {}) {
   const [geocoding, setGeocoding] = useState(false);
   const [projectedDuration, setProjectedDuration] = useState('');
 
-  // Types & Categories
+  // Types & Categories — both are structured multi-selects (curated lists)
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
-  const [categories, setCategories] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [showPursuitTypeModal, setShowPursuitTypeModal] = useState(false);
   const [pursuitTypeSearch, setPursuitTypeSearch] = useState('');
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [categorySearch, setCategorySearch] = useState('');
 
   // Business
   const [ownershipStructure, setOwnershipStructure] = useState('');
@@ -222,6 +267,46 @@ export default function CreateScreen({ onClose }: Props = {}) {
     } else {
       Alert.alert('Limit Reached', 'You can select up to 5 pod types');
     }
+  };
+
+  const toggleCategory = (cat: string) => {
+    if (selectedCategories.includes(cat)) {
+      setSelectedCategories(selectedCategories.filter(c => c !== cat));
+    } else if (selectedCategories.length < 5) {
+      setSelectedCategories([...selectedCategories, cat]);
+    } else {
+      Alert.alert('Limit Reached', 'You can select up to 5 categories');
+    }
+  };
+
+  const addCustomType = () => {
+    const trimmed = pursuitTypeSearch.trim();
+    if (!trimmed) return;
+    if (selectedTypes.some(t => t.toLowerCase() === trimmed.toLowerCase())) {
+      setPursuitTypeSearch('');
+      return;
+    }
+    if (selectedTypes.length >= 5) {
+      Alert.alert('Limit Reached', 'You can select up to 5 pod types');
+      return;
+    }
+    setSelectedTypes([...selectedTypes, trimmed]);
+    setPursuitTypeSearch('');
+  };
+
+  const addCustomCategory = () => {
+    const trimmed = categorySearch.trim();
+    if (!trimmed) return;
+    if (selectedCategories.some(c => c.toLowerCase() === trimmed.toLowerCase())) {
+      setCategorySearch('');
+      return;
+    }
+    if (selectedCategories.length >= 5) {
+      Alert.alert('Limit Reached', 'You can select up to 5 categories');
+      return;
+    }
+    setSelectedCategories([...selectedCategories, trimmed]);
+    setCategorySearch('');
   };
 
   const toggleLocationType = (type: string) => {
@@ -381,7 +466,8 @@ export default function CreateScreen({ onClose }: Props = {}) {
         longitude: pinLongitude,
         projected_duration: projectedDuration || null,
         pursuit_types: selectedTypes,
-        pursuit_categories: categories ? categories.split(',').map(c => c.trim()) : [],
+        pursuit_categories: selectedCategories,
+        cover_image_url: coverImageUrl,
         ownership_structure: ownershipStructure || null,
         decision_system: decisionSystem.toLowerCase().replace(/ /g, '_'),
         decision_system_note: decisionNote || null,
@@ -412,9 +498,10 @@ export default function CreateScreen({ onClose }: Props = {}) {
         current_members_count: 1,
       });
 
-      Alert.alert('Success!', 'Your pod has been created!', [
-        { text: 'OK', onPress: () => {
+      Alert.alert('pod: secured 🐋', "you just made a pod. you a legend.", [
+        { text: "let's go", onPress: () => {
           setTitle('');
+          setCoverImageUrl(null);
           setDescription('');
           setTeamSizeMin('2');
           setTeamSizeMax('8');
@@ -432,7 +519,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
           setPinLongitude(null);
           setProjectedDuration('');
           setSelectedTypes([]);
-          setCategories('');
+          setSelectedCategories([]);
           setOwnershipStructure('');
           setDecisionSystem('Standard Vote');
           setDecisionNote('');
@@ -627,12 +714,21 @@ export default function CreateScreen({ onClose }: Props = {}) {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ paddingBottom: 20 }}
         >
+          {/* Cover Photo */}
+          {renderFieldLabel('Cover Photo')}
+          <PodCoverImagePicker
+            value={coverImageUrl}
+            onChange={setCoverImageUrl}
+            height={200}
+            placeholderText="add a cover (optional, but a vibe)"
+          />
+
           {/* Title */}
           {renderFieldLabel('Title', true)}
           <TextInput
             style={styles.underlineInput}
             placeholder="e.g., Learn Java Programming Together"
-            placeholderTextColor={C.border}
+            placeholderTextColor={C.placeholder}
             value={title}
             onChangeText={setTitle}
           />
@@ -643,7 +739,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
           <TextInput
             style={styles.textAreaInput}
             placeholder="Describe your pod, who you're looking for, and what you're pursuing. Be specific!"
-            placeholderTextColor={C.border}
+            placeholderTextColor={C.placeholder}
             value={description}
             onChangeText={setDescription}
             multiline
@@ -652,19 +748,28 @@ export default function CreateScreen({ onClose }: Props = {}) {
           />
 
           {/* Pod Type */}
-          {renderFieldLabel('Pod Type', true)}
+          {renderFieldLabel('Type', true)}
           {renderHint(`Selected: ${selectedTypes.length}/5`)}
 
           {selectedTypes.length > 0 && (
             <View style={styles.selectedTypesContainer}>
-              {selectedTypes.map((type) => (
-                <View key={type} style={styles.selectedTypeChip}>
-                  <Text style={styles.selectedTypeText}>{type}</Text>
-                  <TouchableOpacity onPress={() => setSelectedTypes(selectedTypes.filter(t => t !== type))}>
-                    <Ionicons name="close-circle" size={18} color={C.white} />
-                  </TouchableOpacity>
-                </View>
-              ))}
+              {selectedTypes.map((type, i) => {
+                const tints = [
+                  { bg: C.accentTint, ink: C.accent },
+                  { bg: C.tintBlue,   ink: '#1E3A8A' },
+                  { bg: C.tintRed,    ink: '#9B1C1C' },
+                  { bg: C.tintYellow, ink: '#92400E' },
+                ];
+                const t = tints[i % tints.length];
+                return (
+                  <View key={type} style={[styles.selectedTypeChip, { backgroundColor: t.bg }]}>
+                    <Text style={[styles.selectedTypeText, { color: t.ink }]}>{type}</Text>
+                    <TouchableOpacity onPress={() => setSelectedTypes(selectedTypes.filter(v => v !== type))}>
+                      <Ionicons name="close-circle" size={16} color={t.ink} />
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
             </View>
           )}
 
@@ -679,15 +784,38 @@ export default function CreateScreen({ onClose }: Props = {}) {
           </TouchableOpacity>
 
           {/* Categories */}
-          {renderFieldLabel('Categories (optional, up to 5)')}
-          {renderHint('Comma-separated (e.g., tech, basketball, pokemon)')}
-          <TextInput
-            style={styles.underlineInput}
-            placeholder="tech, basketball, pokemon"
-            placeholderTextColor={C.border}
-            value={categories}
-            onChangeText={setCategories}
-          />
+          {renderFieldLabel('Categories')}
+          {renderHint(`Selected: ${selectedCategories.length}/5`)}
+          {selectedCategories.length > 0 && (
+            <View style={styles.selectedTypesContainer}>
+              {selectedCategories.map((cat, i) => {
+                const tints = [
+                  { bg: C.tintBlue,   ink: '#1E3A8A' },
+                  { bg: C.accentTint, ink: C.accent },
+                  { bg: C.tintRed,    ink: '#9B1C1C' },
+                  { bg: C.tintYellow, ink: '#92400E' },
+                ];
+                const t = tints[i % tints.length];
+                return (
+                  <View key={cat} style={[styles.selectedTypeChip, { backgroundColor: t.bg }]}>
+                    <Text style={[styles.selectedTypeText, { color: t.ink }]}>{cat}</Text>
+                    <TouchableOpacity onPress={() => setSelectedCategories(selectedCategories.filter(v => v !== cat))}>
+                      <Ionicons name="close-circle" size={16} color={t.ink} />
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+            </View>
+          )}
+          <TouchableOpacity
+            style={styles.dropdownButton}
+            onPress={() => setShowCategoryModal(true)}
+          >
+            <Text style={styles.dropdownButtonText}>
+              {selectedCategories.length === 0 ? 'Select categories...' : 'Add more categories...'}
+            </Text>
+            <Ionicons name="chevron-down" size={20} color={C.muted} />
+          </TouchableOpacity>
         </ScrollView>
         {renderBottomNav(0)}
       </View>
@@ -707,14 +835,14 @@ export default function CreateScreen({ onClose }: Props = {}) {
           contentContainerStyle={{ paddingBottom: 20 }}
         >
           {/* Team Size Range */}
-          {renderFieldLabel('Team Size Range')}
+          {renderFieldLabel('Team Size')}
           <View style={styles.row}>
             <View style={styles.halfInput}>
               <Text style={styles.miniLabel}>Min</Text>
               <TextInput
                 style={styles.underlineInput}
                 placeholder="2"
-                placeholderTextColor={C.border}
+                placeholderTextColor={C.placeholder}
                 value={teamSizeMin}
                 onChangeText={setTeamSizeMin}
                 keyboardType="numeric"
@@ -725,7 +853,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
               <TextInput
                 style={styles.underlineInput}
                 placeholder="8"
-                placeholderTextColor={C.border}
+                placeholderTextColor={C.placeholder}
                 value={teamSizeMax}
                 onChangeText={setTeamSizeMax}
                 keyboardType="numeric"
@@ -744,8 +872,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
           </View>
 
           {/* Location Type */}
-          {renderFieldLabel('Location Type', true)}
-          {renderHint('Select all that apply')}
+          {renderFieldLabel('Location', true)}
           <View style={styles.chipContainer}>
             {['In-person', 'Hybrid', 'Remote'].map((type) =>
               renderChip(type, locationTypes.includes(type), () => toggleLocationType(type))
@@ -766,7 +893,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
                 <TextInput
                   style={styles.underlineInput}
                   placeholder="Search city (e.g., Austin)"
-                  placeholderTextColor={C.border}
+                  placeholderTextColor={C.placeholder}
                   value={citySearchQuery}
                   onChangeText={handleCitySearch}
                   autoCapitalize="words"
@@ -806,13 +933,13 @@ export default function CreateScreen({ onClose }: Props = {}) {
               {/* Neighborhood */}
               {availableNeighborhoods.length > 0 && (
                 <>
-                  {renderFieldLabel('Neighborhood (optional)')}
+                  {renderFieldLabel('Neighborhood')}
                   {renderHint(`Search neighborhoods in ${locationCity}`)}
                   <View style={{ zIndex: 999 }}>
                     <TextInput
                       style={styles.underlineInput}
                       placeholder={`e.g., ${availableNeighborhoods[0] || 'Downtown'}`}
-                      placeholderTextColor={C.border}
+                      placeholderTextColor={C.placeholder}
                       value={neighborhoodSearch}
                       onChangeText={handleNeighborhoodSearch}
                       autoCapitalize="words"
@@ -839,11 +966,11 @@ export default function CreateScreen({ onClose }: Props = {}) {
               {/* Address & Map (In-person only) */}
               {locationTypes.includes('In-person') && (
                 <>
-                  {renderFieldLabel('Meeting Address')}
+                  {renderFieldLabel('Address')}
                   <TextInput
                     style={styles.underlineInput}
                     placeholder="e.g., 123 Main St"
-                    placeholderTextColor={C.border}
+                    placeholderTextColor={C.placeholder}
                     value={address}
                     onChangeText={setAddress}
                     onBlur={geocodeAddress}
@@ -851,7 +978,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
                     onSubmitEditing={geocodeAddress}
                   />
 
-                  {renderFieldLabel('Pin the meeting location')}
+                  {renderFieldLabel('Pin Location')}
                   {renderHint(geocoding ? 'Looking up address...' : pinLatitude != null ? 'Pin placed automatically — tap map to adjust' : 'Enter an address above or tap the map')}
                   <LocationMapView
                     latitude={pinLatitude}
@@ -875,7 +1002,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
           )}
 
           {/* Decision System */}
-          {renderFieldLabel('Decision System')}
+          {renderFieldLabel('Decisions')}
           <View style={styles.chipContainer}>
             {DECISION_SYSTEMS.map((system) =>
               renderChip(system, decisionSystem === system, () => setDecisionSystem(system))
@@ -884,7 +1011,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
           <TextInput
             style={styles.underlineInput}
             placeholder="Add a note about your decision system (optional)"
-            placeholderTextColor={C.border}
+            placeholderTextColor={C.placeholder}
             value={decisionNote}
             onChangeText={setDecisionNote}
           />
@@ -907,24 +1034,24 @@ export default function CreateScreen({ onClose }: Props = {}) {
           contentContainerStyle={{ paddingBottom: 40 }}
         >
           {/* Meeting Cadence */}
-          {renderFieldLabel('Meeting Cadence', true)}
+          {renderFieldLabel('Cadence', true)}
           <TextInput
             style={styles.underlineInput}
             placeholder="e.g., Weekly on Mondays at 7pm"
-            placeholderTextColor={C.border}
+            placeholderTextColor={C.placeholder}
             value={meetingCadence}
             onChangeText={setMeetingCadence}
           />
           <TextInput
             style={styles.underlineInput}
             placeholder="Add a note (optional)"
-            placeholderTextColor={C.border}
+            placeholderTextColor={C.placeholder}
             value={meetingNote}
             onChangeText={setMeetingNote}
           />
 
           {/* Attendance Style */}
-          {renderFieldLabel('Attendance Style')}
+          {renderFieldLabel('Attendance')}
           <View style={styles.chipContainer}>
             {ATTENDANCE_STYLES.map((style) =>
               renderChip(style, attendanceStyle === style, () => setAttendanceStyle(style))
@@ -933,48 +1060,47 @@ export default function CreateScreen({ onClose }: Props = {}) {
           <TextInput
             style={styles.underlineInput}
             placeholder="Set expectations for attendance (optional)"
-            placeholderTextColor={C.border}
+            placeholderTextColor={C.placeholder}
             value={attendanceNote}
             onChangeText={setAttendanceNote}
           />
 
           {/* Roles */}
-          {renderFieldLabel('Roles (optional)')}
-          {renderHint('Comma-separated roles you\'re looking for')}
+          {renderFieldLabel('Roles')}
           <TextInput
             style={styles.underlineInput}
             placeholder="Developer, Designer, Marketing Lead"
-            placeholderTextColor={C.border}
+            placeholderTextColor={C.placeholder}
             value={roles}
             onChangeText={setRoles}
           />
 
           {/* Experience Level */}
-          {renderFieldLabel('Experience Level (optional)')}
+          {renderFieldLabel('Experience')}
           <TextInput
             style={styles.underlineInput}
             placeholder="e.g., 5+ years, Beginner, Intermediate"
-            placeholderTextColor={C.border}
+            placeholderTextColor={C.placeholder}
             value={experienceLevel}
             onChangeText={setExperienceLevel}
           />
 
           {/* Projected Duration */}
-          {renderFieldLabel('Projected Duration (optional)')}
+          {renderFieldLabel('Duration')}
           <TextInput
             style={styles.underlineInput}
             placeholder="e.g., 3 months, 1 year, ongoing"
-            placeholderTextColor={C.border}
+            placeholderTextColor={C.placeholder}
             value={projectedDuration}
             onChangeText={setProjectedDuration}
           />
 
           {/* Age Restriction */}
-          {renderFieldLabel('Age Restriction (optional)')}
+          {renderFieldLabel('Age')}
           <TextInput
             style={styles.underlineInput}
             placeholder="e.g., 18+, 21+ for cocktails, Students only"
-            placeholderTextColor={C.border}
+            placeholderTextColor={C.placeholder}
             value={ageRestriction}
             onChangeText={setAgeRestriction}
           />
@@ -1110,7 +1236,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
                 <TextInput
                   style={styles.questionInput}
                   placeholder={index === 0 ? "e.g., What relevant experience do you have?" : "Enter your question..."}
-                  placeholderTextColor={C.border}
+                  placeholderTextColor={C.placeholder}
                   value={question}
                   onChangeText={(text) => {
                     const newQuestions = [...applicationQuestions];
@@ -1263,11 +1389,14 @@ export default function CreateScreen({ onClose }: Props = {}) {
               <Ionicons name="search" size={20} color={C.muted} style={{ marginRight: 8 }} />
               <TextInput
                 style={styles.searchInput}
-                placeholder="Search pod types..."
-                placeholderTextColor={C.muted}
+                placeholder="Search or type your own..."
+                placeholderTextColor={C.placeholder}
                 value={pursuitTypeSearch}
                 onChangeText={setPursuitTypeSearch}
                 autoCapitalize="none"
+                returnKeyType="done"
+                onSubmitEditing={addCustomType}
+                blurOnSubmit={false}
               />
               {pursuitTypeSearch.length > 0 && (
                 <TouchableOpacity onPress={() => setPursuitTypeSearch('')}>
@@ -1281,8 +1410,21 @@ export default function CreateScreen({ onClose }: Props = {}) {
               {selectedTypes.length >= 5 && ' (max reached)'}
             </Text>
 
+            {(() => {
+              const trimmed = pursuitTypeSearch.trim();
+              const hasExactMatch = POD_TYPES.some(t => t.toLowerCase() === trimmed.toLowerCase());
+              const alreadySelected = selectedTypes.some(t => t.toLowerCase() === trimmed.toLowerCase());
+              if (!trimmed || hasExactMatch || alreadySelected) return null;
+              return (
+                <TouchableOpacity style={styles.addCustomRow} onPress={addCustomType}>
+                  <Ionicons name="add-circle" size={20} color={C.accentText} />
+                  <Text style={styles.addCustomText}>add "{trimmed}" as custom</Text>
+                </TouchableOpacity>
+              );
+            })()}
+
             <FlatList
-              data={PURSUIT_TYPES.filter(type =>
+              data={POD_TYPES.filter(type =>
                 type.toLowerCase().includes(pursuitTypeSearch.toLowerCase())
               )}
               keyExtractor={(item) => item}
@@ -1337,11 +1479,125 @@ export default function CreateScreen({ onClose }: Props = {}) {
           </View>
         </View>
       </Modal>
+
+      {/* Category Picker Modal */}
+      <Modal
+        visible={showCategoryModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowCategoryModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Categories</Text>
+              <TouchableOpacity onPress={() => {
+                setShowCategoryModal(false);
+                setCategorySearch('');
+              }}>
+                <Ionicons name="close" size={24} color={C.ink} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.searchContainer}>
+              <Ionicons name="search" size={20} color={C.muted} style={{ marginRight: 8 }} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search or type your own..."
+                placeholderTextColor={C.placeholder}
+                value={categorySearch}
+                onChangeText={setCategorySearch}
+                autoCapitalize="none"
+                returnKeyType="done"
+                onSubmitEditing={addCustomCategory}
+                blurOnSubmit={false}
+              />
+              {categorySearch.length > 0 && (
+                <TouchableOpacity onPress={() => setCategorySearch('')}>
+                  <Ionicons name="close-circle" size={20} color={C.muted} />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <Text style={styles.selectedCount}>
+              {selectedCategories.length}/5 selected
+              {selectedCategories.length >= 5 && ' (max reached)'}
+            </Text>
+
+            {(() => {
+              const trimmed = categorySearch.trim();
+              const hasExactMatch = POD_CATEGORIES.some(c => c.toLowerCase() === trimmed.toLowerCase());
+              const alreadySelected = selectedCategories.some(c => c.toLowerCase() === trimmed.toLowerCase());
+              if (!trimmed || hasExactMatch || alreadySelected) return null;
+              return (
+                <TouchableOpacity style={styles.addCustomRow} onPress={addCustomCategory}>
+                  <Ionicons name="add-circle" size={20} color={C.accentText} />
+                  <Text style={styles.addCustomText}>add "{trimmed}" as custom</Text>
+                </TouchableOpacity>
+              );
+            })()}
+
+            <FlatList
+              data={POD_CATEGORIES.filter(cat =>
+                cat.toLowerCase().includes(categorySearch.toLowerCase())
+              )}
+              keyExtractor={(item) => item}
+              renderItem={({ item }) => {
+                const isSelected = selectedCategories.includes(item);
+                const isDisabled = !isSelected && selectedCategories.length >= 5;
+                return (
+                  <TouchableOpacity
+                    style={[
+                      styles.pursuitTypeItem,
+                      isSelected && styles.pursuitTypeItemSelected,
+                      isDisabled && styles.pursuitTypeItemDisabled,
+                    ]}
+                    onPress={() => {
+                      if (isSelected) {
+                        setSelectedCategories(selectedCategories.filter(c => c !== item));
+                      } else if (selectedCategories.length < 5) {
+                        setSelectedCategories([...selectedCategories, item]);
+                      }
+                    }}
+                    disabled={isDisabled}
+                  >
+                    <Text style={[
+                      styles.pursuitTypeText,
+                      isSelected && styles.pursuitTypeTextSelected,
+                      isDisabled && styles.pursuitTypeTextDisabled,
+                    ]}>
+                      {item}
+                    </Text>
+                    {isSelected && (
+                      <Ionicons name="checkmark-circle" size={22} color={C.accent} />
+                    )}
+                  </TouchableOpacity>
+                );
+              }}
+              ListEmptyComponent={
+                <View style={styles.emptyStateContainer}>
+                  <Text style={styles.emptyStateText}>No matching categories</Text>
+                </View>
+              }
+            />
+
+            <TouchableOpacity
+              style={styles.doneButton}
+              onPress={() => {
+                setShowCategoryModal(false);
+                setCategorySearch('');
+              }}
+            >
+              <Text style={styles.doneButtonText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(C: any) { return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: C.bg,
@@ -1365,8 +1621,8 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   mainTitle: {
-    fontFamily: F.title,
-    fontSize: 24,
+    fontFamily: 'Sora_700Bold',
+    fontSize: 28,
     color: C.accent,
   },
 
@@ -1377,8 +1633,13 @@ const styles = StyleSheet.create({
   pageInner: {
     flex: 1,
     paddingTop: 8,
-    paddingHorizontal: 28,
+    paddingLeft: 28,
+    paddingRight: 28,
     paddingBottom: Platform.OS === 'ios' ? 44 : 24,
+    borderLeftWidth: 3,
+    borderLeftColor: C.accentLine,
+    marginLeft: 16,
+    marginRight: 16,
   },
 
   // Header area (matching onboarding)
@@ -1393,8 +1654,10 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontFamily: F.header,
-    fontSize: 22,
+    fontSize: 28,
+    fontWeight: '700',
     color: C.ink,
+    letterSpacing: -0.4,
   },
   progressDots: {
     flexDirection: 'row',
@@ -1416,7 +1679,7 @@ const styles = StyleSheet.create({
   },
   accentLine: {
     height: 2,
-    backgroundColor: C.accentLine,
+    backgroundColor: C.accent,
     marginBottom: 16,
   },
   stepLabel: {
@@ -1456,13 +1719,16 @@ const styles = StyleSheet.create({
     color: C.white,
   },
 
-  // Form fields
+  // Form fields — dark green uppercase labels with strong contrast
   fieldLabel: {
     fontFamily: F.bodyMedium,
-    fontSize: 14,
-    color: C.ink,
-    marginTop: 20,
-    marginBottom: 8,
+    fontSize: 13,
+    fontWeight: '700',
+    color: C.accentDeep,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginTop: 24,
+    marginBottom: 10,
   },
   miniLabel: {
     fontFamily: F.body,
@@ -1485,10 +1751,10 @@ const styles = StyleSheet.create({
   },
   underlineInput: {
     fontFamily: F.body,
-    fontSize: 16,
+    fontSize: 17,
     color: C.ink,
     borderBottomWidth: 1.5,
-    borderBottomColor: C.border,
+    borderBottomColor: C.ink,
     paddingVertical: 10,
     marginBottom: 4,
   },
@@ -1497,7 +1763,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: C.ink,
     borderWidth: 1.5,
-    borderColor: C.border,
+    borderColor: C.ink,
     borderRadius: 12,
     padding: 12,
     minHeight: 120,
@@ -1513,19 +1779,19 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   chip: {
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 22,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 999,
     borderWidth: 1.5,
-    borderColor: C.border,
+    borderColor: C.ink,
     backgroundColor: C.white,
   },
   chipActive: {
-    borderColor: C.ink,
-    backgroundColor: C.ink,
+    borderColor: C.accentDeep,
+    backgroundColor: C.accentDeep,
   },
   chipText: {
-    fontFamily: F.body,
+    fontFamily: F.bodyMedium,
     fontSize: 14,
     color: C.ink,
   },
@@ -1799,7 +2065,7 @@ const styles = StyleSheet.create({
     borderBottomColor: C.border,
   },
   pursuitTypeItemSelected: {
-    backgroundColor: '#F0F5EC',
+    backgroundColor: C.accentTint,
   },
   pursuitTypeItemDisabled: {
     opacity: 0.5,
@@ -1810,11 +2076,27 @@ const styles = StyleSheet.create({
     color: C.ink,
   },
   pursuitTypeTextSelected: {
-    color: C.accent,
+    color: C.accentText,
     fontFamily: F.bodyMedium,
   },
   pursuitTypeTextDisabled: {
     color: C.muted,
+  },
+  addCustomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: C.accentTint,
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginBottom: 8,
+  },
+  addCustomText: {
+    fontFamily: F.bodyMedium,
+    fontSize: 14,
+    color: C.accentText,
   },
   doneButton: {
     backgroundColor: C.ink,
@@ -1953,4 +2235,4 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     marginTop: 8,
   },
-});
+}); }

@@ -282,8 +282,8 @@ export const notificationService = {
     const pronoun = applicantId ? await fetchPossessivePronoun(applicantId) : 'their';
     await this.sendPushNotification(
       [creatorId],
-      `${applicantName} applied to join "${pursuitName}"`,
-      `Review ${pronoun} application in the Pods tab`,
+      `${applicantName} wants in on "${pursuitName}" 👀`,
+      `peep ${pronoun} application in the pods tab`,
       {
         type: 'application_received',
         pursuitId,
@@ -304,8 +304,8 @@ export const notificationService = {
   ) {
     await this.sendPushNotification(
       [creatorId],
-      'Team Ready! 🚀',
-      `"${pursuitName}" has reached ${currentSize}/${minSize} members. Time to activate the kickoff!`,
+      'team ready 🚀',
+      `"${pursuitName}" hit ${currentSize}/${minSize}. time to lock it in.`,
       {
         type: 'min_team_size_reached',
         pursuitId,
@@ -325,8 +325,8 @@ export const notificationService = {
   ) {
     await this.sendPushNotification(
       teamMemberIds,
-      `${creatorName} activated kickoff scheduling for "${pursuitName}"`,
-      'Share your availability now!',
+      `${creatorName} just dropped a kickoff for "${pursuitName}"`,
+      "drop your availability rn — let's get this on the books",
       {
         type: 'kickoff_activated',
         pursuitId,
@@ -346,8 +346,8 @@ export const notificationService = {
   ) {
     await this.sendPushNotification(
       [creatorId],
-      'All Time Slots Received! ⏰',
-      `All ${proposalCount} team members submitted their availability for "${pursuitName}". Schedule the kickoff now!`,
+      'everyone replied ⏰',
+      `all ${proposalCount} pod members dropped their times for "${pursuitName}". pick a slot.`,
       {
         type: 'all_proposals_submitted',
         pursuitId,
@@ -431,8 +431,8 @@ export const notificationService = {
     const pronoun = await fetchPossessivePronoun(requesterId);
     await this.sendPushNotification(
       [recipientId],
-      `${requesterName} wants to connect with you`,
-      `View ${pronoun} profile and accept or decline`,
+      `${requesterName} wants to connect 👋`,
+      `peep ${pronoun} profile and decide`,
       {
         type: 'connection_request',
         requesterId,
@@ -451,8 +451,8 @@ export const notificationService = {
   ) {
     await this.sendPushNotification(
       [userId],
-      `${accepterName} accepted your connection request`,
-      'You can now message each other',
+      `${accepterName} accepted ✨`,
+      'you can chat now. slide in.',
       {
         type: 'connection_accepted',
         userId: accepterId,
@@ -472,8 +472,8 @@ export const notificationService = {
   ) {
     await this.sendPushNotification(
       [applicantId],
-      `${creatorName} accepted your application to join "${pursuitName}"`,
-      'Welcome to the team!',
+      `you're in! "${pursuitName}" 🐋`,
+      `${creatorName} let you in. welcome to the pod.`,
       {
         type: 'application_accepted',
         pursuitId,
@@ -493,8 +493,8 @@ export const notificationService = {
   ) {
     await this.sendPushNotification(
       [applicantId],
-      `${creatorName} did not accept your application to "${pursuitName}"`,
-      'Keep exploring other pods that match your interests',
+      `update on "${pursuitName}"`,
+      `${creatorName} passed this time. plenty more pods out there 💫`,
       {
         type: 'application_rejected',
         pursuitId,
@@ -516,8 +516,8 @@ export const notificationService = {
     const pronoun = memberId ? await fetchPossessivePronoun(memberId) : 'their';
     await this.sendPushNotification(
       [creatorId],
-      `${memberName} submitted ${pronoun} availability for "${pursuitName}"`,
-      'Review time proposals and schedule the kickoff meeting',
+      `${memberName} dropped ${pronoun} availability for "${pursuitName}"`,
+      "peep the times and lock the kickoff in",
       {
         type: 'time_proposal',
         pursuitId,
@@ -559,8 +559,8 @@ export const notificationService = {
   ) {
     await this.sendPushNotification(
       [creatorId],
-      'Pod Created! 🐋',
-      `You successfully created "${pursuitName}". Share it with potential team members!`,
+      'pod: secured 🐋',
+      `"${pursuitName}" is live. now go round up your people.`,
       {
         type: 'pursuit_created',
         pursuitId,

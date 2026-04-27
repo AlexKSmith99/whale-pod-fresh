@@ -1,7 +1,23 @@
 import { supabase } from '../config/supabase';
+import { notificationService } from './notificationService';
+
+// Resolve a display name for a given user id (falls back to email local-part).
+const resolveDisplayName = async (userId: string): Promise<string> => {
+  try {
+    const { data } = await supabase
+      .from('profiles')
+      .select('name, email')
+      .eq('id', userId)
+      .single();
+    return data?.name || data?.email?.split('@')[0] || 'Someone';
+  } catch {
+    return 'Someone';
+  }
+};
 
 export const connectionService = {
-  // Send connection request
+  // Send connection request — creates a pending row AND fires an alert-tab notification
+  // so the recipient sees it in Notifications and as a toast popup.
   sendConnectionRequest: async (userId1: string, userId2: string) => {
     const { data, error } = await supabase
       .from('connections')
@@ -16,10 +32,19 @@ export const connectionService = {
       .single();
 
     if (error) throw error;
+
+    // Fire the notification (non-blocking — send failures shouldn't reverse the request)
+    try {
+      const requesterName = await resolveDisplayName(userId1);
+      await notificationService.notifyConnectionRequest(userId2, requesterName, userId1);
+    } catch (err) {
+      console.warn('notifyConnectionRequest failed:', err);
+    }
+
     return data;
   },
 
-  // Accept connection request
+  // Accept connection request — fires a notification back to the original requester.
   acceptConnection: async (connectionId: string) => {
     const { data, error } = await supabase
       .from('connections')
@@ -29,6 +54,21 @@ export const connectionService = {
       .single();
 
     if (error) throw error;
+
+    // Notify the other side that the connection was accepted
+    try {
+      const { data: sessionData } = await supabase.auth.getUser();
+      const currentUserId = sessionData?.user?.id;
+      // The original requester is whichever user id isn't the current one
+      const otherUserId = data.user_id_1 === currentUserId ? data.user_id_2 : data.user_id_1;
+      if (otherUserId && currentUserId && otherUserId !== currentUserId) {
+        const accepterName = await resolveDisplayName(currentUserId);
+        await notificationService.notifyConnectionAccepted(otherUserId, accepterName, currentUserId);
+      }
+    } catch (err) {
+      console.warn('notifyConnectionAccepted failed:', err);
+    }
+
     return data;
   },
 

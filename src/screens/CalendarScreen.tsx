@@ -309,6 +309,14 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
                                 <Text style={dynamicStyles.meetingTitle} numberOfLines={1}>
                                   {meeting.title}
                                 </Text>
+                                {meeting.series_id && (
+                                  <Ionicons
+                                    name="repeat"
+                                    size={13}
+                                    color={colors.textSecondary}
+                                    style={{ marginLeft: 4, marginRight: 2 }}
+                                  />
+                                )}
                                 {meeting.is_kickoff && (
                                   <View style={[styles.kickoffBadge, { backgroundColor: colors.warning }]}>
                                     <Text style={[styles.kickoffBadgeText, { color: isNewTheme ? colors.background : legacyColors.white }]}>KICKOFF</Text>

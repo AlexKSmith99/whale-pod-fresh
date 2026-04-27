@@ -31,6 +31,7 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
   const { theme, isNewTheme } = useTheme();
   const colors = theme.colors;
   const themedStyles = getThemedStyles(colors, isNewTheme);
+  const styles = React.useMemo(() => makeStyles(colors, isNewTheme), [colors, isNewTheme]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -244,7 +245,7 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Text style={[styles.backButtonText, { color: isNewTheme ? colors.accentGreen : legacyColors.primary }]}>← Back</Text>
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Edit Profile</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Edit Profile</Text>
         <TouchableOpacity onPress={handleSave} style={styles.saveButton} disabled={saving}>
           <Text style={[styles.saveButtonText, { color: isNewTheme ? colors.accentGreen : legacyColors.primary }]}>{saving ? 'Saving...' : 'Save'}</Text>
         </TouchableOpacity>
@@ -252,10 +253,10 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
 
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Photos</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Photos</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
             {profilePictures.map((pic, i) => (
-              <View key={i} style={{ width: (Dimensions.get('window').width - 56) / 3, aspectRatio: 0.85, borderRadius: 10, overflow: 'hidden', backgroundColor: '#F2F0EB' }}>
+              <View key={i} style={{ width: (Dimensions.get('window').width - 56) / 3, aspectRatio: 0.85, borderRadius: 10, overflow: 'hidden', backgroundColor: isNewTheme ? colors.surfaceAlt : '#F2F0EB' }}>
                 <Image source={{ uri: pic }} style={{ width: '100%', height: '100%' }} />
                 <TouchableOpacity
                   style={{ position: 'absolute', top: 4, right: 4, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}
@@ -264,47 +265,47 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
                   <Ionicons name="close" size={12} color="#fff" />
                 </TouchableOpacity>
                 {i === 0 && (
-                  <View style={{ position: 'absolute', bottom: 4, left: 4, backgroundColor: '#2D5016', paddingHorizontal: 5, paddingVertical: 2, borderRadius: 4 }}>
-                    <Text style={{ fontSize: 9, color: '#fff', fontWeight: '600' }}>Default</Text>
+                  <View style={{ position: 'absolute', bottom: 4, left: 4, backgroundColor: colors.accentGreen, paddingHorizontal: 5, paddingVertical: 2, borderRadius: 4 }}>
+                    <Text style={{ fontSize: 9, color: isNewTheme ? '#000' : '#fff', fontWeight: '600' }}>main</Text>
                   </View>
                 )}
               </View>
             ))}
             {profilePictures.length < 6 && (
               <TouchableOpacity
-                style={{ width: (Dimensions.get('window').width - 56) / 3, aspectRatio: 0.85, borderRadius: 10, backgroundColor: '#F2F0EB', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#D6D3CC', borderStyle: 'dashed' }}
+                style={{ width: (Dimensions.get('window').width - 56) / 3, aspectRatio: 0.85, borderRadius: 10, backgroundColor: isNewTheme ? colors.surfaceAlt : '#F2F0EB', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderStyle: 'dashed' }}
                 onPress={() => pickImage(false)}
                 disabled={uploading}
               >
                 {uploading ? (
-                  <ActivityIndicator color="#8A8A85" />
+                  <ActivityIndicator color={colors.textTertiary} />
                 ) : (
-                  <Ionicons name="add" size={24} color="#8A8A85" />
+                  <Ionicons name="add" size={24} color={colors.textTertiary} />
                 )}
               </TouchableOpacity>
             )}
           </View>
           <TouchableOpacity
-            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 8, backgroundColor: '#F2F0EB', marginBottom: 8 }}
+            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: 999, backgroundColor: isNewTheme ? 'rgba(255,255,255,0.06)' : '#F2F0EB', marginBottom: 8, borderWidth: isNewTheme ? StyleSheet.hairlineWidth : 0, borderColor: colors.border }}
             onPress={() => pickImage(true)}
             disabled={uploading}
           >
-            <Ionicons name="camera-outline" size={16} color="#1B1B18" />
-            <Text style={{ fontSize: 14, color: '#1B1B18' }}>Take Photo</Text>
+            <Ionicons name="camera-outline" size={16} color={colors.textPrimary} />
+            <Text style={{ fontSize: 14, color: colors.textPrimary, fontFamily: 'Sora_400Regular' }}>take a pic</Text>
           </TouchableOpacity>
 
-          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Name *</Text>
+          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Name *</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}
             placeholder="e.g., John Smith"
             placeholderTextColor={colors.textTertiary}
             value={name}
             onChangeText={setName}
           />
 
-          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Age</Text>
+          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Age</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}
             placeholder="e.g., 25"
             placeholderTextColor={colors.textTertiary}
             value={age}
@@ -312,47 +313,47 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
             keyboardType="numeric"
           />
 
-          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Gender</Text>
+          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Gender</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}
             placeholder="e.g., Male, Female, Non-binary"
             placeholderTextColor={colors.textTertiary}
             value={gender}
             onChangeText={setGender}
           />
 
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Location</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Location</Text>
 
-          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Hometown</Text>
+          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Hometown</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}
             placeholder="e.g., San Francisco, CA"
             placeholderTextColor={colors.textTertiary}
             value={hometown}
             onChangeText={setHometown}
           />
 
-          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>College</Text>
+          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>College</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}
             placeholder="e.g., NYU, UCLA"
             placeholderTextColor={colors.textTertiary}
             value={college}
             onChangeText={setCollege}
           />
 
-          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Work</Text>
+          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Work</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}
             placeholder="e.g., Software Engineer at Google"
             placeholderTextColor={colors.textTertiary}
             value={work}
             onChangeText={setWork}
           />
 
-          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Bio</Text>
+          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Bio</Text>
           <TextInput
-            style={[styles.input, styles.textArea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
+            style={[styles.input, styles.textArea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}
             placeholder="Tell us about yourself..."
             placeholderTextColor={colors.textTertiary}
             value={bio}
@@ -361,11 +362,11 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
             numberOfLines={4}
           />
 
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Social Links</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Social Links</Text>
 
-          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Instagram</Text>
+          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Instagram</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}
             placeholder="@username or full URL"
             placeholderTextColor={colors.textTertiary}
             value={instagram}
@@ -373,9 +374,9 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
             autoCapitalize="none"
           />
 
-          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>LinkedIn</Text>
+          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>LinkedIn</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}
             placeholder="linkedin.com/in/username"
             placeholderTextColor={colors.textTertiary}
             value={linkedin}
@@ -383,9 +384,9 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
             autoCapitalize="none"
           />
 
-          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Facebook</Text>
+          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Facebook</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}
             placeholder="facebook.com/username"
             placeholderTextColor={colors.textTertiary}
             value={facebook}
@@ -393,9 +394,9 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
             autoCapitalize="none"
           />
 
-          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>GitHub</Text>
+          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>GitHub</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}
             placeholder="github.com/username"
             placeholderTextColor={colors.textTertiary}
             value={github}
@@ -403,9 +404,9 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
             autoCapitalize="none"
           />
 
-          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Portfolio Website</Text>
+          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Portfolio Website</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}
             placeholder="https://yourwebsite.com"
             placeholderTextColor={colors.textTertiary}
             value={portfolio}
@@ -418,8 +419,12 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
+function makeStyles(colors: any, isNewTheme: boolean) {
+  const accent = isNewTheme ? colors.accentGreen : accent;
+  const surfaceCard = colors.surface;
+  const subtleBg = isNewTheme ? 'rgba(255,255,255,0.06)' : '#f5f5f5';
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { 
     flexDirection: 'row', 
@@ -428,27 +433,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, 
     paddingTop: 60, 
     paddingBottom: 12, 
-    backgroundColor: '#fff', 
+    backgroundColor: surfaceCard, 
     borderBottomWidth: 1, 
-    borderBottomColor: '#e5e7eb' 
+    borderBottomColor: colors.border 
   },
   backButton: { padding: 8 },
-  backButtonText: { fontSize: 16, color: '#0ea5e9', fontWeight: '600' },
-  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#1f2937' },
+  backButtonText: { fontSize: 16, color: accent, fontWeight: '600' },
+  headerTitle: { fontSize: 20, fontWeight: 'bold', color: colors.textPrimary },
   saveButton: { padding: 8 },
-  saveButtonText: { fontSize: 16, color: '#0ea5e9', fontWeight: '600' },
+  saveButtonText: { fontSize: 16, color: accent, fontWeight: '600' },
   scrollView: { flex: 1 },
   content: { padding: 20, paddingBottom: 100 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#1f2937', marginTop: 20, marginBottom: 16 },
-  label: { fontSize: 14, fontWeight: '600', color: '#4b5563', marginBottom: 8 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: colors.textPrimary, marginTop: 20, marginBottom: 16 },
+  label: { fontSize: 14, fontWeight: '600', color: colors.textSecondary, marginBottom: 8 },
   input: { 
     borderWidth: 1, 
-    borderColor: '#d1d5db', 
+    borderColor: colors.border, 
     borderRadius: 8, 
     padding: 12, 
     fontSize: 16, 
     marginBottom: 16, 
-    backgroundColor: '#fff' 
+    backgroundColor: surfaceCard 
   },
   textArea: { height: 100, textAlignVertical: 'top' },
   previewImage: { 
@@ -458,22 +463,22 @@ const styles = StyleSheet.create({
     marginBottom: 16, 
     alignSelf: 'center',
     borderWidth: 3,
-    borderColor: '#0ea5e9',
+    borderColor: accent,
   },
   placeholderImage: { 
     width: 120, 
     height: 120, 
     borderRadius: 60, 
-    backgroundColor: '#e5e7eb', 
+    backgroundColor: colors.border, 
     justifyContent: 'center', 
     alignItems: 'center',
     marginBottom: 16,
     alignSelf: 'center',
     borderWidth: 2,
-    borderColor: '#d1d5db',
+    borderColor: colors.border,
     borderStyle: 'dashed',
   },
-  placeholderText: { fontSize: 12, color: '#9ca3af' },
+  placeholderText: { fontSize: 12, color: colors.textTertiary },
   photoButtons: {
     flexDirection: 'row',
     gap: 12,
@@ -481,14 +486,15 @@ const styles = StyleSheet.create({
   },
   photoButton: {
     flex: 1,
-    backgroundColor: '#0ea5e9',
+    backgroundColor: accent,
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
   },
   photoButtonText: {
-    color: '#fff',
+    color: isNewTheme ? '#000' : surfaceCard,
     fontSize: 14,
     fontWeight: '600',
   },
-});
+  });
+}

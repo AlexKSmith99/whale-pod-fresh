@@ -9,6 +9,7 @@ import { meetingService } from '../services/meetingService';
 import { notificationService } from '../services/notificationService';
 import { privacyService } from '../services/privacyService';
 import { supabase } from '../config/supabase';
+import PieButton from '../components/ui/PieButton';
 import ApplicationScreen from './ApplicationScreen';
 import ApplicationsReviewScreen from './ApplicationsReviewScreen';
 import UserProfileScreen from './UserProfileScreen';
@@ -36,6 +37,33 @@ interface Props {
   fromNotifications?: boolean;
   onBackToNotifications?: () => void;
 }
+
+const LEAVE_POD_REASONS = [
+  "I wasn't getting value from it",
+  "I didn't get along with the members",
+  "I want to try out a different pod",
+  "I didn't feel like a fit",
+  "I had a lifestyle/schedule conflict",
+  "I didn't enjoy how the pod was run / poor leadership",
+  "The pod was poorly organized",
+  "The meeting cadence or time commitment didn't work",
+  "The pod's direction changed and no longer aligns with my goals",
+  "I'm stepping back from pods for now",
+  "Personal reasons",
+  "Other",
+];
+
+const REMOVE_MEMBER_REASONS = [
+  "Member wasn't aligned with the mission",
+  "Member was inactive or not contributing",
+  "Member was disruptive to the group dynamic",
+  "Member violated pod guidelines or behavior expectations",
+  "Skill or experience mismatch for the pod's needs",
+  "Member had a schedule or availability conflict",
+  "Member repeatedly missed meetings",
+  "Personal reasons",
+  "Other",
+];
 
 export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit, isOwner, onViewProfile, onSendMessage, onOpenTeamBoard, initialSubScreen, fromNotifications, onBackToNotifications }: Props) {
   const { user } = useAuth();
@@ -75,12 +103,14 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
   const [memberToRemove, setMemberToRemove] = useState<any>(null);
   const [showRemovalForm, setShowRemovalForm] = useState(false);
   const [removalReason, setRemovalReason] = useState('');
+  const [selectedRemovalReason, setSelectedRemovalReason] = useState<string | null>(null);
   const [shareWithMember, setShareWithMember] = useState(false);
   const [removingMember, setRemovingMember] = useState(false);
 
   // Leave Pod state (for team members)
   const [showLeavePodModal, setShowLeavePodModal] = useState(false);
   const [leaveReason, setLeaveReason] = useState('');
+  const [selectedLeaveReason, setSelectedLeaveReason] = useState<string | null>(null);
   const [shareWithLeader, setShareWithLeader] = useState(false);
   const [leavingPod, setLeavingPod] = useState(false);
 
@@ -433,10 +463,14 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
   };
 
   const handleRemoveMember = async () => {
-    if (!memberToRemove || removalReason.length < 50) {
-      Alert.alert('Error', 'Please provide a reason with at least 50 characters');
+    if (!memberToRemove || !selectedRemovalReason) {
+      Alert.alert('Error', 'Please select a reason for removal');
       return;
     }
+
+    const combinedReason = removalReason.trim()
+      ? `${selectedRemovalReason}\n\nDetails: ${removalReason.trim()}`
+      : selectedRemovalReason;
 
     setRemovingMember(true);
     try {
@@ -472,7 +506,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
               type: 'member_removed',
               pursuitId: pursuit.id,
               pursuitTitle: pursuit.title,
-              removalReason: removalReason,
+              removalReason: combinedReason,
               removedAt: new Date().toISOString()
             },
             'member_removed',
@@ -490,6 +524,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
       setMemberToRemove(null);
       setShowRemovalForm(false);
       setRemovalReason('');
+      setSelectedRemovalReason(null);
       setShareWithMember(false);
       setShowEditTeamModal(false);
 
@@ -528,7 +563,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
       if (countError) console.error('Count update error:', countError);
 
       setIsTeamMember(true);
-      Alert.alert('Welcome aboard!', `You're now a member of "${pursuit.title}".`);
+      Alert.alert("you're in! 🐋", `welcome to "${pursuit.title}". get in, loser — we're makin' plans.`);
     } catch (err: any) {
       console.error('Join open pod error:', err);
       Alert.alert('Error', err.message || 'Failed to join pod');
@@ -538,10 +573,14 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
   };
 
   const handleLeavePod = async () => {
-    if (!user || leaveReason.length < 50) {
-      Alert.alert('Error', 'Please provide a reason with at least 50 characters');
+    if (!user || !selectedLeaveReason) {
+      Alert.alert('Error', 'Please select a reason for leaving');
       return;
     }
+
+    const combinedLeaveReason = leaveReason.trim()
+      ? `${selectedLeaveReason}\n\nDetails: ${leaveReason.trim()}`
+      : selectedLeaveReason;
 
     setLeavingPod(true);
     try {
@@ -593,7 +632,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
               pursuitId: pursuit.id,
               pursuitTitle: pursuit.title,
               memberName: userName,
-              leaveReason: leaveReason,
+              leaveReason: combinedLeaveReason,
               leftAt: new Date().toISOString()
             },
             'member_left',
@@ -614,6 +653,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
       // Reset state
       setShowLeavePodModal(false);
       setLeaveReason('');
+      setSelectedLeaveReason(null);
       setShareWithLeader(false);
     } catch (error: any) {
       console.error('Error leaving pod:', error);
@@ -677,7 +717,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
         <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         {isNewTheme && <GrainTexture opacity={0.06} />}
         <ActivityIndicator size="large" color={isNewTheme ? colors.accentGreen : legacyColors.secondary} />
-        <Text style={[styles.loadingText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Loading...</Text>
+        <Text style={[styles.loadingText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Loading...</Text>
       </View>
     );
   }
@@ -813,24 +853,60 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
     <ScrollView style={{ flex: 1 }}>
       <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       {isNewTheme && <GrainTexture opacity={0.06} />}
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Text style={[styles.backText, { color: isNewTheme ? colors.accentGreen : colors.primary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : 'Sora_500Medium', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0 }]}>← Back</Text>
-        </TouchableOpacity>
-        <View style={styles.headerTitleRow}>
-          <Text style={[styles.title, { color: isNewTheme ? colors.accentGreen : colors.textPrimary, fontFamily: isNewTheme ? 'NothingYouCouldDo_400Regular' : 'PlayfairDisplay_700Bold' }]}>{pursuit.title}</Text>
-          {pursuit.default_picture && (
-            <Image
-              source={{ uri: pursuit.default_picture }}
-              style={[styles.headerPodPicture, { borderColor: isNewTheme ? colors.border : undefined, borderWidth: isNewTheme ? 1 : 0 }]}
-            />
+
+      {/* NEW DARK-THEME HERO — full-bleed cover image with title overlay */}
+      {isNewTheme ? (
+        <View style={styles.heroCoverWrap}>
+          {pursuit.cover_image_url ? (
+            <Image source={{ uri: pursuit.cover_image_url }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+          ) : (
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' }]}>
+              <View style={[styles.heroCoverPlaceholderDot, { backgroundColor: colors.accentGreen, opacity: 0.3 }]} />
+            </View>
           )}
+          {/* Bottom darkening for title legibility */}
+          <View style={styles.heroCoverGradient} pointerEvents="none" />
+
+          {/* Back chevron (glass) */}
+          <TouchableOpacity onPress={onBack} style={styles.heroBackChip} activeOpacity={0.8}>
+            <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          {/* Edit cover (owner only) — routes to Edit Pursuit screen via the existing edit button on the action bar */}
+          {isOwner && pursuit.cover_image_url && (
+            <View style={styles.heroEditChip}>
+              <Ionicons name="image-outline" size={16} color="#FFFFFF" />
+              <Text style={styles.heroEditChipText}>cover</Text>
+            </View>
+          )}
+
+          {/* Title overlay */}
+          <View style={styles.heroTitleOverlay}>
+            <Text style={styles.heroTitleText} numberOfLines={3}>
+              {pursuit.title}
+            </Text>
+          </View>
         </View>
-      </View>
+      ) : (
+        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+          <TouchableOpacity onPress={onBack} style={styles.backButton}>
+            <Text style={[styles.backText, { color: colors.primary, fontFamily: 'Sora_500Medium' }]}>← Back</Text>
+          </TouchableOpacity>
+          <View style={styles.headerTitleRow}>
+            <Text style={[styles.title, { color: colors.textPrimary, fontFamily: 'PlayfairDisplay_700Bold' }]}>{pursuit.title}</Text>
+            {pursuit.default_picture && (
+              <Image
+                source={{ uri: pursuit.default_picture }}
+                style={styles.headerPodPicture}
+              />
+            )}
+          </View>
+        </View>
+      )}
 
       <View style={styles.content}>
         <View style={styles.creatorSection}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined, textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0 }]}>Created By</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : undefined, textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0 }]}>Created By</Text>
           <TouchableOpacity
             style={[styles.creatorCard, { backgroundColor: colors.surface, borderColor: isNewTheme ? colors.accentGreen : colors.border, borderWidth: isNewTheme ? 0.35 : 0 }]}
             onPress={() => {
@@ -848,8 +924,8 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
               </View>
             )}
             <View style={styles.creatorInfo}>
-              <Text style={[styles.creatorName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{creatorProfile?.name || 'Loading...'}</Text>
-              <Text style={[styles.viewProfileText, { color: isNewTheme ? colors.accentGreen : legacyColors.secondary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined, textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 0.5 : 0 }]}>Tap to view profile →</Text>
+              <Text style={[styles.creatorName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{creatorProfile?.name || 'Loading...'}</Text>
+              <Text style={[styles.viewProfileText, { color: isNewTheme ? colors.accentGreen : legacyColors.secondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : undefined, textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 0.5 : 0 }]}>Tap to view profile →</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -858,13 +934,13 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
         {teamMembers.length > 0 && (
           <View style={[styles.section, { backgroundColor: colors.surface, borderColor: isNewTheme ? colors.accentGreen : colors.border, borderWidth: isNewTheme ? 0.35 : 0 }]}>
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined, textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0 }]}>Team Members ({teamMembers.length})</Text>
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : undefined, textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0 }]}>Team Members ({teamMembers.length})</Text>
               {isOwner && (
                 <TouchableOpacity
                   style={[styles.editTeamButton, { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.secondary }]}
                   onPress={() => setShowEditTeamModal(true)}
                 >
-                  <Text style={[styles.editTeamButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined, textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 0.5 : 0 }]}>Edit</Text>
+                  <Text style={[styles.editTeamButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_600SemiBold' : undefined, textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 0.5 : 0 }]}>Edit</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -897,7 +973,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                           </Text>
                         </View>
                       )}
-                      <Text style={[styles.memberName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]} numberOfLines={2}>
+                      <Text style={[styles.memberName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]} numberOfLines={2}>
                         {member.user?.name || 'Team Member'}
                       </Text>
                     </TouchableOpacity>
@@ -923,7 +999,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                           <Ionicons name="lock-closed" size={10} color={isNewTheme ? colors.background : '#fff'} />
                         </View>
                       </View>
-                      <Text style={[styles.memberName, styles.memberNameLocked, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]} numberOfLines={2}>
+                      <Text style={[styles.memberName, styles.memberNameLocked, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]} numberOfLines={2}>
                         {member.user?.name || 'Team Member'}
                       </Text>
                     </View>
@@ -935,8 +1011,8 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
         )}
 
         <View style={[styles.section, { backgroundColor: colors.surface, borderColor: isNewTheme ? colors.accentGreen : colors.border, borderWidth: isNewTheme ? 0.35 : 0, borderRadius: isNewTheme ? 12 : 16, padding: isNewTheme ? 16 : 20 }]}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : 'Lora_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0.3 }]}>Description</Text>
-          <Text style={[styles.description, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : 'Sora_400Regular', lineHeight: isNewTheme ? 22 : 24 }]}>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'Lora_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0.3 }]}>Description</Text>
+          <Text style={[styles.description, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : 'Sora_400Regular', lineHeight: isNewTheme ? 22 : 24 }]}>
             {isNewTheme ? pursuit.description : typedDescription}
             {!isNewTheme && descriptionTyping && <Text style={{ color: colors.primary, fontWeight: '700' }}>|</Text>}
           </Text>
@@ -944,14 +1020,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
 
         <Animated.View style={[styles.section, { backgroundColor: colors.surface, borderColor: isNewTheme ? colors.accentGreen : colors.border, borderWidth: isNewTheme ? 0.35 : 0, borderRadius: isNewTheme ? 12 : 16, padding: isNewTheme ? 16 : 20, opacity: detailsOpacity, transform: [{ translateY: detailsTranslateY }], overflow: 'hidden' }]}>
           <View style={[styles.detailCardAccentLine, { backgroundColor: colors.accentGreen }]} pointerEvents="none" />
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : 'Lora_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0.3 }]}>Details</Text>
-
-          {/* Decorative 3-dot divider */}
-          <View style={styles.detailDotDivider}>
-            <View style={[styles.detailDotDividerDot, { backgroundColor: colors.accentGreen }]} />
-            <View style={[styles.detailDotDividerDot, { backgroundColor: colors.accentGreen }]} />
-            <View style={[styles.detailDotDividerDot, { backgroundColor: colors.accentGreen }]} />
-          </View>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'Lora_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0.3 }]}>Details</Text>
 
           {/* Location - conditional display based on membership */}
           {(isTeamMember || isOwner) && pursuit.address ? (
@@ -961,8 +1030,8 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                   <Ionicons name="navigate-outline" size={14} color={colors.accentGreen} />
                 </View>
                 <View style={styles.detailTextGroup}>
-                  <Text style={[styles.detailLabelModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : 'Sora_400Regular' }]}>Address</Text>
-                  <Text style={[styles.detailValueModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : 'Sora_400Regular' }]}>{pursuit.address}</Text>
+                  <Text style={[styles.detailLabelModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : 'Sora_400Regular' }]}>Address</Text>
+                  <Text style={[styles.detailValueModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : 'Sora_400Regular' }]}>{pursuit.address}</Text>
                 </View>
               </View>
               {pursuit.latitude && pursuit.longitude && (
@@ -979,8 +1048,8 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                     <Ionicons name="map-outline" size={14} color={colors.accentGreen} />
                   </View>
                   <View style={styles.detailTextGroup}>
-                    <Text style={[styles.detailLabelModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : 'Sora_400Regular' }]}>Neighborhood</Text>
-                    <Text style={[styles.detailValueModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : 'Sora_400Regular' }]}>{pursuit.neighborhood}</Text>
+                    <Text style={[styles.detailLabelModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : 'Sora_400Regular' }]}>Neighborhood</Text>
+                    <Text style={[styles.detailValueModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : 'Sora_400Regular' }]}>{pursuit.neighborhood}</Text>
                   </View>
                 </View>
               )}
@@ -989,8 +1058,8 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                   <Ionicons name="location-outline" size={14} color={colors.accentGreen} />
                 </View>
                 <View style={styles.detailTextGroup}>
-                  <Text style={[styles.detailLabelModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : 'Sora_400Regular' }]}>Location</Text>
-                  <Text style={[styles.detailValueModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : 'Sora_400Regular' }]}>{pursuit.location}</Text>
+                  <Text style={[styles.detailLabelModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : 'Sora_400Regular' }]}>Location</Text>
+                  <Text style={[styles.detailValueModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : 'Sora_400Regular' }]}>{pursuit.location}</Text>
                 </View>
               </View>
             </>
@@ -1001,8 +1070,8 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                   <Ionicons name="location-outline" size={14} color={colors.accentGreen} />
                 </View>
                 <View style={styles.detailTextGroup}>
-                  <Text style={[styles.detailLabelModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : 'Sora_400Regular' }]}>Location</Text>
-                  <Text style={[styles.detailValueModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : 'Sora_400Regular' }]}>{pursuit.location}</Text>
+                  <Text style={[styles.detailLabelModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : 'Sora_400Regular' }]}>Location</Text>
+                  <Text style={[styles.detailValueModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : 'Sora_400Regular' }]}>{pursuit.location}</Text>
                 </View>
               </View>
               {pursuit.neighborhood && (
@@ -1011,8 +1080,8 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                     <Ionicons name="map-outline" size={14} color={colors.accentGreen} />
                   </View>
                   <View style={styles.detailTextGroup}>
-                    <Text style={[styles.detailLabelModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : 'Sora_400Regular' }]}>Neighborhood</Text>
-                    <Text style={[styles.detailValueModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : 'Sora_400Regular' }]}>{pursuit.neighborhood}</Text>
+                    <Text style={[styles.detailLabelModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : 'Sora_400Regular' }]}>Neighborhood</Text>
+                    <Text style={[styles.detailValueModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : 'Sora_400Regular' }]}>{pursuit.neighborhood}</Text>
                   </View>
                 </View>
               )}
@@ -1022,7 +1091,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                     <Ionicons name="lock-closed-outline" size={14} color={colors.textTertiary} />
                   </View>
                   <View style={styles.detailTextGroup}>
-                    <Text style={[styles.detailValueModern, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : 'Sora_400Regular', fontStyle: 'italic', fontSize: 12 }]}>
+                    <Text style={[styles.detailValueModern, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_400Regular' : 'Sora_400Regular', fontStyle: 'italic', fontSize: 12 }]}>
                       Exact location visible to pod members
                     </Text>
                   </View>
@@ -1036,8 +1105,8 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
               <Ionicons name="calendar-outline" size={14} color={colors.accentGreen} />
             </View>
             <View style={styles.detailTextGroup}>
-              <Text style={[styles.detailLabelModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : 'Sora_400Regular' }]}>Meeting Cadence</Text>
-              <Text style={[styles.detailValueModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : 'Sora_400Regular' }]}>{pursuit.meeting_cadence}</Text>
+              <Text style={[styles.detailLabelModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : 'Sora_400Regular' }]}>Meeting Cadence</Text>
+              <Text style={[styles.detailValueModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : 'Sora_400Regular' }]}>{pursuit.meeting_cadence}</Text>
             </View>
           </View>
 
@@ -1046,8 +1115,8 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
               <Ionicons name="people-outline" size={14} color={colors.accentGreen} />
             </View>
             <View style={styles.detailTextGroup}>
-              <Text style={[styles.detailLabelModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : 'Sora_400Regular' }]}>Team Size</Text>
-              <Text style={[styles.detailValueModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : 'Sora_400Regular' }]}>
+              <Text style={[styles.detailLabelModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : 'Sora_400Regular' }]}>Team Size</Text>
+              <Text style={[styles.detailValueModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : 'Sora_400Regular' }]}>
                 {pursuit.current_members_count}/{pursuit.team_size_max} members
               </Text>
             </View>
@@ -1058,9 +1127,9 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
               <Ionicons name="pulse-outline" size={14} color={pursuit.status === 'active' ? colors.success : colors.warning} />
             </View>
             <View style={styles.detailTextGroup}>
-              <Text style={[styles.detailLabelModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : 'Sora_400Regular' }]}>Status</Text>
+              <Text style={[styles.detailLabelModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : 'Sora_400Regular' }]}>Status</Text>
               <View style={[styles.detailStatusPill, { backgroundColor: pursuit.status === 'active' ? 'rgba(134, 239, 172, 0.15)' : 'rgba(252, 211, 77, 0.15)' }]}>
-                <Text style={[styles.detailStatusText, { color: pursuit.status === 'active' ? colors.success : colors.warning, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : 'Sora_400Regular' }]}>
+                <Text style={[styles.detailStatusText, { color: pursuit.status === 'active' ? colors.success : colors.warning, fontFamily: isNewTheme ? 'Sora_400Regular' : 'Sora_400Regular' }]}>
                   {pursuit.status === 'awaiting_kickoff' ? 'Awaiting Kickoff' : 'Active'}
                 </Text>
               </View>
@@ -1073,8 +1142,8 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                 <Ionicons name="rocket-outline" size={14} color={colors.accentGreen} />
               </View>
               <View style={styles.detailTextGroup}>
-                <Text style={[styles.detailLabelModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : 'Sora_400Regular' }]}>Initial Kick-Off</Text>
-                <Text style={[styles.detailValueModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : 'Sora_400Regular' }]}>
+                <Text style={[styles.detailLabelModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : 'Sora_400Regular' }]}>Initial Kick-Off</Text>
+                <Text style={[styles.detailValueModern, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : 'Sora_400Regular' }]}>
                   {initialKickoffDate.toLocaleDateString('en-US', {
                     weekday: 'short',
                     month: 'short',
@@ -1089,13 +1158,13 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
 
         {pursuit.pursuit_types && pursuit.pursuit_types.length > 0 && (
           <View style={[styles.section, { backgroundColor: colors.surface, borderColor: isNewTheme ? colors.accentGreen : colors.border, borderWidth: isNewTheme ? 0.35 : 0, borderRadius: isNewTheme ? 12 : 16, padding: isNewTheme ? 16 : 20 }]}>
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : 'Lora_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0.3 }]}>Pod Types</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'Lora_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0.3 }]}>Pod Types</Text>
             <View style={styles.tagContainer}>
               {pursuit.pursuit_types.map((type: string, i: number) => {
                 const tagColor = !isNewTheme ? getDetailTagColor(type, true) : null;
                 const tagView = (
                   <View key={i} style={[styles.tag, { backgroundColor: isNewTheme ? 'rgba(168, 230, 163, 0.15)' : tagColor!.bg, borderWidth: isNewTheme ? 1 : 0, borderColor: colors.accentGreenMuted }]}>
-                    <Text style={[styles.tagText, { color: isNewTheme ? colors.accentGreen : tagColor!.text, fontFamily: isNewTheme ? 'Aboreto_400Regular' : 'Lora_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 0.5 : 0 }]}>{type}</Text>
+                    <Text style={[styles.tagText, { color: isNewTheme ? colors.accentGreen : tagColor!.text, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'Lora_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 0.5 : 0 }]}>{type}</Text>
                   </View>
                 );
                 if (!isNewTheme && typeOpacities[i]) {
@@ -1113,13 +1182,13 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
 
         {pursuit.pursuit_categories && pursuit.pursuit_categories.length > 0 && (
           <View style={[styles.section, { backgroundColor: colors.surface, borderColor: isNewTheme ? colors.accentGreen : colors.border, borderWidth: isNewTheme ? 0.35 : 0, borderRadius: isNewTheme ? 12 : 16, padding: isNewTheme ? 16 : 20 }]}>
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : 'Lora_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0.3 }]}>Categories</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'Lora_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0.3 }]}>Categories</Text>
             <View style={styles.tagContainer}>
               {pursuit.pursuit_categories.map((category: string, i: number) => {
                 const tagColor = !isNewTheme ? getDetailTagColor(category, false) : null;
                 const tagView = (
                   <View key={i} style={[styles.tag, styles.categoryTag, { backgroundColor: isNewTheme ? 'rgba(129, 140, 248, 0.15)' : tagColor!.bg, borderWidth: isNewTheme ? 1 : 0, borderColor: isNewTheme ? colors.primary : undefined }]}>
-                    <Text style={[styles.tagText, styles.categoryTagText, { color: isNewTheme ? colors.primary : tagColor!.text, fontFamily: isNewTheme ? 'Aboreto_400Regular' : 'Lora_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 0.5 : 0 }]}>{category}</Text>
+                    <Text style={[styles.tagText, styles.categoryTagText, { color: isNewTheme ? colors.primary : tagColor!.text, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'Lora_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 0.5 : 0 }]}>{category}</Text>
                   </View>
                 );
                 if (!isNewTheme && catOpacities[i]) {
@@ -1137,18 +1206,18 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
 
         {pursuit.subcategory && (
           <View style={[styles.section, { backgroundColor: colors.surface, borderColor: isNewTheme ? colors.accentGreen : colors.border, borderWidth: isNewTheme ? 0.35 : 0, borderRadius: isNewTheme ? 12 : 16, padding: isNewTheme ? 16 : 20 }]}>
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : 'Lora_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0.3 }]}>Sub-category</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'Lora_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0.3 }]}>Sub-category</Text>
             <View style={styles.tagContainer}>
               <View style={[styles.tag, styles.subcategoryTag, { backgroundColor: isNewTheme ? 'rgba(252, 211, 77, 0.15)' : '#F0E8F5', borderWidth: isNewTheme ? 1 : 0, borderColor: isNewTheme ? colors.warning : undefined }]}>
-                <Text style={[styles.tagText, styles.subcategoryTagText, { color: isNewTheme ? colors.warning : '#5B3A8B', fontFamily: isNewTheme ? 'Aboreto_400Regular' : 'Lora_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 0.5 : 0 }]}>{pursuit.subcategory}</Text>
+                <Text style={[styles.tagText, styles.subcategoryTagText, { color: isNewTheme ? colors.warning : '#5B3A8B', fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'Lora_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 0.5 : 0 }]}>{pursuit.subcategory}</Text>
               </View>
             </View>
           </View>
         )}
 
         <View style={[styles.section, { backgroundColor: colors.surface, borderColor: isNewTheme ? colors.accentGreen : colors.border, borderWidth: isNewTheme ? 0.35 : 0, borderRadius: isNewTheme ? 12 : 16, padding: isNewTheme ? 16 : 20 }]}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : 'Lora_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0.3 }]}>Decision System</Text>
-          <Text style={[styles.detailValue, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : 'Sora_400Regular' }]}>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'Lora_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0.3 }]}>Decision System</Text>
+          <Text style={[styles.detailValue, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : 'Sora_400Regular' }]}>
             {pursuit.decision_system === 'admin_has_ultimate_say'
               ? 'Admin has full control'
               : pursuit.decision_system.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
@@ -1158,10 +1227,10 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
         {/* Next Meeting Section */}
         {nextMeeting && (
           <View style={[styles.section, styles.nextMeetingSection, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f0f9ff', borderColor: isNewTheme ? colors.accentGreen : legacyColors.secondary, borderWidth: 1 }]}>
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined, textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0 }]}>📅 Next Meeting</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : undefined, textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0 }]}>📅 Next Meeting</Text>
             <View style={styles.nextMeetingCard}>
-              <Text style={[styles.nextMeetingTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{nextMeeting.title}</Text>
-              <Text style={[styles.nextMeetingTime, { color: isNewTheme ? colors.accentGreen : legacyColors.secondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+              <Text style={[styles.nextMeetingTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{nextMeeting.title}</Text>
+              <Text style={[styles.nextMeetingTime, { color: isNewTheme ? colors.accentGreen : legacyColors.secondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                 {new Date(nextMeeting.scheduled_time).toLocaleDateString('en-US', {
                   weekday: 'long',
                   month: 'long',
@@ -1171,20 +1240,20 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                 })}
               </Text>
               <View style={styles.nextMeetingDetails}>
-                <Text style={[styles.nextMeetingDetail, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
+                <Text style={[styles.nextMeetingDetail, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                   ⏱️ {nextMeeting.duration_minutes} min
                 </Text>
-                <Text style={[styles.nextMeetingDetail, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
+                <Text style={[styles.nextMeetingDetail, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                   📍 {nextMeeting.meeting_type === 'video' ? 'Video Call' :
                       nextMeeting.meeting_type === 'in_person' ? 'In Person' : 'Hybrid'}
                 </Text>
               </View>
               {nextMeeting.is_kickoff && (
                 <View style={[styles.kickoffBadge, { backgroundColor: isNewTheme ? colors.warning : '#f59e0b' }]}>
-                  <Text style={[styles.kickoffBadgeText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined, letterSpacing: isNewTheme ? 0.5 : 0 }]}>🚀 KICKOFF MEETING</Text>
+                  <Text style={[styles.kickoffBadgeText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_600SemiBold' : undefined, letterSpacing: isNewTheme ? 0.5 : 0 }]}>🚀 KICKOFF MEETING</Text>
                 </View>
               )}
-              <Text style={[styles.teamBoardPrompt, { color: isNewTheme ? colors.accentGreen : legacyColors.secondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
+              <Text style={[styles.teamBoardPrompt, { color: isNewTheme ? colors.accentGreen : legacyColors.secondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                 💡 Add your thoughts to the Team Board!
               </Text>
             </View>
@@ -1193,132 +1262,217 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
 
         {/* Activate Kickoff Button */}
         {canActivateKickoff && (
-          <TouchableOpacity
-            style={[styles.activateKickoffButton, { backgroundColor: isNewTheme ? colors.warning : '#f59e0b', shadowColor: isNewTheme ? colors.warning : '#f59e0b' }]}
-            onPress={handleActivateKickoff}
-          >
-            <Text style={[styles.activateKickoffText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
-              🚀 Activate Kickoff ({pursuit.current_members_count}/{pursuit.team_size_min} members ready)
-            </Text>
-          </TouchableOpacity>
+          isNewTheme ? (
+            <View style={{ paddingHorizontal: 4, paddingTop: 4, paddingBottom: 8 }}>
+              <PieButton
+                label={`activate kickoff · ${pursuit.current_members_count}/${pursuit.team_size_min} ready`}
+                icon="rocket-outline"
+                iconPosition="left"
+                onPress={handleActivateKickoff}
+                full
+              />
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={[styles.activateKickoffButton, { backgroundColor: '#f59e0b', shadowColor: '#f59e0b' }]}
+              onPress={handleActivateKickoff}
+            >
+              <Text style={[styles.activateKickoffText, { color: legacyColors.white }]}>
+                🚀 Activate Kickoff ({pursuit.current_members_count}/{pursuit.team_size_min} members ready)
+              </Text>
+            </TouchableOpacity>
+          )
         )}
 
         {/* Schedule Kickoff Button (for creator when collecting proposals) */}
         {isOwner && pursuit.status === 'collecting_proposals' && (
-          <TouchableOpacity
-            style={[styles.scheduleKickoffButton, { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.success, shadowColor: isNewTheme ? colors.accentGreen : legacyColors.success }]}
-            onPress={() => setShowKickoffScheduling(true)}
-          >
-            <Text style={[styles.scheduleKickoffText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
-              📅 Review Proposals & Schedule Kickoff
-            </Text>
-          </TouchableOpacity>
+          isNewTheme ? (
+            <View style={{ paddingHorizontal: 4, paddingTop: 4, paddingBottom: 8 }}>
+              <PieButton
+                label="review times & schedule kickoff"
+                icon="calendar-outline"
+                iconPosition="left"
+                onPress={() => setShowKickoffScheduling(true)}
+                full
+              />
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={[styles.scheduleKickoffButton, { backgroundColor: legacyColors.success, shadowColor: legacyColors.success }]}
+              onPress={() => setShowKickoffScheduling(true)}
+            >
+              <Text style={[styles.scheduleKickoffText, { color: legacyColors.white }]}>
+                📅 Review Proposals & Schedule Kickoff
+              </Text>
+            </TouchableOpacity>
+          )
         )}
 
         {/* Time Slot Proposal Button (for team members) */}
         {!isOwner && isTeamMember && pursuit.status === 'collecting_proposals' && (
           <>
             {hasSubmittedProposal ? (
-              <View style={[styles.proposalSubmittedBadge, { backgroundColor: isNewTheme ? 'rgba(168, 230, 163, 0.15)' : '#e0f2fe', borderColor: isNewTheme ? colors.accentGreen : legacyColors.secondary }]}>
-                <Text style={[styles.proposalSubmittedText, { color: isNewTheme ? colors.accentGreen : legacyColors.secondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>✓ Time Proposals Submitted</Text>
-                <Text style={[styles.proposalSubmittedSubtext, { color: isNewTheme ? colors.accentGreenMuted : '#0369a1', fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
-                  Waiting for team creator to select final time
-                </Text>
-              </View>
+              isNewTheme ? (
+                <View style={{ paddingHorizontal: 4, paddingTop: 4, paddingBottom: 8 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 16, backgroundColor: 'rgba(200, 255, 107, 0.10)', borderWidth: 1, borderColor: 'rgba(200, 255, 107, 0.25)' }}>
+                    <Ionicons name="checkmark-circle" size={20} color={colors.accentGreen} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: colors.accentGreen, fontFamily: 'Sora_600SemiBold', fontSize: 14 }}>times sent ✓</Text>
+                      <Text style={{ color: colors.textSecondary, fontFamily: 'Sora_400Regular', fontSize: 12, marginTop: 2 }}>chillin' till the creator picks the slot</Text>
+                    </View>
+                  </View>
+                </View>
+              ) : (
+                <View style={[styles.proposalSubmittedBadge, { backgroundColor: '#e0f2fe', borderColor: legacyColors.secondary }]}>
+                  <Text style={[styles.proposalSubmittedText, { color: legacyColors.secondary }]}>✓ Time Proposals Submitted</Text>
+                  <Text style={[styles.proposalSubmittedSubtext, { color: '#0369a1' }]}>
+                    Waiting for team creator to select final time
+                  </Text>
+                </View>
+              )
             ) : (
-              <TouchableOpacity
-                style={[styles.proposeTimesButton, { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.secondary, shadowColor: isNewTheme ? colors.accentGreen : legacyColors.secondary }]}
-                onPress={() => setShowTimeSlotProposal(true)}
-              >
-                <Text style={[styles.proposeTimesText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
-                  📅 Propose Available Times
-                </Text>
-              </TouchableOpacity>
+              isNewTheme ? (
+                <View style={{ paddingHorizontal: 4, paddingTop: 4, paddingBottom: 8 }}>
+                  <PieButton label="drop your times" icon="calendar-outline" iconPosition="left" onPress={() => setShowTimeSlotProposal(true)} full />
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.proposeTimesButton, { backgroundColor: legacyColors.secondary, shadowColor: legacyColors.secondary }]}
+                  onPress={() => setShowTimeSlotProposal(true)}
+                >
+                  <Text style={[styles.proposeTimesText, { color: legacyColors.white }]}>
+                    📅 Propose Available Times
+                  </Text>
+                </TouchableOpacity>
+              )
             )}
           </>
         )}
 
         {isOwner && onOpenTeamBoard && (
-          <View style={styles.ownerActions}>
-            {onEdit && (
+          isNewTheme ? (
+            <View style={{ paddingHorizontal: 4, paddingTop: 4, gap: 10 }}>
+              <PieButton label="team board" icon="grid-outline" iconPosition="left" onPress={() => onOpenTeamBoard(pursuit.id)} full />
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <PieButton label="pod chat" icon="chatbubble-outline" iconPosition="left" variant="secondary" size="md" onPress={() => setShowPodChat(true)} style={{ flex: 1 }} />
+                <PieButton label="applications" icon="documents-outline" iconPosition="left" variant="secondary" size="md" onPress={() => setShowApplicationsReview(true)} style={{ flex: 1 }} />
+              </View>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                {onEdit && (
+                  <PieButton label="edit" icon="pencil" iconPosition="left" variant="ghost" size="md" onPress={onEdit} style={{ flex: 1 }} />
+                )}
+                <PieButton label="delete" icon="trash-outline" iconPosition="left" variant="destructive" size="md" onPress={() => setShowDeleteModal(true)} style={{ flex: 1 }} />
+              </View>
+            </View>
+          ) : (
+            <View style={styles.ownerActions}>
+              {onEdit && (
+                <TouchableOpacity
+                  style={[styles.editButton, { backgroundColor: '#f59e0b' }]}
+                  onPress={onEdit}
+                >
+                  <Text style={[styles.editButtonText, { color: legacyColors.white }]}>✏️ Edit Pod</Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
-                style={[styles.editButton, { backgroundColor: isNewTheme ? colors.warning : '#f59e0b' }]}
-                onPress={onEdit}
+                style={[styles.teamBoardButton, { backgroundColor: '#2D5016' }]}
+                onPress={() => onOpenTeamBoard(pursuit.id)}
               >
-                <Text style={[styles.editButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>✏️ Edit Pod</Text>
+                <Text style={[styles.teamBoardButtonText, { color: legacyColors.white }]}>📋 Team Board</Text>
               </TouchableOpacity>
-            )}
-            <TouchableOpacity
-              style={[styles.teamBoardButton, { backgroundColor: isNewTheme ? colors.primary : '#2D5016' }]}
-              onPress={() => onOpenTeamBoard(pursuit.id)}
-            >
-              <Text style={[styles.teamBoardButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>📋 Team Board</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.podChatButton, { backgroundColor: isNewTheme ? colors.primaryHover : '#2D5016' }]}
-              onPress={() => setShowPodChat(true)}
-            >
-              <Text style={[styles.podChatButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>💬 Pod Chat</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.reviewButton, { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.secondary }]}
-              onPress={() => setShowApplicationsReview(true)}
-            >
-              <Text style={[styles.reviewButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>📋 Review Applications</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.deleteButton, { backgroundColor: colors.error }]} onPress={() => setShowDeleteModal(true)}>
-              <Text style={[styles.deleteButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>🗑️ Delete Pod</Text>
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity
+                style={[styles.podChatButton, { backgroundColor: '#2D5016' }]}
+                onPress={() => setShowPodChat(true)}
+              >
+                <Text style={[styles.podChatButtonText, { color: legacyColors.white }]}>💬 Pod Chat</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.reviewButton, { backgroundColor: legacyColors.secondary }]}
+                onPress={() => setShowApplicationsReview(true)}
+              >
+                <Text style={[styles.reviewButtonText, { color: legacyColors.white }]}>📋 Review Applications</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.deleteButton, { backgroundColor: colors.error }]} onPress={() => setShowDeleteModal(true)}>
+                <Text style={[styles.deleteButtonText, { color: legacyColors.white }]}>🗑️ Delete Pod</Text>
+              </TouchableOpacity>
+            </View>
+          )
         )}
 
         {!isOwner && (
           <>
             {isTeamMember ? (
-              // Team member actions
-              <View style={styles.teamMemberActions}>
-                {onOpenTeamBoard && (
+              isNewTheme ? (
+                <View style={{ paddingHorizontal: 4, paddingTop: 4, gap: 10 }}>
+                  {onOpenTeamBoard && (
+                    <PieButton label="team board" icon="grid-outline" iconPosition="left" onPress={() => onOpenTeamBoard(pursuit.id)} full />
+                  )}
+                  <PieButton label="pod chat" icon="chatbubble-outline" iconPosition="left" variant="secondary" size="md" onPress={() => setShowPodChat(true)} full />
+                  <PieButton label="leave pod" icon="exit-outline" iconPosition="left" variant="destructive" size="md" onPress={() => setShowLeavePodModal(true)} full />
+                </View>
+              ) : (
+                <View style={styles.teamMemberActions}>
+                  {onOpenTeamBoard && (
+                    <TouchableOpacity
+                      style={[styles.teamBoardButtonMember, { backgroundColor: '#2D5016', shadowColor: '#2D5016' }]}
+                      onPress={() => onOpenTeamBoard(pursuit.id)}
+                    >
+                      <Text style={[styles.teamBoardButtonText, { color: legacyColors.white }]}>📋 Team Board</Text>
+                    </TouchableOpacity>
+                  )}
                   <TouchableOpacity
-                    style={[styles.teamBoardButtonMember, { backgroundColor: isNewTheme ? colors.primary : '#2D5016', shadowColor: isNewTheme ? colors.primary : '#2D5016' }]}
-                    onPress={() => onOpenTeamBoard(pursuit.id)}
+                    style={[styles.podChatButtonMember, { backgroundColor: '#2D5016', shadowColor: '#2D5016' }]}
+                    onPress={() => setShowPodChat(true)}
                   >
-                    <Text style={[styles.teamBoardButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>📋 Team Board</Text>
+                    <Text style={[styles.podChatButtonText, { color: legacyColors.white }]}>💬 Pod Chat</Text>
                   </TouchableOpacity>
-                )}
-                <TouchableOpacity
-                  style={[styles.podChatButtonMember, { backgroundColor: isNewTheme ? colors.primaryHover : '#2D5016', shadowColor: isNewTheme ? colors.primaryHover : '#2D5016' }]}
-                  onPress={() => setShowPodChat(true)}
-                >
-                  <Text style={[styles.podChatButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>💬 Pod Chat</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.leavePodButton, { backgroundColor: colors.error, shadowColor: colors.error }]}
-                  onPress={() => setShowLeavePodModal(true)}
-                >
-                  <Text style={[styles.leavePodButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>🚪 Leave Pod</Text>
-                </TouchableOpacity>
-              </View>
+                  <TouchableOpacity
+                    style={[styles.leavePodButton, { backgroundColor: colors.error, shadowColor: colors.error }]}
+                    onPress={() => setShowLeavePodModal(true)}
+                  >
+                    <Text style={[styles.leavePodButtonText, { color: legacyColors.white }]}>🚪 Leave Pod</Text>
+                  </TouchableOpacity>
+                </View>
+              )
             ) : hasApplied ? (
               <View style={[styles.appliedBadge, { backgroundColor: isNewTheme ? 'rgba(168, 230, 163, 0.15)' : '#d1fae5', borderColor: isNewTheme ? colors.accentGreen : legacyColors.success }]}>
-                <Text style={[styles.appliedText, { color: isNewTheme ? colors.accentGreen : legacyColors.success, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>✓ Application Submitted</Text>
+                <Text style={[styles.appliedText, { color: isNewTheme ? colors.accentGreen : legacyColors.success, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>✓ Application Submitted</Text>
               </View>
             ) : pursuit.is_open_pod ? (
-              <TouchableOpacity
-                style={[styles.applyButton, { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.success, shadowColor: isNewTheme ? colors.accentGreen : legacyColors.success, opacity: joiningOpenPod ? 0.6 : 1 }]}
-                onPress={handleJoinOpenPod}
-                disabled={joiningOpenPod}
-              >
-                <Text style={[styles.applyButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : 'Sora_400Regular' }]}>
-                  {joiningOpenPod ? 'Joining…' : 'Join Pod — Open'}
-                </Text>
-              </TouchableOpacity>
+              isNewTheme ? (
+                <View style={{ paddingHorizontal: 4, paddingTop: 4 }}>
+                  <PieButton
+                    label={joiningOpenPod ? 'joining…' : 'join pod'}
+                    icon="arrow-forward"
+                    onPress={handleJoinOpenPod}
+                    loading={joiningOpenPod}
+                    full
+                  />
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.applyButton, { backgroundColor: legacyColors.success, shadowColor: legacyColors.success, opacity: joiningOpenPod ? 0.6 : 1 }]}
+                  onPress={handleJoinOpenPod}
+                  disabled={joiningOpenPod}
+                >
+                  <Text style={[styles.applyButtonText, { color: legacyColors.white, fontFamily: 'Sora_400Regular' }]}>
+                    {joiningOpenPod ? 'Joining…' : 'Join Pod — Open'}
+                  </Text>
+                </TouchableOpacity>
+              )
             ) : (
-              <TouchableOpacity
-                style={[styles.applyButton, { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.success, shadowColor: isNewTheme ? colors.accentGreen : legacyColors.success }]}
-                onPress={() => setShowApplicationForm(true)}
-              >
-                <Text style={[styles.applyButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : 'Sora_400Regular' }]}>Apply to Join</Text>
-              </TouchableOpacity>
+              isNewTheme ? (
+                <View style={{ paddingHorizontal: 4, paddingTop: 4 }}>
+                  <PieButton label="apply to join" icon="arrow-forward" onPress={() => setShowApplicationForm(true)} full />
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.applyButton, { backgroundColor: legacyColors.success, shadowColor: legacyColors.success }]}
+                  onPress={() => setShowApplicationForm(true)}
+                >
+                  <Text style={[styles.applyButtonText, { color: legacyColors.white, fontFamily: 'Sora_400Regular' }]}>Apply to Join</Text>
+                </TouchableOpacity>
+              )
             )}
           </>
         )}
@@ -1334,6 +1488,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
           setMemberToRemove(null);
           setShowRemovalForm(false);
           setRemovalReason('');
+          setSelectedRemovalReason(null);
           setShareWithMember(false);
         }}
       >
@@ -1343,7 +1498,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
         >
           <View style={[styles.modalContainer, { backgroundColor: colors.surface }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.modalTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+              <Text style={[styles.modalTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                 {showRemovalForm ? 'Remove Member' : 'Edit Team Members'}
               </Text>
               <TouchableOpacity
@@ -1379,11 +1534,8 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                         </View>
                       )}
                       <View style={styles.editMemberDetails}>
-                        <Text style={[styles.editMemberName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                        <Text style={[styles.editMemberName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                           {member.user?.name || 'Team Member'}
-                        </Text>
-                        <Text style={[styles.editMemberEmail, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
-                          {member.user?.email}
                         </Text>
                       </View>
                     </View>
@@ -1396,39 +1548,68 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                   </View>
                 ))}
                 {teamMembers.length === 0 && (
-                  <Text style={[styles.noMembersText, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>No team members yet</Text>
+                  <Text style={[styles.noMembersText, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>No team members yet</Text>
                 )}
               </ScrollView>
             ) : (
               // Removal form
               <ScrollView style={styles.modalContent}>
                 <View style={styles.removalForm}>
-                  <Text style={[styles.removalMemberName, { color: colors.error, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                  <Text style={[styles.removalMemberName, { color: colors.error, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                     Removing: {memberToRemove?.user?.name || 'Team Member'}
                   </Text>
 
-                  <Text style={[styles.removalLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_600SemiBold' : undefined }]}>Reason for Removal</Text>
-                  <Text style={[styles.removalSubLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
-                    Please explain why you are removing this member (50 character minimum)
+                  <Text style={[styles.removalLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : undefined }]}>Reason for Removal</Text>
+                  <Text style={[styles.removalSubLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
+                    Pick the reason that best fits.
                   </Text>
+                  <View style={{ marginBottom: 16 }}>
+                    {REMOVE_MEMBER_REASONS.map((r) => {
+                      const selected = selectedRemovalReason === r;
+                      return (
+                        <TouchableOpacity
+                          key={r}
+                          onPress={() => setSelectedRemovalReason(r)}
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            paddingVertical: 10,
+                            paddingHorizontal: 12,
+                            borderRadius: 10,
+                            marginBottom: 6,
+                            backgroundColor: selected ? (isNewTheme ? 'rgba(168, 230, 163, 0.15)' : '#E4EDDE') : (isNewTheme ? colors.surfaceAlt : '#f9f9f9'),
+                            borderWidth: 1,
+                            borderColor: selected ? (isNewTheme ? colors.accentGreen : legacyColors.primary) : 'transparent',
+                          }}
+                          activeOpacity={0.7}
+                        >
+                          <View style={{
+                            width: 18, height: 18, borderRadius: 9, borderWidth: 2,
+                            borderColor: selected ? (isNewTheme ? colors.accentGreen : legacyColors.primary) : colors.border,
+                            alignItems: 'center', justifyContent: 'center', marginRight: 10,
+                          }}>
+                            {selected && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary }} />}
+                          </View>
+                          <Text style={{ flex: 1, color: colors.textPrimary, fontSize: 14, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }}>
+                            {r}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  <Text style={[styles.removalLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : undefined }]}>Add details (optional)</Text>
                   <TextInput
-                    style={[styles.removalInput, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f9f9f9', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
+                    style={[styles.removalInput, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f9f9f9', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}
                     value={removalReason}
                     onChangeText={setRemovalReason}
-                    placeholder="Enter reason for removal..."
+                    placeholder="Any additional context you'd like to add…"
                     placeholderTextColor={colors.textTertiary}
                     multiline
                     numberOfLines={4}
                     spellCheck={true}
                     autoCorrect={true}
                   />
-                  <Text style={[
-                    styles.characterCount,
-                    { color: isNewTheme ? colors.accentGreen : legacyColors.success, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined },
-                    removalReason.length < 50 && { color: colors.error }
-                  ]}>
-                    {removalReason.length}/50 characters minimum
-                  </Text>
 
                   <TouchableOpacity
                     style={styles.checkboxRow}
@@ -1437,9 +1618,9 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                     <View style={[styles.checkbox, { borderColor: colors.border }, shareWithMember && { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.secondary, borderColor: isNewTheme ? colors.accentGreen : legacyColors.secondary }]}>
                       {shareWithMember && <Text style={[styles.checkboxMark, { color: isNewTheme ? colors.background : legacyColors.white }]}>✓</Text>}
                     </View>
-                    <Text style={[styles.checkboxLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>Share with the member?</Text>
+                    <Text style={[styles.checkboxLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Share with the member?</Text>
                   </TouchableOpacity>
-                  <Text style={[styles.checkboxHint, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
+                  <Text style={[styles.checkboxHint, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                     If checked, the member will receive a notification with your reason
                   </Text>
 
@@ -1450,21 +1631,22 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                         setMemberToRemove(null);
                         setShowRemovalForm(false);
                         setRemovalReason('');
+                        setSelectedRemovalReason(null);
                         setShareWithMember(false);
                       }}
                     >
-                      <Text style={[styles.cancelRemovalText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Cancel</Text>
+                      <Text style={[styles.cancelRemovalText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Cancel</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[
                         styles.confirmRemovalButton,
                         { backgroundColor: colors.error },
-                        (removalReason.length < 50 || removingMember) && styles.buttonDisabled
+                        (!selectedRemovalReason || removingMember) && styles.buttonDisabled
                       ]}
                       onPress={handleRemoveMember}
-                      disabled={removalReason.length < 50 || removingMember}
+                      disabled={!selectedRemovalReason || removingMember}
                     >
-                      <Text style={[styles.confirmRemovalText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                      <Text style={[styles.confirmRemovalText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                         {removingMember ? 'Removing...' : 'Remove Member'}
                       </Text>
                     </TouchableOpacity>
@@ -1484,6 +1666,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
         onRequestClose={() => {
           setShowLeavePodModal(false);
           setLeaveReason('');
+          setSelectedLeaveReason(null);
           setShareWithLeader(false);
         }}
       >
@@ -1493,12 +1676,13 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
         >
           <View style={[styles.modalContainer, { backgroundColor: colors.surface }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.modalTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Leave Pod</Text>
+              <Text style={[styles.modalTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Leave Pod</Text>
               <TouchableOpacity
                 style={[styles.modalCloseButton, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f5f5f5' }]}
                 onPress={() => {
                   setShowLeavePodModal(false);
                   setLeaveReason('');
+                  setSelectedLeaveReason(null);
                   setShareWithLeader(false);
                 }}
               >
@@ -1508,32 +1692,61 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
 
             <ScrollView style={styles.modalContent}>
               <View style={styles.removalForm}>
-                <Text style={[styles.leavePodTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_600SemiBold' : undefined }]}>
+                <Text style={[styles.leavePodTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : undefined }]}>
                   Are you sure you want to leave "{pursuit.title}"?
                 </Text>
 
-                <Text style={[styles.removalLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_600SemiBold' : undefined }]}>Reason for Leaving</Text>
-                <Text style={[styles.removalSubLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
-                  Please explain why you are leaving this pod (50 character minimum)
+                <Text style={[styles.removalLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : undefined }]}>Reason for Leaving</Text>
+                <Text style={[styles.removalSubLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
+                  Pick the reason that best fits.
                 </Text>
+                <View style={{ marginBottom: 16 }}>
+                  {LEAVE_POD_REASONS.map((r) => {
+                    const selected = selectedLeaveReason === r;
+                    return (
+                      <TouchableOpacity
+                        key={r}
+                        onPress={() => setSelectedLeaveReason(r)}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          paddingVertical: 10,
+                          paddingHorizontal: 12,
+                          borderRadius: 10,
+                          marginBottom: 6,
+                          backgroundColor: selected ? (isNewTheme ? 'rgba(168, 230, 163, 0.15)' : '#E4EDDE') : (isNewTheme ? colors.surfaceAlt : '#f9f9f9'),
+                          borderWidth: 1,
+                          borderColor: selected ? (isNewTheme ? colors.accentGreen : legacyColors.primary) : 'transparent',
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <View style={{
+                          width: 18, height: 18, borderRadius: 9, borderWidth: 2,
+                          borderColor: selected ? (isNewTheme ? colors.accentGreen : legacyColors.primary) : colors.border,
+                          alignItems: 'center', justifyContent: 'center', marginRight: 10,
+                        }}>
+                          {selected && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary }} />}
+                        </View>
+                        <Text style={{ flex: 1, color: colors.textPrimary, fontSize: 14, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }}>
+                          {r}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                <Text style={[styles.removalLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : undefined }]}>Add details (optional)</Text>
                 <TextInput
-                  style={[styles.removalInput, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f9f9f9', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
+                  style={[styles.removalInput, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f9f9f9', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}
                   value={leaveReason}
                   onChangeText={setLeaveReason}
-                  placeholder="Enter reason for leaving..."
+                  placeholder="Any additional context you'd like to add…"
                   placeholderTextColor={colors.textTertiary}
                   multiline
                   numberOfLines={4}
                   spellCheck={true}
                   autoCorrect={true}
                 />
-                <Text style={[
-                  styles.characterCount,
-                  { color: isNewTheme ? colors.accentGreen : legacyColors.success, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined },
-                  leaveReason.length < 50 && { color: colors.error }
-                ]}>
-                  {leaveReason.length}/50 characters minimum
-                </Text>
 
                 <TouchableOpacity
                   style={styles.checkboxRow}
@@ -1542,9 +1755,9 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                   <View style={[styles.checkbox, { borderColor: colors.border }, shareWithLeader && { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.secondary, borderColor: isNewTheme ? colors.accentGreen : legacyColors.secondary }]}>
                     {shareWithLeader && <Text style={[styles.checkboxMark, { color: isNewTheme ? colors.background : legacyColors.white }]}>✓</Text>}
                   </View>
-                  <Text style={[styles.checkboxLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>Share with the leader?</Text>
+                  <Text style={[styles.checkboxLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Share with the leader?</Text>
                 </TouchableOpacity>
-                <Text style={[styles.checkboxHint, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
+                <Text style={[styles.checkboxHint, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                   If checked, the pod creator will receive a notification with your reason
                 </Text>
 
@@ -1554,21 +1767,22 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                     onPress={() => {
                       setShowLeavePodModal(false);
                       setLeaveReason('');
+                      setSelectedLeaveReason(null);
                       setShareWithLeader(false);
                     }}
                   >
-                    <Text style={[styles.cancelRemovalText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Cancel</Text>
+                    <Text style={[styles.cancelRemovalText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Cancel</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[
                       styles.confirmLeaveButton,
                       { backgroundColor: colors.error },
-                      (leaveReason.length < 50 || leavingPod) && styles.buttonDisabled
+                      (!selectedLeaveReason || leavingPod) && styles.buttonDisabled
                     ]}
                     onPress={handleLeavePod}
-                    disabled={leaveReason.length < 50 || leavingPod}
+                    disabled={!selectedLeaveReason || leavingPod}
                   >
-                    <Text style={[styles.confirmLeaveText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                    <Text style={[styles.confirmLeaveText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                       {leavingPod ? 'Leaving...' : 'Leave Pod'}
                     </Text>
                   </TouchableOpacity>
@@ -1592,7 +1806,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
         <View style={[styles.modalOverlay, { backgroundColor: isNewTheme ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)' }]}>
           <View style={[styles.modalContainer, { backgroundColor: colors.surface }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.modalTitle, { color: colors.error, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+              <Text style={[styles.modalTitle, { color: colors.error, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                 Delete Pod
               </Text>
               <TouchableOpacity
@@ -1607,17 +1821,17 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
             </View>
 
             <ScrollView style={styles.modalContent}>
-              <Text style={[styles.deleteConfirmTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_600SemiBold' : undefined }]}>
+              <Text style={[styles.deleteConfirmTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : undefined }]}>
                 Are you sure you want to delete this pod?
               </Text>
 
               {teamMembers.length > 0 && (
-                <Text style={[styles.deleteConfirmWarning, { color: colors.error, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
+                <Text style={[styles.deleteConfirmWarning, { color: colors.error, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                   Are members aware and have they signed off on this pod termination?
                 </Text>
               )}
 
-              <Text style={[styles.deleteReasonLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_600SemiBold' : undefined }]}>
+              <Text style={[styles.deleteReasonLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : undefined }]}>
                 Select a reason for Pod termination:
               </Text>
 
@@ -1645,7 +1859,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                   </View>
                   <Text style={[
                     styles.terminationReasonText,
-                    { color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined },
+                    { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined },
                     selectedTerminationReason === reason && { fontWeight: '700' },
                   ]}>
                     {reason}
@@ -1654,7 +1868,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
               ))}
 
               {teamMembers.length > 0 && (
-                <Text style={[styles.deleteNoticeText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
+                <Text style={[styles.deleteNoticeText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                   Members will be notified of pod termination.
                 </Text>
               )}
@@ -1667,7 +1881,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                     setSelectedTerminationReason(null);
                   }}
                 >
-                  <Text style={[styles.cancelRemovalText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Cancel</Text>
+                  <Text style={[styles.cancelRemovalText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[
@@ -1678,7 +1892,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                   onPress={handleDeletePursuit}
                   disabled={!selectedTerminationReason || deletingPursuit}
                 >
-                  <Text style={[styles.confirmDeleteText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                  <Text style={[styles.confirmDeleteText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                     {deletingPursuit ? 'Deleting...' : 'Delete Pod'}
                   </Text>
                 </TouchableOpacity>
@@ -1693,6 +1907,43 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
 }
 
 const styles = StyleSheet.create({
+  // ===== Pie-style hero cover =====
+  heroCoverWrap: {
+    width: '100%',
+    aspectRatio: 16 / 12,
+    backgroundColor: '#000',
+    position: 'relative',
+  },
+  heroCoverGradient: {
+    position: 'absolute', left: 0, right: 0, bottom: 0,
+    height: '55%', backgroundColor: 'rgba(0,0,0,0.55)',
+  },
+  heroCoverPlaceholderDot: {
+    width: 60, height: 60, borderRadius: 30,
+  },
+  heroBackChip: {
+    position: 'absolute', top: 56, left: 16,
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  heroEditChip: {
+    position: 'absolute', top: 56, right: 16,
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+  },
+  heroEditChipText: { color: '#FFFFFF', fontSize: 12, fontWeight: '600' },
+  heroTitleOverlay: {
+    position: 'absolute', left: 18, right: 18, bottom: 18,
+  },
+  heroTitleText: {
+    color: '#FFFFFF',
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 32, lineHeight: 36, letterSpacing: -0.5,
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 8,
+  },
   container: { flex: 1, backgroundColor: legacyColors.background },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: legacyColors.background },
   loadingText: { marginTop: 12, fontSize: 16, color: '#6b7280' },

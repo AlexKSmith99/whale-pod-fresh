@@ -1,8 +1,58 @@
-export const PURSUIT_TYPES = [
-  'Accountability', 'AI', 'Architecture', 'Art', 'Business', 'Career Development', 'Co-founders',
-  'Design', 'Discussion', 'Education', 'Explore', 'Finance', 'Fitness', 'Friends', 'Fun', 'Games', 'Hangout',
-  'Health', 'Hobby', 'Investing', 'Lifestyle', 'Medical', 'Mental Health', 'Mindfulness', 'Music', 'Nature',
-  'Networking', 'New Endeavor', 'Outdoors', 'Personal Growth', 'Problem', 'Relax', 'Religion', 'Side Hustle',
-  'Social Media', 'Socialize', 'Spiritual', 'Sport', 'Start-Ups', 'Support', 'Technology', 'Travel',
-  'Yoga'
+// Pod Types = the intent / format of the pod — "what are we doing together?"
+// Pod Categories = the topic / domain — "what is the pod about?"
+// Both are structured multi-selects surfaced on Create + Feed filters.
+
+export const POD_TYPES = [
+  'Accountability',
+  'Business',
+  'Career Development',
+  'Co-founders',
+  'Discussion',
+  'Education',
+  'Explore',
+  'Friends',
+  'Fun',
+  'Hangout',
+  'Hobby',
+  'Mentorship',
+  'Networking',
+  'New Endeavor',
+  'Personal Growth',
+  'Problem Solving',
+  'Relax',
+  'Side Hustle',
+  'Socialize',
+  'Start-Ups',
+  'Support',
 ].sort();
+
+export const POD_CATEGORIES = [
+  'AI',
+  'Architecture',
+  'Art',
+  'Design',
+  'Finance',
+  'Fitness',
+  'Games',
+  'Health',
+  'Investing',
+  'Lifestyle',
+  'Marketing',
+  'Medical',
+  'Mental Health',
+  'Mindfulness',
+  'Music',
+  'Nature',
+  'Outdoors',
+  'Religion',
+  'Social Media',
+  'Spiritual',
+  'Sport',
+  'Technology',
+  'Travel',
+  'Yoga',
+].sort();
+
+// Back-compat alias — older code imports PURSUIT_TYPES. Keep exporting the union
+// so nothing breaks until every call-site is migrated.
+export const PURSUIT_TYPES = [...POD_TYPES, ...POD_CATEGORIES].sort();

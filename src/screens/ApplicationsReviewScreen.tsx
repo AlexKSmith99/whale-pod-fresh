@@ -244,8 +244,8 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Text style={[styles.backText, { color: isNewTheme ? colors.accentGreen : '#0ea5e9' }]}>← Back</Text>
         </TouchableOpacity>
-        <Text style={[styles.title, { color: isNewTheme ? colors.accentGreen : colors.textPrimary, fontFamily: isNewTheme ? 'NothingYouCouldDo_400Regular' : undefined }]}>Applications</Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{pendingApps.length} pending</Text>
+        <Text style={[styles.title, { color: isNewTheme ? colors.accentGreen : colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : undefined }]}>Applications</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{pendingApps.length} pending</Text>
       </View>
 
       <ScrollView style={styles.scrollView}>
@@ -253,13 +253,13 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
           {applications.length === 0 ? (
             <View style={styles.empty}>
               <Text style={styles.emptyEmoji}>📭</Text>
-              <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>No applications yet</Text>
+              <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>No applications yet</Text>
             </View>
           ) : (
             <>
               {pendingApps.length > 0 && (
                 <>
-                  <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined }]}>Pending ({pendingApps.length})</Text>
+                  <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : undefined }]}>Pending ({pendingApps.length})</Text>
                   {pendingApps.map((app) => (
                     <View key={app.id} style={[styles.appCard, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }]}>
                       <TouchableOpacity
@@ -276,34 +276,34 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
                           </View>
                         )}
                         <View style={styles.appInfo}>
-                          <Text style={[styles.appName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{app.applicant?.name || 'Applicant'}</Text>
-                          <Text style={[styles.appDate, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                          <Text style={[styles.appName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{app.applicant?.name || 'Applicant'}</Text>
+                          <Text style={[styles.appDate, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                             Applied {new Date(app.created_at).toLocaleDateString()}
                           </Text>
                           {app.status === 'interview_pending' && (
                             <View style={[styles.interviewStatusBadge, { backgroundColor: isNewTheme ? colors.primaryLight : '#E4EDDE' }]}>
-                              <Text style={[styles.interviewStatusText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>⏳ Awaiting time proposals</Text>
+                              <Text style={[styles.interviewStatusText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>⏳ Awaiting time proposals</Text>
                             </View>
                           )}
                           {app.status === 'interview_times_submitted' && (
                             <View style={[styles.interviewStatusBadge, styles.interviewStatusReview, { backgroundColor: isNewTheme ? colors.warningLight : '#fef3c7' }]}>
-                              <Text style={[styles.interviewStatusText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>📅 Times proposed - review needed</Text>
+                              <Text style={[styles.interviewStatusText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>📅 Times proposed - review needed</Text>
                             </View>
                           )}
                           {app.status === 'interview_scheduled' && (
                             <View style={[styles.interviewStatusBadge, styles.interviewStatusScheduled, { backgroundColor: isNewTheme ? colors.successLight : '#d1fae5' }]}>
-                              <Text style={[styles.interviewStatusText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>✓ Interview scheduled</Text>
+                              <Text style={[styles.interviewStatusText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>✓ Interview scheduled</Text>
                             </View>
                           )}
-                          <Text style={[styles.viewProfileLink, { color: isNewTheme ? colors.accentGreen : '#0ea5e9', fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>View profile →</Text>
+                          <Text style={[styles.viewProfileLink, { color: isNewTheme ? colors.accentGreen : '#0ea5e9', fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>View profile →</Text>
                         </View>
                       </TouchableOpacity>
 
                       <View style={styles.answersSection}>
                         {app.answers.map((answer: any, index: number) => (
                           <View key={index} style={styles.answerBlock}>
-                            <Text style={[styles.answerQuestion, { color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_600SemiBold' : undefined }]}>{answer.question}</Text>
-                            <Text style={[styles.answerText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>{answer.answer}</Text>
+                            <Text style={[styles.answerQuestion, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : undefined }]}>{answer.question}</Text>
+                            <Text style={[styles.answerText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{answer.answer}</Text>
                           </View>
                         ))}
                       </View>
@@ -318,8 +318,8 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
                             <Ionicons name="document-text" size={20} color={accentPurple} />
                           </View>
                           <View style={styles.resumeInfo}>
-                            <Text style={[styles.resumeLabel, { color: accentPurple, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined }]}>📎 Resume Attached</Text>
-                            <Text style={[styles.resumeFilename, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]} numberOfLines={1}>
+                            <Text style={[styles.resumeLabel, { color: accentPurple, fontFamily: isNewTheme ? 'Sora_600SemiBold' : undefined }]}>📎 Resume Attached</Text>
+                            <Text style={[styles.resumeFilename, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]} numberOfLines={1}>
                               {app.resume_filename || 'View Resume'}
                             </Text>
                           </View>
@@ -351,7 +351,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
                             >
                               <Text style={[
                                 styles.interviewButtonText,
-                                { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined },
+                                { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'Sora_400Regular' : undefined },
                                 buttonState.disabled && styles.interviewButtonTextDisabled,
                               ]}>
                                 {buttonState.text}
@@ -363,13 +363,13 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
                           style={[styles.acceptButton, { backgroundColor: colors.success }]}
                           onPress={() => handleAccept(app.id, app.applicant?.name || 'this applicant')}
                         >
-                          <Text style={[styles.acceptButtonText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>✓ Accept</Text>
+                          <Text style={[styles.acceptButtonText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>✓ Accept</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                           style={[styles.rejectButton, { backgroundColor: colors.error }]}
                           onPress={() => handleReject(app.id)}
                         >
-                          <Text style={[styles.rejectButtonText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>✕ Decline</Text>
+                          <Text style={[styles.rejectButtonText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>✕ Decline</Text>
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -379,7 +379,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
 
               {reviewedApps.length > 0 && (
                 <>
-                  <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined }]}>Reviewed ({reviewedApps.length})</Text>
+                  <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : undefined }]}>Reviewed ({reviewedApps.length})</Text>
                   {reviewedApps.map((app) => (
                     <View key={app.id} style={[styles.appCard, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }]}>
                       <TouchableOpacity
@@ -399,34 +399,34 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
                           </View>
                         )}
                         <View style={styles.appInfo}>
-                          <Text style={[styles.appName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{app.applicant?.name || 'Applicant'}</Text>
+                          <Text style={[styles.appName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{app.applicant?.name || 'Applicant'}</Text>
                           <View style={[
                             styles.statusBadge,
                             { backgroundColor: app.status === 'accepted' ? colors.successLight : colors.errorLight }
                           ]}>
-                            <Text style={[styles.statusText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                            <Text style={[styles.statusText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                               {app.status === 'accepted' ? '✓ Accepted' : '✕ Declined'}
                             </Text>
                           </View>
-                          <Text style={[styles.viewProfileLink, { color: isNewTheme ? colors.accentGreen : '#0ea5e9', fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>View profile →</Text>
+                          <Text style={[styles.viewProfileLink, { color: isNewTheme ? colors.accentGreen : '#0ea5e9', fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>View profile →</Text>
                         </View>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={[styles.expandButton, { borderTopColor: colors.border }]}
                         onPress={() => setExpandedReviewedId(expandedReviewedId === app.id ? null : app.id)}
                       >
-                        <Text style={[styles.expandIcon, { color: isNewTheme ? colors.accentGreen : '#0ea5e9', fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                        <Text style={[styles.expandIcon, { color: isNewTheme ? colors.accentGreen : '#0ea5e9', fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                           {expandedReviewedId === app.id ? '▲ Hide answers' : '▼ Show answers'}
                         </Text>
                       </TouchableOpacity>
 
                       {expandedReviewedId === app.id && (
                         <View style={styles.answersSection}>
-                          <Text style={[styles.viewAnswersLabel, { color: isNewTheme ? colors.accentGreen : '#0ea5e9', borderTopColor: colors.border, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined }]}>Application Answers</Text>
+                          <Text style={[styles.viewAnswersLabel, { color: isNewTheme ? colors.accentGreen : '#0ea5e9', borderTopColor: colors.border, fontFamily: isNewTheme ? 'Sora_600SemiBold' : undefined }]}>Application Answers</Text>
                           {app.answers.map((answer: any, index: number) => (
                             <View key={index} style={styles.answerBlock}>
-                              <Text style={[styles.answerQuestion, { color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_600SemiBold' : undefined }]}>{answer.question}</Text>
-                              <Text style={[styles.answerText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>{answer.answer}</Text>
+                              <Text style={[styles.answerQuestion, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : undefined }]}>{answer.question}</Text>
+                              <Text style={[styles.answerText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{answer.answer}</Text>
                             </View>
                           ))}
                           {/* Resume Attachment for reviewed apps */}
@@ -439,15 +439,15 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
                                 <Ionicons name="document-text" size={20} color={accentPurple} />
                               </View>
                               <View style={styles.resumeInfo}>
-                                <Text style={[styles.resumeLabel, { color: accentPurple, fontFamily: isNewTheme ? 'Aboreto_400Regular' : undefined }]}>📎 Resume Attached</Text>
-                                <Text style={[styles.resumeFilename, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]} numberOfLines={1}>
+                                <Text style={[styles.resumeLabel, { color: accentPurple, fontFamily: isNewTheme ? 'Sora_600SemiBold' : undefined }]}>📎 Resume Attached</Text>
+                                <Text style={[styles.resumeFilename, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]} numberOfLines={1}>
                                   {app.resume_filename || 'View Resume'}
                                 </Text>
                               </View>
                               <Ionicons name="open-outline" size={18} color={accentPurple} />
                             </TouchableOpacity>
                           )}
-                          <Text style={[styles.appDateReviewed, { color: colors.textTertiary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                          <Text style={[styles.appDateReviewed, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                             Applied {new Date(app.created_at).toLocaleDateString()}
                           </Text>
                         </View>

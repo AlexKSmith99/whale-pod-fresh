@@ -13,12 +13,13 @@ import { typography, spacing, borderRadius, shadows, colors as legacyColors } fr
 import { ThemeColors } from './ThemeContext';
 
 // Font constants for easy reference
-// Dark mode fonts
-const FONT_HEADER = 'NothingYouCouldDo_400Regular';
-const FONT_TITLE = 'JuliusSansOne_400Regular';
-const FONT_ACCENT = 'Aboreto_400Regular';
-const FONT_BODY = 'KleeOne_400Regular';
-const FONT_BODY_BOLD = 'KleeOne_600SemiBold';
+// Dark mode fonts — clean Sora sans-serif throughout (Pie aesthetic).
+// NothingYouCouldDo handwriting is reserved for explicit brand spots only (e.g., legacy wordmark).
+const FONT_HEADER = 'Sora_700Bold';
+const FONT_TITLE = 'Sora_600SemiBold';
+const FONT_ACCENT = 'Sora_600SemiBold';
+const FONT_BODY = 'Sora_400Regular';
+const FONT_BODY_BOLD = 'Sora_600SemiBold';
 // Light mode fonts - rustic, rugged, professional
 const FONT_LIGHT_HEADER = 'PlayfairDisplay_700Bold';
 const FONT_LIGHT_BODY = 'Sora_400Regular';

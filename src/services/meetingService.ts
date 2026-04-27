@@ -403,6 +403,229 @@ export const meetingService = {
     if (error) throw error;
   },
 
+  // ========== Recurring meetings ==========
+
+  // Can this user create/edit recurring meetings for the given pod?
+  // Allowed: pod creator OR a member with role_title ILIKE 'scheduler'.
+  async canCreateRecurring(pursuitId: string, userId: string): Promise<boolean> {
+    try {
+      const { data: pursuit } = await supabase
+        .from('pursuits')
+        .select('creator_id')
+        .eq('id', pursuitId)
+        .single();
+      if (pursuit?.creator_id === userId) return true;
+
+      const { data: role } = await supabase
+        .from('member_roles')
+        .select('role_title')
+        .eq('pursuit_id', pursuitId)
+        .eq('user_id', userId)
+        .ilike('role_title', 'scheduler')
+        .maybeSingle();
+      return !!role;
+    } catch (err) {
+      console.warn('canCreateRecurring check failed:', err);
+      return false;
+    }
+  },
+
+  // Generate occurrence timestamps for a series.
+  // Caps: 52 weekly, 26 biweekly, 12 monthly = roughly 1 year ahead when "never ends".
+  _generateOccurrences(
+    startTime: Date,
+    cadence: 'weekly' | 'biweekly' | 'monthly',
+    endDate: Date | null
+  ): Date[] {
+    const maxByCadence: Record<string, number> = { weekly: 52, biweekly: 26, monthly: 12 };
+    const cap = maxByCadence[cadence];
+    const occurrences: Date[] = [];
+    const cursor = new Date(startTime);
+    for (let i = 0; i < cap; i++) {
+      if (endDate && cursor > endDate) break;
+      occurrences.push(new Date(cursor));
+      if (cadence === 'weekly') cursor.setDate(cursor.getDate() + 7);
+      else if (cadence === 'biweekly') cursor.setDate(cursor.getDate() + 14);
+      else cursor.setMonth(cursor.getMonth() + 1);
+    }
+    return occurrences;
+  },
+
+  // Create a recurring meeting series + generate all instance rows + participants.
+  // Returns { series, meetings }.
+  async createMeetingSeries(data: {
+    pursuit_id: string;
+    creator_id: string;
+    title: string;
+    description?: string;
+    meeting_type: 'in_person' | 'video' | 'hybrid';
+    location?: string;
+    scheduled_time: string;      // ISO — first occurrence
+    duration_minutes?: number;
+    timezone?: string;
+    cadence: 'weekly' | 'biweekly' | 'monthly';
+    end_date?: string | null;    // YYYY-MM-DD, optional
+    recording_enabled?: boolean;
+    participant_ids: string[];
+  }) {
+    // 1. Insert the series row
+    const { data: series, error: seriesError } = await supabase
+      .from('meeting_series')
+      .insert([{
+        pursuit_id: data.pursuit_id,
+        creator_id: data.creator_id,
+        cadence: data.cadence,
+        start_time: data.scheduled_time,
+        end_date: data.end_date || null,
+        duration_minutes: data.duration_minutes || 60,
+        timezone: data.timezone || 'America/New_York',
+        title: data.title,
+        description: data.description,
+        meeting_type: data.meeting_type,
+        location: data.location,
+      }])
+      .select()
+      .single();
+    if (seriesError) throw seriesError;
+
+    // 2. Generate occurrence timestamps
+    const startTime = new Date(data.scheduled_time);
+    const endDate = data.end_date ? new Date(`${data.end_date}T23:59:59`) : null;
+    const occurrences = this._generateOccurrences(startTime, data.cadence, endDate);
+
+    // 3. Insert meetings in batch
+    const meetingRows = occurrences.map(dt => ({
+      pursuit_id: data.pursuit_id,
+      creator_id: data.creator_id,
+      title: data.title,
+      description: data.description,
+      meeting_type: data.meeting_type,
+      location: data.location,
+      scheduled_time: dt.toISOString(),
+      duration_minutes: data.duration_minutes || 60,
+      timezone: data.timezone || 'America/New_York',
+      is_kickoff: false,
+      recording_enabled: data.recording_enabled || false,
+      status: 'scheduled',
+      series_id: series.id,
+      is_series_exception: false,
+    }));
+    const { data: meetings, error: meetingsError } = await supabase
+      .from('meetings')
+      .insert(meetingRows)
+      .select();
+    if (meetingsError) throw meetingsError;
+
+    // 4. Add participant rows for every instance
+    if (meetings && data.participant_ids.length > 0) {
+      const participantRows = meetings.flatMap((m: any) =>
+        data.participant_ids.map(uid => ({
+          meeting_id: m.id,
+          user_id: uid,
+          status: 'invited',
+        }))
+      );
+      const { error: partError } = await supabase
+        .from('meeting_participants')
+        .insert(participantRows);
+      if (partError) console.error('Series participant insert failed:', partError);
+    }
+
+    return { series, meetings: meetings || [] };
+  },
+
+  // Update a single occurrence inside a series. Marks it as an exception so
+  // future series-wide updates skip it.
+  async updateSingleMeetingInSeries(meetingId: string, updates: {
+    title?: string;
+    description?: string;
+    scheduled_time?: string;
+    duration_minutes?: number;
+    meeting_type?: 'in_person' | 'video' | 'hybrid';
+    location?: string;
+  }) {
+    const { data, error } = await supabase
+      .from('meetings')
+      .update({ ...updates, is_series_exception: true })
+      .eq('id', meetingId)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  // Update the series + all future non-exception meetings.
+  // If scheduled_time changes, the time-of-day shift is applied to each future
+  // instance (not the date — dates stay on the original cadence).
+  async updateMeetingSeries(
+    seriesId: string,
+    updates: {
+      title?: string;
+      description?: string;
+      duration_minutes?: number;
+      meeting_type?: 'in_person' | 'video' | 'hybrid';
+      location?: string;
+      time_of_day?: { hours: number; minutes: number }; // optional time shift
+    }
+  ) {
+    const { time_of_day, ...seriesFields } = updates;
+
+    // Update the series record
+    const { data: series, error: seriesErr } = await supabase
+      .from('meeting_series')
+      .update(seriesFields)
+      .eq('id', seriesId)
+      .select()
+      .single();
+    if (seriesErr) throw seriesErr;
+
+    // Fetch future non-exception meetings
+    const nowIso = new Date().toISOString();
+    const { data: future, error: fetchErr } = await supabase
+      .from('meetings')
+      .select('id, scheduled_time')
+      .eq('series_id', seriesId)
+      .eq('is_series_exception', false)
+      .gte('scheduled_time', nowIso);
+    if (fetchErr) throw fetchErr;
+
+    // Build per-row updates (apply seriesFields + optional time-of-day shift)
+    if (future && future.length > 0) {
+      for (const row of future) {
+        let newScheduled: string | undefined;
+        if (time_of_day) {
+          const dt = new Date(row.scheduled_time);
+          dt.setHours(time_of_day.hours, time_of_day.minutes, 0, 0);
+          newScheduled = dt.toISOString();
+        }
+        await supabase
+          .from('meetings')
+          .update({
+            ...seriesFields,
+            ...(newScheduled ? { scheduled_time: newScheduled } : {}),
+          })
+          .eq('id', row.id);
+      }
+    }
+
+    return series;
+  },
+
+  // Delete the series + all its instances.
+  async deleteMeetingSeries(seriesId: string) {
+    // Delete all meetings in the series first (cascades participants)
+    const { error: mErr } = await supabase
+      .from('meetings')
+      .delete()
+      .eq('series_id', seriesId);
+    if (mErr) throw mErr;
+    const { error: sErr } = await supabase
+      .from('meeting_series')
+      .delete()
+      .eq('id', seriesId);
+    if (sErr) throw sErr;
+  },
+
   // Get pod members for adding to meeting
   async getPodMembers(pursuitId: string) {
     // First get team members

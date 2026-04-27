@@ -45,6 +45,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
   const { theme, isNewTheme } = useTheme();
   const colors = theme.colors;
   const themedStyles = getThemedStyles(colors, isNewTheme);
+  const styles = React.useMemo(() => makeStyles(colors, isNewTheme), [colors, isNewTheme]);
   const [messages, setMessages] = useState<PodChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -334,7 +335,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
         {/* Time separator - shown when 1+ hour gap */}
         {showTimeSeparator && (
           <View style={styles.timeSeparator}>
-            <Text style={[styles.timeSeparatorText, { color: colors.textTertiary, backgroundColor: colors.surfaceAlt, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
+            <Text style={[styles.timeSeparatorText, { color: colors.textTertiary, backgroundColor: colors.surfaceAlt, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
               {formatTimeSeparator(item.created_at)}
             </Text>
           </View>
@@ -353,7 +354,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
               <View style={styles.myMessageContent}>
                 {/* Sender name for my messages - only on first in thread */}
                 {showHeaderAndAvatar && (
-                  <Text style={[styles.senderName, styles.mySenderName, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                  <Text style={[styles.senderName, styles.mySenderName, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                     {myProfile?.name || 'You'}
                   </Text>
                 )}
@@ -363,7 +364,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
                     onPress={() => handleMessageTap(item.id)}
                     style={[styles.messageBubble, styles.myMessageBubble, { backgroundColor: isNewTheme ? colors.accentGreen : '#2D5016' }]}
                   >
-                    <Text style={[styles.messageText, styles.myMessageText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>{item.content}</Text>
+                    <Text style={[styles.messageText, styles.myMessageText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{item.content}</Text>
                   </TouchableOpacity>
                   {likes[item.id] && likes[item.id].length > 0 && (
                     <View style={[styles.likeIndicator, styles.likeIndicatorRight]}>
@@ -394,7 +395,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
               <View style={styles.theirMessageContent}>
                 {/* Sender name - only on first in thread */}
                 {showHeaderAndAvatar && (
-                  <Text style={[styles.senderName, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                  <Text style={[styles.senderName, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                     {sender?.name || 'User'}
                   </Text>
                 )}
@@ -402,9 +403,15 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
                   <TouchableOpacity
                     activeOpacity={0.8}
                     onPress={() => handleMessageTap(item.id)}
-                    style={[styles.messageBubble, styles.theirMessageBubble, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                    style={[
+                      styles.messageBubble,
+                      styles.theirMessageBubble,
+                      isNewTheme
+                        ? { backgroundColor: '#1F1F1F', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.12)' }
+                        : { backgroundColor: '#F2F0EB', borderColor: colors.border },
+                    ]}
                   >
-                    <Text style={[styles.messageText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>{item.content}</Text>
+                    <Text style={[styles.messageText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{item.content}</Text>
                   </TouchableOpacity>
                   {likes[item.id] && likes[item.id].length > 0 && (
                     <View style={[styles.likeIndicator, styles.likeIndicatorLeft]}>
@@ -433,38 +440,38 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
       <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       {isNewTheme && <GrainTexture opacity={0.06} />}
       {/* Header */}
-      <View style={{ backgroundColor: '#FFFFFF', paddingTop: 50, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E8E6E0' }}>
+      <View style={{ backgroundColor: colors.surface, paddingTop: 50, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 12 }}>
           <TouchableOpacity onPress={onBack} style={{ padding: 4 }}>
-            <Ionicons name="chevron-back" size={24} color="#1B1B18" />
+            <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
           <View style={{ flex: 1, alignItems: 'center' }}>
-            <Text style={{ fontSize: 17, fontWeight: '600', color: '#1B1B18', fontFamily: 'Sora_600SemiBold' }} numberOfLines={1}>
+            <Text style={{ fontSize: 17, fontWeight: '700', color: colors.textPrimary, fontFamily: 'Sora_700Bold' }} numberOfLines={1}>
               {chatName}
             </Text>
-            <Text style={{ fontSize: 12, color: '#8A8A85', fontFamily: 'Sora_400Regular', marginTop: 1 }}>
+            <Text style={{ fontSize: 12, color: colors.textTertiary, fontFamily: 'Sora_400Regular', marginTop: 2 }}>
               {members.length} members
             </Text>
           </View>
           <TouchableOpacity onPress={() => setShowOptionsMenu(true)} style={{ padding: 4 }}>
-            <Ionicons name="ellipsis-horizontal" size={20} color="#1B1B18" />
+            <Ionicons name="ellipsis-horizontal" size={20} color={colors.textPrimary} />
           </TouchableOpacity>
         </View>
-        {/* Tab bar: Chat / Pod Detail / Team Board */}
+        {/* Tab bar: chat / pod detail / team board */}
         <View style={{ flexDirection: 'row', paddingHorizontal: 16 }}>
           {([
-            { key: 'chat', label: 'Chat' },
-            { key: 'pod', label: 'Pod Detail' },
-            { key: 'board', label: 'Team Board' },
+            { key: 'chat', label: 'chat' },
+            { key: 'pod', label: 'pod detail' },
+            { key: 'board', label: 'team board' },
           ] as const).map(tab => {
             const active = activeView === tab.key;
             return (
               <TouchableOpacity
                 key={tab.key}
-                style={{ flex: 1, paddingVertical: 10, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: active ? '#2D5016' : 'transparent' }}
+                style={{ flex: 1, paddingVertical: 12, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: active ? colors.accentGreen : 'transparent' }}
                 onPress={() => setActiveView(tab.key)}
               >
-                <Text style={{ fontSize: 14, fontWeight: active ? '600' : '400', color: active ? '#2D5016' : '#8A8A85', fontFamily: active ? 'Sora_600SemiBold' : 'Sora_400Regular' }}>
+                <Text style={{ fontSize: 14, fontWeight: active ? '700' : '500', color: active ? colors.accentGreen : colors.textTertiary, fontFamily: active ? 'Sora_700Bold' : 'Sora_500Medium' }}>
                   {tab.label}
                 </Text>
               </TouchableOpacity>
@@ -489,10 +496,10 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
               ListEmptyComponent={
                 <View style={styles.emptyContainer}>
                   <Ionicons name="chatbubbles-outline" size={48} color={colors.textTertiary} />
-                  <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
+                  <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                     {loading ? 'Loading...' : 'No messages yet'}
                   </Text>
-                  <Text style={[styles.emptySubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
+                  <Text style={[styles.emptySubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                     Start the conversation!
                   </Text>
                 </View>
@@ -501,7 +508,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
           </View>
           <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
             <TextInput
-              style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.background, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
+              style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.background, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}
               placeholder="Type a message..."
               placeholderTextColor={colors.textTertiary}
               value={newMessage}
@@ -545,7 +552,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
         <View style={[styles.modalOverlay, { backgroundColor: isNewTheme ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)' }]}>
           <View style={[styles.modalContainer, { backgroundColor: colors.surface }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.modalTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Pod Members</Text>
+              <Text style={[styles.modalTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Pod Members</Text>
               <TouchableOpacity
                 style={styles.modalCloseButton}
                 onPress={() => setShowMembersModal(false)}
@@ -574,7 +581,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
                     </View>
                   )}
                   <View style={styles.memberInfo}>
-                    <Text style={[styles.memberName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{item.name || 'Team Member'}</Text>
+                    <Text style={[styles.memberName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{item.name || 'Team Member'}</Text>
                     {item.isCreator && (
                       <View style={[styles.creatorBadge, { backgroundColor: isNewTheme ? colors.accentGreen : '#2D5016' }]}>
                         <Text style={[styles.creatorBadgeText, { color: isNewTheme ? colors.background : '#fff' }]}>Creator</Text>
@@ -597,9 +604,9 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
       >
         <View style={[styles.modalOverlay, { backgroundColor: isNewTheme ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)' }]}>
           <View style={[styles.renameModalContainer, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.renameModalTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Rename Chat</Text>
+            <Text style={[styles.renameModalTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Rename Chat</Text>
             <TextInput
-              style={[styles.renameInput, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.background, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
+              style={[styles.renameInput, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.background, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}
               value={tempChatName}
               onChangeText={setTempChatName}
               placeholder="Enter new chat name"
@@ -611,13 +618,13 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
                 style={[styles.cancelButton, { backgroundColor: colors.surfaceAlt }]}
                 onPress={() => setShowRenameModal(false)}
               >
-                <Text style={[styles.cancelButtonText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Cancel</Text>
+                <Text style={[styles.cancelButtonText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.saveButton, { backgroundColor: isNewTheme ? colors.accentGreen : '#2D5016' }]}
                 onPress={handleRename}
               >
-                <Text style={[styles.saveButtonText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Save</Text>
+                <Text style={[styles.saveButtonText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Save</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -639,20 +646,20 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
           <View style={[styles.optionsContainer, { backgroundColor: colors.surface }]}>
             <TouchableOpacity style={styles.optionItem} onPress={handleSwitchChats}>
               <Ionicons name="chatbubbles-outline" size={22} color={colors.textPrimary} />
-              <Text style={[styles.optionText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Switch Chats</Text>
+              <Text style={[styles.optionText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Switch Chats</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.optionItem} onPress={handleRenameChat}>
               <Ionicons name="create-outline" size={22} color={colors.textPrimary} />
-              <Text style={[styles.optionText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Rename Chat</Text>
+              <Text style={[styles.optionText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Rename Chat</Text>
             </TouchableOpacity>
             {onDelete && (
               <TouchableOpacity style={styles.optionItemDanger} onPress={handleDeleteChat}>
                 <Ionicons name="trash-outline" size={22} color={colors.error} />
-                <Text style={[styles.optionTextDanger, { color: colors.error, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Delete Chat</Text>
+                <Text style={[styles.optionTextDanger, { color: colors.error, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Delete Chat</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity style={[styles.optionCancel, { borderTopColor: colors.border }]} onPress={() => setShowOptionsMenu(false)}>
-              <Text style={[styles.optionCancelText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Cancel</Text>
+              <Text style={[styles.optionCancelText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -661,17 +668,20 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: any, isNewTheme: boolean) {
+  const surfaceCard = colors.surface;
+  const accent = isNewTheme ? colors.accentGreen : accent;
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: legacyColors.background,
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 15,
     paddingTop: 50,
-    backgroundColor: '#fff',
+    backgroundColor: surfaceCard,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
@@ -688,7 +698,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#2D5016',
+    backgroundColor: accent,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -704,11 +714,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: colors.textPrimary,
   },
   memberCount: {
     fontSize: 13,
-    color: '#666',
+    color: colors.textSecondary,
     marginTop: 2,
   },
   menuButton: {
@@ -738,14 +748,14 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#0ea5e9',
+    backgroundColor: accent,
     justifyContent: 'center',
     alignItems: 'center',
   },
   messageAvatarText: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#fff',
+    color: surfaceCard,
   },
   myMessageContent: {
     alignItems: 'flex-end',
@@ -758,7 +768,7 @@ const styles = StyleSheet.create({
   senderName: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#666',
+    color: colors.textSecondary,
     marginBottom: 4,
     marginLeft: 4,
   },
@@ -773,8 +783,8 @@ const styles = StyleSheet.create({
   },
   timeSeparatorText: {
     fontSize: 11,
-    color: '#8A8A85',
-    backgroundColor: '#F2F0EB',
+    color: colors.textTertiary,
+    backgroundColor: surfaceCard,
     paddingHorizontal: 10,
     paddingVertical: 3,
     borderRadius: 10,
@@ -825,23 +835,23 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   myMessageBubble: {
-    backgroundColor: '#2D5016',
+    backgroundColor: accent,
     borderBottomRightRadius: 4,
   },
   theirMessageBubble: {
-    backgroundColor: '#F2F0EB',
+    backgroundColor: surfaceCard,
     borderBottomLeftRadius: 4,
   },
   messageText: {
     fontSize: 15,
-    color: '#333',
+    color: colors.textPrimary,
   },
   myMessageText: {
-    color: '#fff',
+    color: surfaceCard,
   },
   expandedTimestamp: {
     fontSize: 11,
-    color: '#999',
+    color: colors.textTertiary,
     marginTop: 4,
     marginBottom: 2,
   },
@@ -857,15 +867,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 12,
     paddingBottom: 28,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: surfaceCard,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E8E6E0',
+    borderTopColor: colors.border,
     alignItems: 'flex-end',
   },
   input: {
     flex: 1,
     borderWidth: 0,
-    backgroundColor: '#F2F0EB',
+    backgroundColor: surfaceCard,
     borderRadius: 22,
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -873,10 +883,10 @@ const styles = StyleSheet.create({
     maxHeight: 100,
     fontSize: 15,
     fontFamily: 'Sora_400Regular',
-    color: '#1B1B18',
+    color: colors.textPrimary,
   },
   sendButton: {
-    backgroundColor: '#2D5016',
+    backgroundColor: accent,
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -891,12 +901,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#999',
+    color: colors.textTertiary,
     marginTop: 20,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#ccc',
+    color: colors.textTertiary,
     marginTop: 5,
   },
   // Modal styles
@@ -906,7 +916,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: surfaceCard,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '70%',
@@ -922,7 +932,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: colors.textPrimary,
   },
   modalCloseButton: {
     padding: 4,
@@ -945,7 +955,7 @@ const styles = StyleSheet.create({
   memberAvatarText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#fff',
+    color: surfaceCard,
   },
   memberInfo: {
     flex: 1,
@@ -957,10 +967,10 @@ const styles = StyleSheet.create({
   memberName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: colors.textPrimary,
   },
   creatorBadge: {
-    backgroundColor: '#2D5016',
+    backgroundColor: accent,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,
@@ -968,11 +978,11 @@ const styles = StyleSheet.create({
   creatorBadgeText: {
     fontSize: 11,
     fontWeight: 'bold',
-    color: '#fff',
+    color: surfaceCard,
   },
   // Rename modal
   renameModalContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: surfaceCard,
     marginHorizontal: 20,
     marginTop: 'auto',
     marginBottom: 'auto',
@@ -982,7 +992,7 @@ const styles = StyleSheet.create({
   renameModalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: colors.textPrimary,
     marginBottom: 16,
   },
   renameInput: {
@@ -1008,11 +1018,11 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#666',
+    color: colors.textSecondary,
   },
   saveButton: {
     flex: 1,
-    backgroundColor: '#2D5016',
+    backgroundColor: accent,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
@@ -1020,7 +1030,7 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#fff',
+    color: surfaceCard,
   },
   // Options menu
   optionsOverlay: {
@@ -1029,7 +1039,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   optionsContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: surfaceCard,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingTop: 12,
@@ -1044,7 +1054,7 @@ const styles = StyleSheet.create({
   },
   optionText: {
     fontSize: 16,
-    color: '#333',
+    color: colors.textPrimary,
   },
   optionItemDanger: {
     flexDirection: 'row',
@@ -1067,6 +1077,7 @@ const styles = StyleSheet.create({
   optionCancelText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#666',
+    color: colors.textSecondary,
   },
-});
+  });
+}

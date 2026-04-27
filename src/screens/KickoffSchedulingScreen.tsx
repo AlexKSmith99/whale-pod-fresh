@@ -331,39 +331,39 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
           <Ionicons name="close" size={28} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'NothingYouCouldDo_400Regular' : undefined }]}>Schedule Kickoff</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : undefined }]}>Schedule Kickoff</Text>
         <View style={{ width: 28 }} />
       </View>
 
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
           <View style={[styles.introSection, { backgroundColor: isNewTheme ? colors.warningLight : legacyColors.warningLight }]}>
-            <Text style={[styles.pursuitTitle, { color: colors.warning, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{pursuitTitle}</Text>
-            <Text style={[styles.introText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
+            <Text style={[styles.pursuitTitle, { color: colors.warning, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{pursuitTitle}</Text>
+            <Text style={[styles.introText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
               Review all time proposals from your team members and select the final meeting time.
             </Text>
-            <Text style={[styles.statsText, { color: colors.warning, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
+            <Text style={[styles.statsText, { color: colors.warning, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
               {proposals.length}/{teamMembersCount} team member{teamMembersCount !== 1 ? 's' : ''} submitted proposals
             </Text>
             {proposals.length < teamMembersCount && (
-              <Text style={[styles.warningText, { color: colors.error, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
+              <Text style={[styles.warningText, { color: colors.error, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                 Waiting for {teamMembersCount - proposals.length} more team member{teamMembersCount - proposals.length !== 1 ? 's' : ''} to submit
               </Text>
             )}
           </View>
 
           {/* Proposed Times Calendar */}
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'NothingYouCouldDo_400Regular' : undefined }]}>Proposed Meeting Times</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : undefined }]}>Proposed Meeting Times</Text>
 
           {/* Legend */}
           {Object.keys(groupedTimeSlots).length > 0 && (
             <View style={[styles.legend, { backgroundColor: colors.backgroundSecondary }]}>
-              <Text style={[styles.legendTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Team Members:</Text>
+              <Text style={[styles.legendTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Team Members:</Text>
               <View style={styles.legendItems}>
                 {proposals.map((proposal) => (
                   <View key={proposal.user_id} style={styles.legendItem}>
                     <View style={[styles.legendColor, { backgroundColor: teamMemberColors[proposal.user_id] }]} />
-                    <Text style={[styles.legendText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{proposal.user?.name || 'Team member'}</Text>
+                    <Text style={[styles.legendText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{proposal.user?.name || 'Team member'}</Text>
                   </View>
                 ))}
               </View>
@@ -373,13 +373,13 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
           {Object.keys(groupedTimeSlots).length === 0 ? (
             <View style={[styles.emptyState, { backgroundColor: colors.surface }]}>
               <Ionicons name="time-outline" size={48} color={colors.textTertiary} />
-              <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>No proposals yet</Text>
-              <Text style={[styles.emptySubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>Waiting for team members to submit their availability</Text>
+              <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>No proposals yet</Text>
+              <Text style={[styles.emptySubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Waiting for team members to submit their availability</Text>
             </View>
           ) : (
             Object.keys(groupedTimeSlots).sort().map((date) => (
               <View key={date} style={styles.dateGroup}>
-                <Text style={[styles.dateHeader, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                <Text style={[styles.dateHeader, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                   {new Date(date).toLocaleDateString('en-US', {
                     weekday: 'long',
                     month: 'long',
@@ -411,19 +411,19 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                       }}
                     >
                       <View style={styles.timeSlotInfo}>
-                        <Text style={[styles.timeSlotTime, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                        <Text style={[styles.timeSlotTime, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                           {formatTime12Hour(firstSlot.start_time)} - {formatTime12Hour(firstSlot.end_time)}
                         </Text>
                         <View style={styles.teamMembersRow}>
                           {slots.map((slot, idx) => (
                             <View key={idx} style={[styles.memberBadge, { backgroundColor: colors.backgroundSecondary }]}>
                               <View style={[styles.memberColorDot, { backgroundColor: slot.color }]} />
-                              <Text style={[styles.memberName, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{slot.proposer?.name || 'Team member'}</Text>
+                              <Text style={[styles.memberName, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{slot.proposer?.name || 'Team member'}</Text>
                             </View>
                           ))}
                         </View>
                         {slots.length > 1 && (
-                          <Text style={[styles.overlapText, { color: colors.success, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
+                          <Text style={[styles.overlapText, { color: colors.success, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                             {slots.length} members available
                           </Text>
                         )}
@@ -459,11 +459,11 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
               <View style={styles.customTimeTextContainer}>
                 <Text style={[
                   styles.customTimeButtonText,
-                  { color: useCustomTime ? accentColor : colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }
+                  { color: useCustomTime ? accentColor : colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }
                 ]}>
                   Schedule for a different time
                 </Text>
-                <Text style={[styles.customTimeSubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
+                <Text style={[styles.customTimeSubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                   Choose your own date and time
                 </Text>
               </View>
@@ -476,13 +476,13 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
           {/* Custom Date/Time Picker */}
           {useCustomTime && (
             <View style={[styles.customTimePickerSection, { backgroundColor: colors.surface }]}>
-              <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Select Date</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Select Date</Text>
               <TouchableOpacity
                 style={[styles.dateTimeButton, { backgroundColor: colors.backgroundSecondary }]}
                 onPress={() => setShowDatePicker(true)}
               >
                 <Ionicons name="calendar" size={20} color={accentColor} />
-                <Text style={[styles.dateTimeButtonText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                <Text style={[styles.dateTimeButtonText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                   {customDate.toLocaleDateString('en-US', {
                     weekday: 'long',
                     month: 'long',
@@ -492,13 +492,13 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                 </Text>
               </TouchableOpacity>
 
-              <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Select Time</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Select Time</Text>
               <TouchableOpacity
                 style={[styles.dateTimeButton, { backgroundColor: colors.backgroundSecondary }]}
                 onPress={() => setShowTimePicker(true)}
               >
                 <Ionicons name="time" size={20} color={accentColor} />
-                <Text style={[styles.dateTimeButtonText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                <Text style={[styles.dateTimeButtonText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                   {customTime.toLocaleTimeString('en-US', {
                     hour: 'numeric',
                     minute: '2-digit',
@@ -526,7 +526,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                         style={[styles.doneButton, { backgroundColor: accentColor }]}
                         onPress={() => setShowDatePicker(false)}
                       >
-                        <Text style={[styles.doneButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Done</Text>
+                        <Text style={[styles.doneButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Done</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -563,7 +563,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                         style={[styles.doneButton, { backgroundColor: accentColor }]}
                         onPress={() => setShowTimePicker(false)}
                       >
-                        <Text style={[styles.doneButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Done</Text>
+                        <Text style={[styles.doneButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Done</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -586,7 +586,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
           {/* Meeting Type Selection */}
           {(selectedTime || useCustomTime) && (
             <>
-              <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'NothingYouCouldDo_400Regular' : undefined }]}>Meeting Type</Text>
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : undefined }]}>Meeting Type</Text>
               <View style={styles.chipContainer}>
                 {(['in_person', 'video', 'hybrid'] as const).map((type) => (
                   <TouchableOpacity
@@ -600,7 +600,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                   >
                     <Text style={[
                       styles.chipText,
-                      { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined },
+                      { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined },
                       meetingType === type && { color: isNewTheme ? colors.background : legacyColors.white }
                     ]}>
                       {type === 'in_person' ? 'In Person' : type === 'video' ? 'Video' : 'Hybrid'}
@@ -612,7 +612,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
               {/* Location (if needed) */}
               {(meetingType === 'in_person' || meetingType === 'hybrid') && (
                 <>
-                  <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Location</Text>
+                  <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Location</Text>
                   <TextInput
                     style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.borderLight, color: colors.textPrimary }]}
                     placeholder="e.g., Conference Room A"
@@ -624,7 +624,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
               )}
 
               {/* Duration */}
-              <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>Duration (minutes)</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Duration (minutes)</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.borderLight, color: colors.textPrimary }]}
                 placeholder="60"
@@ -640,7 +640,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                 onPress={handleScheduleKickoff}
                 disabled={loading}
               >
-                <Text style={[styles.scheduleButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+                <Text style={[styles.scheduleButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                   {loading ? 'Sending Invites...' : 'Send Kick-Off Invites'}
                 </Text>
               </TouchableOpacity>
@@ -670,16 +670,16 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
             <View style={styles.successIconContainer}>
               <Ionicons name="checkmark-circle" size={60} color={colors.success} />
             </View>
-            <Text style={[styles.successModalTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+            <Text style={[styles.successModalTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
               Kick-Off Scheduled!
             </Text>
-            <Text style={[styles.successModalSubtitle, { color: colors.textSecondary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
+            <Text style={[styles.successModalSubtitle, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
               Let your team members know in the Pod Chat
             </Text>
 
             {/* Pre-curated message preview */}
             <View style={[styles.messagePreview, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
-              <Text style={[styles.messagePreviewText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
+              <Text style={[styles.messagePreviewText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                 "Hey guys I scheduled our kick-off meeting for {scheduledDateTimeText}"
               </Text>
             </View>
@@ -690,7 +690,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
               onPress={handleSendPodChatMessage}
             >
               <Ionicons name="send" size={20} color={isNewTheme ? colors.background : '#fff'} />
-              <Text style={[styles.sendMessageButtonText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>
+              <Text style={[styles.sendMessageButtonText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                 Send Message
               </Text>
             </TouchableOpacity>
@@ -700,7 +700,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
               style={styles.skipButton}
               onPress={handleCloseSuccessModal}
             >
-              <Text style={[styles.skipButtonText, { color: colors.textTertiary, fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>
+              <Text style={[styles.skipButtonText, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
                 Skip for now
               </Text>
             </TouchableOpacity>

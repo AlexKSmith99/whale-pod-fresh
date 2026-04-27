@@ -11,6 +11,7 @@ import PrivacyPreferencesScreen from './PrivacyPreferencesScreen';
 import ReviewScreen from './ReviewScreen';
 import PodMemberCollage from '../components/PodMemberCollage';
 import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+import PieButton from '../components/ui/PieButton';
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
@@ -422,8 +423,7 @@ const handleRejectConnection = async (connectionId: string) => {
         })()}
 
         <View style={{ alignItems: 'center', marginBottom: 16 }}>
-          <Text style={[styles.name, themedStyles.textPrimary, { fontSize: typography.fontSize.xl, fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined }]}>{profile?.name || 'No name set'}</Text>
-          <Text style={[styles.email, themedStyles.textTertiary]}>{profile?.email}</Text>
+          <Text style={[styles.name, themedStyles.textPrimary, { fontSize: typography.fontSize.xl, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{profile?.name || 'No name set'}</Text>
         </View>
 {/* Modern Pill Tabs */}
         <ScrollView
@@ -507,13 +507,13 @@ const handleRejectConnection = async (connectionId: string) => {
             {profile?.age && (
               <View style={styles.infoRow}>
                 <Text style={[styles.infoLabel, themedStyles.labelText]}>Age:</Text>
-                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>{profile.age}</Text>
+                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{profile.age}</Text>
               </View>
             )}
             {profile?.gender && (
               <View style={styles.infoRow}>
                 <Text style={[styles.infoLabel, themedStyles.labelText]}>Gender:</Text>
-                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>{profile.gender}</Text>
+                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{profile.gender}</Text>
               </View>
             )}
           </View>
@@ -525,19 +525,19 @@ const handleRejectConnection = async (connectionId: string) => {
             {profile?.hometown && (
               <View style={styles.infoRow}>
                 <Text style={[styles.infoLabel, themedStyles.labelText]}>Hometown:</Text>
-                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>{profile.hometown}</Text>
+                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{profile.hometown}</Text>
               </View>
             )}
             {profile?.college && (
               <View style={styles.infoRow}>
                 <Text style={[styles.infoLabel, themedStyles.labelText]}>College:</Text>
-                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>{profile.college}</Text>
+                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{profile.college}</Text>
               </View>
             )}
             {profile?.work && (
               <View style={styles.infoRow}>
                 <Text style={[styles.infoLabel, themedStyles.labelText]}>Work:</Text>
-                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>{profile.work}</Text>
+                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{profile.work}</Text>
               </View>
             )}
           </View>
@@ -546,7 +546,7 @@ const handleRejectConnection = async (connectionId: string) => {
         {profile?.bio && (
           <View style={[styles.section, themedStyles.card]}>
             <Text style={[styles.sectionTitle, themedStyles.cardTitle]}>Bio</Text>
-            <Text style={[styles.bioText, themedStyles.bodyText, { fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}>{profile.bio}</Text>
+            <Text style={[styles.bioText, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{profile.bio}</Text>
           </View>
         )}
 
@@ -597,9 +597,48 @@ const handleRejectConnection = async (connectionId: string) => {
           </View>
         )}
 
-        <TouchableOpacity style={[styles.signOutButton, { backgroundColor: colors.error }]} onPress={signOut}>
-          <Text style={[styles.signOutText, themedStyles.buttonPrimaryText, { color: colors.white }]}>Sign Out</Text>
-        </TouchableOpacity>
+        {/* Legal — Terms / Privacy / Support */}
+        <View style={[styles.section, themedStyles.card, { marginTop: 12 }]}>
+          <Text style={[styles.sectionTitle, themedStyles.cardTitle]}>Legal</Text>
+          <TouchableOpacity
+            style={[styles.legalRow, { borderBottomColor: colors.border }]}
+            onPress={() => navigation?.navigate?.('Legal', { doc: 'terms' })}
+          >
+            <Text style={[styles.legalRowText, themedStyles.bodyText]}>Terms of Service</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.legalRow, { borderBottomColor: colors.border }]}
+            onPress={() => navigation?.navigate?.('Legal', { doc: 'privacy' })}
+          >
+            <Text style={[styles.legalRowText, themedStyles.bodyText]}>Privacy Policy</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.legalRow, { borderBottomWidth: 0 }]}
+            onPress={() => navigation?.navigate?.('Legal', { doc: 'support' })}
+          >
+            <Text style={[styles.legalRowText, themedStyles.bodyText]}>Support</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+          </TouchableOpacity>
+        </View>
+
+        {isNewTheme ? (
+          <View style={{ marginTop: 16 }}>
+            <PieButton
+              label="sign out"
+              icon="log-out-outline"
+              iconPosition="left"
+              variant="destructive"
+              onPress={signOut}
+              full
+            />
+          </View>
+        ) : (
+          <TouchableOpacity style={[styles.signOutButton, { backgroundColor: colors.error }]} onPress={signOut}>
+            <Text style={[styles.signOutText, themedStyles.buttonPrimaryText, { color: colors.white }]}>Sign Out</Text>
+          </TouchableOpacity>
+        )}
 </>
         )}
  {activeTab === 'connections' && (
@@ -616,7 +655,7 @@ const handleRejectConnection = async (connectionId: string) => {
             <View style={[styles.connectionSearchContainer, themedStyles.searchContainer]}>
               <Ionicons name="search" size={18} color={themedStyles.accentIconColor} style={styles.connectionSearchIcon} />
               <TextInput
-                style={[styles.connectionSearchInput, themedStyles.inputText, { fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined }]}
+                style={[styles.connectionSearchInput, themedStyles.inputText, { fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}
                 placeholder="Search connections..."
                 placeholderTextColor={colors.textTertiary}
                 value={connectionSearchQuery}
@@ -647,7 +686,6 @@ const handleRejectConnection = async (connectionId: string) => {
                     )}
                     <View style={styles.connectionInfo}>
                       <Text style={[styles.connectionName, themedStyles.listItemTitle]}>{request.profile?.name || 'Unknown'}</Text>
-                      <Text style={[styles.connectionEmail, themedStyles.listItemSubtitle]}>{request.profile?.email}</Text>
                     </View>
                     <View style={styles.requestActions}>
                       <TouchableOpacity
@@ -705,7 +743,6 @@ const handleRejectConnection = async (connectionId: string) => {
     )}
     <View style={styles.connectionInfo}>
       <Text style={[styles.connectionName, themedStyles.listItemTitle]}>{conn.profile?.name || 'Unknown'}</Text>
-      <Text style={[styles.connectionEmail, themedStyles.listItemSubtitle]}>{conn.profile?.email}</Text>
     </View>
   </TouchableOpacity>
 ))}
@@ -983,13 +1020,14 @@ const styles = StyleSheet.create({
   section: {
     backgroundColor: legacyColors.white,
     borderRadius: borderRadius.lg,
-    padding: spacing.base,
-    marginBottom: spacing.base,
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.md,
+    marginBottom: spacing.sm,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
     overflow: 'hidden',
     position: 'relative',
   },
@@ -1001,10 +1039,10 @@ const styles = StyleSheet.create({
     width: 3,
   },
   sectionTitle: {
-    fontSize: typography.fontSize.lg,
+    fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.bold,
     color: legacyColors.textPrimary,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   sectionDotDivider: {
     flexDirection: 'row',
@@ -1019,6 +1057,16 @@ const styles = StyleSheet.create({
     height: 3,
     borderRadius: 1.5,
     opacity: 0.5,
+  },
+  legalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  legalRowText: {
+    fontSize: 15,
   },
 
   // Modern Pill Tabs - matches FeedScreen filter buttons
@@ -1098,10 +1146,10 @@ const styles = StyleSheet.create({
   applicationTitle: { fontSize: 15, color: '#1f2937', fontWeight: '500', flex: 1 },
   pendingBadge: { backgroundColor: '#fef3c7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
   pendingText: { fontSize: 11, fontWeight: '600', color: '#92400e' },
-  infoRow: { flexDirection: 'row', marginBottom: 8 },
-  infoLabel: { fontSize: 14, fontWeight: '600', color: '#6b7280', width: 100 },
-  infoValue: { fontSize: 14, color: '#1f2937', flex: 1 },
-  bioText: { fontSize: 15, color: '#4b5563', lineHeight: 22 },
+  infoRow: { flexDirection: 'row', marginBottom: 6 },
+  infoLabel: { fontSize: 13, fontWeight: '600', color: '#6b7280', width: 90 },
+  infoValue: { fontSize: 13, color: '#1f2937', flex: 1 },
+  bioText: { fontSize: 14, color: '#4b5563', lineHeight: 20 },
   linkRow: {
     flexDirection: 'row',
     alignItems: 'center',

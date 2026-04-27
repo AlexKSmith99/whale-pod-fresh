@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '../contexts/AuthContext';
 import { meetingService } from '../services/meetingService';
+import { supabase } from '../config/supabase';
 import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
@@ -42,13 +43,48 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
   // Add participant modal
   const [showAddParticipant, setShowAddParticipant] = useState(false);
 
+  // Recurring series info (loaded when meeting.series_id is set)
+  const [seriesCadence, setSeriesCadence] = useState<string | null>(null);
+  const [canEditRecurring, setCanEditRecurring] = useState(false);
+
   useEffect(() => {
     setIsCreator(meeting.creator_id === user?.id);
     loadParticipants();
     if (meeting.pursuit_id) {
       loadPodMembers();
     }
+    if (meeting.series_id) {
+      loadSeriesMetadata();
+    } else {
+      setSeriesCadence(null);
+    }
+    if (meeting.pursuit_id && user) {
+      meetingService.canCreateRecurring(meeting.pursuit_id, user.id).then(setCanEditRecurring);
+    }
   }, [meeting, user]);
+
+  const loadSeriesMetadata = async () => {
+    try {
+      const { data } = await supabase
+        .from('meeting_series')
+        .select('cadence')
+        .eq('id', meeting.series_id)
+        .single();
+      if (data?.cadence) setSeriesCadence(data.cadence);
+    } catch (err) {
+      console.warn('Error loading series metadata:', err);
+    }
+  };
+
+  const recurringLabel = () => {
+    if (!seriesCadence) return null;
+    switch (seriesCadence) {
+      case 'weekly': return 'Repeats weekly';
+      case 'biweekly': return 'Repeats every 2 weeks';
+      case 'monthly': return 'Repeats monthly';
+      default: return `Repeats ${seriesCadence}`;
+    }
+  };
 
   const loadParticipants = async () => {
     if (!meeting?.id) {
@@ -141,12 +177,85 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
     }
   };
 
+  // Persist changes to either a single occurrence or the entire series.
+  const applyMeetingChanges = async (scope: 'single' | 'series') => {
+    setSaving(true);
+    try {
+      if (scope === 'series' && meeting.series_id) {
+        // Split out time-of-day so the series helper can re-apply it to every future instance
+        const timeOfDay = { hours: editDate.getHours(), minutes: editDate.getMinutes() };
+        await meetingService.updateMeetingSeries(meeting.series_id, {
+          title: editTitle.trim(),
+          description: editDescription.trim() || null,
+          duration_minutes: parseInt(editDuration) || 60,
+          meeting_type: editMeetingType,
+          location: editLocation.trim() || null,
+          time_of_day: timeOfDay,
+        });
+        Alert.alert('Series Updated', 'All future occurrences have been updated.');
+      } else if (meeting.series_id) {
+        // Single occurrence inside a series — flag as exception
+        await meetingService.updateSingleMeetingInSeries(meeting.id, {
+          title: editTitle.trim(),
+          description: editDescription.trim() || null,
+          scheduled_time: editDate.toISOString(),
+          duration_minutes: parseInt(editDuration) || 60,
+          meeting_type: editMeetingType,
+          location: editLocation.trim() || null,
+        });
+        Alert.alert('Meeting Updated', 'This occurrence was updated. Other occurrences in the series were not affected.');
+      } else {
+        await meetingService.updateMeeting(meeting.id, {
+          title: editTitle.trim(),
+          description: editDescription.trim() || null,
+          scheduled_time: editDate.toISOString(),
+          duration_minutes: parseInt(editDuration) || 60,
+          meeting_type: editMeetingType,
+          location: editLocation.trim() || null,
+        });
+        Alert.alert('Success', 'Meeting updated successfully');
+      }
+      setIsEditing(false);
+      if (onMeetingUpdated) {
+        onMeetingUpdated({
+          ...meeting,
+          title: editTitle.trim(),
+          description: editDescription.trim() || null,
+          scheduled_time: editDate.toISOString(),
+          duration_minutes: parseInt(editDuration) || 60,
+          meeting_type: editMeetingType,
+          location: editLocation.trim() || null,
+        });
+      }
+    } catch (error: any) {
+      console.error('Error updating meeting:', error);
+      Alert.alert('Error', error.message || 'Failed to update meeting');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSaveChanges = async () => {
     if (!editTitle.trim()) {
       Alert.alert('Error', 'Meeting title is required');
       return;
     }
 
+    // If this meeting belongs to a series, ask scope
+    if (meeting.series_id) {
+      Alert.alert(
+        'Save Changes',
+        'This meeting is part of a recurring series. What would you like to update?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'This meeting only', onPress: () => applyMeetingChanges('single') },
+          { text: 'Entire series', onPress: () => applyMeetingChanges('series') },
+        ]
+      );
+      return;
+    }
+
+    // Non-series path — preserve existing one-off behavior
     setSaving(true);
     try {
       const updatedMeeting = await meetingService.updateMeeting(meeting.id, {
@@ -441,7 +550,7 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
           <Ionicons name="close" size={28} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Meeting Details</Text>
-        {isCreator ? (
+        {isCreator || (meeting.series_id && canEditRecurring) ? (
           <TouchableOpacity onPress={() => setIsEditing(true)}>
             <Ionicons name="create-outline" size={24} color={accentColor} />
           </TouchableOpacity>
@@ -477,6 +586,14 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
               <View style={styles.infoTextContainer}>
                 <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Date</Text>
                 <Text style={[styles.infoValue, { color: colors.textPrimary }]}>{formatDate(meeting.scheduled_time)}</Text>
+                {seriesCadence && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 4 }}>
+                    <Ionicons name="repeat" size={14} color={accentColor} />
+                    <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }}>
+                      {recurringLabel()}
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
 

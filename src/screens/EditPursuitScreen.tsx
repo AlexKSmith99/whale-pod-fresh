@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import PodCoverImagePicker from '../components/ui/PodCoverImagePicker';
 import { supabase } from '../config/supabase';
 import { pursuitService } from '../services/pursuitService';
 import { useTheme } from '../theme/ThemeContext';
@@ -41,6 +42,7 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
   const [meetingCadence, setMeetingCadence] = useState(pursuit.meeting_cadence || '');
   const [location, setLocation] = useState(pursuit.location || '');
   const [defaultPicture, setDefaultPicture] = useState(pursuit.default_picture || '');
+  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(pursuit.cover_image_url || null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -77,6 +79,7 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
           meeting_cadence: meetingCadence,
           location,
           default_picture: defaultPicture || null,
+          cover_image_url: coverImageUrl,
           updated_at: new Date().toISOString(),
         })
         .eq('id', pursuit.id);
@@ -307,6 +310,18 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
               </TouchableOpacity>
             )}
           </View>
+        </View>
+
+        {/* Cover Photo */}
+        <View style={styles.section}>
+          <Text style={[styles.label, { color: colors.textPrimary }]}>Cover Photo</Text>
+          <Text style={[styles.hint, { color: colors.textSecondary }]}>Shown on the Feed and detail page</Text>
+          <PodCoverImagePicker
+            value={coverImageUrl}
+            onChange={setCoverImageUrl}
+            height={180}
+            placeholderText="add a cover photo"
+          />
         </View>
 
         {/* Description */}

@@ -38,6 +38,7 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
   const { theme, isNewTheme } = useTheme();
   const colors = theme.colors;
   const themedStyles = getThemedStyles(colors, isNewTheme);
+  const styles = React.useMemo(() => makeStyles(colors, isNewTheme), [colors, isNewTheme]);
   const flatListRef = useRef<FlatList>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -246,7 +247,7 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
       fontSize: typography.fontSize.lg,
       fontWeight: typography.fontWeight.semibold as '600',
       color: colors.textPrimary,
-      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'Sora_400Regular' : undefined,
     },
     messagesList: {
       padding: spacing.sm,
@@ -285,7 +286,7 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
     messageText: {
       fontSize: typography.fontSize.base,
       color: colors.textPrimary,
-      fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'Sora_400Regular' : undefined,
     },
     myMessageText: {
       color: isNewTheme ? colors.background : legacyColors.white,
@@ -301,14 +302,14 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
       paddingHorizontal: 10,
       paddingVertical: 3,
       borderRadius: 10,
-      fontFamily: isNewTheme ? 'KleeOne_400Regular' : 'Sora_400Regular',
+      fontFamily: isNewTheme ? 'Sora_400Regular' : 'Sora_400Regular',
     },
     expandedTimestamp: {
       fontSize: 11,
       color: colors.textSecondary,
       marginTop: 4,
       marginBottom: 2,
-      fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'Sora_400Regular' : undefined,
     },
     inputContainer: {
       flexDirection: 'row' as const,
@@ -330,7 +331,7 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
       fontSize: typography.fontSize.base,
       backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.white,
       color: colors.textPrimary,
-      fontFamily: isNewTheme ? 'KleeOne_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'Sora_400Regular' : undefined,
     },
     sendButton: {
       backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary,
@@ -362,12 +363,12 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
     optionText: {
       fontSize: typography.fontSize.base,
       color: colors.textPrimary,
-      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'Sora_400Regular' : undefined,
     },
     optionTextDanger: {
       fontSize: typography.fontSize.base,
       color: colors.error,
-      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'Sora_400Regular' : undefined,
     },
     optionCancel: {
       alignItems: 'center' as const,
@@ -380,7 +381,7 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
       fontSize: typography.fontSize.base,
       fontWeight: typography.fontWeight.semibold as '600',
       color: colors.textSecondary,
-      fontFamily: isNewTheme ? 'JuliusSansOne_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'Sora_400Regular' : undefined,
     },
   };
 
@@ -629,10 +630,14 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: any, isNewTheme: boolean) {
+  const accent = isNewTheme ? colors.accentGreen : accent;
+  const surfaceCard = colors.surface;
+  const inkOnAccent = isNewTheme ? '#000' : surfaceCard;
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: legacyColors.background,
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -640,7 +645,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 15,
     paddingTop: 50,
-    backgroundColor: '#fff',
+    backgroundColor: surfaceCard,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
@@ -658,14 +663,14 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#0ea5e9',
+    backgroundColor: accent,
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerAvatarText: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#fff',
+    color: surfaceCard,
   },
   headerUserName: {
     fontSize: 18,
@@ -689,14 +694,14 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#0ea5e9',
+    backgroundColor: accent,
     justifyContent: 'center',
     alignItems: 'center',
   },
   messageAvatarText: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#fff',
+    color: surfaceCard,
   },
   myMessageContainer: {
     alignSelf: 'flex-end',
@@ -712,11 +717,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   myMessageBubble: {
-    backgroundColor: '#0ea5e9',
+    backgroundColor: accent,
     borderBottomRightRadius: 4,
   },
   theirMessageBubble: {
-    backgroundColor: '#fff',
+    backgroundColor: surfaceCard,
     borderBottomLeftRadius: 4,
     borderWidth: 1,
     borderColor: legacyColors.border,
@@ -726,7 +731,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   myMessageText: {
-    color: '#fff',
+    color: surfaceCard,
   },
   timeSeparator: {
     alignItems: 'center',
@@ -734,8 +739,8 @@ const styles = StyleSheet.create({
   },
   timeSeparatorText: {
     fontSize: 11,
-    color: '#8A8A85',
-    backgroundColor: '#F2F0EB',
+    color: colors.textTertiary,
+    backgroundColor: colors.surfaceAlt,
     paddingHorizontal: 10,
     paddingVertical: 3,
     borderRadius: 10,
@@ -781,7 +786,7 @@ const styles = StyleSheet.create({
   },
   expandedTimestamp: {
     fontSize: 11,
-    color: '#999',
+    color: colors.textTertiary,
     marginTop: 4,
     marginBottom: 2,
   },
@@ -796,7 +801,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     padding: 10,
-    backgroundColor: '#fff',
+    backgroundColor: surfaceCard,
     borderTopWidth: 1,
     borderTopColor: '#eee',
     alignItems: 'flex-end',
@@ -813,7 +818,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   sendButton: {
-    backgroundColor: '#0ea5e9',
+    backgroundColor: accent,
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -826,7 +831,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   optionsContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: surfaceCard,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingTop: 12,
@@ -864,6 +869,7 @@ const styles = StyleSheet.create({
   optionCancelText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#666',
+    color: colors.textTertiary,
   },
-});
+  });
+}

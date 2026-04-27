@@ -17,6 +17,7 @@ export default function NotificationsScreen({ navigation }: any) {
   const { theme, isNewTheme } = useTheme();
   const colors = theme.colors;
   const themedStyles = getThemedStyles(colors, isNewTheme);
+  const styles = React.useMemo(() => makeStyles(colors, isNewTheme), [colors, isNewTheme]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -206,6 +207,29 @@ export default function NotificationsScreen({ navigation }: any) {
           leftAt: notification.data?.leftAt || notification.created_at,
         });
         break;
+      case 'role_edit_requested':
+      case 'role_edit_approved':
+        // Both route to the Team Board → Roles tab for the relevant pod
+        if (notification.data?.pursuitId) {
+          navigation?.navigate?.('TeamBoard', {
+            pursuitId: notification.data.pursuitId,
+            subTab: 'roles',
+          });
+        } else {
+          navigation?.navigate?.('Pods');
+        }
+        break;
+      case 'edit_access_request':
+        // Legacy stub for guide/rules/roles — route to the requested page
+        if (notification.data?.pursuitId) {
+          navigation?.navigate?.('TeamBoard', {
+            pursuitId: notification.data.pursuitId,
+            subTab: notification.data?.page || 'roles',
+          });
+        } else {
+          navigation?.navigate?.('Pods');
+        }
+        break;
       default:
         console.log('Unknown notification type:', notification.type);
     }
@@ -289,7 +313,7 @@ export default function NotificationsScreen({ navigation }: any) {
           <Ionicons
             name={getNotificationIcon(item.type) as any}
             size={20}
-            color={isUnread ? '#2D5016' : '#8A8A85'}
+            color={isUnread ? colors.accentGreen : colors.textTertiary}
           />
         </View>
 
@@ -339,11 +363,11 @@ export default function NotificationsScreen({ navigation }: any) {
             style={[styles.filterButton, podFilter && styles.filterButtonActive]}
             onPress={() => setShowFilterDropdown(true)}
           >
-            <Ionicons name="filter-outline" size={16} color={podFilter ? '#FFFFFF' : '#52524E'} />
+            <Ionicons name="filter-outline" size={16} color={podFilter ? (isNewTheme ? '#000' : '#FFFFFF') : colors.textSecondary} />
             <Text style={[styles.filterButtonText, podFilter && styles.filterButtonTextActive]} numberOfLines={1}>
-              {podFilter ? podNames[podFilter] || 'Pod' : 'Filter by pod'}
+              {podFilter ? podNames[podFilter] || 'Pod' : 'filter by pod'}
             </Text>
-            <Ionicons name="chevron-down" size={14} color={podFilter ? '#FFFFFF' : '#8A8A85'} />
+            <Ionicons name="chevron-down" size={14} color={podFilter ? (isNewTheme ? '#000' : '#FFFFFF') : colors.textTertiary} />
           </TouchableOpacity>
           {podFilter && (
             <TouchableOpacity style={styles.clearFilter} onPress={() => setPodFilter(null)}>
@@ -366,7 +390,7 @@ export default function NotificationsScreen({ navigation }: any) {
                     onPress={() => { setPodFilter(null); setShowFilterDropdown(false); }}
                   >
                     <Text style={[styles.dropdownItemText, !podFilter && styles.dropdownItemTextActive]}>All Notifications</Text>
-                    {!podFilter && <Ionicons name="checkmark" size={18} color="#2D5016" />}
+                    {!podFilter && <Ionicons name="checkmark" size={18} color={colors.accentGreen} />}
                   </TouchableOpacity>
                   {availablePods.map(pod => {
                     const active = podFilter === pod.id;
@@ -377,7 +401,7 @@ export default function NotificationsScreen({ navigation }: any) {
                         onPress={() => { setPodFilter(pod.id); setShowFilterDropdown(false); }}
                       >
                         <Text style={[styles.dropdownItemText, active && styles.dropdownItemTextActive]} numberOfLines={1}>{pod.title}</Text>
-                        {active && <Ionicons name="checkmark" size={18} color="#2D5016" />}
+                        {active && <Ionicons name="checkmark" size={18} color={colors.accentGreen} />}
                       </TouchableOpacity>
                     );
                   })}
@@ -391,7 +415,7 @@ export default function NotificationsScreen({ navigation }: any) {
       {/* Notification list */}
       {filteredNotifications.length === 0 ? (
         <View style={styles.empty}>
-          <Ionicons name="notifications-off-outline" size={48} color="#D6D3CC" />
+          <Ionicons name="notifications-off-outline" size={48} color={colors.textTertiary} />
           <Text style={[styles.body, { marginTop: 12 }]}>No notifications</Text>
         </View>
       ) : (
@@ -409,10 +433,15 @@ export default function NotificationsScreen({ navigation }: any) {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(colors: any, isNewTheme: boolean) {
+  const cardUnreadBg = isNewTheme ? 'rgba(200, 255, 107, 0.06)' : '#F2F7F0';
+  const dropdownItemActiveBg = isNewTheme ? 'rgba(200, 255, 107, 0.10)' : '#F2F7F0';
+  const subtleBg = isNewTheme ? 'rgba(255,255,255,0.06)' : '#F2F0EB';
+
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAF9F6',
+    backgroundColor: colors.background,
   },
   header: {
     paddingTop: 60,
@@ -422,8 +451,8 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#1B1B18',
-    fontFamily: 'PlayfairDisplay_700Bold',
+    color: colors.textPrimary,
+    fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold',
   },
 
   // Filter
@@ -433,7 +462,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E8E6E0',
+    borderBottomColor: colors.border,
     gap: 8,
   },
   filterButton: {
@@ -442,21 +471,21 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: '#F2F0EB',
+    borderRadius: 999,
+    backgroundColor: subtleBg,
   },
   filterButtonActive: {
-    backgroundColor: '#2D5016',
+    backgroundColor: colors.accentGreen,
   },
   filterButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#52524E',
+    color: colors.textSecondary,
     fontFamily: 'Sora_400Regular',
     maxWidth: 180,
   },
   filterButtonTextActive: {
-    color: '#FFFFFF',
+    color: isNewTheme ? '#000000' : '#FFFFFF',
   },
   clearFilter: {
     padding: 4,
@@ -471,9 +500,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   dropdownContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderRadius: 14,
     maxHeight: 360,
+    borderWidth: isNewTheme ? StyleSheet.hairlineWidth : 0,
+    borderColor: colors.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
@@ -483,7 +514,7 @@ const styles = StyleSheet.create({
   dropdownTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1B1B18',
+    color: colors.textPrimary,
     fontFamily: 'Sora_600SemiBold',
     paddingHorizontal: 18,
     paddingTop: 16,
@@ -499,20 +530,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#F2F0EB',
+    borderBottomColor: colors.border,
   },
   dropdownItemActive: {
-    backgroundColor: '#F2F7F0',
+    backgroundColor: dropdownItemActiveBg,
   },
   dropdownItemText: {
     fontSize: 15,
-    color: '#1B1B18',
+    color: colors.textPrimary,
     fontFamily: 'Sora_400Regular',
     flex: 1,
     marginRight: 8,
   },
   dropdownItemTextActive: {
-    color: '#2D5016',
+    color: colors.accentGreen,
     fontWeight: '600',
     fontFamily: 'Sora_600SemiBold',
   },
@@ -532,11 +563,11 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingLeft: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E8E6E0',
+    borderBottomColor: colors.border,
     position: 'relative',
   },
   cardUnread: {
-    backgroundColor: '#F2F7F0',
+    backgroundColor: cardUnreadBg,
   },
   cardAccentBar: {
     position: 'absolute',
@@ -545,7 +576,7 @@ const styles = StyleSheet.create({
     bottom: 8,
     width: 3,
     borderRadius: 2,
-    backgroundColor: '#2D5016',
+    backgroundColor: colors.accentGreen,
   },
 
   // Icon
@@ -553,13 +584,13 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F2F0EB',
+    backgroundColor: subtleBg,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   iconCircleUnread: {
-    backgroundColor: '#E4EDDE',
+    backgroundColor: isNewTheme ? 'rgba(200, 255, 107, 0.18)' : '#E4EDDE',
   },
 
   // Content
@@ -571,7 +602,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#1B1B18',
+    color: colors.textPrimary,
     fontFamily: 'Sora_600SemiBold',
     marginBottom: 2,
   },
@@ -580,7 +611,7 @@ const styles = StyleSheet.create({
   },
   body: {
     fontSize: 14,
-    color: '#8A8A85',
+    color: colors.textSecondary,
     fontFamily: 'Sora_400Regular',
     lineHeight: 18,
   },
@@ -592,14 +623,14 @@ const styles = StyleSheet.create({
   },
   time: {
     fontSize: 12,
-    color: '#8A8A85',
+    color: colors.textTertiary,
     fontFamily: 'Sora_400Regular',
   },
   dot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#2D5016',
+    backgroundColor: colors.accentGreen,
   },
 
   // Empty
@@ -608,4 +639,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-});
+  });
+}
