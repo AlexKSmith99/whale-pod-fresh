@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
   },
   titleLetter: {
-    fontFamily: 'PlayfairDisplay_700Bold',
+    fontFamily: 'InterTight_600SemiBold',
     fontSize: 44,
     color: '#1B1B18',
     letterSpacing: -0.5,

@@ -19,7 +19,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { connectionService } from '../services/connectionService';
-import { reviewService, REVIEW_ATTRIBUTES } from '../services/reviewService';
 import { privacyService, ViewerRelationship } from '../services/privacyService';
 import PodMemberCollage from '../components/PodMemberCollage';
 import { colors as legacyColors, typography, spacing } from '../theme/designSystem';
@@ -38,7 +37,7 @@ interface PrivacyVisibility {
   relationship: ViewerRelationship;
 }
 
-export default function UserProfileScreen({ route, navigation, onWriteReview }: any) {
+export default function UserProfileScreen({ route, navigation }: any) {
   const { userId } = route.params;
   const { user } = useAuth();
   const { theme, isNewTheme } = useTheme();
@@ -47,11 +46,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
   const [profile, setProfile] = useState<any>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'about' | 'reviews' | 'pods' | 'connections'>('about');
-  const [canReview, setCanReview] = useState(false);
-  const [reviews, setReviews] = useState<any[]>([]);
-  const [averageRatings, setAverageRatings] = useState<any>(null);
-  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'about' | 'pods' | 'connections'>('about');
   const [userPods, setUserPods] = useState<any[]>([]);
   const [podsLoading, setPodsLoading] = useState(false);
   const [userConnections, setUserConnections] = useState<any[]>([]);
@@ -87,21 +82,11 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
       await checkConnection();
 
       // Only load sections if visible
-      console.log('📦 Privacy visibility:', visibility);
-      if (visibility.canViewReviews) {
-        await loadReviews();
-      }
       if (visibility.canViewPodsTab) {
-        console.log('📦 canViewPodsTab is true, loading pods...');
         await loadUserPods();
-      } else {
-        console.log('📦 canViewPodsTab is false, NOT loading pods');
       }
       if (visibility.canViewConnections) {
         await loadUserConnections();
-      }
-      if (visibility.canAccessProfile) {
-        await checkCanReview();
       }
     } catch (error) {
       console.error('Error loading profile data:', error);
@@ -131,33 +116,6 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
     }
   };
 
-  const checkCanReview = async () => {
-    if (user) {
-      try {
-        const eligible = await reviewService.canReviewUser(user.id, userId);
-        setCanReview(eligible);
-      } catch (error) {
-        console.error('Error checking review eligibility:', error);
-      }
-    }
-  };
-
-  const loadReviews = async () => {
-    setReviewsLoading(true);
-    try {
-      const [reviewsData, ratingsData] = await Promise.all([
-        reviewService.getReviewsForUser(userId),
-        reviewService.getAverageRatings(userId),
-      ]);
-      setReviews(reviewsData);
-      setAverageRatings(ratingsData);
-    } catch (error) {
-      console.error('Error loading reviews:', error);
-    } finally {
-      setReviewsLoading(false);
-    }
-  };
-
   const loadUserPods = async () => {
     setPodsLoading(true);
     try {
@@ -181,20 +139,6 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
       console.error('Error loading user connections:', error);
     } finally {
       setConnectionsLoading(false);
-    }
-  };
-
-  const handleWriteReview = () => {
-    if (onWriteReview) {
-      onWriteReview(userId, profile?.name || 'User', profile?.profile_picture);
-    } else if (navigation && navigation.navigate) {
-      navigation.navigate('WriteReview', {
-        revieweeId: userId,
-        revieweeName: profile?.name || 'User',
-        revieweePhoto: profile?.profile_picture,
-      });
-    } else {
-      Alert.alert('Error', 'Unable to open review form');
     }
   };
 
@@ -241,7 +185,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
         <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         {isNewTheme && <GrainTexture opacity={0.06} />}
         <ActivityIndicator size="large" color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
-        <Text style={[styles.loadingText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Loading profile...</Text>
+        <Text style={[styles.loadingText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Loading profile...</Text>
       </GradientBackground>
     );
   }
@@ -268,14 +212,14 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
             </View>
           )}
 
-          <Text style={[styles.name, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
+          <Text style={[styles.name, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>
             {profile?.name || 'User'}
           </Text>
 
           <View style={[styles.privateInfoBox, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}>
             <Ionicons name="shield-checkmark" size={32} color={colors.textSecondary} />
-            <Text style={[styles.privateTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Private Profile</Text>
-            <Text style={[styles.privateDescription, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
+            <Text style={[styles.privateTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>Private Profile</Text>
+            <Text style={[styles.privateDescription, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
               {`This user has restricted access to ${possessivePronoun(profile?.gender)} profile. Connect with them to see more.`}
             </Text>
           </View>
@@ -283,7 +227,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
           {!isConnected && user && (
             <TouchableOpacity style={[styles.connectButtonLarge, { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]} onPress={handleConnect}>
               <Ionicons name="person-add" size={20} color={isNewTheme ? colors.background : legacyColors.white} />
-              <Text style={[styles.connectButtonLargeText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Send Connection Request</Text>
+              <Text style={[styles.connectButtonLargeText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Send Connection Request</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -296,8 +240,8 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
   const LockedSection = ({ title }: { title: string }) => (
     <View style={[styles.lockedSection, { backgroundColor: colors.surfaceAlt }]}>
       <Ionicons name="lock-closed" size={40} color={colors.textTertiary} />
-      <Text style={[styles.lockedTitle, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{title}</Text>
-      <Text style={[styles.lockedDescription, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>This section is private.</Text>
+      <Text style={[styles.lockedTitle, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>{title}</Text>
+      <Text style={[styles.lockedDescription, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>This section is private.</Text>
     </View>
   );
 
@@ -313,135 +257,41 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
 
     return (
       <View style={[styles.section, { backgroundColor: colors.surface }]}>
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Links</Text>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Links</Text>
         {profile?.linkedin && (
           <TouchableOpacity style={[styles.linkItem, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.linkedin)}>
             <Ionicons name="logo-linkedin" size={20} color="#0077b5" />
-            <Text style={[styles.linkText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>LinkedIn</Text>
+            <Text style={[styles.linkText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>LinkedIn</Text>
             <Ionicons name="open-outline" size={16} color={colors.textTertiary} style={styles.linkArrow} />
           </TouchableOpacity>
         )}
         {profile?.instagram && (
           <TouchableOpacity style={[styles.linkItem, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.instagram)}>
             <Ionicons name="logo-instagram" size={20} color="#e4405f" />
-            <Text style={[styles.linkText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Instagram</Text>
+            <Text style={[styles.linkText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Instagram</Text>
             <Ionicons name="open-outline" size={16} color={colors.textTertiary} style={styles.linkArrow} />
           </TouchableOpacity>
         )}
         {profile?.facebook && (
           <TouchableOpacity style={[styles.linkItem, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.facebook)}>
             <Ionicons name="logo-facebook" size={20} color="#1877f2" />
-            <Text style={[styles.linkText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Facebook</Text>
+            <Text style={[styles.linkText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Facebook</Text>
             <Ionicons name="open-outline" size={16} color={colors.textTertiary} style={styles.linkArrow} />
           </TouchableOpacity>
         )}
         {profile?.github && (
           <TouchableOpacity style={[styles.linkItem, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.github)}>
             <Ionicons name="logo-github" size={20} color={isNewTheme ? colors.textPrimary : '#333'} />
-            <Text style={[styles.linkText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>GitHub</Text>
+            <Text style={[styles.linkText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>GitHub</Text>
             <Ionicons name="open-outline" size={16} color={colors.textTertiary} style={styles.linkArrow} />
           </TouchableOpacity>
         )}
         {profile?.portfolio_website && (
           <TouchableOpacity style={[styles.linkItem, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.portfolio_website)}>
             <Ionicons name="globe-outline" size={20} color={isNewTheme ? colors.accentGreen : '#0ea5e9'} />
-            <Text style={[styles.linkText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Portfolio</Text>
+            <Text style={[styles.linkText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Portfolio</Text>
             <Ionicons name="open-outline" size={16} color={colors.textTertiary} style={styles.linkArrow} />
           </TouchableOpacity>
-        )}
-      </View>
-    );
-  };
-
-  // Reviews Tab Content
-  const renderReviewsTab = () => {
-    if (!privacyVisibility?.canViewReviews) {
-      return <LockedSection title="Reviews" />;
-    }
-
-    return (
-      <View style={styles.reviewsContainer}>
-        {/* Write Review Button */}
-        {canReview && (
-          <TouchableOpacity style={[styles.writeReviewButton, { backgroundColor: isNewTheme ? colors.accentGreen : '#10b981' }]} onPress={handleWriteReview}>
-            <Ionicons name="add-circle" size={22} color={isNewTheme ? colors.background : '#fff'} />
-            <Text style={[styles.writeReviewButtonText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Write a Review</Text>
-          </TouchableOpacity>
-        )}
-
-        {reviewsLoading ? (
-          <View style={styles.reviewsLoading}>
-            <ActivityIndicator size="small" color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
-            <Text style={[styles.reviewsLoadingText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Loading reviews...</Text>
-          </View>
-        ) : reviews.length === 0 ? (
-          <View style={styles.noReviews}>
-            <Ionicons name="star-outline" size={48} color={colors.textTertiary} />
-            <Text style={[styles.noReviewsText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>No reviews yet</Text>
-            <Text style={[styles.noReviewsSubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
-              Reviews will appear here after teammates share their feedback
-            </Text>
-          </View>
-        ) : (
-          <>
-            {/* Average Ratings Summary */}
-            {averageRatings && averageRatings.count > 0 && (
-              <View style={[styles.ratingsCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                <View style={styles.overallRating}>
-                  <Text style={[styles.overallRatingNumber, { color: isNewTheme ? colors.accentGreen : legacyColors.primary }]}>
-                    {averageRatings.overall.toFixed(1)}
-                  </Text>
-                  <Text style={[styles.overallRatingLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Overall</Text>
-                  <Text style={[styles.overallRatingCount, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
-                    Based on {averageRatings.count} review{averageRatings.count !== 1 ? 's' : ''}
-                  </Text>
-                </View>
-              </View>
-            )}
-
-            {/* Individual Reviews */}
-            {reviews.map((review) => (
-              <View key={review.id} style={[styles.reviewCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                <View style={styles.reviewHeader}>
-                  <View style={styles.reviewerInfo}>
-                    <View style={[styles.reviewerAvatarSmall, { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]}>
-                      <Text style={[styles.reviewerAvatarTextSmall, { color: isNewTheme ? colors.background : legacyColors.white }]}>
-                        {review.reviewer?.name?.charAt(0).toUpperCase() || '?'}
-                      </Text>
-                    </View>
-                    <View>
-                      <Text style={[styles.reviewerName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
-                        {review.reviewer?.name || 'Anonymous'}
-                      </Text>
-                      <Text style={[styles.reviewPursuit, { color: isNewTheme ? colors.accentGreen : legacyColors.primary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
-                        {review.pursuit?.title || 'Unknown Pod'}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text style={[styles.reviewDate, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
-                    {new Date(review.created_at).toLocaleDateString()}
-                  </Text>
-                </View>
-
-                <Text style={[styles.reviewDescription, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{review.description}</Text>
-
-                {/* Trait Ratings */}
-                <View style={styles.traitRatings}>
-                  {REVIEW_ATTRIBUTES.filter(attr =>
-                    review[attr.key] !== null && review[attr.key] !== undefined
-                  ).map(attr => (
-                    <View key={attr.key} style={[styles.traitRatingRow, { borderBottomColor: colors.border }]}>
-                      <View style={styles.traitInfo}>
-                        <Text style={styles.traitIcon}>{attr.icon}</Text>
-                        <Text style={[styles.traitName, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{attr.label}</Text>
-                      </View>
-                      <Text style={[styles.traitScore, { color: isNewTheme ? colors.accentGreen : legacyColors.primary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{review[attr.key]}/10</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            ))}
-          </>
         )}
       </View>
     );
@@ -458,13 +308,13 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
         {podsLoading ? (
           <View style={styles.podsLoading}>
             <ActivityIndicator size="small" color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
-            <Text style={[styles.podsLoadingText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Loading pods...</Text>
+            <Text style={[styles.podsLoadingText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Loading pods...</Text>
           </View>
         ) : userPods.length === 0 ? (
           <View style={styles.noPods}>
             <Ionicons name="people-outline" size={48} color={colors.textTertiary} />
-            <Text style={[styles.noPodsText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>No pods yet</Text>
-            <Text style={[styles.noPodsSubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
+            <Text style={[styles.noPodsText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>No pods yet</Text>
+            <Text style={[styles.noPodsSubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
               This user has not joined any pods yet.
             </Text>
           </View>
@@ -473,7 +323,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
             {/* Current Pods */}
             {userPods.filter(p => !p.status || ['awaiting_kickoff', 'collecting_proposals', 'active'].includes(p.status) || ['active', 'accepted'].includes(p.membership_status)).length > 0 && (
               <>
-                <Text style={[styles.podsSectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Current Pods</Text>
+                <Text style={[styles.podsSectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>Current Pods</Text>
                 {userPods
                   .filter(p => !p.status || ['awaiting_kickoff', 'collecting_proposals', 'active'].includes(p.status) || ['active', 'accepted'].includes(p.membership_status))
                   .map((pod) => (
@@ -488,7 +338,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
                         <PodMemberCollage members={pod.members || []} size={50} borderRadius={10} />
                       )}
                       <View style={styles.podInfo}>
-                        <Text style={[styles.podTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{pod.title}</Text>
+                        <Text style={[styles.podTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>{pod.title}</Text>
                         <View style={styles.podMeta}>
                           {pod.isCreator && (
                             <View style={[styles.creatorBadge, { backgroundColor: isNewTheme ? 'rgba(168, 230, 163, 0.15)' : '#fef3c7' }]}>
@@ -496,7 +346,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
                               <Text style={[styles.creatorBadgeText, { color: isNewTheme ? colors.accentGreen : '#d97706' }]}>Creator</Text>
                             </View>
                           )}
-                          <Text style={[styles.podMembers, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
+                          <Text style={[styles.podMembers, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
                             {pod.current_members_count || 1} member{(pod.current_members_count || 1) !== 1 ? 's' : ''}
                           </Text>
                         </View>
@@ -510,7 +360,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
             {/* Past Pods */}
             {userPods.filter(p => ['completed', 'archived'].includes(p.status) || ['left', 'removed'].includes(p.membership_status)).length > 0 && (
               <>
-                <Text style={[styles.podsSectionTitle, { marginTop: 24, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Past Pods</Text>
+                <Text style={[styles.podsSectionTitle, { marginTop: 24, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>Past Pods</Text>
                 {userPods
                   .filter(p => ['completed', 'archived'].includes(p.status) || ['left', 'removed'].includes(p.membership_status))
                   .map((pod) => (
@@ -527,7 +377,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
                         </View>
                       )}
                       <View style={styles.podInfo}>
-                        <Text style={[styles.podTitle, styles.podTitlePast, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{pod.title}</Text>
+                        <Text style={[styles.podTitle, styles.podTitlePast, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>{pod.title}</Text>
                         <View style={styles.podMeta}>
                           {pod.isCreator && (
                             <View style={[styles.creatorBadge, styles.creatorBadgePast, { backgroundColor: colors.surfaceAlt }]}>
@@ -535,7 +385,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
                               <Text style={[styles.creatorBadgeTextPast, { color: colors.textTertiary }]}>Creator</Text>
                             </View>
                           )}
-                          <Text style={[styles.podStatus, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
+                          <Text style={[styles.podStatus, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
                             {pod.membership_status === 'left' ? 'Left' : pod.membership_status === 'removed' ? 'Removed' : 'Closed'}
                           </Text>
                         </View>
@@ -611,23 +461,23 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
       })()}
 
       <View style={[styles.profileSection, { backgroundColor: colors.surface }]}>
-        <Text style={[styles.name, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
+        <Text style={[styles.name, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>
           {profile?.name || 'Name not set'}
         </Text>
 
-        {profile?.bio && <Text style={[styles.bio, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{profile.bio}</Text>}
+        {profile?.bio && <Text style={[styles.bio, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{profile.bio}</Text>}
       </View>
 
       <View style={styles.actionButtons}>
         {!isConnected && user && (
           <TouchableOpacity style={[styles.connectButton, { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]} onPress={handleConnect}>
             <Ionicons name="person-add" size={20} color={isNewTheme ? colors.background : legacyColors.white} />
-            <Text style={[styles.connectButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Connect</Text>
+            <Text style={[styles.connectButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Connect</Text>
           </TouchableOpacity>
         )}
         <TouchableOpacity style={[styles.messageButton, { backgroundColor: colors.surface, borderColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]} onPress={handleMessage}>
           <Ionicons name="chatbubble" size={20} color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
-          <Text style={[styles.messageButtonText, { color: isNewTheme ? colors.accentGreen : legacyColors.primary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Message</Text>
+          <Text style={[styles.messageButtonText, { color: isNewTheme ? colors.accentGreen : legacyColors.primary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Message</Text>
         </TouchableOpacity>
       </View>
 
@@ -637,29 +487,16 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
           style={[styles.tab, activeTab === 'about' && styles.tabActive, activeTab === 'about' && { borderBottomColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]}
           onPress={() => setActiveTab('about')}
         >
-          <Text style={[styles.tabText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }, activeTab === 'about' && { color: isNewTheme ? colors.accentGreen : legacyColors.primary }]}>
+          <Text style={[styles.tabText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, activeTab === 'about' && { color: isNewTheme ? colors.accentGreen : legacyColors.primary }]}>
             About
           </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'reviews' && styles.tabActive, activeTab === 'reviews' && { borderBottomColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]}
-          onPress={() => setActiveTab('reviews')}
-        >
-          <View style={styles.tabContent}>
-            <Text style={[styles.tabText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }, activeTab === 'reviews' && { color: isNewTheme ? colors.accentGreen : legacyColors.primary }]}>
-              Reviews
-            </Text>
-            {!privacyVisibility?.canViewReviews && (
-              <Ionicons name="lock-closed" size={12} color={colors.textTertiary} style={{ marginLeft: 4 }} />
-            )}
-          </View>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'pods' && styles.tabActive, activeTab === 'pods' && { borderBottomColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]}
           onPress={() => setActiveTab('pods')}
         >
           <View style={styles.tabContent}>
-            <Text style={[styles.tabText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }, activeTab === 'pods' && { color: isNewTheme ? colors.accentGreen : legacyColors.primary }]} numberOfLines={1}>
+            <Text style={[styles.tabText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, activeTab === 'pods' && { color: isNewTheme ? colors.accentGreen : legacyColors.primary }]} numberOfLines={1}>
               Pods
             </Text>
             {!privacyVisibility?.canViewPodsTab && (
@@ -672,7 +509,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
           onPress={() => setActiveTab('connections')}
         >
           <View style={styles.tabContent}>
-            <Text style={[styles.tabText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }, activeTab === 'connections' && { color: isNewTheme ? colors.accentGreen : legacyColors.primary }]} numberOfLines={1}>
+            <Text style={[styles.tabText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, activeTab === 'connections' && { color: isNewTheme ? colors.accentGreen : legacyColors.primary }]} numberOfLines={1}>
               Network
             </Text>
             {!privacyVisibility?.canViewConnections && (
@@ -689,14 +526,14 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
             <View style={[styles.section, { backgroundColor: colors.surface }]}>
               {profile?.age && (
                 <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
-                  <Text style={[styles.infoLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Age:</Text>
-                  <Text style={[styles.infoValue, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{profile.age}</Text>
+                  <Text style={[styles.infoLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Age:</Text>
+                  <Text style={[styles.infoValue, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{profile.age}</Text>
                 </View>
               )}
               {profile?.gender && (
                 <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
-                  <Text style={[styles.infoLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Gender:</Text>
-                  <Text style={[styles.infoValue, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{profile.gender}</Text>
+                  <Text style={[styles.infoLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Gender:</Text>
+                  <Text style={[styles.infoValue, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{profile.gender}</Text>
                 </View>
               )}
             </View>
@@ -705,23 +542,23 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
           {/* Location Section */}
           {(profile?.hometown || profile?.college || profile?.work) && (
             <View style={[styles.section, { backgroundColor: colors.surface }]}>
-              <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Location</Text>
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Location</Text>
               {profile?.hometown && (
                 <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
-                  <Text style={[styles.infoLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Hometown:</Text>
-                  <Text style={[styles.infoValue, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{profile.hometown}</Text>
+                  <Text style={[styles.infoLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Hometown:</Text>
+                  <Text style={[styles.infoValue, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{profile.hometown}</Text>
                 </View>
               )}
               {profile?.college && (
                 <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
-                  <Text style={[styles.infoLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>College:</Text>
-                  <Text style={[styles.infoValue, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{profile.college}</Text>
+                  <Text style={[styles.infoLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>College:</Text>
+                  <Text style={[styles.infoValue, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{profile.college}</Text>
                 </View>
               )}
               {profile?.work && (
                 <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
-                  <Text style={[styles.infoLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Work:</Text>
-                  <Text style={[styles.infoValue, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{profile.work}</Text>
+                  <Text style={[styles.infoLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Work:</Text>
+                  <Text style={[styles.infoValue, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{profile.work}</Text>
                 </View>
               )}
             </View>
@@ -730,16 +567,14 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
           {/* Bio Section - show separately if not already in header */}
           {profile?.bio && (
             <View style={[styles.section, { backgroundColor: colors.surface }]}>
-              <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Bio</Text>
-              <Text style={[styles.bioText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{profile.bio}</Text>
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Bio</Text>
+              <Text style={[styles.bioText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{profile.bio}</Text>
             </View>
           )}
 
           {renderSocialLinks()}
         </>
       )}
-
-      {activeTab === 'reviews' && renderReviewsTab()}
 
       {activeTab === 'pods' && renderPodsTab()}
 
@@ -754,18 +589,18 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
           {!privacyVisibility?.canViewConnections ? (
             <View style={[styles.lockedSection, { backgroundColor: colors.surfaceAlt }]}>
               <Ionicons name="lock-closed" size={48} color={colors.textTertiary} />
-              <Text style={[styles.lockedTitle, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Network</Text>
-              <Text style={[styles.lockedDescription, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>This section is private.</Text>
+              <Text style={[styles.lockedTitle, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>Network</Text>
+              <Text style={[styles.lockedDescription, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>This section is private.</Text>
             </View>
           ) : connectionsLoading ? (
             <View style={styles.emptyState}>
               <ActivityIndicator size="large" color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
-              <Text style={[styles.emptyHint, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Loading network...</Text>
+              <Text style={[styles.emptyHint, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Loading network...</Text>
             </View>
           ) : userConnections.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons name="people-outline" size={48} color={colors.textTertiary} />
-              <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>No connections yet</Text>
+              <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>No connections yet</Text>
             </View>
           ) : (
             <ScrollView keyboardShouldPersistTaps="handled">
@@ -773,7 +608,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
               <View style={[styles.connectionSearchContainer, { backgroundColor: colors.surfaceAlt }]}>
                 <Ionicons name="search" size={18} color={colors.textTertiary} style={styles.connectionSearchIcon} />
                 <TextInput
-                  style={[styles.connectionSearchInput, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}
+                  style={[styles.connectionSearchInput, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
                   placeholder="Search network..."
                   placeholderTextColor={colors.textTertiary}
                   value={connectionSearchQuery}
@@ -788,7 +623,7 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
                 )}
               </View>
 
-              <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
                 Network ({userConnections.length})
               </Text>
               {userConnections
@@ -822,9 +657,9 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
                     </View>
                   )}
                   <View style={styles.connectionInfo}>
-                    <Text style={[styles.connectionName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{conn.profile?.name || 'Unknown'}</Text>
+                    <Text style={[styles.connectionName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>{conn.profile?.name || 'Unknown'}</Text>
                     {conn.profile?.bio && (
-                      <Text style={[styles.connectionBio, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]} numberOfLines={1}>{conn.profile.bio}</Text>
+                      <Text style={[styles.connectionBio, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]} numberOfLines={1}>{conn.profile.bio}</Text>
                     )}
                   </View>
                   <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
@@ -838,8 +673,8 @@ export default function UserProfileScreen({ route, navigation, onWriteReview }: 
                 return nameParts.some((part: string) => part.startsWith(query));
               }).length === 0 && (
                 <View style={styles.emptyState}>
-                  <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>No matches found</Text>
-                  <Text style={[styles.emptyHint, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Try a different search term</Text>
+                  <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>No matches found</Text>
+                  <Text style={[styles.emptyHint, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Try a different search term</Text>
                 </View>
               )}
             </ScrollView>
@@ -957,19 +792,20 @@ const styles = StyleSheet.create({
   },
   infoRow: {
     flexDirection: 'row',
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
   infoLabel: {
-    fontSize: 15,
+    fontSize: 16,
     color: '#6b7280',
-    width: 100,
+    width: 110,
   },
   infoValue: {
-    fontSize: 15,
+    fontSize: 16,
     color: '#333',
     flex: 1,
+    lineHeight: 22,
   },
   bioText: {
     fontSize: 15,

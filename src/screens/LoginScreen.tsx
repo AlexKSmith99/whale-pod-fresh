@@ -409,14 +409,14 @@ const styles = StyleSheet.create({
   formSection: { marginBottom: 8 },
 
   phoneSectionTitle: {
-    fontFamily: 'PlayfairDisplay_700Bold',
+    fontFamily: 'InterTight_600SemiBold',
     fontSize: 24,
     color: C.text,
     marginBottom: 8,
     textAlign: 'center',
   },
   phoneSectionSub: {
-    fontFamily: 'Sora_400Regular',
+    fontFamily: 'InterTight_600SemiBold',
     fontSize: 14,
     color: C.textSecondary,
     textAlign: 'center',
@@ -432,7 +432,7 @@ const styles = StyleSheet.create({
     height: 52,
   },
   phonePrefixText: {
-    fontFamily: 'Sora_600SemiBold',
+    fontFamily: 'InterTight_600SemiBold',
     fontSize: 16,
     color: C.textSecondary,
   },
@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
     height: 52,
   },
   phoneTextInput: {
-    fontFamily: 'Sora_400Regular',
+    fontFamily: 'InterTight_600SemiBold',
     fontSize: 17,
     color: C.text,
     paddingVertical: 0,
@@ -459,7 +459,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   accentButtonText: {
-    fontFamily: 'Sora_600SemiBold',
+    fontFamily: 'InterTight_600SemiBold',
     fontSize: 15,
     color: '#fff',
   },
@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
 
   backButton: { marginBottom: 16 },
   backButtonText: {
-    fontFamily: 'Sora_600SemiBold',
+    fontFamily: 'InterTight_600SemiBold',
     fontSize: 15,
     color: C.accent,
   },
@@ -482,7 +482,7 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 12,
     backgroundColor: C.inputBg,
-    fontFamily: 'Sora_600SemiBold',
+    fontFamily: 'InterTight_600SemiBold',
     fontSize: 22,
     color: C.text,
     textAlign: 'center',
@@ -501,17 +501,17 @@ const styles = StyleSheet.create({
     marginTop: 18,
   },
   resendText: {
-    fontFamily: 'Sora_400Regular',
+    fontFamily: 'InterTight_600SemiBold',
     fontSize: 14,
     color: C.textSecondary,
   },
   resendLink: {
-    fontFamily: 'Sora_600SemiBold',
+    fontFamily: 'InterTight_600SemiBold',
     fontSize: 14,
     color: C.accent,
   },
   resendCooldown: {
-    fontFamily: 'Sora_400Regular',
+    fontFamily: 'InterTight_600SemiBold',
     fontSize: 14,
     color: C.textMuted,
   },
@@ -522,7 +522,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   footerText: {
-    fontFamily: 'Sora_400Regular',
+    fontFamily: 'InterTight_600SemiBold',
     fontSize: 12,
     color: C.textMuted,
     textAlign: 'center',

@@ -589,7 +589,7 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
                 {seriesCadence && (
                   <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 4 }}>
                     <Ionicons name="repeat" size={14} color={accentColor} />
-                    <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }}>
+                    <Text style={{ fontSize: 12, color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }}>
                       {recurringLabel()}
                     </Text>
                   </View>

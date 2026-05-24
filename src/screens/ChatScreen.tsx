@@ -161,7 +161,7 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
         partnerId,
         senderName,
         messagePreview,
-        partnerId // Using partnerId as conversationId
+        user.id // sender's id — recipient navigates to chat with sender on tap
       );
     } catch (error) {
       console.error('Error sending message:', error);
@@ -247,7 +247,7 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
       fontSize: typography.fontSize.lg,
       fontWeight: typography.fontWeight.semibold as '600',
       color: colors.textPrimary,
-      fontFamily: isNewTheme ? 'Sora_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold',
     },
     messagesList: {
       padding: spacing.sm,
@@ -286,7 +286,7 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
     messageText: {
       fontSize: typography.fontSize.base,
       color: colors.textPrimary,
-      fontFamily: isNewTheme ? 'Sora_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold',
     },
     myMessageText: {
       color: isNewTheme ? colors.background : legacyColors.white,
@@ -302,14 +302,14 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
       paddingHorizontal: 10,
       paddingVertical: 3,
       borderRadius: 10,
-      fontFamily: isNewTheme ? 'Sora_400Regular' : 'Sora_400Regular',
+      fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold',
     },
     expandedTimestamp: {
       fontSize: 11,
       color: colors.textSecondary,
       marginTop: 4,
       marginBottom: 2,
-      fontFamily: isNewTheme ? 'Sora_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold',
     },
     inputContainer: {
       flexDirection: 'row' as const,
@@ -331,7 +331,7 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
       fontSize: typography.fontSize.base,
       backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.white,
       color: colors.textPrimary,
-      fontFamily: isNewTheme ? 'Sora_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold',
     },
     sendButton: {
       backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary,
@@ -363,12 +363,12 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
     optionText: {
       fontSize: typography.fontSize.base,
       color: colors.textPrimary,
-      fontFamily: isNewTheme ? 'Sora_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold',
     },
     optionTextDanger: {
       fontSize: typography.fontSize.base,
       color: colors.error,
-      fontFamily: isNewTheme ? 'Sora_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold',
     },
     optionCancel: {
       alignItems: 'center' as const,
@@ -381,7 +381,7 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
       fontSize: typography.fontSize.base,
       fontWeight: typography.fontWeight.semibold as '600',
       color: colors.textSecondary,
-      fontFamily: isNewTheme ? 'Sora_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold',
     },
   };
 

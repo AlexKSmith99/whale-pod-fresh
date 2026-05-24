@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
     width: 48, height: 48, borderRadius: 24,
     alignItems: 'center', justifyContent: 'center',
   },
-  placeholderText: { fontSize: 14, fontFamily: 'Sora_400Regular' },
+  placeholderText: { fontSize: 14, fontFamily: 'Sora_600SemiBold' },
   editPill: {
     position: 'absolute', bottom: 12, right: 12,
     flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -199,12 +199,12 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24, borderTopRightRadius: 24,
     paddingTop: 18, paddingBottom: 30, paddingHorizontal: 20,
   },
-  sheetTitle: { fontSize: 16, fontWeight: '700', marginBottom: 8, fontFamily: 'Sora_400Regular' },
+  sheetTitle: { fontSize: 16, fontWeight: '700', marginBottom: 8, fontFamily: 'Sora_600SemiBold' },
   sheetRow: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
     paddingVertical: 16,
   },
-  sheetRowText: { fontSize: 16, fontFamily: 'Sora_400Regular' },
+  sheetRowText: { fontSize: 16, fontFamily: 'Sora_600SemiBold' },
   sheetCancel: { marginTop: 10, paddingVertical: 14, borderRadius: 999, alignItems: 'center' },
   sheetCancelText: { fontSize: 15, fontWeight: '600' },
 });

@@ -403,7 +403,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
           onPress={(e) => e.stopPropagation()}
         >
           <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-            <Text style={[styles.modalTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{title}</Text>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold' }]}>{title}</Text>
             <TouchableOpacity onPress={onClose} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
               <Ionicons name="close" size={24} color={colors.textPrimary} />
             </TouchableOpacity>
@@ -420,7 +420,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
                 }}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.modalOptionText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{option}</Text>
+                <Text style={[styles.modalOptionText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{option}</Text>
                 {selectedValues.includes(option) && (
                   <Ionicons name="checkmark-circle" size={24} color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
                 )}
@@ -515,7 +515,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
       marginLeft: spacing.sm,
       fontSize: typography.fontSize.base,
       color: colors.textPrimary,
-      fontFamily: isNewTheme ? 'Sora_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold',
     },
     card: {
       backgroundColor: isNewTheme ? colors.surface : '#FFFFFF',
@@ -540,14 +540,14 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
       fontWeight: typography.fontWeight.bold as '700',
       color: colors.textPrimary,
       lineHeight: isNewTheme ? typography.fontSize.lg * typography.lineHeight.tight : 21 * 1.25,
-      fontFamily: isNewTheme ? 'Sora_400Regular' : 'PlayfairDisplay_700Bold',
+      fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold',
     },
     cardDescription: {
       fontSize: typography.fontSize.base,
       color: colors.textSecondary,
       lineHeight: isNewTheme ? typography.fontSize.base * typography.lineHeight.normal : 15 * 1.6,
       marginBottom: isNewTheme ? spacing.md : 16,
-      fontFamily: isNewTheme ? 'Sora_400Regular' : 'Sora_400Regular',
+      fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold',
     },
     filterButton: {
       flexDirection: 'row' as const,
@@ -574,7 +574,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
       fontSize: typography.fontSize.sm,
       fontWeight: typography.fontWeight.medium as '500',
       color: colors.textSecondary,
-      fontFamily: isNewTheme ? 'Sora_400Regular' : undefined,
+      fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold',
     },
     tag: {
       backgroundColor: isNewTheme ? 'rgba(168, 230, 163, 0.15)' : legacyColors.primaryLight,
@@ -588,7 +588,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
       fontSize: isNewTheme ? typography.fontSize.xs : 12,
       fontWeight: isNewTheme ? typography.fontWeight.medium as '500' : typography.fontWeight.semibold as '600',
       color: isNewTheme ? colors.accentGreen : legacyColors.primary,
-      fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'Lora_600SemiBold',
+      fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold',
       textTransform: isNewTheme ? 'uppercase' as const : 'none' as const,
       letterSpacing: isNewTheme ? 0.5 : 0.3,
     },
@@ -794,7 +794,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
         >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Search by Keyword</Text>
+              <Text style={[styles.modalTitle, { fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold' }]}>Search by Keyword</Text>
               <TouchableOpacity onPress={() => setShowKeywordModal(false)}>
                 <Ionicons name="close" size={24} color={colors.textPrimary} />
               </TouchableOpacity>
@@ -845,7 +845,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
         >
           <View style={styles.locationModalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Filter by Location</Text>
+              <Text style={[styles.modalTitle, { fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold' }]}>Filter by Location</Text>
               <TouchableOpacity onPress={() => setShowLocationModal(false)}>
                 <Ionicons name="close" size={24} color={colors.textPrimary} />
               </TouchableOpacity>
@@ -996,7 +996,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
             onPress={(e) => e.stopPropagation()}
           >
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Sort by Date</Text>
+              <Text style={[styles.modalTitle, { fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold' }]}>Sort by Date</Text>
               <TouchableOpacity onPress={() => setShowDateSortModal(false)} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
                 <Ionicons name="close" size={24} color={colors.textPrimary} />
               </TouchableOpacity>
@@ -1101,8 +1101,8 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
               <View style={[styles.emptyIconContainer, { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.backgroundSecondary }]}>
                 <Ionicons name="search-outline" size={48} color={colors.textTertiary} />
               </View>
-              <Text style={[styles.emptyText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>No pods found</Text>
-              <Text style={[styles.emptySubtext, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Be the first to create one!</Text>
+              <Text style={[styles.emptyText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>No pods found</Text>
+              <Text style={[styles.emptySubtext, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Be the first to create one!</Text>
             </View>
           ) : (
             pursuits.flatMap((pursuit, index) => {
@@ -1365,14 +1365,14 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
                   <View style={styles.footerTopRow}>
                   <View style={styles.infoRow}>
                     <View style={styles.infoItem}>
-                      <Text style={[styles.infoText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
+                      <Text style={[styles.infoText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
                         {pursuit.current_members_count}/{pursuit.team_size_max}
                       </Text>
                     </View>
 
                     {pursuit.location && (
                       <View style={styles.infoItemFlex}>
-                        <Text style={[styles.infoTextFlex, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]} numberOfLines={1}>
+                        <Text style={[styles.infoTextFlex, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]} numberOfLines={1}>
                           {pursuit.neighborhood
                             ? `${pursuit.neighborhood}, ${pursuit.location.split(',')[0]}`
                             : pursuit.location}
@@ -1382,7 +1382,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
 
                     {pursuit.meeting_cadence && (
                       <View style={styles.infoItemFlex}>
-                        <Text style={[styles.infoTextFlex, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]} numberOfLines={1}>
+                        <Text style={[styles.infoTextFlex, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]} numberOfLines={1}>
                           {pursuit.meeting_cadence}
                         </Text>
                         </View>
@@ -1594,7 +1594,7 @@ const styles = StyleSheet.create({
   pieDescription: {
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: 'Sora_400Regular',
+    fontFamily: 'Sora_600SemiBold',
     marginBottom: 10,
   },
   pieInfoRow: {
@@ -1606,7 +1606,7 @@ const styles = StyleSheet.create({
   pieInfoText: {
     fontSize: 13,
     flex: 1,
-    fontFamily: 'Sora_400Regular',
+    fontFamily: 'Sora_600SemiBold',
   },
   pieTagsRow: {
     flexDirection: 'row',

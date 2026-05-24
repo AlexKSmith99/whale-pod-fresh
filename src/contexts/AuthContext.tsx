@@ -33,17 +33,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [pendingPhoneVerification, setPendingPhoneVerification] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-      
-      // Register push token if user is logged in
-      if (session?.user) {
-        notificationService.registerPushToken(session.user.id).catch(err => {
-          console.log('Push token registration skipped:', err?.message || 'Not available');
-        });
-      }
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        setUser(session?.user ?? null);
+        setLoading(false);
+
+        // Register push token if user is logged in
+        if (session?.user) {
+          notificationService.registerPushToken(session.user.id).catch(err => {
+            console.log('Push token registration skipped:', err?.message || 'Not available');
+          });
+        }
+      })
+      .catch((err) => {
+        // Without this catch, a network failure during getSession would leave loading=true forever
+        console.warn('getSession failed; treating user as signed out:', err?.message || err);
+        setUser(null);
+        setLoading(false);
+      });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);

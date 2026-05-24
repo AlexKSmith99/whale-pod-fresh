@@ -8,7 +8,6 @@ import { pursuitService } from '../services/pursuitService';
 import { messageService } from '../services/messageService';
 import { notificationService } from '../services/notificationService';
 import { connectionService } from '../services/connectionService';
-import { reviewService } from '../services/reviewService';
 import { podChatService } from '../services/podChatService';
 import { meetingService } from '../services/meetingService';
 
@@ -35,10 +34,6 @@ export const queryKeys = {
   // Connections
   connections: (userId: string) => ['connections', userId] as const,
   connectionRequests: (userId: string) => ['connectionRequests', userId] as const,
-
-  // Reviews
-  userReviews: (userId: string) => ['userReviews', userId] as const,
-  averageRatings: (userId: string) => ['averageRatings', userId] as const,
 
   // Notifications
   notifications: (userId: string) => ['notifications', userId] as const,
@@ -230,33 +225,6 @@ export function useConnectionRequests(userId: string | null) {
   });
 }
 
-// ============================================
-// REVIEWS
-// ============================================
-
-export function useUserReviews(userId: string | null) {
-  return useQuery({
-    queryKey: queryKeys.userReviews(userId || ''),
-    queryFn: async () => {
-      if (!userId) return [];
-      return reviewService.getUserReviews(userId);
-    },
-    enabled: !!userId,
-    staleTime: 5 * 60 * 1000, // Reviews don't change often
-  });
-}
-
-export function useAverageRatings(userId: string | null) {
-  return useQuery({
-    queryKey: queryKeys.averageRatings(userId || ''),
-    queryFn: async () => {
-      if (!userId) return null;
-      return reviewService.getAverageRatings(userId);
-    },
-    enabled: !!userId,
-    staleTime: 5 * 60 * 1000,
-  });
-}
 
 // ============================================
 // NOTIFICATIONS

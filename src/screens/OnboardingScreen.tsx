@@ -29,9 +29,9 @@ const C = {
 };
 
 const F = {
-  header: 'PlayfairDisplay_700Bold',
-  body: 'Sora_400Regular',
-  bodyMedium: 'Sora_600SemiBold',
+  header: 'InterTight_600SemiBold',
+  body: 'InterTight_600SemiBold',
+  bodyMedium: 'InterTight_600SemiBold',
 };
 
 // Section groups for progress dots

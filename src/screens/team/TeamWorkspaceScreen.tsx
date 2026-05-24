@@ -37,7 +37,6 @@ import {
   PodRules,
 } from '../../services/podContentService';
 import UserProfileScreen from '../UserProfileScreen';
-import WriteReviewScreen from '../WriteReviewScreen';
 import WebRichTextEditor from '../../components/WebRichTextEditor';
 import { useTheme } from '../../theme/ThemeContext';
 import { getThemedStyles } from '../../theme/themedStyles';
@@ -226,22 +225,9 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
   const [showUserProfile, setShowUserProfile] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   
-  // Write review state
-  const [showWriteReview, setShowWriteReview] = useState(false);
-  const [revieweeInfo, setRevieweeInfo] = useState<{
-    revieweeId: string;
-    revieweeName: string;
-    revieweePhoto?: string;
-  } | null>(null);
-
   const handleViewProfile = (userId: string) => {
     setSelectedUserId(userId);
     setShowUserProfile(true);
-  };
-  
-  const handleWriteReview = (revieweeId: string, revieweeName: string, revieweePhoto?: string) => {
-    setRevieweeInfo({ revieweeId, revieweeName, revieweePhoto });
-    setShowWriteReview(true);
   };
 
   // Request edit access. For 'roles' this hits the real role_edit_requests flow;
@@ -1418,7 +1404,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
             onPress={() => setIsInEditMode(true)}
           >
             <Ionicons name="create-outline" size={16} color={theme.textSecondary} />
-            <Text style={{ fontSize: 14, color: theme.textSecondary, fontFamily: 'Sora_400Regular' }}>Edit</Text>
+            <Text style={{ fontSize: 14, color: theme.textSecondary, fontFamily: 'Sora_600SemiBold' }}>Edit</Text>
           </TouchableOpacity>
         </View>
 
@@ -1427,7 +1413,8 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
           {fullHtml ? (
             <View style={{ flex: 1, paddingHorizontal: 20, minHeight: SCREEN_HEIGHT - 280 }}>
               <WebView
-                originWhitelist={['*']}
+                originWhitelist={['about:blank']}
+                javaScriptEnabled={false}
                 source={{
                   html: `
                     <!DOCTYPE html>
@@ -1497,7 +1484,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
           ) : (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 80 }}>
               <Ionicons name="document-text-outline" size={40} color={theme.textMuted} />
-              <Text style={{ fontSize: 16, color: theme.textMuted, marginTop: 12, fontFamily: 'Sora_400Regular' }}>Tap Edit to start writing</Text>
+              <Text style={{ fontSize: 16, color: theme.textMuted, marginTop: 12, fontFamily: 'Sora_600SemiBold' }}>Tap Edit to start writing</Text>
             </View>
           )}
         </ScrollView>
@@ -1534,7 +1521,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
               ) : (
                 <>
                   <Ionicons name="lock-closed-outline" size={14} color={theme.textMuted} />
-                  <Text style={{ fontSize: 13, color: theme.textMuted, fontFamily: 'Sora_400Regular' }}>Request edit access</Text>
+                  <Text style={{ fontSize: 13, color: theme.textMuted, fontFamily: 'Sora_600SemiBold' }}>Request edit access</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -1544,7 +1531,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
         <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}>
           <Text style={{ fontSize: 13, fontWeight: '600', color: theme.textMuted, marginBottom: 8, marginTop: 8, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.5, textTransform: 'uppercase' }}>Mission</Text>
           <TextInput
-            style={[styles.podDocInput, { borderWidth: 0, backgroundColor: theme.bgElevated }]}
+            style={[styles.podDocInput, { borderWidth: 0, backgroundColor: theme.bgElevated, color: theme.text }]}
             value={docMission}
             onChangeText={setDocMission}
             placeholder="What is this pod about?"
@@ -1556,7 +1543,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
 
           <Text style={{ fontSize: 13, fontWeight: '600', color: theme.textMuted, marginBottom: 8, marginTop: 24, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.5, textTransform: 'uppercase' }}>Vision</Text>
           <TextInput
-            style={[styles.podDocInput, { borderWidth: 0, backgroundColor: theme.bgElevated }]}
+            style={[styles.podDocInput, { borderWidth: 0, backgroundColor: theme.bgElevated, color: theme.text }]}
             value={docNorthstar}
             onChangeText={setDocNorthstar}
             placeholder="What does success look like?"
@@ -1568,7 +1555,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
 
           <Text style={{ fontSize: 13, fontWeight: '600', color: theme.textMuted, marginBottom: 8, marginTop: 24, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.5, textTransform: 'uppercase' }}>References</Text>
           <TextInput
-            style={[styles.podDocInput, { minHeight: 200, borderWidth: 0, backgroundColor: theme.bgElevated }]}
+            style={[styles.podDocInput, { minHeight: 200, borderWidth: 0, backgroundColor: theme.bgElevated, color: theme.text }]}
             value={docReference}
             onChangeText={setDocReference}
             placeholder="Links, resources, notes..."
@@ -1594,7 +1581,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
                 style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: theme.bgElevated }}
                 onPress={handleUseRulesTemplate}
               >
-                <Text style={{ fontSize: 14, color: theme.textSecondary, fontFamily: 'Sora_400Regular' }}>Template</Text>
+                <Text style={{ fontSize: 14, color: theme.textSecondary, fontFamily: 'Sora_600SemiBold' }}>Template</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, backgroundColor: theme.accent }}
@@ -1619,7 +1606,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
               ) : (
                 <>
                   <Ionicons name="lock-closed-outline" size={14} color={theme.textMuted} />
-                  <Text style={{ fontSize: 13, color: theme.textMuted, fontFamily: 'Sora_400Regular' }}>Request edit access</Text>
+                  <Text style={{ fontSize: 13, color: theme.textMuted, fontFamily: 'Sora_600SemiBold' }}>Request edit access</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -1628,7 +1615,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
 
         <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 20, paddingBottom: 100 }}>
           <TextInput
-            style={[styles.podDocInput, { minHeight: SCREEN_HEIGHT - 280, borderWidth: 0, backgroundColor: theme.bgElevated }]}
+            style={[styles.podDocInput, { minHeight: SCREEN_HEIGHT - 280, borderWidth: 0, backgroundColor: theme.bgElevated, color: theme.text }]}
             value={rulesContent}
             onChangeText={setRulesContent}
             placeholder="Guidelines and expectations for this pod..."
@@ -1659,7 +1646,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
               ) : (
                 <>
                   <Ionicons name="lock-closed-outline" size={14} color={theme.textMuted} />
-                  <Text style={{ fontSize: 13, color: theme.textMuted, fontFamily: 'Sora_400Regular' }}>Request edit access</Text>
+                  <Text style={{ fontSize: 13, color: theme.textMuted, fontFamily: 'Sora_600SemiBold' }}>Request edit access</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -1675,7 +1662,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
               </Text>
               {pendingRoleRequests.map(req => (
                 <View key={req.id} style={{ backgroundColor: '#FEF3C7', borderRadius: 12, padding: 14, marginBottom: 8, borderLeftWidth: 3, borderLeftColor: '#F59E0B' }}>
-                  <Text style={{ fontSize: 14, color: '#1B1B18', marginBottom: 10, fontFamily: 'Sora_400Regular' }}>
+                  <Text style={{ fontSize: 14, color: '#1B1B18', marginBottom: 10, fontFamily: 'Sora_600SemiBold' }}>
                     <Text style={{ fontWeight: '600' }}>{req.requester?.name || req.requester?.email?.split('@')[0] || 'A member'}</Text> wants to manage pod roles.
                   </Text>
                   <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -1728,7 +1715,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
                           ))}
                         </View>
                       ) : (
-                        <Text style={{ fontSize: 13, color: theme.textMuted, marginTop: 4, fontStyle: 'italic', fontFamily: 'Sora_400Regular' }}>No roles yet</Text>
+                        <Text style={{ fontSize: 13, color: theme.textMuted, marginTop: 4, fontStyle: 'italic', fontFamily: 'Sora_600SemiBold' }}>No roles yet</Text>
                       )}
                     </View>
                   </View>
@@ -1762,7 +1749,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
               ) : (
                 <>
                   <Ionicons name="images-outline" size={16} color={theme.textSecondary} />
-                  <Text style={{ fontSize: 14, color: theme.textSecondary, fontFamily: 'Sora_400Regular' }}>Library</Text>
+                  <Text style={{ fontSize: 14, color: theme.textSecondary, fontFamily: 'Sora_600SemiBold' }}>Library</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -1772,7 +1759,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
               disabled={uploadingMedia}
             >
               <Ionicons name="camera-outline" size={16} color={theme.textSecondary} />
-              <Text style={{ fontSize: 14, color: theme.textSecondary, fontFamily: 'Sora_400Regular' }}>Camera</Text>
+              <Text style={{ fontSize: 14, color: theme.textSecondary, fontFamily: 'Sora_600SemiBold' }}>Camera</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1781,7 +1768,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
           {mediaItems.length === 0 ? (
             <View style={{ alignItems: 'center', paddingVertical: 80 }}>
               <Ionicons name="images-outline" size={40} color={theme.textMuted} />
-              <Text style={{ fontSize: 16, color: theme.textMuted, marginTop: 12, fontFamily: 'Sora_400Regular' }}>No media yet</Text>
+              <Text style={{ fontSize: 16, color: theme.textMuted, marginTop: 12, fontFamily: 'Sora_600SemiBold' }}>No media yet</Text>
             </View>
           ) : (
             <View style={styles.mediaGrid}>
@@ -1823,21 +1810,6 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
     );
   }
 
-  // Show write review screen
-  if (showWriteReview && revieweeInfo) {
-    return (
-      <WriteReviewScreen
-        route={{ params: revieweeInfo }}
-        navigation={{
-          goBack: () => {
-            setShowWriteReview(false);
-            setRevieweeInfo(null);
-          },
-        }}
-      />
-    );
-  }
-
   // Show user profile screen
   if (showUserProfile && selectedUserId) {
     const navigation = {
@@ -1856,7 +1828,6 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
       <UserProfileScreen
         route={{ params: { userId: selectedUserId } }}
         navigation={navigation}
-        onWriteReview={handleWriteReview}
       />
     );
   }
@@ -1904,6 +1875,8 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
           style={[
             styles.sidebar,
             {
+              backgroundColor: theme.bgCard,
+              borderRightColor: theme.border,
               transform: [{
                 translateX: sidebarAnim.interpolate({
                   inputRange: [0, 1],
@@ -1914,27 +1887,38 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
             }
           ]}
         >
-          <Text style={styles.sidebarTitle}>Pods</Text>
+          <Text style={[styles.sidebarTitle, { color: theme.text }]}>Pods</Text>
           <ScrollView style={styles.podList} showsVerticalScrollIndicator={false}>
             {pods.map((pod) => (
               <TouchableOpacity
                 key={pod.id}
-                style={[styles.podItem, selectedPodId === pod.id && styles.podItemActive]}
+                style={[
+                  styles.podItem,
+                  { backgroundColor: theme.bgElevated, borderColor: theme.divider },
+                  selectedPodId === pod.id && [styles.podItemActive, { backgroundColor: theme.accentLight, borderColor: theme.accent }],
+                ]}
                 onPress={() => selectPod(pod.id)}
                 activeOpacity={0.7}
               >
                 {pod.default_picture ? (
-                  <Image source={{ uri: pod.default_picture }} style={styles.podItemPicture} />
+                  <Image source={{ uri: pod.default_picture }} style={[styles.podItemPicture, { borderColor: theme.border }]} />
                 ) : (
-                  <View style={styles.podItemPlaceholder}>
+                  <View style={[styles.podItemPlaceholder, { backgroundColor: theme.bgCard, borderColor: theme.border }]}>
                     <Ionicons name="people" size={14} color={theme.textMuted} />
                   </View>
                 )}
-                <Text style={[styles.podItemText, selectedPodId === pod.id && styles.podItemTextActive]} numberOfLines={2}>
+                <Text
+                  style={[
+                    styles.podItemText,
+                    { color: theme.text },
+                    selectedPodId === pod.id && [styles.podItemTextActive, { color: theme.accent }],
+                  ]}
+                  numberOfLines={2}
+                >
                   {pod.title}
                 </Text>
                 {selectedPodId === pod.id && (
-                  <View style={styles.podItemIndicator} />
+                  <View style={[styles.podItemIndicator, { backgroundColor: theme.accent }]} />
                 )}
               </TouchableOpacity>
             ))}
@@ -1942,12 +1926,12 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
         </Animated.View>
 
         {/* Main Content */}
-        <View style={styles.content}>
+        <View style={[styles.content, { backgroundColor: theme.bg }]}>
           {selectedPod && (
             <>
               {/* Segmented Tabs - Hidden when in edit mode on agenda tab */}
               {!(isInEditMode && activeSubTab === 'agenda') && (
-                <View style={styles.tabBar}>
+                <View style={[styles.tabBar, { backgroundColor: theme.bgElevated, borderWidth: isNewTheme ? 1 : 0, borderColor: theme.border }]}>
                   {(['agenda', 'doc', 'rules', 'roles', 'media'] as SubTab[]).map((tab) => {
                     // Avant-garde icon representations for each tab
                     const getTabIcon = () => {
@@ -1964,14 +1948,18 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
                     return (
                       <TouchableOpacity
                         key={tab}
-                        style={[styles.tab, isActive && styles.tabActive]}
+                        style={[
+                          styles.tab,
+                          isActive && styles.tabActive,
+                          isActive && { backgroundColor: isNewTheme ? theme.accent : '#FFFFFF' },
+                        ]}
                         onPress={() => setActiveSubTab(tab)}
                         activeOpacity={0.7}
                       >
                         <Ionicons
                           name={getTabIcon() as any}
                           size={24}
-                          color={isActive ? theme.text : theme.textMuted}
+                          color={isActive ? (isNewTheme ? '#000000' : theme.text) : theme.textMuted}
                         />
                       </TouchableOpacity>
                     );
@@ -2001,7 +1989,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
                 <Text style={{ fontSize: 17, fontWeight: '600', color: '#1B1B18', fontFamily: 'Sora_600SemiBold' }}>
                   Assign roles
                 </Text>
-                <Text style={{ fontSize: 13, color: '#8A8A85', marginTop: 2, fontFamily: 'Sora_400Regular' }}>
+                <Text style={{ fontSize: 13, color: '#8A8A85', marginTop: 2, fontFamily: 'Sora_600SemiBold' }}>
                   {roleEditorMember?.name || 'Team Member'}
                 </Text>
               </View>
@@ -2040,7 +2028,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
                           <Text style={{ fontSize: 15, fontWeight: '600', color: '#1B1B18', fontFamily: 'Sora_600SemiBold' }}>
                             {role.title}
                           </Text>
-                          <Text style={{ fontSize: 13, color: '#8A8A85', marginTop: 2, fontFamily: 'Sora_400Regular' }}>
+                          <Text style={{ fontSize: 13, color: '#8A8A85', marginTop: 2, fontFamily: 'Sora_600SemiBold' }}>
                             {role.description}
                           </Text>
                         </View>
@@ -2257,7 +2245,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: softTheme.textSecondary,
     maxWidth: 220,
-    fontFamily: 'Sora_400Regular',
+    fontFamily: 'Sora_600SemiBold',
   },
   headerPodPicture: {
     width: 28,
@@ -2526,7 +2514,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: localDarkTheme.text,
-    fontFamily: 'Lora_600SemiBold',
+    fontFamily: 'InterTight_600SemiBold',
   },
   editModeSaveBtn: {
     paddingVertical: 12,
@@ -2673,7 +2661,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: localDarkTheme.text,
     fontWeight: '600',
-    fontFamily: 'Lora_600SemiBold',
+    fontFamily: 'InterTight_600SemiBold',
   },
   colorPreview: {
     width: 20,
@@ -2789,7 +2777,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: localDarkTheme.text,
-    fontFamily: 'Lora_600SemiBold',
+    fontFamily: 'InterTight_600SemiBold',
   },
   menuItemTextActive: {
     color: localDarkTheme.accent,
@@ -2889,7 +2877,7 @@ const styles = StyleSheet.create({
     color: localDarkTheme.accent,
     fontWeight: '600',
     marginTop: 3,
-    fontFamily: 'Lora_600SemiBold',
+    fontFamily: 'InterTight_600SemiBold',
   },
   roleEditBtn: {
     width: 40,
@@ -3099,7 +3087,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: localDarkTheme.text,
-    fontFamily: 'Lora_600SemiBold',
+    fontFamily: 'InterTight_600SemiBold',
   },
   submitBtn: {
     flex: 1,
@@ -3179,7 +3167,7 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: '800',
     color: localDarkTheme.text,
-    fontFamily: 'PlayfairDisplay_700Bold',
+    fontFamily: 'InterTight_600SemiBold',
     letterSpacing: 1,
   },
   saveDocButton: {
@@ -3195,7 +3183,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     fontSize: 15,
-    fontFamily: 'Lora_600SemiBold',
+    fontFamily: 'InterTight_600SemiBold',
   },
   templateButton: {
     backgroundColor: softTheme.bgElevated,
@@ -3209,7 +3197,7 @@ const styles = StyleSheet.create({
     color: softTheme.text,
     fontWeight: '600',
     fontSize: 14,
-    fontFamily: 'Lora_600SemiBold',
+    fontFamily: 'InterTight_600SemiBold',
   },
   podDocSection: {
     padding: 16,
@@ -3290,7 +3278,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: softTheme.text,
     marginBottom: 4,
-    fontFamily: 'Lora_600SemiBold',
+    fontFamily: 'InterTight_600SemiBold',
   },
   meetingHeaderDate: {
     fontSize: 14,
@@ -3377,7 +3365,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: localDarkTheme.text,
     fontWeight: '600',
-    fontFamily: 'Lora_600SemiBold',
+    fontFamily: 'InterTight_600SemiBold',
   },
   textSettingsOverlay: {
     flex: 1,
@@ -3398,7 +3386,7 @@ const styles = StyleSheet.create({
     color: localDarkTheme.text,
     marginBottom: 20,
     textAlign: 'center',
-    fontFamily: 'PlayfairDisplay_700Bold',
+    fontFamily: 'InterTight_600SemiBold',
     letterSpacing: 0.5,
   },
   textSettingsLabel: {
@@ -3514,7 +3502,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: localDarkTheme.text,
     fontWeight: '600',
-    fontFamily: 'Lora_600SemiBold',
+    fontFamily: 'InterTight_600SemiBold',
   },
   fullScreenEditor: {
     flex: 1,
@@ -3576,7 +3564,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: localDarkTheme.textSecondary,
     fontWeight: '500',
-    fontFamily: 'Sora_400Regular',
+    fontFamily: 'Sora_600SemiBold',
   },
   meetingHeadersSection: {
     paddingHorizontal: 16,

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator, StatusBar, Image } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
 import { notificationService } from '../services/notificationService';
@@ -222,26 +223,26 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
   const renderFilterTabs = () => (
     <View style={[styles.filterTabs, themedStyles.surface, { borderBottomColor: colors.border }]}>
       <TouchableOpacity
-        style={[styles.filterTab, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f5f5f5' }, activeFilter === 'active' && { backgroundColor: themedStyles.accentIconColor }]}
+        style={[styles.filterTab, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f5f5f5' }, activeFilter === 'active' && { backgroundColor: isNewTheme ? 'rgba(200, 255, 107, 0.15)' : themedStyles.accentIconColor }]}
         onPress={() => setActiveFilter('active')}
       >
-        <Text style={[styles.filterTabText, themedStyles.bodyText, { color: colors.textSecondary }, activeFilter === 'active' && styles.filterTabTextActive]}>
+        <Text style={[styles.filterTabText, themedStyles.bodyText, { color: colors.textSecondary }, activeFilter === 'active' && (isNewTheme ? { color: colors.accentGreen } : styles.filterTabTextActive)]}>
           Active ({pods.length})
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.filterTab, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f5f5f5' }, activeFilter === 'past' && { backgroundColor: themedStyles.accentIconColor }]}
+        style={[styles.filterTab, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f5f5f5' }, activeFilter === 'past' && { backgroundColor: isNewTheme ? 'rgba(200, 255, 107, 0.15)' : themedStyles.accentIconColor }]}
         onPress={() => setActiveFilter('past')}
       >
-        <Text style={[styles.filterTabText, themedStyles.bodyText, { color: colors.textSecondary }, activeFilter === 'past' && styles.filterTabTextActive]}>
+        <Text style={[styles.filterTabText, themedStyles.bodyText, { color: colors.textSecondary }, activeFilter === 'past' && (isNewTheme ? { color: colors.accentGreen } : styles.filterTabTextActive)]}>
           Past ({pastPods.length})
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.filterTab, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f5f5f5' }, activeFilter === 'pending' && { backgroundColor: themedStyles.accentIconColor }]}
+        style={[styles.filterTab, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f5f5f5' }, activeFilter === 'pending' && { backgroundColor: isNewTheme ? 'rgba(200, 255, 107, 0.15)' : themedStyles.accentIconColor }]}
         onPress={() => setActiveFilter('pending')}
       >
-        <Text style={[styles.filterTabText, themedStyles.bodyText, { color: colors.textSecondary }, activeFilter === 'pending' && styles.filterTabTextActive]}>
+        <Text style={[styles.filterTabText, themedStyles.bodyText, { color: colors.textSecondary }, activeFilter === 'pending' && (isNewTheme ? { color: colors.accentGreen } : styles.filterTabTextActive)]}>
           Pending ({applications.length + interviewPendingApps.length})
         </Text>
       </TouchableOpacity>
@@ -321,12 +322,12 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
           <View style={styles.podTags}>
             {((pod as any).pursuit_types || []).slice(0, isNewTheme ? 2 : 3).map((type: string, i: number) => (
               <View key={`t-${i}`} style={[styles.podTag, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#F2F0EB' }]}>
-                <Text style={[styles.podTagText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{type}</Text>
+                <Text style={[styles.podTagText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{type}</Text>
               </View>
             ))}
             {((pod as any).pursuit_categories || []).slice(0, 2).map((cat: string, i: number) => (
               <View key={`c-${i}`} style={[styles.podTag, { backgroundColor: 'rgba(129, 140, 248, 0.15)', borderColor: 'rgba(129, 140, 248, 0.3)', borderWidth: 1 }]}>
-                <Text style={[styles.podTagText, { color: isNewTheme ? colors.primary : '#6366F1', fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{cat}</Text>
+                <Text style={[styles.podTagText, { color: isNewTheme ? colors.primary : '#6366F1', fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{cat}</Text>
               </View>
             ))}
           </View>
@@ -439,9 +440,12 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
         pastPods.map((pod) => renderPodCard(pod, true))
       ) : (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyEmoji}>📭</Text>
+          {isNewTheme ? (
+            <Ionicons name="time-outline" size={64} color={colors.textTertiary} style={{ marginBottom: 20 }} />
+          ) : (
+            <Text style={styles.emptyEmoji}>📭</Text>
+          )}
           <Text style={[styles.emptyText, themedStyles.emptyText]}>No past pods</Text>
-          <Text style={[styles.emptyHint, themedStyles.emptySubtext]}>Pods you've been removed from will appear here</Text>
         </View>
       )}
     </View>
@@ -452,7 +456,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
       {/* Interview Requests - show first with action required */}
       {interviewPendingApps.length > 0 && (
         <>
-          <Text style={[styles.sectionLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : undefined, textTransform: 'uppercase', letterSpacing: isNewTheme ? 1 : 0.5 }]}>Interview Requests</Text>
+          <Text style={[styles.sectionLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: 'uppercase', letterSpacing: isNewTheme ? 1 : 0.5 }]}>Interview Requests</Text>
           {interviewPendingApps.map((app) => (
             <View key={app.id} style={[styles.applicationCard, styles.interviewCard, themedStyles.card, { borderColor: themedStyles.accentIconColor, borderWidth: isNewTheme ? 0.35 : 1 }]}>
               <View style={styles.applicationHeader}>
@@ -481,7 +485,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
       {/* Regular pending applications */}
       {applications.length > 0 && (
         <>
-          {interviewPendingApps.length > 0 && <Text style={[styles.sectionLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : undefined, textTransform: 'uppercase', letterSpacing: isNewTheme ? 1 : 0.5 }]}>Pending Review</Text>}
+          {interviewPendingApps.length > 0 && <Text style={[styles.sectionLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: 'uppercase', letterSpacing: isNewTheme ? 1 : 0.5 }]}>Pending Review</Text>}
           {applications.map((app) => (
             <View key={app.id} style={[styles.applicationCard, themedStyles.card, { borderWidth: isNewTheme ? 0.35 : 0.5, borderColor: isNewTheme ? colors.accentGreen : '#f59e0b' }]}>
               <View style={styles.applicationHeader}>
@@ -500,9 +504,12 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
 
       {applications.length === 0 && interviewPendingApps.length === 0 && (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyEmoji}>📝</Text>
+          {isNewTheme ? (
+            <Ionicons name="paper-plane-outline" size={64} color={colors.textTertiary} style={{ marginBottom: 20 }} />
+          ) : (
+            <Text style={styles.emptyEmoji}>📝</Text>
+          )}
           <Text style={[styles.emptyText, themedStyles.emptyText]}>No pending applications</Text>
-          <Text style={[styles.emptyHint, themedStyles.emptySubtext]}>Apply to pods and track your applications here</Text>
         </View>
       )}
     </View>
@@ -514,7 +521,6 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
       {isNewTheme && <GrainTexture opacity={0.06} />}
       <View style={[styles.header, themedStyles.header]}>
         <Text style={[styles.title, themedStyles.headerTitle]}>My Pods</Text>
-        <Text style={[styles.subtitle, themedStyles.cardDescription]}>Teams & applications</Text>
       </View>
 
       {renderFilterTabs()}

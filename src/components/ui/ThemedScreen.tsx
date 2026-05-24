@@ -60,9 +60,9 @@ export function useThemedStyles() {
     // Common border styles
     borderStyle: { borderColor: colors.border },
     // Font families - themed for both modes
-    bodyFont: isNewTheme ? 'Sora_400Regular' : 'Sora_400Regular',
-    headerFont: isNewTheme ? 'NothingYouCouldDo_400Regular' : 'Inter_600SemiBold',
-    accentFont: isNewTheme ? 'Sora_600SemiBold' : 'Inter_500Medium',
+    bodyFont: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold',
+    headerFont: isNewTheme ? 'NothingYouCouldDo_400Regular' : 'InterTight_600SemiBold',
+    accentFont: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold',
   };
 }
 

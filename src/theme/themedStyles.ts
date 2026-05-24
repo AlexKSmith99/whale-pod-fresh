@@ -18,17 +18,22 @@ import { ThemeColors } from './ThemeContext';
 const FONT_HEADER = 'Sora_700Bold';
 const FONT_TITLE = 'Sora_600SemiBold';
 const FONT_ACCENT = 'Sora_600SemiBold';
-const FONT_BODY = 'Sora_400Regular';
+const FONT_BODY = 'Sora_600SemiBold';
 const FONT_BODY_BOLD = 'Sora_600SemiBold';
-// Light mode fonts - rustic, rugged, professional
-const FONT_LIGHT_HEADER = 'PlayfairDisplay_700Bold';
-const FONT_LIGHT_BODY = 'Sora_400Regular';
-const FONT_LIGHT_BODY_MEDIUM = 'Sora_500Medium';
-const FONT_LIGHT_ACCENT = 'Lora_600SemiBold';
-// Legacy aliases for backwards compat
+// Light mode type system — uniform sans-serif body + serif display for branded titles.
+//   DISPLAY  → PlayfairDisplay (pod names/titles, screen headers — the "Whale Pods" font)
+//   BODY     → InterTight 600  (everything else — labels, sections, body copy, captions)
+const FONT_LIGHT_DISPLAY = 'PlayfairDisplay_700Bold';
+const FONT_LIGHT_BODY = 'InterTight_600SemiBold';
+// Aliases — section/caption/accent all collapse to body for uniformity.
+const FONT_LIGHT_SECTION = FONT_LIGHT_BODY;
+const FONT_LIGHT_CAPTION = FONT_LIGHT_BODY;
+const FONT_LIGHT_HEADER = FONT_LIGHT_DISPLAY;
+const FONT_LIGHT_BODY_MEDIUM = FONT_LIGHT_BODY;
+const FONT_LIGHT_ACCENT = FONT_LIGHT_BODY;
 const FONT_INTER = FONT_LIGHT_BODY;
-const FONT_INTER_MEDIUM = FONT_LIGHT_BODY_MEDIUM;
-const FONT_INTER_SEMIBOLD = FONT_LIGHT_HEADER;
+const FONT_INTER_MEDIUM = FONT_LIGHT_BODY;
+const FONT_INTER_SEMIBOLD = FONT_LIGHT_DISPLAY;
 
 /**
  * Generate dynamic styles based on current theme

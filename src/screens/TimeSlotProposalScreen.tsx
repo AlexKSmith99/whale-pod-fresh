@@ -208,32 +208,32 @@ export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClos
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
           <Ionicons name="close" size={28} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : undefined }]}>Propose Meeting Times</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold' }]}>Propose Meeting Times</Text>
         <View style={{ width: 28 }} />
       </View>
 
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
           <View style={[styles.introSection, { backgroundColor: isNewTheme ? colors.primaryLight : legacyColors.primaryLight }]}>
-            <Text style={[styles.pursuitTitle, { color: accentColor, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{pursuitTitle}</Text>
-            <Text style={[styles.introText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
+            <Text style={[styles.pursuitTitle, { color: accentColor, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>{pursuitTitle}</Text>
+            <Text style={[styles.introText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
               The kickoff meeting has been activated! Your team creator will review everyone's proposals and pick the final meeting time.
             </Text>
           </View>
 
           <View style={[styles.emphasisCallout, { backgroundColor: isNewTheme ? 'rgba(252, 211, 77, 0.12)' : '#FEF3C7', borderLeftColor: colors.warning }]}>
             <Ionicons name="alert-circle" size={18} color={colors.warning} style={{ marginRight: 10, marginTop: 1 }} />
-            <Text style={[styles.emphasisText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
+            <Text style={[styles.emphasisText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
               <Text style={{ fontWeight: '700' }}>Submit every time slot in the next 7 days that works for you.</Text> The more overlap across your team, the faster the creator can lock in a kickoff that works for everyone.
             </Text>
           </View>
 
           {/* Time Slots */}
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : undefined }]}>Your Available Times</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'InterTight_600SemiBold' }]}>Your Available Times</Text>
           {timeSlots.map((slot, index) => (
             <View key={index} style={[styles.timeSlotCard, { backgroundColor: colors.surface }]}>
               <View style={styles.timeSlotHeader}>
-                <Text style={[styles.timeSlotLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Time Slot {index + 1}</Text>
+                <Text style={[styles.timeSlotLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Time Slot {index + 1}</Text>
                 {timeSlots.length > 1 && (
                   <TouchableOpacity onPress={() => removeTimeSlot(index)}>
                     <Ionicons name="trash-outline" size={20} color={colors.error} />
@@ -242,13 +242,13 @@ export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClos
               </View>
 
               {/* Date Picker */}
-              <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Date</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Date</Text>
               <TouchableOpacity
                 style={[styles.pickerButton, { backgroundColor: colors.backgroundSecondary, borderColor: colors.borderLight }]}
                 onPress={() => setShowDatePicker(showDatePicker === index ? null : index)}
               >
                 <Ionicons name="calendar-outline" size={20} color={accentColor} />
-                <Text style={[styles.pickerButtonText, styles.pickerButtonTextSelected, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
+                <Text style={[styles.pickerButtonText, styles.pickerButtonTextSelected, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
                   {formatDate(slot.date)}
                 </Text>
                 <Ionicons name={showDatePicker === index ? "chevron-up" : "chevron-down"} size={20} color={colors.textSecondary} />
@@ -277,7 +277,7 @@ export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClos
                         style={[styles.doneButton, { backgroundColor: accentColor }]}
                         onPress={() => setShowDatePicker(null)}
                       >
-                        <Text style={[styles.doneButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Done</Text>
+                        <Text style={[styles.doneButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Done</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -296,13 +296,13 @@ export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClos
               {/* Time Pickers Row */}
               <View style={styles.timeRow}>
                 <View style={styles.timeInput}>
-                  <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Start Time</Text>
+                  <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Start Time</Text>
                   <TouchableOpacity
                     style={[styles.pickerButton, { backgroundColor: colors.backgroundSecondary, borderColor: colors.borderLight }]}
                     onPress={() => setShowStartTimePicker(showStartTimePicker === index ? null : index)}
                   >
                     <Ionicons name="time-outline" size={20} color={accentColor} />
-                    <Text style={[styles.pickerButtonText, styles.pickerButtonTextSelected, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]} numberOfLines={1} adjustsFontSizeToFit>
+                    <Text style={[styles.pickerButtonText, styles.pickerButtonTextSelected, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]} numberOfLines={1} adjustsFontSizeToFit>
                       {formatTime(slot.startTime)}
                     </Text>
                     <Ionicons name={showStartTimePicker === index ? "chevron-up" : "chevron-down"} size={16} color={colors.textSecondary} />
@@ -331,7 +331,7 @@ export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClos
                             style={[styles.doneButton, { backgroundColor: accentColor }]}
                             onPress={() => setShowStartTimePicker(null)}
                           >
-                            <Text style={[styles.doneButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Done</Text>
+                            <Text style={[styles.doneButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Done</Text>
                           </TouchableOpacity>
                         </View>
                       </View>
@@ -348,13 +348,13 @@ export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClos
                   )}
                 </View>
                 <View style={styles.timeInput}>
-                  <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>End Time</Text>
+                  <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>End Time</Text>
                   <TouchableOpacity
                     style={[styles.pickerButton, { backgroundColor: colors.backgroundSecondary, borderColor: colors.borderLight }]}
                     onPress={() => setShowEndTimePicker(showEndTimePicker === index ? null : index)}
                   >
                     <Ionicons name="time-outline" size={20} color={accentColor} />
-                    <Text style={[styles.pickerButtonText, styles.pickerButtonTextSelected, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]} numberOfLines={1} adjustsFontSizeToFit>
+                    <Text style={[styles.pickerButtonText, styles.pickerButtonTextSelected, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]} numberOfLines={1} adjustsFontSizeToFit>
                       {formatTime(slot.endTime)}
                     </Text>
                     <Ionicons name={showEndTimePicker === index ? "chevron-up" : "chevron-down"} size={16} color={colors.textSecondary} />
@@ -383,7 +383,7 @@ export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClos
                             style={[styles.doneButton, { backgroundColor: accentColor }]}
                             onPress={() => setShowEndTimePicker(null)}
                           >
-                            <Text style={[styles.doneButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Done</Text>
+                            <Text style={[styles.doneButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Done</Text>
                           </TouchableOpacity>
                         </View>
                       </View>
@@ -405,7 +405,7 @@ export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClos
 
           <TouchableOpacity style={[styles.addSlotButton, { backgroundColor: colors.backgroundSecondary, borderColor: accentColor }]} onPress={addTimeSlot}>
             <Ionicons name="add-circle-outline" size={24} color={accentColor} />
-            <Text style={[styles.addSlotText, { color: accentColor, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Add Another Time Slot</Text>
+            <Text style={[styles.addSlotText, { color: accentColor, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Add Another Time Slot</Text>
           </TouchableOpacity>
 
           {/* Submit Button */}
@@ -414,7 +414,7 @@ export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClos
             onPress={handleSubmit}
             disabled={loading}
           >
-            <Text style={[styles.submitButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
+            <Text style={[styles.submitButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
               {loading ? 'Submitting...' : 'Submit Time Proposals'}
             </Text>
           </TouchableOpacity>

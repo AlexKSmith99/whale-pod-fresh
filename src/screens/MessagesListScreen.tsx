@@ -610,7 +610,7 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
               <View style={[styles.newChatSearchContainer, { backgroundColor: colors.surfaceAlt }]}>
                 <Ionicons name="search" size={18} color={colors.textTertiary} style={{ marginRight: 8 }} />
                 <TextInput
-                  style={[styles.newChatSearchInput, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}
+                  style={[styles.newChatSearchInput, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
                   placeholder="Search connections..."
                   placeholderTextColor={colors.textTertiary}
                   value={connectionSearch}
@@ -628,15 +628,15 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
               {connectionsLoading ? (
                 <View style={styles.newChatLoading}>
                   <ActivityIndicator size="small" color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
-                  <Text style={[styles.newChatLoadingText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Loading connections...</Text>
+                  <Text style={[styles.newChatLoadingText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Loading connections...</Text>
                 </View>
               ) : filteredConnections.length === 0 ? (
                 <View style={styles.newChatEmpty}>
                   <Ionicons name="people-outline" size={48} color={colors.textTertiary} />
-                  <Text style={[styles.newChatEmptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
+                  <Text style={[styles.newChatEmptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
                     {connectionSearch ? 'No matches found' : 'No connections yet'}
                   </Text>
-                  <Text style={[styles.newChatEmptyHint, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
+                  <Text style={[styles.newChatEmptyHint, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
                     {connectionSearch ? 'Try a different name' : 'Connect with people to start chatting'}
                   </Text>
                 </View>
@@ -660,11 +660,11 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
                         </View>
                       )}
                       <View style={styles.newChatConnectionInfo}>
-                        <Text style={[styles.newChatConnectionName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
+                        <Text style={[styles.newChatConnectionName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>
                           {conn.profile?.name || 'Unknown'}
                         </Text>
                         {conn.profile?.bio && (
-                          <Text style={[styles.newChatConnectionBio, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]} numberOfLines={1}>
+                          <Text style={[styles.newChatConnectionBio, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]} numberOfLines={1}>
                             {conn.profile.bio}
                           </Text>
                         )}

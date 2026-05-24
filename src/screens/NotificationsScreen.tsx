@@ -280,7 +280,6 @@ export default function NotificationsScreen({ navigation }: any) {
       case 'kickoff_scheduled': case 'meeting': case 'new_meeting': case 'meeting_invitation': return 'calendar';
       case 'member_removed': return 'person-remove';
       case 'member_left': return 'exit-outline';
-      case 'review_received': return 'star';
       case 'interview_scheduling_requested': case 'interview_times_submitted': case 'interview_scheduled': return 'videocam';
       default: return 'notifications';
     }
@@ -481,7 +480,7 @@ function makeStyles(colors: any, isNewTheme: boolean) {
     fontSize: 14,
     fontWeight: '500',
     color: colors.textSecondary,
-    fontFamily: 'Sora_400Regular',
+    fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold',
     maxWidth: 180,
   },
   filterButtonTextActive: {
@@ -512,13 +511,13 @@ function makeStyles(colors: any, isNewTheme: boolean) {
     elevation: 8,
   },
   dropdownTitle: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
     color: colors.textPrimary,
-    fontFamily: 'Sora_600SemiBold',
+    fontFamily: isNewTheme ? 'Sora_700Bold' : 'InterTight_600SemiBold',
     paddingHorizontal: 18,
     paddingTop: 16,
-    paddingBottom: 8,
+    paddingBottom: 10,
   },
   dropdownScroll: {
     paddingBottom: 8,
@@ -538,14 +537,14 @@ function makeStyles(colors: any, isNewTheme: boolean) {
   dropdownItemText: {
     fontSize: 15,
     color: colors.textPrimary,
-    fontFamily: 'Sora_400Regular',
+    fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold',
     flex: 1,
     marginRight: 8,
   },
   dropdownItemTextActive: {
     color: colors.accentGreen,
     fontWeight: '600',
-    fontFamily: 'Sora_600SemiBold',
+    fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold',
   },
 
   // List
@@ -603,7 +602,7 @@ function makeStyles(colors: any, isNewTheme: boolean) {
     fontSize: 15,
     fontWeight: '500',
     color: colors.textPrimary,
-    fontFamily: 'Sora_600SemiBold',
+    fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold',
     marginBottom: 2,
   },
   titleUnread: {
@@ -612,7 +611,7 @@ function makeStyles(colors: any, isNewTheme: boolean) {
   body: {
     fontSize: 14,
     color: colors.textSecondary,
-    fontFamily: 'Sora_400Regular',
+    fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold',
     lineHeight: 18,
   },
 
@@ -624,7 +623,7 @@ function makeStyles(colors: any, isNewTheme: boolean) {
   time: {
     fontSize: 12,
     color: colors.textTertiary,
-    fontFamily: 'Sora_400Regular',
+    fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold',
   },
   dot: {
     width: 8,

@@ -14,12 +14,25 @@
   },
   "jest": {
     "preset": "jest-expo",
-    "setupFiles": ["<rootDir>/jest.setup.ts"],
+    "setupFiles": [
+      "<rootDir>/jest.setup.ts"
+    ],
     "transformIgnorePatterns": [
       "node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|@supabase/.*))"
     ],
-    "moduleFileExtensions": ["ts", "tsx", "js", "jsx", "json"],
-    "testPathIgnorePatterns": ["/node_modules/", "/ios/", "/android/", "/.expo/"],
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js",
+      "jsx",
+      "json"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/ios/",
+      "/android/",
+      "/.expo/"
+    ],
     "collectCoverageFrom": [
       "src/**/*.{ts,tsx}",
       "!src/**/*.d.ts",
@@ -31,10 +44,13 @@
     "@expo-google-fonts/aboreto": "^0.4.0",
     "@expo-google-fonts/chivo": "^0.4.2",
     "@expo-google-fonts/inter": "^0.4.2",
+    "@expo-google-fonts/inter-tight": "^0.4.2",
     "@expo-google-fonts/julius-sans-one": "^0.4.1",
     "@expo-google-fonts/klee-one": "^0.4.1",
     "@expo-google-fonts/lora": "^0.4.2",
     "@expo-google-fonts/magra": "^0.4.1",
+    "@expo-google-fonts/manrope": "^0.4.2",
+    "@expo-google-fonts/newsreader": "^0.4.1",
     "@expo-google-fonts/nothing-you-could-do": "^0.4.1",
     "@expo-google-fonts/oooh-baby": "^0.4.0",
     "@expo-google-fonts/playfair-display": "^0.4.2",

@@ -25,6 +25,8 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
 
   const scrollViewRef = useRef<ScrollView>(null);
   const [answers, setAnswers] = useState<{ [key: number]: string }>({});
+  const [targetedRoles, setTargetedRoles] = useState<string[]>([]);
+  const podRoles: string[] = Array.isArray(pursuit.roles) ? pursuit.roles : [];
 
   const scrollToQuestion = (index: number) => {
     // Simple scroll based on estimated question position
@@ -96,7 +98,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
       const uint8Array = new Uint8Array(arrayBuffer);
 
       // Upload to Supabase Storage
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from('resumes')
         .upload(fileName, uint8Array, {
           contentType: resumeFile.mimeType || 'application/pdf',
@@ -108,12 +110,9 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
         throw new Error('Failed to upload resume');
       }
 
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('resumes')
-        .getPublicUrl(fileName);
-
-      return urlData.publicUrl;
+      // Resumes bucket is private — store the object path; reviewers mint a
+      // short-lived signed URL via supabase.storage.createSignedUrl when opening.
+      return fileName;
     } catch (error) {
       console.error('Error uploading resume:', error);
       throw error;
@@ -164,6 +163,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
         status: 'pending',
         resume_url: resumeUrl,
         resume_filename: resumeFile?.name || null,
+        targeted_roles: podRoles.length > 0 && targetedRoles.length > 0 ? targetedRoles : null,
       });
 
       console.log('✅ Application created successfully!');
@@ -210,10 +210,56 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
         <View style={styles.content}>
           <View style={[styles.pursuitCard, { backgroundColor: isNewTheme ? colors.surface : '#FFFFFF', borderLeftColor: isNewTheme ? colors.accentGreen : '#2D5016', borderColor: colors.border, borderWidth: isNewTheme ? StyleSheet.hairlineWidth : 0 }]}>
             <Text style={[styles.pursuitTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold' }]}>{pursuit.title}</Text>
-            <Text style={[styles.pursuitDescription, { color: colors.textSecondary, fontFamily: 'Sora_400Regular' }]} numberOfLines={2}>
+            <Text style={[styles.pursuitDescription, { color: colors.textSecondary, fontFamily: 'Sora_600SemiBold' }]} numberOfLines={2}>
               {pursuit.description}
             </Text>
           </View>
+
+          {podRoles.length > 0 && (
+            <View style={styles.questionsSection}>
+              <Text style={[styles.sectionTitle, { color: isNewTheme ? colors.accentGreen : '#2D5016', fontFamily: 'Sora_700Bold' }]}>Targeting a specific role?</Text>
+              <View style={styles.roleChipsRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.roleChip,
+                    targetedRoles.length === 0 && { backgroundColor: isNewTheme ? colors.accentGreen : '#2D5016', borderColor: isNewTheme ? colors.accentGreen : '#2D5016' },
+                    { borderColor: colors.border },
+                  ]}
+                  onPress={() => setTargetedRoles([])}
+                >
+                  <Text style={[
+                    styles.roleChipText,
+                    { color: targetedRoles.length === 0 ? '#FFFFFF' : colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }
+                  ]}>Any</Text>
+                </TouchableOpacity>
+                {podRoles.map((role) => {
+                  const selected = targetedRoles.includes(role);
+                  return (
+                    <TouchableOpacity
+                      key={role}
+                      style={[
+                        styles.roleChip,
+                        selected && { backgroundColor: isNewTheme ? colors.accentGreen : '#2D5016', borderColor: isNewTheme ? colors.accentGreen : '#2D5016' },
+                        { borderColor: colors.border },
+                      ]}
+                      onPress={() => {
+                        setTargetedRoles(
+                          selected
+                            ? targetedRoles.filter((r) => r !== role)
+                            : [...targetedRoles, role]
+                        );
+                      }}
+                    >
+                      <Text style={[
+                        styles.roleChipText,
+                        { color: selected ? '#FFFFFF' : colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }
+                      ]}>{role}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          )}
 
           <View style={styles.questionsSection}>
             <Text style={[styles.sectionTitle, { color: isNewTheme ? colors.accentGreen : '#2D5016', fontFamily: 'Sora_700Bold' }]}>Application Questions</Text>
@@ -224,9 +270,9 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
                 style={[styles.questionBlock, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }]}
               >
                 <Text style={[styles.questionNumber, { color: isNewTheme ? colors.accentGreen : '#2D5016', fontFamily: 'Sora_700Bold' }]}>QUESTION {index + 1}</Text>
-                <Text style={[styles.questionText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{question}</Text>
+                <Text style={[styles.questionText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{question}</Text>
                 <TextInput
-                  style={[styles.answerInput, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#FAF9F6', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}
+                  style={[styles.answerInput, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#FAF9F6', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
                   placeholder="Your answer..."
                   placeholderTextColor={colors.textTertiary}
                   value={answers[index] || ''}
@@ -252,14 +298,14 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
               <View style={styles.resumeHeader}>
                 <Ionicons name="document-attach" size={24} color={accentPurple} />
                 <View style={styles.resumeHeaderText}>
-                  <Text style={[styles.resumeTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Resume / Portfolio</Text>
-                  <Text style={[styles.resumeSubtitle, { color: accentPurple, fontFamily: isNewTheme ? 'Sora_600SemiBold' : undefined }]}>Optional — attach if you'd like</Text>
+                  <Text style={[styles.resumeTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>Resume / Portfolio</Text>
+                  <Text style={[styles.resumeSubtitle, { color: accentPurple, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>Optional — attach if you'd like</Text>
                 </View>
               </View>
 
               {!resumeFile ? (
                 <>
-                  <Text style={[styles.resumeInstructions, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
+                  <Text style={[styles.resumeInstructions, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
                     Upload your resume in PDF or Word format (max 10MB)
                   </Text>
 
@@ -269,11 +315,11 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
                     disabled={uploadingResume}
                   >
                     <Ionicons name="cloud-upload-outline" size={24} color={accentPurple} />
-                    <Text style={[styles.uploadButtonText, { color: accentPurple, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Choose File</Text>
+                    <Text style={[styles.uploadButtonText, { color: accentPurple, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Choose File</Text>
                   </TouchableOpacity>
 
                   <View style={styles.supportedFormats}>
-                    <Text style={[styles.supportedFormatsText, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>
+                    <Text style={[styles.supportedFormatsText, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
                       Supported: PDF, DOC, DOCX
                     </Text>
                   </View>
@@ -289,9 +335,9 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
                       />
                     </View>
                     <View style={styles.fileInfo}>
-                      <Text style={[styles.fileName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]} numberOfLines={1}>{resumeFile.name}</Text>
+                      <Text style={[styles.fileName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]} numberOfLines={1}>{resumeFile.name}</Text>
                       {resumeFile.size && (
-                        <Text style={[styles.fileSize, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{formatFileSize(resumeFile.size)}</Text>
+                        <Text style={[styles.fileSize, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{formatFileSize(resumeFile.size)}</Text>
                       )}
                     </View>
                     <TouchableOpacity
@@ -307,7 +353,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
                     onPress={pickDocument}
                   >
                     <Ionicons name="swap-horizontal" size={16} color={accentPurple} />
-                    <Text style={[styles.changeFileText, { color: accentPurple, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Change file</Text>
+                    <Text style={[styles.changeFileText, { color: accentPurple, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Change file</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -315,7 +361,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
               {uploadingResume && (
                 <View style={styles.uploadingIndicator}>
                   <ActivityIndicator size="small" color={accentPurple} />
-                  <Text style={[styles.uploadingText, { color: accentPurple, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>Uploading resume...</Text>
+                  <Text style={[styles.uploadingText, { color: accentPurple, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Uploading resume...</Text>
                 </View>
               )}
             </View>
@@ -324,7 +370,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
           {pursuit.requires_interview && (
             <View style={[styles.infoBox, { backgroundColor: isNewTheme ? 'rgba(200, 255, 107, 0.08)' : '#E4EDDE', borderLeftColor: isNewTheme ? colors.accentGreen : '#2D5016' }]}>
               <Ionicons name="mic-outline" size={18} color={isNewTheme ? colors.accentGreen : '#2D5016'} style={{ marginRight: 12 }} />
-              <Text style={[styles.infoText, { color: isNewTheme ? colors.textSecondary : '#2D5016', fontFamily: 'Sora_400Regular' }]}>
+              <Text style={[styles.infoText, { color: isNewTheme ? colors.textSecondary : '#2D5016', fontFamily: 'Sora_600SemiBold' }]}>
                 This pod requires an interview. The creator may reach out to schedule one.
               </Text>
             </View>
@@ -384,6 +430,9 @@ const styles = StyleSheet.create({
   pursuitTitle: { fontSize: 20, fontWeight: '700', marginBottom: 6, letterSpacing: -0.3 },
   pursuitDescription: { fontSize: 14, lineHeight: 20 },
   questionsSection: { marginBottom: 20 },
+  roleChipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
+  roleChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, borderWidth: 1 },
+  roleChipText: { fontSize: 14, fontWeight: '500' },
   sectionTitle: {
     fontSize: 13,
     fontWeight: '700',

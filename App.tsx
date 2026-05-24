@@ -10,6 +10,8 @@ import { KleeOne_400Regular, KleeOne_600SemiBold } from '@expo-google-fonts/klee
 import { Lora_400Regular, Lora_500Medium, Lora_600SemiBold, Lora_700Bold } from '@expo-google-fonts/lora';
 import { Sora_400Regular, Sora_500Medium, Sora_600SemiBold, Sora_700Bold, Sora_800ExtraBold } from '@expo-google-fonts/sora';
 import { PlayfairDisplay_600SemiBold, PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
+import { Newsreader_300Light, Newsreader_400Regular, Newsreader_500Medium, Newsreader_700Bold } from '@expo-google-fonts/newsreader';
+import { Manrope_500Medium, Manrope_700Bold } from '@expo-google-fonts/manrope';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { ThemeProvider } from './src/theme/ThemeContext';
@@ -43,7 +45,6 @@ import MemberLeftScreen from './src/screens/MemberLeftScreen';
 import MeetingInvitationScreen from './src/screens/MeetingInvitationScreen';
 import InterviewTimeSlotProposalScreen from './src/screens/InterviewTimeSlotProposalScreen';
 import InterviewSchedulingScreen from './src/screens/InterviewSchedulingScreen';
-import WriteReviewScreen from './src/screens/WriteReviewScreen';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import LegalScreen, { LegalDoc } from './src/screens/LegalScreen';
 import PieTabBar, { PieTabKey } from './src/components/ui/PieTabBar';
@@ -109,11 +110,6 @@ function AppContent() {
     pursuitTitle: string;
     applicantId: string;
     applicantName: string;
-  } | null>(null);
-  const [viewingWriteReview, setViewingWriteReview] = useState<{
-    revieweeId: string;
-    revieweeName: string;
-    revieweePhoto?: string;
   } | null>(null);
   const [badgeCounts, setBadgeCounts] = useState({
     messages: 0,
@@ -791,12 +787,6 @@ function AppContent() {
       } else if (screen === 'InterviewScheduling' && params?.applicationId) {
         // Need to fetch pursuit and applicant info for the interview scheduling screen
         fetchInterviewSchedulingData(params.applicationId, params.pursuitId);
-      } else if (screen === 'WriteReview' && params?.revieweeId) {
-        setViewingWriteReview({
-          revieweeId: params.revieweeId,
-          revieweeName: params.revieweeName || 'User',
-          revieweePhoto: params.revieweePhoto,
-        });
       } else if (screen === 'Legal' && params?.doc) {
         setViewingLegalDoc(params.doc as LegalDoc);
       }
@@ -833,7 +823,6 @@ function AppContent() {
     setViewingMeetingInvitation(null);
     setViewingInterviewProposal(null);
     setViewingInterviewScheduling(null);
-    setViewingWriteReview(null);
   };
 
   const onTabPress = (target: string) => {
@@ -1128,22 +1117,6 @@ if (viewingInterviewScheduling) {
   );
 }
 
-// Show Write Review screen
-if (viewingWriteReview) {
-  return (
-    <View style={{ flex: 1 }}>
-      <WriteReviewScreen
-        route={{ params: viewingWriteReview }}
-        navigation={{
-          ...navigation,
-          goBack: () => setViewingWriteReview(null),
-        }}
-      />
-      {renderTabBar()}
-    </View>
-  );
-}
-
 // Show User Profile screen (before chat so it takes priority when clicked from chat)
 if (viewingUserId) {
   return (
@@ -1151,13 +1124,6 @@ if (viewingUserId) {
       <UserProfileScreen
         route={{ params: { userId: viewingUserId } }}
         navigation={navigation}
-        onWriteReview={(revieweeId: string, revieweeName: string, revieweePhoto?: string) => {
-          setViewingWriteReview({
-            revieweeId,
-            revieweeName,
-            revieweePhoto,
-          });
-        }}
       />
       {renderTabBar()}
     </View>
@@ -1715,6 +1681,12 @@ export default function App() {
     Sora_800ExtraBold,
     PlayfairDisplay_600SemiBold,
     PlayfairDisplay_700Bold,
+    Newsreader_300Light,
+    Newsreader_400Regular,
+    Newsreader_500Medium,
+    Newsreader_700Bold,
+    Manrope_500Medium,
+    Manrope_700Bold,
   });
 
   // Show loading while fonts load

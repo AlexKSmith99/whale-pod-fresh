@@ -4,11 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
 import { connectionService } from '../services/connectionService';
-import { reviewService } from '../services/reviewService';
 import { privacyService } from '../services/privacyService';
 import EditProfileScreen from './EditProfileScreen';
 import PrivacyPreferencesScreen from './PrivacyPreferencesScreen';
-import ReviewScreen from './ReviewScreen';
 import PodMemberCollage from '../components/PodMemberCollage';
 import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
 import PieButton from '../components/ui/PieButton';
@@ -26,15 +24,10 @@ export default function ProfileScreen({ navigation }: any) {
   const [pendingApplications, setPendingApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showEdit, setShowEdit] = useState(false);
-const [activeTab, setActiveTab] = useState<'info' | 'received' | 'give' | 'connections' | 'pods'>('info');
+const [activeTab, setActiveTab] = useState<'info' | 'connections' | 'pods'>('info');
 const [connections, setConnections] = useState<any[]>([]);
 const [pendingRequests, setPendingRequests] = useState<any[]>([]);
 const [connectionSearchQuery, setConnectionSearchQuery] = useState('');
-const [reviews, setReviews] = useState<any[]>([]);
-const [averageRatings, setAverageRatings] = useState<any>(null);
-const [reviewableTeammates, setReviewableTeammates] = useState<any[]>([]);
-const [showReviewScreen, setShowReviewScreen] = useState(false);
-const [selectedReviewee, setSelectedReviewee] = useState<any>(null);
 const [showMenu, setShowMenu] = useState(false);
 const [showPrivacyPreferences, setShowPrivacyPreferences] = useState(false);
 const [userPods, setUserPods] = useState<any[]>([]);
@@ -45,8 +38,6 @@ const [podsLoading, setPodsLoading] = useState(false);
   loadProfile();
   loadActiveTeams();
   loadPendingApplications();
-  loadReviews();
-  loadReviewableTeammates();
   loadConnections();
   loadUserPods();
 }, []);
@@ -119,81 +110,6 @@ const [podsLoading, setPodsLoading] = useState(false);
       console.error('Error loading applications:', error);
     }
   };
-
-const loadReviews = async () => {
-  if (!user) return;
-  try {
-    const [reviewsData, ratingsData] = await Promise.all([
-      reviewService.getReviewsForUser(user.id),
-      reviewService.getAverageRatings(user.id),
-    ]);
-    setReviews(reviewsData);
-    setAverageRatings(ratingsData);
-  } catch (error) {
-    console.error('Error loading reviews:', error);
-  }
-};
-
-const loadReviewableTeammates = async () => {
-  if (!user) return;
-  try {
-    // Get all pursuits where user was a team member (active or closed)
-    const { data: userTeams, error: teamsError } = await supabase
-      .from('team_members')
-      .select('pursuit_id, pursuits(id, title, status)')
-      .eq('user_id', user.id);
-
-    if (teamsError) throw teamsError;
-
-    // Filter for active or closed pursuits
-    const activeOrClosedPursuits = (userTeams || [])
-      .filter(
-        (t: any) =>
-          t.pursuits?.status === 'active' || t.pursuits?.status === 'closed'
-      )
-      .map((t: any) => t.pursuit_id);
-
-    if (activeOrClosedPursuits.length === 0) {
-      setReviewableTeammates([]);
-      return;
-    }
-
-    // Get all teammates from those pursuits
-    const { data: teammates, error: teammatesError } = await supabase
-      .from('team_members')
-      .select('user_id, pursuit_id, pursuits(title), profiles(name, profile_picture)')
-      .in('pursuit_id', activeOrClosedPursuits)
-      .neq('user_id', user.id);
-
-    if (teammatesError) throw teammatesError;
-
-    // Check which ones haven't been reviewed yet
-    const reviewableList = [];
-    for (const teammate of teammates || []) {
-  const hasReviewed = await reviewService.hasReviewed(
-    user.id,
-    teammate.user_id,
-    teammate.pursuit_id
-  );
-  if (!hasReviewed) {
-    const profile = Array.isArray(teammate.profiles) ? teammate.profiles[0] : teammate.profiles;
-    const pursuit = Array.isArray(teammate.pursuits) ? teammate.pursuits[0] : teammate.pursuits;
-    
-    reviewableList.push({
-      userId: teammate.user_id,
-      userName: (profile as any)?.name || 'Unknown',
-      userPicture: (profile as any)?.profile_picture,
-      pursuitId: teammate.pursuit_id,
-      pursuitTitle: (pursuit as any)?.title || 'Unknown Pursuit',
-    });
-  }
-}
-
-    setReviewableTeammates(reviewableList);
-  } catch (error) {
-    console.error('Error loading reviewable teammates:', error);
-  }
-};
 
 const loadConnections = async () => {
   if (!user) return;
@@ -313,7 +229,7 @@ const handleRejectConnection = async (connectionId: string) => {
         >
           <View style={[styles.menuContainer, themedStyles.surface]}>
             <View style={[styles.menuHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.menuTitle, themedStyles.cardTitle]}>Settings</Text>
+              <Text style={[styles.menuTitle, themedStyles.cardTitle, isNewTheme && { color: colors.accentGreen }]}>Settings</Text>
               <TouchableOpacity onPress={() => setShowMenu(false)}>
                 <Ionicons name="close" size={24} color={themedStyles.accentIconColor} />
               </TouchableOpacity>
@@ -423,7 +339,7 @@ const handleRejectConnection = async (connectionId: string) => {
         })()}
 
         <View style={{ alignItems: 'center', marginBottom: 16 }}>
-          <Text style={[styles.name, themedStyles.textPrimary, { fontSize: typography.fontSize.xl, fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{profile?.name || 'No name set'}</Text>
+          <Text style={[styles.name, themedStyles.textPrimary, { fontSize: typography.fontSize.xl, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>{profile?.name || 'No name set'}</Text>
         </View>
 {/* Modern Pill Tabs */}
         <ScrollView
@@ -444,26 +360,6 @@ const handleRejectConnection = async (connectionId: string) => {
             <Text style={[styles.tabPillText, themedStyles.textSecondary, activeTab === 'info' && { color: isNewTheme ? colors.background : colors.white }]}>
               Info
             </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tabPill, themedStyles.surfaceAlt, activeTab === 'received' && [styles.tabPillActive, { backgroundColor: isNewTheme ? colors.accentGreen : colors.primary, borderColor: isNewTheme ? colors.accentGreen : colors.primary }]]}
-            onPress={() => setActiveTab('received')}
-          >
-            <Ionicons
-              name="star-outline"
-              size={16}
-              color={activeTab === 'received' ? (isNewTheme ? colors.background : colors.white) : colors.textSecondary}
-            />
-            <Text style={[styles.tabPillText, themedStyles.textSecondary, activeTab === 'received' && { color: isNewTheme ? colors.background : colors.white }]}>
-              Reviews
-            </Text>
-            {reviews.length > 0 && (
-              <View style={[styles.tabBadge, activeTab === 'received' && styles.tabBadgeActive]}>
-                <Text style={[styles.tabBadgeText, { color: themedStyles.accentIconColor }, activeTab === 'received' && { color: isNewTheme ? colors.background : colors.white }]}>
-                  {reviews.length}
-                </Text>
-              </View>
-            )}
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tabPill, themedStyles.surfaceAlt, activeTab === 'connections' && [styles.tabPillActive, { backgroundColor: isNewTheme ? colors.accentGreen : colors.primary, borderColor: isNewTheme ? colors.accentGreen : colors.primary }]]}
@@ -507,13 +403,13 @@ const handleRejectConnection = async (connectionId: string) => {
             {profile?.age && (
               <View style={styles.infoRow}>
                 <Text style={[styles.infoLabel, themedStyles.labelText]}>Age:</Text>
-                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{profile.age}</Text>
+                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{profile.age}</Text>
               </View>
             )}
             {profile?.gender && (
               <View style={styles.infoRow}>
                 <Text style={[styles.infoLabel, themedStyles.labelText]}>Gender:</Text>
-                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{profile.gender}</Text>
+                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{profile.gender}</Text>
               </View>
             )}
           </View>
@@ -521,23 +417,23 @@ const handleRejectConnection = async (connectionId: string) => {
 
         {(profile?.hometown || profile?.college || profile?.work) && (
           <View style={[styles.section, themedStyles.card]}>
-            <Text style={[styles.sectionTitle, themedStyles.cardTitle]}>Location</Text>
+            <Text style={[styles.sectionTitle, themedStyles.cardTitle, isNewTheme && { color: colors.accentGreen }]}>Location</Text>
             {profile?.hometown && (
               <View style={styles.infoRow}>
                 <Text style={[styles.infoLabel, themedStyles.labelText]}>Hometown:</Text>
-                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{profile.hometown}</Text>
+                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{profile.hometown}</Text>
               </View>
             )}
             {profile?.college && (
               <View style={styles.infoRow}>
                 <Text style={[styles.infoLabel, themedStyles.labelText]}>College:</Text>
-                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{profile.college}</Text>
+                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{profile.college}</Text>
               </View>
             )}
             {profile?.work && (
               <View style={styles.infoRow}>
                 <Text style={[styles.infoLabel, themedStyles.labelText]}>Work:</Text>
-                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{profile.work}</Text>
+                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{profile.work}</Text>
               </View>
             )}
           </View>
@@ -545,14 +441,14 @@ const handleRejectConnection = async (connectionId: string) => {
 
         {profile?.bio && (
           <View style={[styles.section, themedStyles.card]}>
-            <Text style={[styles.sectionTitle, themedStyles.cardTitle]}>Bio</Text>
-            <Text style={[styles.bioText, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}>{profile.bio}</Text>
+            <Text style={[styles.sectionTitle, themedStyles.cardTitle, isNewTheme && { color: colors.accentGreen }]}>Bio</Text>
+            <Text style={[styles.bioText, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{profile.bio}</Text>
           </View>
         )}
 
         {(profile?.instagram || profile?.linkedin || profile?.facebook || profile?.github || profile?.portfolio_website) && (
           <View style={[styles.section, themedStyles.card]}>
-            <Text style={[styles.sectionTitle, themedStyles.cardTitle]}>Social Links</Text>
+            <Text style={[styles.sectionTitle, themedStyles.cardTitle, isNewTheme && { color: colors.accentGreen }]}>Social Links</Text>
             {profile?.instagram && (
               <TouchableOpacity style={[styles.linkRow, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.instagram)}>
                 <Ionicons name="logo-instagram" size={20} color={themedStyles.accentIconColor} style={styles.linkIconNew} />
@@ -599,7 +495,7 @@ const handleRejectConnection = async (connectionId: string) => {
 
         {/* Legal — Terms / Privacy / Support */}
         <View style={[styles.section, themedStyles.card, { marginTop: 12 }]}>
-          <Text style={[styles.sectionTitle, themedStyles.cardTitle]}>Legal</Text>
+          <Text style={[styles.sectionTitle, themedStyles.cardTitle, isNewTheme && { color: colors.accentGreen }]}>Legal</Text>
           <TouchableOpacity
             style={[styles.legalRow, { borderBottomColor: colors.border }]}
             onPress={() => navigation?.navigate?.('Legal', { doc: 'terms' })}
@@ -655,7 +551,7 @@ const handleRejectConnection = async (connectionId: string) => {
             <View style={[styles.connectionSearchContainer, themedStyles.searchContainer]}>
               <Ionicons name="search" size={18} color={themedStyles.accentIconColor} style={styles.connectionSearchIcon} />
               <TextInput
-                style={[styles.connectionSearchInput, themedStyles.inputText, { fontFamily: isNewTheme ? 'Sora_400Regular' : undefined }]}
+                style={[styles.connectionSearchInput, themedStyles.inputText, { fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
                 placeholder="Search connections..."
                 placeholderTextColor={colors.textTertiary}
                 value={connectionSearchQuery}
@@ -672,7 +568,7 @@ const handleRejectConnection = async (connectionId: string) => {
 
             {pendingRequests.length > 0 && !connectionSearchQuery && (
               <View style={[styles.section, themedStyles.card]}>
-                <Text style={[styles.sectionTitle, themedStyles.cardTitle]}>Pending Requests ({pendingRequests.length})</Text>
+                <Text style={[styles.sectionTitle, themedStyles.cardTitle, isNewTheme && { color: colors.accentGreen }]}>Pending Requests ({pendingRequests.length})</Text>
                 {pendingRequests.map((request: any) => (
                   <View key={request.id} style={[styles.connectionCard, { borderBottomColor: colors.border }]}>
                     {request.profile?.profile_picture ? (
@@ -785,7 +681,7 @@ const handleRejectConnection = async (connectionId: string) => {
                 {/* Current Pods */}
                 {userPods.filter(p => !p.status || ['awaiting_kickoff', 'collecting_proposals', 'active'].includes(p.status) || ['active', 'accepted'].includes(p.membership_status)).length > 0 && (
                   <View style={[styles.section, themedStyles.card]}>
-                    <Text style={[styles.sectionTitle, themedStyles.cardTitle]}>Current Pods</Text>
+                    <Text style={[styles.sectionTitle, themedStyles.cardTitle, isNewTheme && { color: colors.accentGreen }]}>Current Pods</Text>
                     {userPods
                       .filter(p => !p.status || ['awaiting_kickoff', 'collecting_proposals', 'active'].includes(p.status) || ['active', 'accepted'].includes(p.membership_status))
                       .map((pod) => (
@@ -822,7 +718,7 @@ const handleRejectConnection = async (connectionId: string) => {
                 {/* Past Pods */}
                 {userPods.filter(p => ['completed', 'archived'].includes(p.status) || ['left', 'removed'].includes(p.membership_status)).length > 0 && (
                   <View style={[styles.section, themedStyles.card]}>
-                    <Text style={[styles.sectionTitle, themedStyles.cardTitle]}>Past Pods</Text>
+                    <Text style={[styles.sectionTitle, themedStyles.cardTitle, isNewTheme && { color: colors.accentGreen }]}>Past Pods</Text>
                     {userPods
                       .filter(p => ['completed', 'archived'].includes(p.status) || ['left', 'removed'].includes(p.membership_status))
                       .map((pod) => (
@@ -1146,9 +1042,9 @@ const styles = StyleSheet.create({
   applicationTitle: { fontSize: 15, color: '#1f2937', fontWeight: '500', flex: 1 },
   pendingBadge: { backgroundColor: '#fef3c7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
   pendingText: { fontSize: 11, fontWeight: '600', color: '#92400e' },
-  infoRow: { flexDirection: 'row', marginBottom: 6 },
-  infoLabel: { fontSize: 13, fontWeight: '600', color: '#6b7280', width: 90 },
-  infoValue: { fontSize: 13, color: '#1f2937', flex: 1 },
+  infoRow: { flexDirection: 'row', marginBottom: 10 },
+  infoLabel: { fontSize: 16, fontWeight: '600', color: '#6b7280', width: 110 },
+  infoValue: { fontSize: 16, color: '#1f2937', flex: 1, lineHeight: 22 },
   bioText: { fontSize: 14, color: '#4b5563', lineHeight: 20 },
   linkRow: {
     flexDirection: 'row',

@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.base,
     color: legacyColors.textPrimary,
     lineHeight: 22,
-    fontFamily: 'Sora_400Regular',
+    fontFamily: 'Sora_600SemiBold',
   },
   noteCard: {
     backgroundColor: '#eff6ff',
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     color: '#0369a1',
     lineHeight: 20,
-    fontFamily: 'Sora_400Regular',
+    fontFamily: 'Sora_600SemiBold',
   },
   browseButton: {
     backgroundColor: legacyColors.primary,

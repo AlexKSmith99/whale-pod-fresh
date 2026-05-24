@@ -64,10 +64,10 @@ const C_DARK = {
 const C: any = { ...C_LIGHT };
 
 const F = {
-  title: 'PlayfairDisplay_700Bold',           // Matches "Whale Pods" header font
-  header: 'PlayfairDisplay_700Bold',          // Section titles use the same stack for consistency
-  body: 'Sora_400Regular',                    // body text
-  bodyMedium: 'Sora_600SemiBold',
+  title: 'InterTight_600SemiBold',           // Matches "Whale Pods" header font
+  header: 'InterTight_600SemiBold',          // Section titles use the same stack for consistency
+  body: 'InterTight_600SemiBold',                // body text — Inter Tight per 3-font system
+  bodyMedium: 'InterTight_600SemiBold',
 };
 
 const DECISION_SYSTEMS = ['Standard Vote', 'Admin Has Ultimate Say', 'Delegated', 'Weighted Voting'];
@@ -87,6 +87,25 @@ const US_STATES = [
   { name: 'South Dakota', abbr: 'SD' }, { name: 'Tennessee', abbr: 'TN' }, { name: 'Texas', abbr: 'TX' }, { name: 'Utah', abbr: 'UT' },
   { name: 'Vermont', abbr: 'VT' }, { name: 'Virginia', abbr: 'VA' }, { name: 'Washington', abbr: 'WA' }, { name: 'West Virginia', abbr: 'WV' },
   { name: 'Wisconsin', abbr: 'WI' }, { name: 'Wyoming', abbr: 'WY' }
+];
+
+// Common pod roles surfaced in the Create flow's role search.
+// User can pick from these or type their own custom role.
+const COMMON_ROLE_SUGGESTIONS = [
+  'Developer', 'Frontend Developer', 'Backend Developer', 'Full-Stack Developer',
+  'Mobile Developer', 'iOS Developer', 'Android Developer',
+  'Designer', 'UI Designer', 'UX Designer', 'Product Designer', 'Graphic Designer',
+  'Product Manager', 'Project Manager', 'Program Manager',
+  'Marketing Lead', 'Marketing', 'Growth', 'Content Creator', 'Copywriter',
+  'Sales', 'Business Development', 'Operations',
+  'Founder', 'Co-Founder', 'CEO', 'CTO', 'COO', 'CMO',
+  'Engineer', 'Software Engineer', 'Data Scientist', 'Data Analyst', 'ML Engineer',
+  'DevOps', 'QA Engineer', 'Tester',
+  'Researcher', 'Writer', 'Editor', 'Photographer', 'Videographer', 'Illustrator',
+  'Mentor', 'Coach', 'Advisor', 'Investor',
+  'Community Manager', 'Customer Success', 'Support',
+  'Finance', 'Accountant', 'Legal',
+  'Recruiter', 'HR',
 ];
 
 // City to state(s) mapping - cities can exist in multiple states
@@ -218,7 +237,8 @@ export default function CreateScreen({ onClose }: Props = {}) {
 
   // Optional Fields
   const [accountabilityMechanics, setAccountabilityMechanics] = useState('');
-  const [roles, setRoles] = useState('');
+  const [roleList, setRoleList] = useState<string[]>([]);
+  const [roleInput, setRoleInput] = useState('');
   const [experienceLevel, setExperienceLevel] = useState('');
   const [currentStage, setCurrentStage] = useState('');
   const [ageRestriction, setAgeRestriction] = useState('');
@@ -411,8 +431,8 @@ export default function CreateScreen({ onClose }: Props = {}) {
       return;
     }
 
-    if (selectedTypes.length < 3) {
-      Alert.alert('Missing Types', 'Please select at least 3 pod types');
+    if (selectedTypes.length < 1) {
+      Alert.alert('Missing Type', 'Please select at least 1 pod type');
       return;
     }
 
@@ -468,6 +488,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
         pursuit_types: selectedTypes,
         pursuit_categories: selectedCategories,
         cover_image_url: coverImageUrl,
+        default_picture: coverImageUrl,
         ownership_structure: ownershipStructure || null,
         decision_system: decisionSystem.toLowerCase().replace(/ /g, '_'),
         decision_system_note: decisionNote || null,
@@ -476,7 +497,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
         attendance_style: attendanceStyle,
         attendance_note: attendanceNote || null,
         accountability_mechanics: accountabilityMechanics ? accountabilityMechanics.split(',').map(m => m.trim()) : null,
-        roles: roles ? roles.split(',').map(r => r.trim()) : null,
+        roles: roleList.length > 0 ? roleList : null,
         experience_level: experienceLevel || null,
         current_stage: currentStage || null,
         age_restriction: ageRestriction || null,
@@ -498,7 +519,9 @@ export default function CreateScreen({ onClose }: Props = {}) {
         current_members_count: 1,
       });
 
-      Alert.alert('pod: secured 🐋', "you just made a pod. you a legend.", [
+      const successHypes = ['Rip it baby', "You're a beast", 'LFG!'];
+      const hype = successHypes[Math.floor(Math.random() * successHypes.length)];
+      Alert.alert('You created Pod.', hype, [
         { text: "let's go", onPress: () => {
           setTitle('');
           setCoverImageUrl(null);
@@ -528,7 +551,8 @@ export default function CreateScreen({ onClose }: Props = {}) {
           setAttendanceStyle('Mandatory');
           setAttendanceNote('');
           setAccountabilityMechanics('');
-          setRoles('');
+          setRoleList([]);
+          setRoleInput('');
           setExperienceLevel('');
           setCurrentStage('');
           setAgeRestriction('');
@@ -560,7 +584,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
   const canProceedPage = (page: number): boolean => {
     switch (page) {
       case 0:
-        return title.trim().length > 0 && description.length >= 50 && selectedTypes.length >= 3;
+        return title.trim().length > 0 && description.length >= 50 && selectedTypes.length >= 1;
       case 1:
         if (locationTypes.length === 0) return false;
         const requiresLoc = locationTypes.includes('In-person') || locationTypes.includes('Hybrid');
@@ -963,8 +987,8 @@ export default function CreateScreen({ onClose }: Props = {}) {
                 </>
               )}
 
-              {/* Address & Map (In-person only) */}
-              {locationTypes.includes('In-person') && (
+              {/* Address & Map (In-person or Hybrid) */}
+              {(locationTypes.includes('In-person') || locationTypes.includes('Hybrid')) && (
                 <>
                   {renderFieldLabel('Address')}
                   <TextInput
@@ -1067,13 +1091,64 @@ export default function CreateScreen({ onClose }: Props = {}) {
 
           {/* Roles */}
           {renderFieldLabel('Roles')}
+          {renderHint('Search for a role or type your own. Press Enter to add. Add as many as you want.')}
           <TextInput
             style={styles.underlineInput}
-            placeholder="Developer, Designer, Marketing Lead"
+            placeholder="e.g., Developer"
             placeholderTextColor={C.placeholder}
-            value={roles}
-            onChangeText={setRoles}
+            value={roleInput}
+            onChangeText={setRoleInput}
+            onSubmitEditing={() => {
+              const trimmed = roleInput.trim();
+              if (trimmed && !roleList.includes(trimmed)) {
+                setRoleList([...roleList, trimmed]);
+              }
+              setRoleInput('');
+            }}
+            returnKeyType="done"
+            blurOnSubmit={false}
           />
+          {(() => {
+            const q = roleInput.trim().toLowerCase();
+            if (!q) return null;
+            const matches = COMMON_ROLE_SUGGESTIONS.filter(
+              (r) => r.toLowerCase().includes(q) && !roleList.includes(r)
+            ).slice(0, 8);
+            if (matches.length === 0) return null;
+            return (
+              <View style={styles.suggestionsContainer}>
+                <ScrollView style={styles.suggestionsList} keyboardShouldPersistTaps="handled">
+                  {matches.map((suggestion) => (
+                    <TouchableOpacity
+                      key={suggestion}
+                      style={styles.suggestionItem}
+                      onPress={() => {
+                        setRoleList([...roleList, suggestion]);
+                        setRoleInput('');
+                      }}
+                    >
+                      <Text style={styles.suggestionText}>{suggestion}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            );
+          })()}
+          {roleList.length > 0 && (
+            <View style={[styles.chipContainer, { marginTop: 10 }]}>
+              {roleList.map((role) => (
+                <TouchableOpacity
+                  key={role}
+                  style={[styles.chip, styles.chipActive]}
+                  onPress={() => setRoleList(roleList.filter((r) => r !== role))}
+                >
+                  <Text style={[styles.chipText, styles.chipTextActive]}>
+                    {role}  ✕
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
 
           {/* Experience Level */}
           {renderFieldLabel('Experience')}
@@ -1264,7 +1339,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
                 style={styles.addQuestionBtn}
                 onPress={() => setApplicationQuestions([...applicationQuestions, ''])}
               >
-                <Ionicons name="add-circle-outline" size={20} color={C.accent} />
+                <Ionicons name="add-circle-outline" size={20} color="#000000" />
                 <Text style={styles.addQuestionText}>Add Question</Text>
               </TouchableOpacity>
             )}
@@ -1621,7 +1696,7 @@ function makeStyles(C: any) { return StyleSheet.create({
     zIndex: 10,
   },
   mainTitle: {
-    fontFamily: 'Sora_700Bold',
+    fontFamily: 'PlayfairDisplay_700Bold',
     fontSize: 28,
     color: C.accent,
   },
@@ -2215,18 +2290,15 @@ function makeStyles(C: any) { return StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: '#F0F5EC',
+    backgroundColor: '#C8FF6B',
     borderRadius: 8,
     marginTop: 4,
     gap: 6,
-    borderWidth: 1,
-    borderColor: C.accent,
-    borderStyle: 'dashed',
   },
   addQuestionText: {
     fontFamily: F.bodyMedium,
     fontSize: 14,
-    color: C.accent,
+    color: '#000000',
   },
   questionsCounter: {
     fontFamily: F.body,

@@ -179,10 +179,10 @@ const oldColors: ThemeColors = {
   surface: '#FFFFFF',
   surfaceAlt: '#EDEBE5',
 
-  // Text colors - high-contrast ink
-  textPrimary: '#1B1B18',
-  textSecondary: '#52524E',
-  textTertiary: '#8A8A85',
+  // Text colors - high-contrast ink (textSecondary darkened for bolder body copy)
+  textPrimary: '#0E0E0C',
+  textSecondary: '#2A2A26',
+  textTertiary: '#6B6B66',
   textInverse: '#FFFFFF',
 
   // Borders - raw hemp/linen
@@ -317,8 +317,8 @@ const oldTypography: ThemeTypography = {
   ...baseTypography,
   fontFamily: {
     header: 'PlayfairDisplay_700Bold',
-    body: 'Sora_400Regular',
-    accent: 'Lora_600SemiBold',
+    body: 'InterTight_600SemiBold',
+    accent: 'InterTight_600SemiBold',
     mono: 'Courier',
   },
 };
@@ -327,7 +327,7 @@ const newTypography: ThemeTypography = {
   ...baseTypography,
   fontFamily: {
     header: 'NothingYouCouldDo_400Regular',
-    body: 'Sora_400Regular',
+    body: 'Sora_600SemiBold',
     accent: 'Sora_600SemiBold',
     mono: 'Courier',
   },
