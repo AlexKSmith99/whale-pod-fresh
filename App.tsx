@@ -1,18 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, ActivityIndicator, TouchableOpacity, Text, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useFonts, NothingYouCouldDo_400Regular } from '@expo-google-fonts/nothing-you-could-do';
-import { JuliusSansOne_400Regular } from '@expo-google-fonts/julius-sans-one';
-import { Aboreto_400Regular } from '@expo-google-fonts/aboreto';
-import { Magra_400Regular, Magra_700Bold } from '@expo-google-fonts/magra';
-import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
-import { KleeOne_400Regular, KleeOne_600SemiBold } from '@expo-google-fonts/klee-one';
-import { Lora_400Regular, Lora_500Medium, Lora_600SemiBold, Lora_700Bold } from '@expo-google-fonts/lora';
-import { Sora_400Regular, Sora_500Medium, Sora_600SemiBold, Sora_700Bold, Sora_800ExtraBold } from '@expo-google-fonts/sora';
-import { PlayfairDisplay_600SemiBold, PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
-import { Newsreader_300Light, Newsreader_400Regular, Newsreader_500Medium, Newsreader_700Bold } from '@expo-google-fonts/newsreader';
-import { Manrope_500Medium, Manrope_700Bold } from '@expo-google-fonts/manrope';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useFonts } from '@expo-google-fonts/nothing-you-could-do';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { appFonts } from './src/constants/fonts';
+import { queryClient } from './src/config/queryClient';
+import './src/utils/enableTextSelection';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { ThemeProvider } from './src/theme/ThemeContext';
 import { notificationService } from './src/services/notificationService';
@@ -49,13 +42,6 @@ import OnboardingScreen from './src/screens/OnboardingScreen';
 import LegalScreen, { LegalDoc } from './src/screens/LegalScreen';
 import PieTabBar, { PieTabKey } from './src/components/ui/PieTabBar';
 import { AGORA_APP_ID } from './src/services/agoraService';
-
-// Enable long-press text selection / copy globally for every <Text> in the app.
-// <TextInput> is selectable by default; <Text> is not, which is why static text
-// in the UI could not be copied. Setting defaultProps applies app-wide without
-// touching individual components.
-(Text as any).defaultProps = (Text as any).defaultProps || {};
-(Text as any).defaultProps.selectable = true;
 
 // Theme transition wrapper component
 function ThemeTransitionWrapper() {
@@ -1650,55 +1636,9 @@ const styles = StyleSheet.create({
   },
 });
 
-// Create a client with optimized defaults for mobile
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      // Cache data for 5 minutes
-      staleTime: 5 * 60 * 1000,
-      // Keep unused data in cache for 30 minutes
-      gcTime: 30 * 60 * 1000,
-      // Retry failed requests once
-      retry: 1,
-      // Don't refetch on window focus (mobile doesn't have this)
-      refetchOnWindowFocus: false,
-      // Don't refetch on reconnect automatically
-      refetchOnReconnect: false,
-    },
-  },
-});
-
 export default function App() {
   // Load all fonts globally
-  const [fontsLoaded] = useFonts({
-    NothingYouCouldDo_400Regular,
-    JuliusSansOne_400Regular,
-    Aboreto_400Regular,
-    Magra_400Regular,
-    Magra_700Bold,
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    KleeOne_400Regular,
-    KleeOne_600SemiBold,
-    Lora_400Regular,
-    Lora_500Medium,
-    Lora_600SemiBold,
-    Lora_700Bold,
-    Sora_400Regular,
-    Sora_500Medium,
-    Sora_600SemiBold,
-    Sora_700Bold,
-    Sora_800ExtraBold,
-    PlayfairDisplay_600SemiBold,
-    PlayfairDisplay_700Bold,
-    Newsreader_300Light,
-    Newsreader_400Regular,
-    Newsreader_500Medium,
-    Newsreader_700Bold,
-    Manrope_500Medium,
-    Manrope_700Bold,
-  });
+  const [fontsLoaded] = useFonts(appFonts);
 
   // Show loading while fonts load
   if (!fontsLoaded) {
