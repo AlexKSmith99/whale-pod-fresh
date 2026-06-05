@@ -14,7 +14,7 @@ import { podChatService } from './src/services/podChatService';
 import { hapticService } from './src/services/hapticService';
 import { supabase } from './src/config/supabase';
 import NotificationToast from './src/components/NotificationToast';
-import ThemeTransition from './src/components/ThemeTransition';
+import ThemeTransitionWrapper from './src/components/ThemeTransitionWrapper';
 import LoginScreen from './src/screens/LoginScreen';
 import IntroAnimation from './src/components/IntroAnimation';
 import FeedScreen from './src/screens/FeedScreen';
@@ -40,22 +40,8 @@ import InterviewTimeSlotProposalScreen from './src/screens/InterviewTimeSlotProp
 import InterviewSchedulingScreen from './src/screens/InterviewSchedulingScreen';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import LegalScreen, { LegalDoc } from './src/screens/LegalScreen';
-import PieTabBar, { PieTabKey } from './src/components/ui/PieTabBar';
+import AppTabBar from './src/components/ui/AppTabBar';
 import { AGORA_APP_ID } from './src/services/agoraService';
-
-// Theme transition wrapper component
-function ThemeTransitionWrapper() {
-  const { transitionState, onTransitionComplete } = require('./src/theme/ThemeContext').useTheme();
-
-  return (
-    <ThemeTransition
-      isTransitioning={transitionState.isTransitioning}
-      fromColor={transitionState.fromColor}
-      toColor={transitionState.toColor}
-      onTransitionComplete={onTransitionComplete}
-    />
-  );
-}
 
 function AppContent() {
   const auth = useAuth();
@@ -831,109 +817,16 @@ function AppContent() {
     if (target === 'Profile') clearBadgeForTab('Profile');
   };
 
-  const renderTabBar = () => isNewTheme ? (
-    <PieTabBar
-      active={
-        currentScreen === 'Feed' ? 'feed'
-        : currentScreen === 'Pods' ? 'pods'
-        : currentScreen === 'Calendar' ? 'calendar'
-        : currentScreen === 'Messages' ? 'messages'
-        : currentScreen === 'Notifications' ? 'alerts'
-        : currentScreen === 'Profile' ? 'profile'
-        : 'feed'
-      }
-      onChange={(k: PieTabKey) => {
-        const map: Record<PieTabKey, string> = {
-          feed: 'Feed', pods: 'Pods', calendar: 'Calendar',
-          messages: 'Messages', alerts: 'Notifications', profile: 'Profile',
-        };
-        onTabPress(map[k]);
-      }}
-      badges={{
-        messages: Math.max(0, unreadMessageCount - locallyReadCount),
-        pods: badgeCounts.pods,
-        calendar: badgeCounts.calendar,
-        alerts: badgeCounts.notifications,
-        profile: badgeCounts.connections,
-      }}
+  const renderTabBar = () => (
+    <AppTabBar
+      isNewTheme={isNewTheme}
+      themeColors={themeColors}
+      currentScreen={currentScreen}
+      unreadMessageCount={unreadMessageCount}
+      locallyReadCount={locallyReadCount}
+      badgeCounts={badgeCounts}
+      onTabPress={onTabPress}
     />
-  ) : (
-    <View style={[styles.tabBar, {
-      backgroundColor: themeColors.tabBarBackground,
-      borderTopColor: themeColors.tabBarBorder,
-    }]}>
-      <TouchableOpacity style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : '#f0f0f0' }]} onPress={() => onTabPress('Feed')}>
-        <Text style={[styles.tabIcon, { opacity: currentScreen === 'Feed' ? 1 : 0.4 }]}>🌊</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : '#f0f0f0' }]}
-        onPress={() => onTabPress('Messages')}
-      >
-        <View style={styles.tabContent}>
-          <Text style={[styles.tabIcon, { opacity: currentScreen === 'Messages' ? 1 : 0.4 }]}>🫧</Text>
-          {(() => {
-            const effectiveUnreadCount = Math.max(0, unreadMessageCount - locallyReadCount);
-            return effectiveUnreadCount > 0 && currentScreen !== 'Messages' ? (
-              <View style={[styles.badge, { backgroundColor: isNewTheme ? themeColors.accentGreen : '#ef4444' }]}>
-                <Text style={[styles.badgeText, { color: isNewTheme ? themeColors.background : '#fff' }]}>{effectiveUnreadCount}</Text>
-              </View>
-            ) : null;
-          })()}
-        </View>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : '#f0f0f0' }]}
-        onPress={() => onTabPress('Pods')}
-      >
-        <View style={styles.tabContent}>
-          <Text style={[styles.tabIcon, { opacity: currentScreen === 'Pods' ? 1 : 0.4 }]}>🐳</Text>
-          {badgeCounts.pods > 0 && (
-            <View style={[styles.badge, { backgroundColor: isNewTheme ? themeColors.accentGreen : '#ef4444' }]}>
-              <Text style={[styles.badgeText, { color: isNewTheme ? themeColors.background : '#fff' }]}>{badgeCounts.pods}</Text>
-            </View>
-          )}
-        </View>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : '#f0f0f0' }]}
-        onPress={() => onTabPress('Calendar')}
-      >
-        <View style={styles.tabContent}>
-          <Text style={[styles.tabIcon, { opacity: currentScreen === 'Calendar' ? 1 : 0.4 }]}>🌙</Text>
-          {badgeCounts.calendar > 0 && (
-            <View style={[styles.badge, { backgroundColor: isNewTheme ? themeColors.accentGreen : '#ef4444' }]}>
-              <Text style={[styles.badgeText, { color: isNewTheme ? themeColors.background : '#fff' }]}>{badgeCounts.calendar}</Text>
-            </View>
-          )}
-        </View>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : '#f0f0f0' }]}
-        onPress={() => onTabPress('Notifications')}
-      >
-        <View style={styles.tabContent}>
-          <Text style={[styles.tabIcon, { opacity: currentScreen === 'Notifications' ? 1 : 0.4 }]}>✦</Text>
-          {badgeCounts.notifications > 0 && (
-            <View style={[styles.badge, { backgroundColor: isNewTheme ? themeColors.accentGreen : '#ef4444' }]}>
-              <Text style={[styles.badgeText, { color: isNewTheme ? themeColors.background : '#fff' }]}>{badgeCounts.notifications}</Text>
-            </View>
-          )}
-        </View>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.tab, { borderRightWidth: 0 }]}
-        onPress={() => onTabPress('Profile')}
-      >
-        <View style={styles.tabContent}>
-          <Text style={[styles.tabIcon, { opacity: currentScreen === 'Profile' ? 1 : 0.4 }]}>🪷</Text>
-          {badgeCounts.connections > 0 && (
-            <View style={[styles.badge, { backgroundColor: isNewTheme ? themeColors.accentGreen : '#ef4444' }]}>
-              <Text style={[styles.badgeText, { color: isNewTheme ? themeColors.background : '#fff' }]}>{badgeCounts.connections}</Text>
-            </View>
-          )}
-        </View>
-      </TouchableOpacity>
-    </View>
   );
 
   // Show Create Pursuit screen as modal
@@ -1578,47 +1471,9 @@ if (teamBoardPursuitId) {
   );
 }
 
+// NOTE: closeCreateButton/closeCreateText are not referenced anywhere in App.tsx
+// (pre-existing dead styles). Left in place per the pure-extraction constraint.
 const styles = StyleSheet.create({
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-    paddingBottom: 20,
-    paddingTop: 8,
-  },
-  tab: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 6,
-    borderRightWidth: 1,
-    borderRightColor: '#f0f0f0',
-  },
-  tabContent: {
-    position: 'relative',
-    alignItems: 'center',
-  },
-  tabIcon: {
-    fontSize: 26,
-  },
-  badge: {
-    position: 'absolute',
-    top: -6,
-    right: -10,
-    backgroundColor: '#ef4444',
-    borderRadius: 10,
-    minWidth: 18,
-    height: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-  },
-  badgeText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: 'bold',
-  },
   closeCreateButton: {
     position: 'absolute',
     top: 55,
