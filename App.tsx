@@ -11,6 +11,8 @@ import { useNotifications } from './src/hooks/useNotifications';
 import { useInterviewListeners } from './src/hooks/useInterviewListeners';
 import { useMessageBadges } from './src/hooks/useMessageBadges';
 import { useToastNavigation } from './src/hooks/useToastNavigation';
+import { useAppNavigation } from './src/navigation/useAppNavigation';
+import AppRouter from './src/navigation/AppRouter';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { ThemeProvider } from './src/theme/ThemeContext';
 import { notificationService } from './src/services/notificationService';
@@ -179,134 +181,31 @@ function AppContent() {
     );
   }
 
-  // Navigation object to pass to screens
-  const navigation = {
-    navigate: (screen: string, params?: any) => {
-      if (screen === 'UserProfile' && params?.userId) {
-        setViewingUserId(params.userId);
-        // Don't clear chat state - when going back, user returns to chat
-      } else if (screen === 'Connections') {
-        setShowConnections(true);
-      } else if (screen === 'Chat' && params?.partnerId) {
-        // Remember if we came from a user profile so we can go back to it
-        setChatOpenedFromUserId(viewingUserId);
-        setChatPartnerId(params.partnerId);
-        setChatPartnerEmail(params.partnerEmail || 'User');
-        setViewingUserId(null); // Clear profile view so chat takes priority
-        setCurrentScreen('Messages');
-      } else if (screen === 'Profile') {
-        setCurrentScreen('Profile');
-        setViewingUserId(null);
-      } else if (screen === 'PodDetail' && params?.pod) {
-        setViewingPodDetail(params.pod);
-        setPodDetailSubScreen(params.subScreen || null);
-        setPodDetailFromNotifications(params.fromNotifications || false);
-        setCurrentScreen('Pods');
-      } else if (screen === 'PursuitDetail' && params?.pursuitId) {
-        // Track where we came from so we can return
-        if (viewingUserId) {
-          setPodDetailOpenedFromUserId(viewingUserId);
-          setViewingUserId(null);
-        }
-        // Set a loading placeholder immediately to trigger navigation
-        setViewingPodDetail({ id: params.pursuitId, _loading: true });
-        setPodDetailSubScreen(null);
-        setPodDetailFromNotifications(false);
-        // Fetch the full pursuit data
-        (async () => {
-          try {
-            const { data: pursuit, error } = await supabase
-              .from('pursuits')
-              .select('*')
-              .eq('id', params.pursuitId)
-              .single();
-            
-            if (error) throw error;
-            if (pursuit) {
-              setViewingPodDetail(pursuit);
-            }
-          } catch (error) {
-            console.error('Error loading pursuit:', error);
-            // Clear the loading state on error
-            setViewingPodDetail(null);
-          }
-        })();
-      } else if (screen === 'TeamBoard' && params?.pursuitId) {
-        setTeamBoardPursuitId(params.pursuitId);
-        setTeamBoardSubTab(params.subTab || null);
-      } else if (screen === 'Pods') {
-        setCurrentScreen('Pods');
-      } else if (screen === 'Calendar') {
-        setCurrentScreen('Calendar');
-      } else if (screen === 'Messages') {
-        setCurrentScreen('Messages');
-      } else if (screen === 'RemovalReason' && params) {
-        setViewingRemovalReason({
-          pursuitTitle: params.pursuitTitle,
-          reason: params.reason,
-          removedAt: params.removedAt,
-        });
-      } else if (screen === 'MemberLeft' && params) {
-        setViewingMemberLeft({
-          pursuitTitle: params.pursuitTitle,
-          memberName: params.memberName,
-          reason: params.reason,
-          leftAt: params.leftAt,
-        });
-      } else if (screen === 'MeetingInvitation' && params?.meetingId) {
-        setViewingMeetingInvitation(params.meetingId);
-      } else if (screen === 'InterviewTimeSlotProposal' && params?.applicationId) {
-        // Need to fetch pursuit info for the interview proposal screen
-        fetchInterviewProposalData(params.applicationId, params.pursuitId);
-      } else if (screen === 'InterviewScheduling' && params?.applicationId) {
-        // Need to fetch pursuit and applicant info for the interview scheduling screen
-        fetchInterviewSchedulingData(params.applicationId, params.pursuitId);
-      } else if (screen === 'Legal' && params?.doc) {
-        setViewingLegalDoc(params.doc as LegalDoc);
-      }
-    },
-    goBack: () => {
-      setViewingUserId(null);
-      setShowConnections(false);
-      // Chat state preserved - if returning from profile, chat will show again
-    },
-    replace: (screen: string) => {
-      if (screen === 'Profile') {
-        setCurrentScreen('Profile');
-        setViewingUserId(null);
-      }
-    },
-  };
-
-  // Clears every overlay/sub-screen state so a tab tap pops back to the tab's root.
-  const resetSubScreens = () => {
-    setViewingUserId(null);
-    setShowConnections(false);
-    setViewingLegalDoc(null);
-    setChatPartnerId(null);
-    setChatPartnerEmail(null);
-    setChatOpenedFromUserId(null);
-    setViewingPodDetail(null);
-    setPodDetailSubScreen(null);
-    setPodDetailFromNotifications(false);
-    setPodDetailOpenedFromUserId(null);
-    setTeamBoardPursuitId(null);
-    setTeamBoardSubTab(null);
-    setViewingRemovalReason(null);
-    setViewingMemberLeft(null);
-    setViewingMeetingInvitation(null);
-    setViewingInterviewProposal(null);
-    setViewingInterviewScheduling(null);
-  };
-
-  const onTabPress = (target: string) => {
-    hapticService.lightTap();
-    resetSubScreens();
-    setCurrentScreen(target);
-    if (target === 'Pods') clearBadgeForTab('Pods');
-    if (target === 'Calendar') clearBadgeForTab('Calendar');
-    if (target === 'Profile') clearBadgeForTab('Profile');
-  };
+  // Navigation + routing extracted to useAppNavigation (contains no React hooks;
+  // viewingUserId is read by navigate(), so it is passed in explicitly).
+  const { navigation, onTabPress } = useAppNavigation(auth, viewingUserId, {
+    setViewingUserId,
+    setShowConnections,
+    setChatOpenedFromUserId,
+    setChatPartnerId,
+    setChatPartnerEmail,
+    setCurrentScreen,
+    setViewingPodDetail,
+    setPodDetailSubScreen,
+    setPodDetailFromNotifications,
+    setPodDetailOpenedFromUserId,
+    setTeamBoardPursuitId,
+    setTeamBoardSubTab,
+    setViewingRemovalReason,
+    setViewingMemberLeft,
+    setViewingMeetingInvitation,
+    setViewingInterviewProposal,
+    setViewingInterviewScheduling,
+    setViewingLegalDoc,
+    clearBadgeForTab,
+    fetchInterviewProposalData,
+    fetchInterviewSchedulingData,
+  });
 
   const renderTabBar = () => (
     <AppTabBar
@@ -320,433 +219,64 @@ function AppContent() {
     />
   );
 
-  // Show Create Pursuit screen as modal
-  if (showCreate) {
-    return (
-      <CreateScreen onClose={() => {
-        setShowCreate(false);
-        setCurrentScreen('Feed');
-      }} />
-    );
-  }
-
-  // Show Create Meeting screen as modal
-  if (showCreateMeeting) {
-    return (
-      <CreateMeetingScreen
-        onClose={() => setShowCreateMeeting(false)}
-        onMeetingCreated={() => {
-          // Refresh calendar if needed
-          setCurrentScreen('Calendar');
-        }}
-      />
-    );
-  }
-
-  // Show Edit Pursuit screen as modal
-  if (editingPursuit) {
-    return (
-      <EditPursuitScreen
-        pursuit={editingPursuit}
-        onClose={() => setEditingPursuit(null)}
-        onSaved={() => {
-          // Refresh pods screen
-          setCurrentScreen('Pods');
-        }}
-        onDeleted={() => {
-          // Go back to pods screen
-          setCurrentScreen('Pods');
-        }}
-      />
-    );
-  }
-
-// Video call screen - enabled for native builds
-if (videoCallChannel) {
-  if (!AGORA_APP_ID) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-        <Text style={{ fontSize: 18, textAlign: 'center', marginBottom: 20 }}>
-          ⚠️ Agora App ID not configured
-        </Text>
-        <Text style={{ textAlign: 'center', color: '#666', marginBottom: 20 }}>
-          Please add your Agora App ID to the agoraService.ts file
-        </Text>
-        <TouchableOpacity
-          style={{ backgroundColor: '#8b5cf6', padding: 15, borderRadius: 8 }}
-          onPress={() => setVideoCallChannel(null)}
-        >
-          <Text style={{ color: '#fff', fontWeight: 'bold' }}>Go Back</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
   return (
-    <VideoCallScreen
-      channelName={videoCallChannel}
-      podTitle={videoCallPodTitle}
-      agoraAppId={AGORA_APP_ID}
-      onEndCall={() => {
-        setVideoCallChannel(null);
-        setVideoCallPodTitle('');
-      }}
+    <AppRouter
+      currentScreen={currentScreen}
+      chatPartnerId={chatPartnerId}
+      chatPartnerEmail={chatPartnerEmail}
+      chatOpenedFromUserId={chatOpenedFromUserId}
+      podDetailOpenedFromUserId={podDetailOpenedFromUserId}
+      teamBoardPursuitId={teamBoardPursuitId}
+      teamBoardSubTab={teamBoardSubTab}
+      viewingLegalDoc={viewingLegalDoc}
+      showCreate={showCreate}
+      showCreateMeeting={showCreateMeeting}
+      selectedMeeting={selectedMeeting}
+      editingPursuit={editingPursuit}
+      viewingUserId={viewingUserId}
+      showConnections={showConnections}
+      viewingPodDetail={viewingPodDetail}
+      podDetailSubScreen={podDetailSubScreen}
+      podDetailFromNotifications={podDetailFromNotifications}
+      videoCallChannel={videoCallChannel}
+      videoCallPodTitle={videoCallPodTitle}
+      viewingRemovalReason={viewingRemovalReason}
+      viewingMemberLeft={viewingMemberLeft}
+      viewingMeetingInvitation={viewingMeetingInvitation}
+      viewingInterviewProposal={viewingInterviewProposal}
+      viewingInterviewScheduling={viewingInterviewScheduling}
+      currentToast={currentToast}
+      setCurrentScreen={setCurrentScreen}
+      setChatPartnerId={setChatPartnerId}
+      setChatPartnerEmail={setChatPartnerEmail}
+      setChatOpenedFromUserId={setChatOpenedFromUserId}
+      setPodDetailOpenedFromUserId={setPodDetailOpenedFromUserId}
+      setTeamBoardPursuitId={setTeamBoardPursuitId}
+      setTeamBoardSubTab={setTeamBoardSubTab}
+      setViewingLegalDoc={setViewingLegalDoc}
+      setShowCreate={setShowCreate}
+      setShowCreateMeeting={setShowCreateMeeting}
+      setSelectedMeeting={setSelectedMeeting}
+      setEditingPursuit={setEditingPursuit}
+      setViewingUserId={setViewingUserId}
+      setViewingPodDetail={setViewingPodDetail}
+      setPodDetailSubScreen={setPodDetailSubScreen}
+      setPodDetailFromNotifications={setPodDetailFromNotifications}
+      setVideoCallChannel={setVideoCallChannel}
+      setVideoCallPodTitle={setVideoCallPodTitle}
+      setViewingRemovalReason={setViewingRemovalReason}
+      setViewingMemberLeft={setViewingMemberLeft}
+      setViewingMeetingInvitation={setViewingMeetingInvitation}
+      setViewingInterviewProposal={setViewingInterviewProposal}
+      setViewingInterviewScheduling={setViewingInterviewScheduling}
+      setCurrentToast={setCurrentToast}
+      setLocallyReadCount={setLocallyReadCount}
+      auth={auth}
+      navigation={navigation}
+      renderTabBar={renderTabBar}
+      handleToastPress={handleToastPress}
+      loadUnreadMessageCount={loadUnreadMessageCount}
     />
-  );
-}
-
-// Show Removal Reason screen
-if (viewingRemovalReason) {
-  return (
-    <View style={{ flex: 1 }}>
-      <RemovalReasonScreen
-        pursuitTitle={viewingRemovalReason.pursuitTitle}
-        reason={viewingRemovalReason.reason}
-        removedAt={viewingRemovalReason.removedAt}
-        onBack={() => {
-          setViewingRemovalReason(null);
-          setCurrentScreen('Feed');
-        }}
-      />
-      {renderTabBar()}
-    </View>
-  );
-}
-
-// Show Member Left screen (for creators when a member leaves)
-if (viewingMemberLeft) {
-  return (
-    <View style={{ flex: 1 }}>
-      <MemberLeftScreen
-        pursuitTitle={viewingMemberLeft.pursuitTitle}
-        memberName={viewingMemberLeft.memberName}
-        reason={viewingMemberLeft.reason}
-        leftAt={viewingMemberLeft.leftAt}
-        onBack={() => {
-          setViewingMemberLeft(null);
-          setCurrentScreen('Notifications');
-        }}
-      />
-      {renderTabBar()}
-    </View>
-  );
-}
-
-// Show Meeting Invitation screen
-if (viewingMeetingInvitation) {
-  return (
-    <View style={{ flex: 1 }}>
-      <MeetingInvitationScreen
-        meetingId={viewingMeetingInvitation}
-        onBack={() => {
-          setViewingMeetingInvitation(null);
-          setCurrentScreen('Notifications');
-        }}
-        onResponded={() => {
-          setViewingMeetingInvitation(null);
-          setCurrentScreen('Calendar');
-        }}
-      />
-      {renderTabBar()}
-    </View>
-  );
-}
-
-// Show Interview Time Slot Proposal screen (for applicants to propose interview times)
-if (viewingInterviewProposal) {
-  return (
-    <View style={{ flex: 1 }}>
-      <InterviewTimeSlotProposalScreen
-        applicationId={viewingInterviewProposal.applicationId}
-        pursuitId={viewingInterviewProposal.pursuitId}
-        pursuitTitle={viewingInterviewProposal.pursuitTitle}
-        onClose={() => {
-          setViewingInterviewProposal(null);
-          setCurrentScreen('Pods');
-        }}
-        onSubmitted={() => {
-          setViewingInterviewProposal(null);
-          setCurrentScreen('Pods');
-        }}
-      />
-      {renderTabBar()}
-    </View>
-  );
-}
-
-// Show Interview Scheduling screen (for creators to schedule the interview)
-if (viewingInterviewScheduling) {
-  return (
-    <View style={{ flex: 1 }}>
-      <InterviewSchedulingScreen
-        applicationId={viewingInterviewScheduling.applicationId}
-        pursuitId={viewingInterviewScheduling.pursuitId}
-        pursuitTitle={viewingInterviewScheduling.pursuitTitle}
-        applicantId={viewingInterviewScheduling.applicantId}
-        applicantName={viewingInterviewScheduling.applicantName}
-        onClose={() => {
-          setViewingInterviewScheduling(null);
-          setCurrentScreen('Notifications');
-        }}
-        onScheduled={() => {
-          setViewingInterviewScheduling(null);
-          setCurrentScreen('Calendar');
-        }}
-      />
-      {renderTabBar()}
-    </View>
-  );
-}
-
-// Show User Profile screen (before chat so it takes priority when clicked from chat)
-if (viewingUserId) {
-  return (
-    <View style={{ flex: 1 }}>
-      <UserProfileScreen
-        route={{ params: { userId: viewingUserId } }}
-        navigation={navigation}
-      />
-      {renderTabBar()}
-    </View>
-  );
-}
-
-// Show Connections screen
-if (showConnections) {
-  return (
-    <View style={{ flex: 1 }}>
-      <ConnectionsScreen navigation={navigation} />
-      {renderTabBar()}
-    </View>
-  );
-}
-
-// Show Legal doc viewer (Terms / Privacy / Support)
-if (viewingLegalDoc) {
-  return (
-    <View style={{ flex: 1 }}>
-      <LegalScreen doc={viewingLegalDoc} onBack={() => setViewingLegalDoc(null)} />
-      {renderTabBar()}
-    </View>
-  );
-}
-
-// Show chat screen if a conversation is selected
-if (chatPartnerId && chatPartnerEmail) {
-  return (
-    <View style={{ flex: 1 }}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-      >
-        <ChatScreen
-          partnerId={chatPartnerId}
-          partnerEmail={chatPartnerEmail}
-          navigation={navigation}
-          onBack={() => {
-            // If we came from a user profile, go back to it
-            if (chatOpenedFromUserId) {
-              setViewingUserId(chatOpenedFromUserId);
-              setChatOpenedFromUserId(null);
-            }
-            setChatPartnerId(null);
-            setChatPartnerEmail(null);
-          }}
-        />
-      </KeyboardAvoidingView>
-      {renderTabBar()}
-    </View>
-  );
-}
-
-// Show Pod Detail Screen if viewing from Pods tab
-if (viewingPodDetail) {
-  return (
-    <View style={{ flex: 1 }}>
-    <PursuitDetailScreen
-      pursuit={viewingPodDetail}
-      initialSubScreen={podDetailSubScreen}
-      fromNotifications={podDetailFromNotifications}
-      onBackToNotifications={() => {
-        setViewingPodDetail(null);
-        setPodDetailSubScreen(null);
-        setPodDetailFromNotifications(false);
-        setCurrentScreen('Notifications');
-      }}
-      onBack={() => {
-        setViewingPodDetail(null);
-        setPodDetailSubScreen(null);
-        setPodDetailFromNotifications(false);
-        // If we came from a user profile, return to it
-        if (podDetailOpenedFromUserId) {
-          setViewingUserId(podDetailOpenedFromUserId);
-          setPodDetailOpenedFromUserId(null);
-        }
-      }}
-      isOwner={viewingPodDetail.creator_id === auth.user?.id || viewingPodDetail.is_creator}
-      onEdit={() => {
-        setEditingPursuit(viewingPodDetail);
-      }}
-      onDelete={async () => {
-        Alert.alert(
-          'Delete Pursuit',
-          'Are you sure you want to delete this pursuit? This action cannot be undone.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Delete',
-              style: 'destructive',
-              onPress: async () => {
-                try {
-                  const { error } = await supabase
-                    .from('pursuits')
-                    .delete()
-                    .eq('id', viewingPodDetail.id);
-
-                  if (error) throw error;
-
-                  Alert.alert('Success', 'Pursuit deleted successfully');
-                  setViewingPodDetail(null);
-                  setCurrentScreen('Pods');
-                } catch (error: any) {
-                  console.error('Error deleting pursuit:', error);
-                  Alert.alert('Error', error.message || 'Failed to delete pursuit');
-                }
-              },
-            },
-          ]
-        );
-      }}
-      onViewProfile={(userId, userEmail) => {
-        // If viewing own profile, go to Profile tab
-        if (userId === auth.user?.id) {
-          setViewingPodDetail(null);
-          setCurrentScreen('Profile');
-        } else {
-          setViewingUserId(userId);
-        }
-      }}
-      onOpenTeamBoard={(pursuitId) => {
-        setViewingPodDetail(null);
-        setTeamBoardPursuitId(pursuitId);
-      }}
-      onSendMessage={(userId, userEmail) => {
-        setViewingPodDetail(null);
-        setChatPartnerId(userId);
-        setChatPartnerEmail(userEmail);
-        setCurrentScreen('Messages');
-      }}
-    />
-      {renderTabBar()}
-    </View>
-  );
-}
-
-// Show Team Workspace if a pursuit board is selected
-if (teamBoardPursuitId) {
-  return (
-    <View style={{ flex: 1 }}>
-      <TeamWorkspaceScreen
-        initialPursuitId={teamBoardPursuitId}
-        initialSubTab={teamBoardSubTab as any}
-        onBack={() => {
-          setTeamBoardPursuitId(null);
-          setTeamBoardSubTab(null);
-        }}
-      />
-      {renderTabBar()}
-    </View>
-  );
-}
-
-  const startMessage = (userId: string, userEmail: string) => {
-    setChatPartnerId(userId);
-    setChatPartnerEmail(userEmail);
-    setCurrentScreen('Messages');
-  };
-
-  const openTeamBoard = (pursuitId: string) => {
-    setTeamBoardPursuitId(pursuitId);
-  };
-
-  return (
-    <View style={{ flex: 1 }}>
-      <NotificationToast
-        notification={currentToast}
-        onPress={() => handleToastPress(currentToast)}
-        onDismiss={() => setCurrentToast(null)}
-      />
-
-      {currentScreen === 'Feed' && (
-        <FeedScreen 
-          onStartMessage={startMessage} 
-          onOpenTeamBoard={openTeamBoard}
-          onOpenCreate={() => setShowCreate(true)}
-        />
-      )}
-      {currentScreen === 'Messages' && (
-  <MessagesListScreen
-    navigation={navigation}
-    onSelectConversation={(partnerId: string, partnerEmail: string) => {
-      setChatPartnerId(partnerId);
-      setChatPartnerEmail(partnerEmail);
-    }}
-    onConversationRead={() => {
-      // Update the locally-read message count to trigger badge update
-      setLocallyReadCount(getLocallyReadMessageCount());
-      // Also try to reload from DB (in case migration has been run)
-      loadUnreadMessageCount();
-    }}
-  />
-)}
-      {currentScreen === 'Pods' && (
-        <PodsScreen
-          onOpenPodDetails={(pod) => setViewingPodDetail(pod)}
-          onOpenTeamBoard={openTeamBoard}
-          onOpenInterviewProposal={(applicationId, pursuitId, pursuitTitle) => {
-            setViewingInterviewProposal({
-              applicationId,
-              pursuitId,
-              pursuitTitle,
-            });
-          }}
-        />
-      )}
-      {currentScreen === 'Calendar' && (
-        <CalendarScreen
-          onCreateMeeting={() => setShowCreateMeeting(true)}
-          onOpenMeeting={(meeting) => {
-            setSelectedMeeting(meeting);
-          }}
-        />
-      )}
-      {currentScreen === 'Notifications' && <NotificationsScreen navigation={navigation} />}
-      {currentScreen === 'Profile' && <ProfileScreen navigation={navigation} />}
-
-      {renderTabBar()}
-
-      {/* Meeting Detail Modal */}
-      {selectedMeeting && (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#fff', zIndex: 1000 }}>
-          <MeetingDetailScreen
-            meeting={selectedMeeting}
-            onClose={() => setSelectedMeeting(null)}
-            onJoinCall={(meeting) => {
-              // Join the Agora video call
-              if (meeting.agora_channel_name) {
-                console.log('🎥 Starting video call for meeting:', meeting.title);
-                setVideoCallChannel(meeting.agora_channel_name);
-                setVideoCallPodTitle(meeting.title || 'Meeting');
-                setSelectedMeeting(null);
-              } else {
-                Alert.alert('Error', 'Video channel not available for this meeting');
-              }
-            }}
-          />
-        </View>
-      )}
-    </View>
   );
 }
 
