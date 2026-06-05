@@ -83,8 +83,8 @@ export default function IntroAnimation({ onComplete }: Props) {
     );
     Animated.stagger(0, letterAnimations).start();
 
-    // Finish after 1750ms
-    const timer = setTimeout(() => onComplete(), 1750);
+    // Finish after 2750ms (1s longer than original 1750ms for a more breathable hold)
+    const timer = setTimeout(() => onComplete(), 2750);
     return () => clearTimeout(timer);
   }, []);
 

@@ -12,24 +12,26 @@ interface Props {
   profilePictureUri?: string | null;
 }
 
-/**
- * Floating dark-pill tab bar — Pie-style.
- *  - 5 slots: feed, pods, calendar, messages, profile (last is the user's avatar)
- *  - Active slot gets a soft lime fill behind the icon
- *  - Badge dots (red) when there's unread activity
- */
+// Flappy-Bird-feely tab palette: chunky filled icons, each tab gets its own
+// bright fill when active. Carolina blue is the dominant accent, gold appears
+// only on the feed tab (rare tertiary), red stays for alerts (semantic).
+const CAROLINA = '#4B9CD3';
+const GOLD = '#C49B00';
+const ALERT_RED = '#EF4444';
+const TAB_INACTIVE = '#9A9A95';
+
+const items: { key: PieTabKey; icon: keyof typeof Ionicons.glyphMap; label: string; color: string }[] = [
+  { key: 'feed',     icon: 'sparkles',       label: 'feed',     color: GOLD },
+  { key: 'pods',     icon: 'people',         label: 'pods',     color: CAROLINA },
+  { key: 'calendar', icon: 'calendar',       label: 'cal',      color: CAROLINA },
+  { key: 'messages', icon: 'chatbubble',     label: 'chats',    color: CAROLINA },
+  { key: 'alerts',   icon: 'notifications',  label: 'alerts',   color: ALERT_RED },
+  { key: 'profile',  icon: 'person',         label: 'me',       color: CAROLINA },
+];
+
 export default function PieTabBar({ active, onChange, badges, profilePictureUri }: Props) {
   const { theme } = useTheme();
   const colors = theme.colors;
-
-  const items: { key: PieTabKey; icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
-    { key: 'feed',     icon: 'sparkles-outline',  label: 'feed' },
-    { key: 'pods',     icon: 'people-outline',    label: 'pods' },
-    { key: 'calendar', icon: 'calendar-outline',  label: 'cal' },
-    { key: 'messages', icon: 'chatbubble-outline', label: 'chats' },
-    { key: 'alerts',   icon: 'notifications-outline', label: 'alerts' },
-    { key: 'profile',  icon: 'person-outline',    label: 'me' },
-  ];
 
   return (
     <View style={styles.wrap} pointerEvents="box-none">
@@ -46,20 +48,20 @@ export default function PieTabBar({ active, onChange, badges, profilePictureUri 
               style={styles.slot}
             >
               {isAvatar ? (
-                <View style={[styles.avatarWrap, isActive && { borderColor: colors.accentGreen, borderWidth: 2 }]}>
+                <View style={[styles.avatarWrap, isActive && { borderColor: item.color, borderWidth: 2.5 }]}>
                   <Image source={{ uri: profilePictureUri! }} style={styles.avatar} />
                 </View>
               ) : (
-                <View style={[styles.iconBubble, isActive && { backgroundColor: colors.accentGreen }]}>
+                <View style={[styles.iconBubble, isActive && { backgroundColor: item.color }]}>
                   <Ionicons
                     name={item.icon}
                     size={22}
-                    color={isActive ? '#000000' : colors.textSecondary}
+                    color={isActive ? '#FFFFFF' : TAB_INACTIVE}
                   />
                 </View>
               )}
               {badge > 0 && (
-                <View style={[styles.badge, { backgroundColor: '#EF4444' }]}>
+                <View style={[styles.badge, { backgroundColor: ALERT_RED }]}>
                   <Text style={styles.badgeText}>{badge > 9 ? '9+' : badge}</Text>
                 </View>
               )}

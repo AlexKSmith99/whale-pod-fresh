@@ -21,6 +21,24 @@ import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
 import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
 
+const countWords = (s: string): number =>
+  s.trim() === '' ? 0 : s.trim().split(/\s+/).length;
+
+const capWords = (s: string, max: number): string => {
+  if (countWords(s) <= max) return s;
+  const tokens = s.split(/(\s+)/);
+  let count = 0;
+  let out = '';
+  for (const t of tokens) {
+    if (/\S/.test(t)) {
+      if (count >= max) break;
+      count++;
+    }
+    out += t;
+  }
+  return out.trimEnd();
+};
+
 interface Props {
   pursuit: any;
   onClose: () => void;
@@ -329,18 +347,18 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
           <Text style={[styles.label, { color: colors.textPrimary }]}>
             Description <Text style={styles.required}>*</Text>
           </Text>
-          <Text style={[styles.hint, { color: colors.textSecondary }]}>Minimum 50 characters</Text>
+          <Text style={[styles.hint, { color: colors.textSecondary }]}>Maximum 150 words</Text>
           <TextInput
             style={[styles.input, styles.textArea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
             value={description}
-            onChangeText={setDescription}
+            onChangeText={(text) => setDescription(capWords(text, 150))}
             placeholder="Describe your pod in detail..."
             placeholderTextColor={colors.textTertiary}
             multiline
             numberOfLines={6}
             textAlignVertical="top"
           />
-          <Text style={[styles.charCount, { color: colors.textTertiary }]}>{description.length} / 50 min</Text>
+          <Text style={[styles.charCount, { color: colors.textTertiary }]}>{countWords(description)} / 150 words</Text>
         </View>
 
         {/* Team Size */}

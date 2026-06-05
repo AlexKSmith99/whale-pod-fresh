@@ -577,7 +577,7 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
         {/* Conversations List */}
         {filteredChats.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <View style={[styles.emptyIconContainer, themedStyles.surfaceAlt]}>
+            <View style={[styles.emptyIconContainer, { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.backgroundSecondary, borderWidth: isNewTheme ? 1 : 0, borderColor: colors.border }]}>
               <Ionicons name="chatbubbles-outline" size={48} color={themedStyles.accentIconColor} />
             </View>
             <Text style={[styles.emptyTitle, themedStyles.emptyText]}>No conversations yet</Text>

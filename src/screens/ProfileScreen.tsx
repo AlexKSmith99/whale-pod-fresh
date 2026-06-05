@@ -386,13 +386,6 @@ const handleRejectConnection = async (connectionId: string) => {
             <Text style={[styles.tabPillText, themedStyles.textSecondary, activeTab === 'pods' && { color: isNewTheme ? colors.background : colors.white }]}>
               Pods
             </Text>
-            {userPods.length > 0 && (
-              <View style={[styles.tabBadge, activeTab === 'pods' && styles.tabBadgeActive]}>
-                <Text style={[styles.tabBadgeText, { color: themedStyles.accentIconColor }, activeTab === 'pods' && { color: isNewTheme ? colors.background : colors.white }]}>
-                  {userPods.length}
-                </Text>
-              </View>
-            )}
           </TouchableOpacity>
         </ScrollView>
 

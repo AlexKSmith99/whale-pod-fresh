@@ -20,20 +20,12 @@ export default function GradientBackground({ children, style }: GradientBackgrou
     );
   }
 
-  // Light mode: warm parchment gradient - rustic, earthy
+  // Light mode: flat cream paper — matches onboarding aesthetic for an
+  // editorial, magazine-like surface.
   return (
-    <LinearGradient
-      colors={[
-        '#FAF9F6',   // raw parchment (top)
-        '#F2EFEA',   // weathered linen (upper third)
-        '#EDE9E1',   // warm sandstone (center)
-        '#FAF9F6',   // raw parchment (bottom)
-      ]}
-      locations={[0, 0.3, 0.55, 1]}
-      style={[styles.container, style]}
-    >
+    <View style={[styles.container, { backgroundColor: '#FAF9F6' }, style]}>
       {children}
-    </LinearGradient>
+    </View>
   );
 }
 

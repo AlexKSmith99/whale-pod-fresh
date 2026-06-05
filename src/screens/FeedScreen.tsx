@@ -355,8 +355,8 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
             {label}
           </Text>
           {isActive && (
-            <View style={[styles.filterBadge, { backgroundColor: isNewTheme ? colors.background : legacyColors.white }]}>
-              <Text style={[styles.filterBadgeText, { color: isNewTheme ? colors.accentGreen : legacyColors.primary }]}>{count}</Text>
+            <View style={[styles.filterBadge, { backgroundColor: isNewTheme ? colors.background : LIGHT_BG }]}>
+              <Text style={[styles.filterBadgeText, { color: isNewTheme ? colors.accentGreen : LIGHT_INK }]}>{count}</Text>
             </View>
           )}
           <Ionicons
@@ -422,7 +422,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
               >
                 <Text style={[styles.modalOptionText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{option}</Text>
                 {selectedValues.includes(option) && (
-                  <Ionicons name="checkmark-circle" size={24} color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
+                  <Ionicons name="checkmark-circle" size={24} color={isNewTheme ? colors.accentGreen : CAROLINA} />
                 )}
               </TouchableOpacity>
             ))}
@@ -466,13 +466,30 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
   };
 
   // Dynamic styles based on theme
+  // ===== Editorial light-mode palette =====
+  // Cream paper background, charcoal ink, hairline borders.
+  // Accents (in order of prominence):
+  //   - Carolina blue: somewhat-discreet primary accent (replaces forest green)
+  //   - Gold: very-discreet tertiary, used sparingly for the "yours" mark
+  //   - Red: semantic only — hot/urgent indicators and destructive actions
+  const LIGHT_INK = '#1B1B18';
+  const LIGHT_MUTED = '#8A8A85';
+  const LIGHT_HAIRLINE = '#E5E1D8';
+  const LIGHT_BG = '#FAF9F6';
+  const LIGHT_SURFACE = '#FFFFFF';
+  const LIGHT_RED = '#DC2626';
+  const CAROLINA = '#4B9CD3';
+  const CAROLINA_DEEP = '#2E6A95';
+  const CAROLINA_TINT = 'rgba(75, 156, 211, 0.10)';
+  const GOLD = '#C49B00';
+
   const dynamicStyles = {
     container: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: isNewTheme ? colors.background : LIGHT_BG,
     },
     header: {
-      backgroundColor: isNewTheme ? colors.surface : colors.surface,
+      backgroundColor: isNewTheme ? colors.surface : LIGHT_BG,
       paddingTop: 50,
       paddingBottom: spacing.base,
       borderBottomWidth: isNewTheme ? 1 : 0,
@@ -480,7 +497,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
     },
     headerGreeting: {
       fontSize: isNewTheme ? typography.fontSize.sm : 14,
-      color: colors.textSecondary,
+      color: isNewTheme ? colors.textSecondary : LIGHT_MUTED,
       fontWeight: typography.fontWeight.medium as '500',
       marginBottom: spacing.xs,
       fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'Sora_500Medium',
@@ -488,65 +505,73 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
       letterSpacing: isNewTheme ? 1 : 0.5,
     },
     headerTitle: {
-      fontSize: isNewTheme ? typography.fontSize['3xl'] : 30,
+      fontSize: isNewTheme ? typography.fontSize['3xl'] : 36,
       fontWeight: typography.fontWeight.bold as '700',
-      color: isNewTheme ? colors.accentGreen : colors.textPrimary,
+      color: isNewTheme ? colors.accentGreen : LIGHT_INK,
       fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold',
+      letterSpacing: isNewTheme ? -0.5 : -0.8,
     },
     searchContainer: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
-      backgroundColor: isNewTheme ? colors.surfaceAlt : colors.backgroundSecondary,
+      backgroundColor: isNewTheme ? colors.surfaceAlt : 'transparent',
       marginHorizontal: spacing.lg,
-      paddingHorizontal: spacing.base,
-      // Pill-shaped container
-      borderRadius: 24,
+      paddingHorizontal: isNewTheme ? spacing.base : 0,
+      // Pill in dark, underline in light
+      borderRadius: isNewTheme ? 24 : 0,
+      borderBottomWidth: isNewTheme ? 0 : 1,
+      borderBottomColor: LIGHT_HAIRLINE,
       height: 44,
       marginBottom: spacing.base,
-      // Subtle shadow
+      // Shadow only in dark — light is paper-flat
       shadowColor: '#000',
-      shadowOpacity: 0.08,
+      shadowOpacity: isNewTheme ? 0.08 : 0,
       shadowRadius: 8,
       shadowOffset: { width: 0, height: 2 },
-      elevation: 3,
+      elevation: isNewTheme ? 3 : 0,
     },
     searchInput: {
       flex: 1,
       marginLeft: spacing.sm,
       fontSize: typography.fontSize.base,
-      color: colors.textPrimary,
+      color: isNewTheme ? colors.textPrimary : LIGHT_INK,
       fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold',
     },
     card: {
-      backgroundColor: isNewTheme ? colors.surface : '#FFFFFF',
-      borderRadius: isNewTheme ? borderRadius.lg : 16,
-      padding: isNewTheme ? spacing.lg : 24,
-      marginBottom: isNewTheme ? spacing.base : 20,
-      // Pop: stronger elevation
+      // Light mode: kept the card shape — white surface, hairline border,
+      // soft shadow for editorial pop. A thin Carolina-blue stripe runs down
+      // the left edge as a discreet accent.
+      backgroundColor: isNewTheme ? colors.surface : LIGHT_SURFACE,
+      borderRadius: isNewTheme ? borderRadius.lg : 14,
+      padding: isNewTheme ? spacing.lg : 20,
+      paddingLeft: isNewTheme ? spacing.lg : 22,
+      marginBottom: isNewTheme ? spacing.base : 14,
+      marginHorizontal: isNewTheme ? 0 : 0,
       shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.08,
-      shadowRadius: 12,
-      elevation: 5,
-      borderWidth: isNewTheme ? 0.75 : 0,
-      borderColor: isNewTheme ? colors.accentGreen : 'transparent',
-      // Room for the 3px left accent line rendered as a child view
+      shadowOffset: { width: 0, height: isNewTheme ? 4 : 6 },
+      shadowOpacity: isNewTheme ? 0.08 : 0.06,
+      shadowRadius: isNewTheme ? 12 : 14,
+      elevation: isNewTheme ? 5 : 3,
+      borderWidth: isNewTheme ? 0.75 : 1,
+      borderColor: isNewTheme ? colors.accentGreen : LIGHT_HAIRLINE,
       overflow: 'hidden' as const,
       position: 'relative' as const,
     },
     cardTitle: {
       flex: 1,
-      fontSize: isNewTheme ? typography.fontSize.lg : 21,
+      fontSize: isNewTheme ? typography.fontSize.lg : 24,
       fontWeight: typography.fontWeight.bold as '700',
-      color: colors.textPrimary,
-      lineHeight: isNewTheme ? typography.fontSize.lg * typography.lineHeight.tight : 21 * 1.25,
+      color: isNewTheme ? colors.textPrimary : LIGHT_INK,
+      lineHeight: isNewTheme ? typography.fontSize.lg * typography.lineHeight.tight : 28,
       fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold',
+      letterSpacing: isNewTheme ? 0 : -0.3,
     },
     cardDescription: {
-      fontSize: typography.fontSize.base,
-      color: colors.textSecondary,
-      lineHeight: isNewTheme ? typography.fontSize.base * typography.lineHeight.normal : 15 * 1.6,
-      marginBottom: isNewTheme ? spacing.md : 16,
+      fontSize: isNewTheme ? typography.fontSize.base : 14,
+      color: isNewTheme ? colors.textSecondary : LIGHT_MUTED,
+      lineHeight: isNewTheme ? typography.fontSize.base * typography.lineHeight.normal : 20,
+      marginBottom: isNewTheme ? spacing.md : 10,
+      marginTop: isNewTheme ? 0 : 6,
       fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold',
     },
     filterButton: {
@@ -555,41 +580,40 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
       paddingHorizontal: spacing.base,
       paddingVertical: spacing.sm,
       borderRadius: borderRadius.full,
-      backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.backgroundSecondary,
+      backgroundColor: isNewTheme ? colors.surfaceAlt : 'transparent',
       borderWidth: 1,
-      borderColor: isNewTheme ? colors.border : legacyColors.borderLight,
+      borderColor: isNewTheme ? colors.border : LIGHT_HAIRLINE,
       gap: spacing.xs,
-      // Slight elevation
       shadowColor: '#000',
-      shadowOpacity: 0.08,
+      shadowOpacity: isNewTheme ? 0.08 : 0,
       shadowRadius: 6,
       shadowOffset: { width: 0, height: 2 },
-      elevation: 2,
+      elevation: isNewTheme ? 2 : 0,
     },
     filterButtonActive: {
-      backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary,
-      borderColor: isNewTheme ? colors.accentGreen : legacyColors.primary,
+      backgroundColor: isNewTheme ? colors.accentGreen : CAROLINA,
+      borderColor: isNewTheme ? colors.accentGreen : CAROLINA,
     },
     filterButtonText: {
       fontSize: typography.fontSize.sm,
       fontWeight: typography.fontWeight.medium as '500',
-      color: colors.textSecondary,
+      color: isNewTheme ? colors.textSecondary : LIGHT_INK,
       fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold',
     },
     tag: {
-      backgroundColor: isNewTheme ? 'rgba(168, 230, 163, 0.15)' : legacyColors.primaryLight,
+      backgroundColor: isNewTheme ? 'rgba(168, 230, 163, 0.15)' : 'transparent',
       paddingHorizontal: spacing.md,
-      paddingVertical: isNewTheme ? spacing.xs : 6,
+      paddingVertical: isNewTheme ? spacing.xs : 4,
       borderRadius: borderRadius.full,
-      borderWidth: isNewTheme ? 1 : 0,
-      borderColor: isNewTheme ? colors.accentGreenMuted : 'transparent',
+      borderWidth: 1,
+      borderColor: isNewTheme ? colors.accentGreenMuted : LIGHT_HAIRLINE,
     },
     tagText: {
-      fontSize: isNewTheme ? typography.fontSize.xs : 12,
+      fontSize: isNewTheme ? typography.fontSize.xs : 11,
       fontWeight: isNewTheme ? typography.fontWeight.medium as '500' : typography.fontWeight.semibold as '600',
-      color: isNewTheme ? colors.accentGreen : legacyColors.primary,
+      color: isNewTheme ? colors.accentGreen : LIGHT_INK,
       fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold',
-      textTransform: isNewTheme ? 'uppercase' as const : 'none' as const,
+      textTransform: isNewTheme ? 'uppercase' as const : 'lowercase' as const,
       letterSpacing: isNewTheme ? 0.5 : 0.3,
     },
   };
@@ -607,19 +631,16 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
           {isNewTheme ? (
             <Text style={styles.pieWordmark}>whale pod</Text>
           ) : (
-            <View>
-              <Text style={dynamicStyles.headerGreeting}>{''}</Text>
-              <Text style={dynamicStyles.headerTitle}>Whale Pods</Text>
-            </View>
+            <Text style={dynamicStyles.headerTitle}>whale pod</Text>
           )}
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: isNewTheme ? 12 : 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: isNewTheme ? 12 : 12 }}>
             {!isNewTheme && (
               <TouchableOpacity
                 onPress={() => { HapticManager.themeToggle(); toggleTheme(); }}
-                style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: legacyColors.primary, justifyContent: 'center', alignItems: 'center' }}
-                activeOpacity={0.7}
+                style={{ width: 36, height: 36, justifyContent: 'center', alignItems: 'center' }}
+                activeOpacity={0.6}
               >
-                <Ionicons name="moon" size={20} color="#fff" />
+                <Ionicons name="moon-outline" size={20} color={LIGHT_INK} />
               </TouchableOpacity>
             )}
             {isNewTheme ? (
@@ -636,12 +657,21 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
                 </TouchableOpacity>
               </>
             ) : (
-              <TouchableOpacity onPress={onOpenCreate} style={styles.createButton} activeOpacity={0.7}>
-                <Ionicons name="add-circle" size={32} color={legacyColors.primary} />
+              <TouchableOpacity
+                onPress={onOpenCreate}
+                style={{ width: 36, height: 36, justifyContent: 'center', alignItems: 'center' }}
+                activeOpacity={0.6}
+              >
+                <Ionicons name="add" size={24} color={LIGHT_INK} />
               </TouchableOpacity>
             )}
           </View>
         </View>
+
+        {/* Light-mode editorial accent line under the wordmark — Carolina blue, the discreet primary accent */}
+        {!isNewTheme && (
+          <View style={{ height: 2, backgroundColor: CAROLINA, marginHorizontal: spacing.lg, marginBottom: spacing.base }} />
+        )}
 
         {/* Modern Search Bar — rounded pill with animated green glow on focus */}
         <Animated.View
@@ -720,8 +750,8 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
           />
           <TouchableOpacity
             style={[dynamicStyles.filterButton, {
-              backgroundColor: isNewTheme ? 'rgba(168, 230, 163, 0.15)' : legacyColors.primaryLight,
-              borderColor: isNewTheme ? colors.accentGreen : legacyColors.primary,
+              backgroundColor: isNewTheme ? 'rgba(168, 230, 163, 0.15)' : CAROLINA_TINT,
+              borderColor: isNewTheme ? colors.accentGreen : CAROLINA,
             }]}
             onPress={() => {
               HapticManager.selection();
@@ -729,14 +759,14 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
             }}
             activeOpacity={0.7}
           >
-            <Ionicons name="swap-vertical" size={16} color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
-            <Text style={[dynamicStyles.filterButtonText, { color: isNewTheme ? colors.accentGreen : legacyColors.primary }]}>
+            <Ionicons name="swap-vertical" size={16} color={isNewTheme ? colors.accentGreen : CAROLINA_DEEP} />
+            <Text style={[dynamicStyles.filterButtonText, { color: isNewTheme ? colors.accentGreen : CAROLINA_DEEP }]}>
               {sortBy === 'created_at' ? 'Date Posted' : 'Kickoff Date'}
             </Text>
             <Ionicons
               name={sortOrder === 'desc' ? 'arrow-down' : 'arrow-up'}
               size={14}
-              color={isNewTheme ? colors.accentGreen : legacyColors.primary}
+              color={isNewTheme ? colors.accentGreen : CAROLINA_DEEP}
             />
           </TouchableOpacity>
         </ScrollView>
@@ -1088,8 +1118,8 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
           <RefreshControl
             refreshing={loading}
             onRefresh={onRefresh}
-            tintColor={isNewTheme ? colors.accentGreen : legacyColors.primary}
-            colors={[isNewTheme ? colors.accentGreen : legacyColors.primary]}
+            tintColor={isNewTheme ? colors.accentGreen : CAROLINA}
+            colors={[isNewTheme ? colors.accentGreen : CAROLINA]}
           />
         }
       >
@@ -1271,7 +1301,24 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
                 )];
               }
 
-              // ===== LEGACY LIGHT CARD (untouched) =====
+              // ===== EDITORIAL LIGHT CARD =====
+              // Card chrome retained (white surface, hairline border, soft
+              // shadow). A 3px Carolina-blue stripe down the left edge is the
+              // discreet primary accent. Hot pods replace the stripe with red.
+              const isMineLight = pursuit.creator_id === user?.id;
+              const memberRatio = `${pursuit.current_members_count ?? 0}/${pursuit.team_size_max ?? '?'}`;
+              const locationStr = pursuit.location
+                ? (pursuit.neighborhood
+                    ? `${pursuit.neighborhood}, ${pursuit.location.split(',')[0]}`
+                    : pursuit.location)
+                : null;
+              const metaParts = [
+                `${memberRatio} members`,
+                locationStr,
+                pursuit.meeting_cadence,
+              ].filter(Boolean);
+              const lightStripeColor = engagement.isHot ? LIGHT_RED : CAROLINA;
+
               const card = (
               <PursuitCardWrapper
                 key={pursuit.id}
@@ -1279,155 +1326,66 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
                 isNewTheme={isNewTheme}
                 onPress={handleCardPress}
               >
-                {/* Left 3px accent line */}
-                <View style={[styles.cardAccentLine, { backgroundColor: accentLineColor }]} pointerEvents="none" />
+                {/* Left 3px Carolina-blue accent stripe (red if hot) */}
+                <View style={[styles.cardAccentLine, { backgroundColor: lightStripeColor }]} pointerEvents="none" />
 
-                {/* Engagement badge — flame for hot/new (pre-kickoff), jalapeños for post-kickoff activity */}
-                {engagement.isHot ? (
-                  <HotFlameIcon enabled={true} size={22} />
-                ) : (
-                  <JalapenoIndicator count={engagement.spiceLevel} />
-                )}
-
-                {/* Header with Title and Status */}
-                <View style={styles.cardHeader}>
-                  <View style={styles.cardTitleContainer}>
-                    <Text style={dynamicStyles.cardTitle} numberOfLines={2}>
-                      {pursuit.title}
-                    </Text>
-                    {pursuit.creator_id === user?.id && (
-                      <View style={[styles.ownerBadge, { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.success }]}>
-                        <Text style={[styles.ownerBadgeText, { color: isNewTheme ? colors.background : legacyColors.white }]}>YOURS</Text>
-                      </View>
-                    )}
-                  </View>
-                  <View style={[
-                    styles.statusBadge,
-                    { backgroundColor: pursuit.status === 'active'
-                      ? (isNewTheme ? 'rgba(134, 239, 172, 0.15)' : legacyColors.successLight)
-                      : (isNewTheme ? 'rgba(252, 211, 77, 0.15)' : legacyColors.warningLight)
-                    }
-                  ]}>
-                    <Text style={[
-                      styles.statusText,
-                      { color: pursuit.status === 'active' ? colors.success : colors.warning }
-                    ]}>
-                      {pursuit.status === 'awaiting_kickoff' ? 'Awaiting Kickoff' : 'Active'}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Description */}
-                <Text style={dynamicStyles.cardDescription} numberOfLines={isNewTheme ? 3 : 5}>
-                  {pursuit.description}
-                </Text>
-
-                {/* Tags - Pursuit Types and Categories */}
-                {((pursuit.pursuit_types && pursuit.pursuit_types.length > 0) ||
-                  (pursuit.pursuit_categories && pursuit.pursuit_categories.length > 0)) && (
-                  <View style={styles.tags}>
-                    {/* Pursuit Types */}
-                    {pursuit.pursuit_types && pursuit.pursuit_types.slice(0, isNewTheme ? 2 : 3).map((type: string, index: number) => {
-                      const tagColor = getTagColor(type, true);
-                      return (
-                        <View key={`type-${index}`} style={[dynamicStyles.tag, !isNewTheme && {
-                          backgroundColor: tagColor.bg,
-                        }]}>
-                          <Text style={[dynamicStyles.tagText, !isNewTheme && { color: tagColor.text }]}>{type}</Text>
-                        </View>
-                      );
-                    })}
-                    {/* Categories */}
-                    {pursuit.pursuit_categories && pursuit.pursuit_categories.slice(0, 2).map((category: string, index: number) => {
-                      const tagColor = getTagColor(category, false);
-                      return (
-                        <View key={`cat-${index}`} style={[dynamicStyles.tag, {
-                          backgroundColor: isNewTheme ? 'rgba(129, 140, 248, 0.15)' : tagColor.bg,
-                          borderColor: isNewTheme ? 'rgba(129, 140, 248, 0.3)' : 'transparent',
-                        }]}>
-                          <Text style={[dynamicStyles.tagText, { color: isNewTheme ? colors.primary : tagColor.text }]}>{category}</Text>
-                        </View>
-                      );
-                    })}
-                    {/* Show +N if more items */}
-                    {((pursuit.pursuit_types?.length || 0) + (pursuit.pursuit_categories?.length || 0) > 5) && (
-                      <View style={dynamicStyles.tag}>
-                        <Text style={dynamicStyles.tagText}>
-                          +{((pursuit.pursuit_types?.length || 0) + (pursuit.pursuit_categories?.length || 0)) - 5}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                )}
-
-                {/* Footer */}
-                <View style={styles.cardFooter}>
-                  <View style={styles.footerTopRow}>
-                  <View style={styles.infoRow}>
-                    <View style={styles.infoItem}>
-                      <Text style={[styles.infoText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
-                        {pursuit.current_members_count}/{pursuit.team_size_max}
+                {/* Title row */}
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                  <Text style={dynamicStyles.cardTitle} numberOfLines={2}>
+                    {pursuit.title}
+                  </Text>
+                  {engagement.isHot && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(220, 38, 38, 0.10)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, marginTop: 2 }}>
+                      <Ionicons name="flame" size={13} color={LIGHT_RED} />
+                      <Text style={{ fontSize: 10, color: LIGHT_RED, fontFamily: 'InterTight_600SemiBold', letterSpacing: 0.6, textTransform: 'uppercase' }}>
+                        Hot
                       </Text>
                     </View>
+                  )}
+                </View>
 
-                    {pursuit.location && (
-                      <View style={styles.infoItemFlex}>
-                        <Text style={[styles.infoTextFlex, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]} numberOfLines={1}>
-                          {pursuit.neighborhood
-                            ? `${pursuit.neighborhood}, ${pursuit.location.split(',')[0]}`
-                            : pursuit.location}
+                {/* Marker row: YOURS (gold) + awaiting kickoff (muted) */}
+                {(isMineLight || pursuit.status === 'awaiting_kickoff') && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                    {isMineLight && (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(196, 155, 0, 0.10)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(196, 155, 0, 0.30)' }}>
+                        <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: GOLD }} />
+                        <Text style={{ fontSize: 10, color: GOLD, fontFamily: 'InterTight_600SemiBold', letterSpacing: 0.6, textTransform: 'uppercase' }}>
+                          Yours
                         </Text>
                       </View>
                     )}
-
-                    {pursuit.meeting_cadence && (
-                      <View style={styles.infoItemFlex}>
-                        <Text style={[styles.infoTextFlex, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]} numberOfLines={1}>
-                          {pursuit.meeting_cadence}
-                        </Text>
-                        </View>
-                      )}
-                    </View>
-
-                    {/* Team Members Avatar Stack */}
-                    {pursuit.team_members && pursuit.team_members.filter((m: any) => m.status === 'active' || m.status === 'accepted').length > 0 && (
-                      <View style={styles.avatarStack}>
-                        {pursuit.team_members
-                          .filter((m: any) => m.status === 'active' || m.status === 'accepted')
-                          .slice(0, 3)
-                          .map((member: any, index: number) => (
-                            <View
-                              key={member.user_id}
-                              style={[
-                                styles.stackedAvatar,
-                                { marginLeft: index === 0 ? 0 : -8, zIndex: 10 - index, borderColor: isNewTheme ? colors.surface : legacyColors.white }
-                              ]}
-                            >
-                              {member.user?.profile_picture ? (
-                                <Image
-                                  source={{ uri: member.user.profile_picture }}
-                                  style={styles.stackedAvatarImage}
-                                />
-                              ) : (
-                                <View style={[styles.stackedAvatarPlaceholder, { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]}>
-                                  <Text style={[styles.stackedAvatarText, { color: isNewTheme ? colors.background : legacyColors.white }]}>
-                                    {member.user?.name?.charAt(0).toUpperCase() || '?'}
-                                  </Text>
-                                </View>
-                              )}
-                            </View>
-                          ))}
-                        {pursuit.team_members.filter((m: any) => m.status === 'active' || m.status === 'accepted').length > 3 && (
-                          <View style={[styles.stackedAvatar, styles.stackedAvatarMore, { marginLeft: -8, zIndex: 5, backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.backgroundSecondary, borderColor: isNewTheme ? colors.surface : legacyColors.white }]}>
-                            <Text style={[styles.stackedAvatarMoreText, { color: colors.textSecondary }]}>
-                              +{pursuit.team_members.filter((m: any) => m.status === 'active' || m.status === 'accepted').length - 3}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
+                    {pursuit.status === 'awaiting_kickoff' && (
+                      <Text style={{ fontSize: 10, color: LIGHT_MUTED, fontFamily: 'InterTight_600SemiBold', letterSpacing: 0.6, textTransform: 'uppercase' }}>
+                        Awaiting kickoff
+                      </Text>
                     )}
                   </View>
-                </View>
+                )}
+
+                {/* Description */}
+                {pursuit.description ? (
+                  <Text style={dynamicStyles.cardDescription} numberOfLines={2}>
+                    {pursuit.description}
+                  </Text>
+                ) : null}
+
+                {/* Meta row — middle-dot separated, with Carolina-blue divider above */}
+                {metaParts.length > 0 && (
+                  <View style={{ marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: LIGHT_HAIRLINE }}>
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        color: LIGHT_MUTED,
+                        fontFamily: 'InterTight_600SemiBold',
+                        letterSpacing: 0.2,
+                      }}
+                      numberOfLines={1}
+                    >
+                      {metaParts.join('  ·  ')}
+                    </Text>
+                  </View>
+                )}
               </PursuitCardWrapper>
               );
               return [card];
@@ -1436,16 +1394,19 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
         </View>
       </ScrollView>
 
-      {/* Floating "post a plan" CTA — dark mode only, sits above the floating tab bar */}
-      {isNewTheme && onOpenCreate && (
-        <View pointerEvents="box-none" style={styles.postAPlanWrap}>
+      {/* Floating "post a pod" CTA — sits directly above the tab bar.
+          Tab bar lives at bottom:16 with ~52px bar height, so its top edge is
+          at ~68 from screen bottom. We pin this button's bottom at 72 so it
+          sits 4px above the tab bar top. */}
+      {onOpenCreate && (
+        <View pointerEvents="box-none" style={[styles.postAPlanWrap, { bottom: 72 }]}>
           <TouchableOpacity
             activeOpacity={0.85}
             onPress={onOpenCreate}
-            style={[styles.postAPlanBtn, { backgroundColor: colors.accentGreen }]}
+            style={[styles.postAPlanBtn, { backgroundColor: isNewTheme ? colors.accentGreen : LIGHT_INK }]}
           >
-            <Ionicons name="add" size={22} color="#000000" />
-            <Text style={styles.postAPlanText}>post a pod</Text>
+            <Ionicons name="add" size={22} color={isNewTheme ? '#000000' : '#FFFFFF'} />
+            <Text style={[styles.postAPlanText, { color: isNewTheme ? '#000000' : '#FFFFFF' }]}>post a pod</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -1492,7 +1453,7 @@ const styles = StyleSheet.create({
   },
   postAPlanWrap: {
     position: 'absolute',
-    left: 0, right: 0, bottom: 96,
+    left: 0, right: 0, bottom: 76,
     alignItems: 'center',
     zIndex: 50,
   },

@@ -101,6 +101,15 @@ export default function LoginScreen() {
 
   const handlePhoneCodeChange = (text: string, index: number) => {
     const cleanText = text.replace(/[^0-9]/g, '');
+
+    if (cleanText.length >= 6) {
+      const sixDigits = cleanText.slice(0, 6);
+      setPhoneCode(sixDigits.split(''));
+      phoneInputRefs.current[5]?.focus();
+      handleVerifyPhone(sixDigits);
+      return;
+    }
+
     if (cleanText.length <= 1) {
       const newCode = [...phoneCode];
       newCode[index] = cleanText;
@@ -112,10 +121,19 @@ export default function LoginScreen() {
         const fullCode = [...newCode.slice(0, 5), cleanText].join('');
         if (fullCode.length === 6) handleVerifyPhone(fullCode);
       }
-    } else if (cleanText.length === 6) {
-      setPhoneCode(cleanText.split(''));
-      phoneInputRefs.current[5]?.focus();
-      handleVerifyPhone(cleanText);
+      return;
+    }
+
+    const newCode = [...phoneCode];
+    for (let i = 0; i < cleanText.length && index + i < 6; i++) {
+      newCode[index + i] = cleanText[i];
+    }
+    setPhoneCode(newCode);
+    const nextFocus = Math.min(index + cleanText.length, 5);
+    phoneInputRefs.current[nextFocus]?.focus();
+    const joined = newCode.join('');
+    if (joined.length === 6 && newCode.every((c) => c !== '')) {
+      handleVerifyPhone(joined);
     }
   };
 
@@ -340,7 +358,6 @@ export default function LoginScreen() {
                         onChangeText={(text) => handlePhoneCodeChange(text, index)}
                         onKeyPress={(e) => handlePhoneKeyPress(e, index)}
                         keyboardType="number-pad"
-                        maxLength={1}
                         selectTextOnFocus
                         textContentType="oneTimeCode"
                         autoComplete="sms-otp"

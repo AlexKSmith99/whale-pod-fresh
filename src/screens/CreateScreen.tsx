@@ -17,6 +17,24 @@ import { NEIGHBORHOODS } from '../constants/neighborhoods';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const TOTAL_PAGES = 3;
 
+const countWords = (s: string): number =>
+  s.trim() === '' ? 0 : s.trim().split(/\s+/).length;
+
+const capWords = (s: string, max: number): string => {
+  if (countWords(s) <= max) return s;
+  const tokens = s.split(/(\s+)/);
+  let count = 0;
+  let out = '';
+  for (const t of tokens) {
+    if (/\S/.test(t)) {
+      if (count >= max) break;
+      count++;
+    }
+    out += t;
+  }
+  return out.trimEnd();
+};
+
 // Design tokens — Light defaults; the in-component `C` derived below overrides
 // these when dark theme is active so this screen flips palette + Pie aesthetics.
 const C_LIGHT = {
@@ -736,6 +754,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
           style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
           contentContainerStyle={{ paddingBottom: 20 }}
         >
           {/* Cover Photo */}
@@ -759,13 +778,13 @@ export default function CreateScreen({ onClose }: Props = {}) {
 
           {/* Description */}
           {renderFieldLabel('Description', true)}
-          <Text style={styles.charCount}>{description.length}/50 min</Text>
+          <Text style={styles.charCount}>{countWords(description)} / 150 words</Text>
           <TextInput
             style={styles.textAreaInput}
             placeholder="Describe your pod, who you're looking for, and what you're pursuing. Be specific!"
             placeholderTextColor={C.placeholder}
             value={description}
-            onChangeText={setDescription}
+            onChangeText={(text) => setDescription(capWords(text, 150))}
             multiline
             numberOfLines={5}
             textAlignVertical="top"
@@ -856,6 +875,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
           style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
           contentContainerStyle={{ paddingBottom: 20 }}
         >
           {/* Team Size Range */}
@@ -1055,6 +1075,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
           style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
           contentContainerStyle={{ paddingBottom: 40 }}
         >
           {/* Meeting Cadence */}
@@ -1376,24 +1397,19 @@ export default function CreateScreen({ onClose }: Props = {}) {
         <View style={{ width: 26 }} />
       </View>
 
-      <KeyboardAvoidingView
+      <ScrollView
+        ref={scrollViewRef}
+        horizontal
+        pagingEnabled
+        scrollEnabled={false}
+        showsHorizontalScrollIndicator={false}
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
+        keyboardShouldPersistTaps="handled"
       >
-        <ScrollView
-          ref={scrollViewRef}
-          horizontal
-          pagingEnabled
-          scrollEnabled={false}
-          showsHorizontalScrollIndicator={false}
-          style={{ flex: 1 }}
-        >
-          {renderPage1()}
-          {renderPage2()}
-          {renderPage3()}
-        </ScrollView>
-      </KeyboardAvoidingView>
+        {renderPage1()}
+        {renderPage2()}
+        {renderPage3()}
+      </ScrollView>
 
       {/* State Picker Modal */}
       <Modal

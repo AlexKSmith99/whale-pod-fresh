@@ -907,10 +907,12 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
               <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0 }]}>Team Members</Text>
               {isOwner && (
                 <TouchableOpacity
-                  style={[styles.editTeamButton, { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.secondary }]}
+                  style={styles.editTeamIconButton}
                   onPress={() => setShowEditTeamModal(true)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  accessibilityLabel="Edit team members"
                 >
-                  <Text style={[styles.editTeamButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 0.5 : 0 }]}>Edit</Text>
+                  <Ionicons name="ellipsis-horizontal" size={22} color={colors.textPrimary} />
                 </TouchableOpacity>
               )}
             </View>
@@ -2115,6 +2117,12 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  editTeamIconButton: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   // Modal styles
   modalOverlay: {

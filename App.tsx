@@ -50,6 +50,13 @@ import LegalScreen, { LegalDoc } from './src/screens/LegalScreen';
 import PieTabBar, { PieTabKey } from './src/components/ui/PieTabBar';
 import { AGORA_APP_ID } from './src/services/agoraService';
 
+// Enable long-press text selection / copy globally for every <Text> in the app.
+// <TextInput> is selectable by default; <Text> is not, which is why static text
+// in the UI could not be copied. Setting defaultProps applies app-wide without
+// touching individual components.
+(Text as any).defaultProps = (Text as any).defaultProps || {};
+(Text as any).defaultProps.selectable = true;
+
 // Theme transition wrapper component
 function ThemeTransitionWrapper() {
   const { transitionState, onTransitionComplete } = require('./src/theme/ThemeContext').useTheme();
@@ -672,6 +679,13 @@ function AppContent() {
     }
   };
 
+  // Intro plays on every cold start of the app (state resets each time the JS
+  // bundle boots — i.e., after the user swipes the app away and reopens it).
+  // It plays before any other UI, regardless of auth/onboarding state.
+  if (!introDone) {
+    return <IntroAnimation onComplete={() => setIntroDone(true)} />;
+  }
+
   if (auth.loading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -681,9 +695,6 @@ function AppContent() {
   }
 
   if (!auth.user) {
-    if (!introDone) {
-      return <IntroAnimation onComplete={() => setIntroDone(true)} />;
-    }
     return <LoginScreen />;
   }
 
