@@ -886,80 +886,67 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
         {teamMembers.length > 0 && (
           <View style={[styles.section, { backgroundColor: colors.surface, borderColor: isNewTheme ? 'rgba(255,255,255,0.08)' : colors.border, borderWidth: isNewTheme ? 1 : 0 }]}>
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, isNewTheme && styles.pieSectionLabel, { color: isNewTheme ? 'rgba(255,255,255,0.45)' : colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0 }]}>Team Members</Text>
+              <Text style={[styles.sectionTitle, isNewTheme && styles.pieSectionLabel, { color: isNewTheme ? 'rgba(255,255,255,0.45)' : colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0 }]}>Pod Members</Text>
               {isOwner && (
                 <TouchableOpacity
                   style={styles.editTeamIconButton}
                   onPress={() => setShowEditTeamModal(true)}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  accessibilityLabel="Edit team members"
+                  accessibilityLabel="Edit pod members"
                 >
                   <Ionicons name="ellipsis-horizontal" size={22} color={colors.textPrimary} />
                 </TouchableOpacity>
               )}
             </View>
-            <View style={styles.membersGrid}>
-              {teamMembers.map((member: any) => {
-                // Check if profile is clickable
-                const isSelf = member.user_id === user?.id;
-                const isProfileClickable = isSelf || isOwner || isTeamMember ||
-                  member.privacyPrefs?.pod_public_roster_profile_clickable !== false;
-
-                if (isProfileClickable) {
+            {/* Compact overlapping avatar stack — tap an avatar to open the
+                profile; privacy-locked members render dimmed with a lock. */}
+            <View style={styles.podMembersRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                {teamMembers.slice(0, 6).map((member: any, i: number) => {
+                  const isSelf = member.user_id === user?.id;
+                  const isProfileClickable = isSelf || isOwner || isTeamMember ||
+                    member.privacyPrefs?.pod_public_roster_profile_clickable !== false;
                   return (
                     <TouchableOpacity
                       key={member.user_id}
-                      style={[styles.memberCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                      disabled={!isProfileClickable}
+                      activeOpacity={0.7}
+                      style={{ marginLeft: i === 0 ? 0 : -10, zIndex: 20 - i }}
                       onPress={() => {
                         setSelectedMemberId(member.user_id);
                         setShowUserProfile(true);
                       }}
                     >
-                      {member.user?.profile_picture ? (
-                        <Image
-                          source={{ uri: member.user.profile_picture }}
-                          style={styles.memberImage}
-                        />
-                      ) : (
-                        <View style={[styles.memberAvatar, { backgroundColor: isNewTheme ? colors.accentGreen : '#4B9CD3' }]}>
-                          <Text style={[styles.memberAvatarText, { color: isNewTheme ? colors.background : legacyColors.white }]}>
-                            {member.user?.name?.charAt(0).toUpperCase() || '?'}
-                          </Text>
-                        </View>
-                      )}
-                      <Text style={[styles.memberName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]} numberOfLines={2}>
-                        {member.user?.name || 'Team Member'}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                } else {
-                  // Non-clickable member card with lock indicator
-                  return (
-                    <View key={member.user_id} style={[styles.memberCard, styles.memberCardLocked, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f9fafb', borderColor: colors.border }]}>
-                      <View style={styles.memberAvatarLocked}>
+                      <View style={[styles.stackAvatar, { borderColor: colors.surface }, !isProfileClickable && { opacity: 0.55 }]}>
                         {member.user?.profile_picture ? (
-                          <Image
-                            source={{ uri: member.user.profile_picture }}
-                            style={[styles.memberImage, styles.memberImageLocked]}
-                          />
+                          <Image source={{ uri: member.user.profile_picture }} style={styles.stackAvatarImage} />
                         ) : (
-                          <View style={[styles.memberAvatar, styles.memberAvatarLockedBg, { backgroundColor: colors.textTertiary }]}>
-                            <Text style={[styles.memberAvatarText, { color: isNewTheme ? colors.background : legacyColors.white }]}>
+                          <View style={[styles.stackAvatarPlaceholder, { backgroundColor: isNewTheme ? colors.accentGreen : '#4B9CD3' }]}>
+                            <Text style={[styles.stackAvatarInitial, { color: isNewTheme ? colors.background : legacyColors.white }]}>
                               {member.user?.name?.charAt(0).toUpperCase() || '?'}
                             </Text>
                           </View>
                         )}
-                        <View style={[styles.lockBadge, { backgroundColor: colors.textTertiary, borderColor: isNewTheme ? colors.surfaceAlt : '#f9fafb' }]}>
-                          <Ionicons name="lock-closed" size={10} color={isNewTheme ? colors.background : '#fff'} />
-                        </View>
+                        {!isProfileClickable && (
+                          <View style={[styles.lockBadge, { backgroundColor: colors.textTertiary, borderColor: colors.surface }]}>
+                            <Ionicons name="lock-closed" size={9} color={isNewTheme ? colors.background : '#fff'} />
+                          </View>
+                        )}
                       </View>
-                      <Text style={[styles.memberName, styles.memberNameLocked, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]} numberOfLines={2}>
-                        {member.user?.name || 'Team Member'}
-                      </Text>
-                    </View>
+                    </TouchableOpacity>
                   );
-                }
-              })}
+                })}
+                {teamMembers.length > 6 && (
+                  <View style={[styles.stackAvatar, styles.stackAvatarMore, { borderColor: colors.surface, backgroundColor: isNewTheme ? colors.surfaceAlt : '#F2F0EB' }]}>
+                    <Text style={[styles.stackMoreText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
+                      +{teamMembers.length - 6}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              <Text style={[styles.podMemberCount, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
+                {teamMembers.length} member{teamMembers.length !== 1 ? 's' : ''}
+              </Text>
             </View>
           </View>
         )}
@@ -2042,6 +2029,47 @@ const styles = StyleSheet.create({
   proposalSubmittedBadge: { backgroundColor: '#e0f2fe', borderRadius: 12, padding: 18, alignItems: 'center', marginTop: 20, borderWidth: 2, borderColor: '#0ea5e9' },
   proposalSubmittedText: { color: '#0ea5e9', fontSize: 17, fontWeight: 'bold', marginBottom: 4 },
   proposalSubmittedSubtext: { color: '#0369a1', fontSize: 14 },
+  // Compressed Pod Members row — overlapping avatar stack + count
+  podMembersRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  stackAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 2,
+    overflow: 'visible',
+  },
+  stackAvatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 18,
+  },
+  stackAvatarPlaceholder: {
+    flex: 1,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stackAvatarInitial: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  stackAvatarMore: {
+    marginLeft: -10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stackMoreText: {
+    fontSize: 12,
+  },
+  podMemberCount: {
+    fontSize: 12,
+    letterSpacing: 0.2,
+  },
   membersGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
