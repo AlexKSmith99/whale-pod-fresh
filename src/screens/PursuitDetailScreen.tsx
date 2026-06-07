@@ -898,56 +898,56 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                 </TouchableOpacity>
               )}
             </View>
-            {/* Compact overlapping avatar stack — tap an avatar to open the
-                profile; privacy-locked members render dimmed with a lock. */}
-            <View style={styles.podMembersRow}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                {teamMembers.slice(0, 6).map((member: any, i: number) => {
-                  const isSelf = member.user_id === user?.id;
-                  const isProfileClickable = isSelf || isOwner || isTeamMember ||
-                    member.privacyPrefs?.pod_public_roster_profile_clickable !== false;
-                  return (
-                    <TouchableOpacity
-                      key={member.user_id}
-                      disabled={!isProfileClickable}
-                      activeOpacity={0.7}
-                      style={{ marginLeft: i === 0 ? 0 : -10, zIndex: 20 - i }}
-                      onPress={() => {
-                        setSelectedMemberId(member.user_id);
-                        setShowUserProfile(true);
-                      }}
+            {/* Compact member row — avatar + first name per member, one
+                horizontally scrollable line. Tap to open the profile;
+                privacy-locked members render dimmed with a lock. */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.podMembersRow}
+            >
+              {teamMembers.map((member: any) => {
+                const isSelf = member.user_id === user?.id;
+                const isProfileClickable = isSelf || isOwner || isTeamMember ||
+                  member.privacyPrefs?.pod_public_roster_profile_clickable !== false;
+                const firstName = (member.user?.name || 'Member').split(' ')[0];
+                return (
+                  <TouchableOpacity
+                    key={member.user_id}
+                    disabled={!isProfileClickable}
+                    activeOpacity={0.7}
+                    style={styles.podMemberItem}
+                    onPress={() => {
+                      setSelectedMemberId(member.user_id);
+                      setShowUserProfile(true);
+                    }}
+                  >
+                    <View style={[styles.stackAvatar, { borderColor: colors.surface }, !isProfileClickable && { opacity: 0.55 }]}>
+                      {member.user?.profile_picture ? (
+                        <Image source={{ uri: member.user.profile_picture }} style={styles.stackAvatarImage} />
+                      ) : (
+                        <View style={[styles.stackAvatarPlaceholder, { backgroundColor: isNewTheme ? colors.accentGreen : '#4B9CD3' }]}>
+                          <Text style={[styles.stackAvatarInitial, { color: isNewTheme ? colors.background : legacyColors.white }]}>
+                            {member.user?.name?.charAt(0).toUpperCase() || '?'}
+                          </Text>
+                        </View>
+                      )}
+                      {!isProfileClickable && (
+                        <View style={[styles.lockBadge, { backgroundColor: colors.textTertiary, borderColor: colors.surface }]}>
+                          <Ionicons name="lock-closed" size={9} color={isNewTheme ? colors.background : '#fff'} />
+                        </View>
+                      )}
+                    </View>
+                    <Text
+                      style={[styles.podMemberName, { color: isProfileClickable ? colors.textSecondary : colors.textTertiary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
+                      numberOfLines={1}
                     >
-                      <View style={[styles.stackAvatar, { borderColor: colors.surface }, !isProfileClickable && { opacity: 0.55 }]}>
-                        {member.user?.profile_picture ? (
-                          <Image source={{ uri: member.user.profile_picture }} style={styles.stackAvatarImage} />
-                        ) : (
-                          <View style={[styles.stackAvatarPlaceholder, { backgroundColor: isNewTheme ? colors.accentGreen : '#4B9CD3' }]}>
-                            <Text style={[styles.stackAvatarInitial, { color: isNewTheme ? colors.background : legacyColors.white }]}>
-                              {member.user?.name?.charAt(0).toUpperCase() || '?'}
-                            </Text>
-                          </View>
-                        )}
-                        {!isProfileClickable && (
-                          <View style={[styles.lockBadge, { backgroundColor: colors.textTertiary, borderColor: colors.surface }]}>
-                            <Ionicons name="lock-closed" size={9} color={isNewTheme ? colors.background : '#fff'} />
-                          </View>
-                        )}
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-                {teamMembers.length > 6 && (
-                  <View style={[styles.stackAvatar, styles.stackAvatarMore, { borderColor: colors.surface, backgroundColor: isNewTheme ? colors.surfaceAlt : '#F2F0EB' }]}>
-                    <Text style={[styles.stackMoreText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
-                      +{teamMembers.length - 6}
+                      {firstName}
                     </Text>
-                  </View>
-                )}
-              </View>
-              <Text style={[styles.podMemberCount, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
-                {teamMembers.length} member{teamMembers.length !== 1 ? 's' : ''}
-              </Text>
-            </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
           </View>
         )}
 
@@ -2029,28 +2029,39 @@ const styles = StyleSheet.create({
   proposalSubmittedBadge: { backgroundColor: '#e0f2fe', borderRadius: 12, padding: 18, alignItems: 'center', marginTop: 20, borderWidth: 2, borderColor: '#0ea5e9' },
   proposalSubmittedText: { color: '#0ea5e9', fontSize: 17, fontWeight: 'bold', marginBottom: 4 },
   proposalSubmittedSubtext: { color: '#0369a1', fontSize: 14 },
-  // Compressed Pod Members row — overlapping avatar stack + count
+  // Compressed Pod Members row — avatar + first name per member
   podMembersRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 14,
     marginTop: 10,
+    paddingRight: 8,
+  },
+  podMemberItem: {
+    alignItems: 'center',
+    width: 56,
+  },
+  podMemberName: {
+    fontSize: 11,
+    marginTop: 5,
+    letterSpacing: 0.2,
+    textAlign: 'center',
   },
   stackAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     borderWidth: 2,
     overflow: 'visible',
   },
   stackAvatarImage: {
     width: '100%',
     height: '100%',
-    borderRadius: 18,
+    borderRadius: 20,
   },
   stackAvatarPlaceholder: {
     flex: 1,
-    borderRadius: 18,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
