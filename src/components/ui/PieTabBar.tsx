@@ -30,12 +30,13 @@ const items: { key: PieTabKey; icon: keyof typeof Ionicons.glyphMap; label: stri
 ];
 
 export default function PieTabBar({ active, onChange, badges, profilePictureUri }: Props) {
-  const { theme } = useTheme();
+  const { theme, isNewTheme } = useTheme();
   const colors = theme.colors;
 
   return (
     <View style={styles.wrap} pointerEvents="box-none">
-      <View style={[styles.bar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      {/* Same layout/icons in both themes; light gets a softer shadow on paper */}
+      <View style={[styles.bar, { backgroundColor: colors.surface, borderColor: colors.border, shadowOpacity: isNewTheme ? 0.4 : 0.10 }]}>
         {items.map(item => {
           const isActive = active === item.key;
           const badge = badges?.[item.key] || 0;

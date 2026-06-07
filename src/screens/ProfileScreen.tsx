@@ -7,6 +7,7 @@ import { connectionService } from '../services/connectionService';
 import { privacyService } from '../services/privacyService';
 import EditProfileScreen from './EditProfileScreen';
 import PrivacyPreferencesScreen from './PrivacyPreferencesScreen';
+import SettingsScreen from './settings/SettingsScreen';
 import PodMemberCollage from '../components/PodMemberCollage';
 import { colors as legacyColors, typography, spacing, borderRadius, shadows, editorial } from '../theme/designSystem';
 import PieButton from '../components/ui/PieButton';
@@ -29,7 +30,7 @@ const [activeTab, setActiveTab] = useState<'info' | 'connections' | 'pods'>('inf
 const [connections, setConnections] = useState<any[]>([]);
 const [pendingRequests, setPendingRequests] = useState<any[]>([]);
 const [connectionSearchQuery, setConnectionSearchQuery] = useState('');
-const [showMenu, setShowMenu] = useState(false);
+const [showSettings, setShowSettings] = useState(false);
 const [showPrivacyPreferences, setShowPrivacyPreferences] = useState(false);
 const [userPods, setUserPods] = useState<any[]>([]);
 const [activePhotoIdx, setActivePhotoIdx] = useState(0);
@@ -170,10 +171,31 @@ const handleRejectConnection = async (connectionId: string) => {
 
   if (showPrivacyPreferences) {
     return (
-      <PrivacyPreferencesScreen 
+      <PrivacyPreferencesScreen
         onBack={() => {
           setShowPrivacyPreferences(false);
-        }} 
+          setShowSettings(true);
+        }}
+      />
+    );
+  }
+
+  if (showSettings) {
+    return (
+      <SettingsScreen
+        onBack={() => setShowSettings(false)}
+        onAccountDetails={() => {
+          setShowSettings(false);
+          setShowEdit(true);
+        }}
+        onVisibility={() => {
+          setShowSettings(false);
+          setShowPrivacyPreferences(true);
+        }}
+        onOpenLegal={(doc) => {
+          setShowSettings(false);
+          navigation?.navigate?.('Legal', { doc });
+        }}
       />
     );
   }
@@ -208,123 +230,13 @@ const handleRejectConnection = async (connectionId: string) => {
           <View>
             <Text style={[styles.headerTitle, themedStyles.headerTitle, isNewTheme ? { color: colors.textPrimary, fontFamily: 'Sora_700Bold', letterSpacing: -0.5 } : { color: editorial.ink, fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.5 }]}>Profile</Text>
           </View>
-          <TouchableOpacity onPress={() => setShowMenu(true)} style={styles.menuButton} activeOpacity={0.6} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <TouchableOpacity onPress={() => setShowSettings(true)} style={styles.menuButton} activeOpacity={0.6} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons name="settings-outline" size={24} color={isNewTheme ? colors.textPrimary : editorial.ink} />
           </TouchableOpacity>
         </View>
       </View>
 
       <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
-
-      {/* Settings Menu Modal */}
-      <Modal
-        visible={showMenu}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowMenu(false)}
-      >
-        <TouchableOpacity
-          style={styles.menuOverlay}
-          activeOpacity={1}
-          onPress={() => setShowMenu(false)}
-        >
-          <View style={[styles.menuContainer, themedStyles.surface]}>
-            <View style={[styles.menuHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.menuTitle, themedStyles.cardTitle, isNewTheme ? { color: colors.textPrimary, fontFamily: 'Sora_700Bold', letterSpacing: -0.3 } : { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3, color: editorial.ink }]}>Settings</Text>
-              <TouchableOpacity onPress={() => setShowMenu(false)} activeOpacity={0.6} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Ionicons name="close" size={24} color={isNewTheme ? colors.textPrimary : editorial.ink} />
-              </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity
-              style={[styles.menuItem, themedStyles.listItem]}
-              onPress={() => {
-                setShowMenu(false);
-                setShowEdit(true);
-              }}
-              activeOpacity={0.6}
-            >
-              <View style={[styles.menuItemIcon, themedStyles.iconContainer, !isNewTheme && { backgroundColor: 'transparent', borderWidth: 1, borderColor: editorial.hairline }]}>
-                <Ionicons name="person-outline" size={22} color={isNewTheme ? colors.textPrimary : editorial.ink} />
-              </View>
-              <View style={styles.menuItemContent}>
-                <Text style={[styles.menuItemText, themedStyles.listItemTitle]}>Account Details</Text>
-                <Text style={[styles.menuItemSubtext, themedStyles.listItemSubtitle]}>Edit your profile information</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.menuItem, themedStyles.listItem]}
-              onPress={() => {
-                setShowMenu(false);
-                setShowPrivacyPreferences(true);
-              }}
-              activeOpacity={0.6}
-            >
-              <View style={[styles.menuItemIcon, themedStyles.iconContainer, !isNewTheme && { backgroundColor: 'transparent', borderWidth: 1, borderColor: editorial.hairline }]}>
-                <Ionicons name="shield-outline" size={22} color={isNewTheme ? colors.textPrimary : editorial.ink} />
-              </View>
-              <View style={styles.menuItemContent}>
-                <Text style={[styles.menuItemText, themedStyles.listItemTitle]}>Privacy Preferences</Text>
-                <Text style={[styles.menuItemSubtext, themedStyles.listItemSubtitle]}>Manage your privacy settings</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
-            </TouchableOpacity>
-
-            {/* Dark Mode Toggle */}
-            <View style={[styles.menuItem, themedStyles.listItem]}>
-              <View style={[styles.menuItemIcon, themedStyles.iconContainer, !isNewTheme && { backgroundColor: 'transparent', borderWidth: 1, borderColor: editorial.hairline }]}>
-                <Ionicons name="moon-outline" size={22} color={isNewTheme ? colors.textPrimary : editorial.ink} />
-              </View>
-              <View style={styles.menuItemContent}>
-                <Text style={[styles.menuItemText, themedStyles.listItemTitle]}>Dark Mode</Text>
-                <Text style={[styles.menuItemSubtext, themedStyles.listItemSubtitle]}>Switch to {isNewTheme ? 'light' : 'dark'} theme</Text>
-              </View>
-              <Switch
-                value={isNewTheme}
-                onValueChange={toggleTheme}
-                trackColor={{ false: '#d1d5db', true: isNewTheme ? colors.accentGreen : editorial.carolina }}
-                thumbColor={isNewTheme ? colors.white : '#f4f3f4'}
-              />
-            </View>
-
-            {/* About — legal pages live here, not on the profile */}
-            <Text
-              style={isNewTheme
-                ? { fontSize: 12, color: 'rgba(255,255,255,0.45)', fontFamily: 'Sora_600SemiBold', letterSpacing: 1, textTransform: 'uppercase', marginTop: 20, marginBottom: 6, marginLeft: 4 }
-                : { fontSize: 11, color: editorial.muted, fontFamily: 'InterTight_600SemiBold', letterSpacing: 0.6, textTransform: 'uppercase', marginTop: 20, marginBottom: 6, marginLeft: 4 }}
-            >
-              About
-            </Text>
-            {([
-              { doc: 'terms', label: 'Terms of Service', icon: 'document-text-outline' as const },
-              { doc: 'privacy', label: 'Privacy Policy', icon: 'shield-outline' as const },
-              { doc: 'support', label: 'Support', icon: 'help-circle-outline' as const },
-            ]).map(item => (
-              <TouchableOpacity
-                key={item.doc}
-                style={[styles.menuItem, themedStyles.listItem]}
-                activeOpacity={0.6}
-                onPress={() => {
-                  // Close the native modal first so the Legal screen isn't
-                  // rendered underneath it
-                  setShowMenu(false);
-                  setTimeout(() => navigation?.navigate?.('Legal', { doc: item.doc }), 250);
-                }}
-              >
-                <View style={[styles.menuItemIcon, themedStyles.iconContainer, !isNewTheme && { backgroundColor: 'transparent', borderWidth: 1, borderColor: editorial.hairline }]}>
-                  <Ionicons name={item.icon} size={22} color={isNewTheme ? colors.textPrimary : editorial.ink} />
-                </View>
-                <View style={styles.menuItemContent}>
-                  <Text style={[styles.menuItemText, themedStyles.listItemTitle]}>{item.label}</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
-              </TouchableOpacity>
-            ))}
-          </View>
-        </TouchableOpacity>
-      </Modal>
 
       <View style={styles.content}>
         {/* Swipeable photo gallery */}
