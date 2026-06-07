@@ -1453,6 +1453,12 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
 
     const fullHtml = meetingHeadersHtml + (agendaDocumentHtml || '');
 
+    // Document HTML palette — dark (Pie) vs light (editorial). The WebView is
+    // otherwise an opaque white sheet, which is why dark mode looked "lite".
+    const doc = isNewTheme
+      ? { bg: '#0F0F0F', text: '#FFFFFF', heading: '#FFFFFF', link: '#C8FF6B', quoteBar: 'rgba(255,255,255,0.18)', quoteText: 'rgba(255,255,255,0.62)', codeBg: '#1F1F1F', hr: 'rgba(255,255,255,0.10)' }
+      : { bg: '#FFFFFF', text: '#1B1B18', heading: '#1B1B18', link: '#4B9CD3', quoteBar: '#D6D3CC', quoteText: '#52524E', codeBg: '#F2F0EB', hr: '#E8E6E0' };
+
     return (
       <View style={{ flex: 1, backgroundColor: theme.bgDocument }}>
         {/* Minimal header bar */}
@@ -1474,6 +1480,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
               <WebView
                 originWhitelist={['about:blank']}
                 javaScriptEnabled={false}
+                opaque={false}
                 source={{
                   html: `
                     <!DOCTYPE html>
@@ -1483,16 +1490,16 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
                         <style>
                           * { margin: 0; padding: 0; box-sizing: border-box; }
                           body {
-                            font-family: Georgia, 'Times New Roman', serif;
+                            font-family: ${isNewTheme ? "-apple-system, 'Helvetica Neue', sans-serif" : "Georgia, 'Times New Roman', serif"};
                             font-size: 16px;
                             line-height: 1.7;
-                            color: #1B1B18;
-                            background-color: #FFFFFF;
+                            color: ${doc.text};
+                            background-color: ${doc.bg};
                             padding: 12px 0;
                             word-wrap: break-word;
                           }
                           p { margin-bottom: 14px; }
-                          h1, h2, h3 { color: #1B1B18; margin-bottom: 8px; margin-top: 20px; }
+                          h1, h2, h3 { color: ${doc.heading}; margin-bottom: 8px; margin-top: 20px; }
                           h1 { font-size: 24px; }
                           h2 { font-size: 20px; }
                           h3 { font-size: 17px; }
@@ -1502,22 +1509,22 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
                           ul, ol { margin-left: 20px; margin-bottom: 14px; }
                           li { margin-bottom: 4px; }
                           blockquote {
-                            border-left: 3px solid #D6D3CC;
+                            border-left: 3px solid ${doc.quoteBar};
                             padding-left: 14px;
                             margin: 14px 0;
-                            color: #52524E;
+                            color: ${doc.quoteText};
                             font-style: italic;
                           }
-                          a { color: #2D5016; }
+                          a { color: ${doc.link}; }
                           code {
-                            background-color: #F2F0EB;
+                            background-color: ${doc.codeBg};
                             padding: 2px 6px;
                             border-radius: 4px;
                             font-family: monospace;
                             font-size: 14px;
                           }
                           pre {
-                            background-color: #F2F0EB;
+                            background-color: ${doc.codeBg};
                             padding: 14px;
                             border-radius: 8px;
                             overflow-x: auto;
@@ -1525,7 +1532,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
                           }
                           hr {
                             border: none;
-                            border-top: 1px solid #E8E6E0;
+                            border-top: 1px solid ${doc.hr};
                             margin: 20px 0;
                           }
                         </style>
@@ -1534,7 +1541,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
                     </html>
                   `
                 }}
-                style={[styles.htmlWebView, { minHeight: SCREEN_HEIGHT - 300 }]}
+                style={[styles.htmlWebView, { minHeight: SCREEN_HEIGHT - 300, backgroundColor: 'transparent' }]}
                 scrollEnabled={false}
                 showsVerticalScrollIndicator={false}
                 showsHorizontalScrollIndicator={false}

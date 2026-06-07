@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -9,20 +9,37 @@ import {
   ScrollView,
 } from 'react-native';
 import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor';
+import { useTheme } from '../theme/ThemeContext';
 
-// Theme colors (matching team workspace soft theme - grey/white/green)
-const theme = {
-  bg: '#FAFAFA',
+// Editor palette per theme. Light = editorial (cream/ink/Carolina);
+// dark = Pie (near-black/white/lime) so the Pod Doc editor matches dark mode.
+const lightTheme = {
+  bg: '#FFFFFF',
   bgCard: '#FFFFFF',
-  bgElevated: '#F5F7F6',
-  accent: '#2D5A45',
-  accentLight: 'rgba(45, 90, 69, 0.15)',
-  text: '#1A1A1A',
-  textSecondary: '#3D3D3D',
-  textMuted: '#6B6B6B',
-  border: '#D0D8D4',
-  divider: '#D0D8D4',
+  bgElevated: '#F2F0EB',
+  accent: '#1B1B18',
+  accentLight: 'rgba(75, 156, 211, 0.15)',
+  text: '#1B1B18',
+  textSecondary: '#52524E',
+  textMuted: '#8A8A85',
+  border: '#E5E1D8',
+  divider: '#E5E1D8',
+  onAccent: '#FFFFFF',
 };
+const darkTheme = {
+  bg: '#0F0F0F',
+  bgCard: '#161616',
+  bgElevated: '#1F1F1F',
+  accent: '#C8FF6B',
+  accentLight: 'rgba(200, 255, 107, 0.15)',
+  text: '#FFFFFF',
+  textSecondary: 'rgba(255,255,255,0.78)',
+  textMuted: 'rgba(255,255,255,0.50)',
+  border: 'rgba(255,255,255,0.10)',
+  divider: 'rgba(255,255,255,0.08)',
+  onAccent: '#000000',
+};
+type EditorTheme = typeof lightTheme;
 
 interface WebRichTextEditorProps {
   initialContent?: string;
@@ -41,6 +58,10 @@ export default function WebRichTextEditor({
   placeholder = 'Start typing your notes...',
   editable = true,
 }: WebRichTextEditorProps) {
+  const { isNewTheme } = useTheme();
+  const theme = isNewTheme ? darkTheme : lightTheme;
+  const styles = useMemo(() => makeStyles(theme), [isNewTheme]);
+
   const richText = useRef<RichEditor>(null);
   const scrollRef = useRef<ScrollView>(null);
 
@@ -171,7 +192,7 @@ export default function WebRichTextEditor({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (theme: EditorTheme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.bg,
@@ -206,7 +227,7 @@ const styles = StyleSheet.create({
   saveText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#fff',
+    color: theme.onAccent,
   },
   toolbar: {
     backgroundColor: theme.bgElevated,
