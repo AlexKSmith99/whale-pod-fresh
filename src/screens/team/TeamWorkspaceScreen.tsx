@@ -258,6 +258,9 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
   const [podRules, setPodRulesState] = useState<PodRules | null>(null);
   const [rulesContent, setRulesContent] = useState('');
   const [rulesSaving, setRulesSaving] = useState(false);
+  // Tapping into the rules textbox opens a full-screen editor so the whole
+  // document stays visible above the keyboard.
+  const [rulesEditorOpen, setRulesEditorOpen] = useState(false);
 
   // Pod Meetings state (for automatic section headers)
   const [podMeetings, setPodMeetings] = useState<any[]>([]);
@@ -1668,17 +1671,55 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
         </View>
 
         <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 20, paddingBottom: 100 }}>
-          <TextInput
-            style={[styles.podDocInput, { minHeight: SCREEN_HEIGHT - 280 }, editorialTextarea]}
-            value={rulesContent}
-            onChangeText={setRulesContent}
-            placeholder="Guidelines and expectations for this pod..."
-            placeholderTextColor={theme.textMuted}
-            multiline
-            textAlignVertical="top"
-            editable={canEdit}
-          />
+          {/* Tapping the document opens the full-screen editor (editors only) */}
+          <TouchableOpacity activeOpacity={canEdit ? 0.8 : 1} onPress={() => canEdit && setRulesEditorOpen(true)} disabled={!canEdit}>
+            <View pointerEvents="none">
+              <TextInput
+                style={[styles.podDocInput, { minHeight: SCREEN_HEIGHT - 280 }, editorialTextarea]}
+                value={rulesContent}
+                placeholder="Guidelines and expectations for this pod..."
+                placeholderTextColor={theme.textMuted}
+                multiline
+                textAlignVertical="top"
+                editable={false}
+              />
+            </View>
+          </TouchableOpacity>
         </ScrollView>
+
+        {/* Full-screen rules editor — the whole document fills the screen and
+            stays visible above the keyboard */}
+        <Modal visible={rulesEditorOpen} animationType="slide" onRequestClose={() => setRulesEditorOpen(false)}>
+          <View style={{ flex: 1, backgroundColor: theme.bgDocument }}>
+            <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 58, paddingHorizontal: 20, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: isNewTheme ? 'rgba(255,255,255,0.08)' : editorial.hairline }}>
+                <TouchableOpacity onPress={() => setRulesEditorOpen(false)} activeOpacity={0.6} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Ionicons name="chevron-down" size={24} color={theme.text} />
+                </TouchableOpacity>
+                <Text style={isNewTheme ? { fontSize: 16, fontWeight: '600', color: theme.text, fontFamily: 'Sora_600SemiBold' } : { fontSize: 20, color: theme.text, fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3 }}>Pod Rules</Text>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999, backgroundColor: isNewTheme ? theme.accent : editorial.ink }}
+                  onPress={() => { setRulesEditorOpen(false); handleSavePodRules(); }}
+                  disabled={rulesSaving}
+                >
+                  <Text style={{ fontSize: 14, color: isNewTheme ? '#000000' : '#fff', fontWeight: '600', fontFamily: 'Sora_600SemiBold' }}>Save</Text>
+                </TouchableOpacity>
+              </View>
+              <TextInput
+                style={{ flex: 1, padding: 20, fontSize: 15, lineHeight: 23, color: theme.text, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', backgroundColor: theme.bgDocument }}
+                value={rulesContent}
+                onChangeText={setRulesContent}
+                placeholder="Guidelines and expectations for this pod..."
+                placeholderTextColor={theme.textMuted}
+                multiline
+                textAlignVertical="top"
+                autoFocus
+                scrollEnabled
+              />
+            </KeyboardAvoidingView>
+          </View>
+        </Modal>
       </View>
     );
   };
