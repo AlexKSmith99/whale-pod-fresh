@@ -2,7 +2,7 @@ import React, { useState, useRef, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,
   Alert, Switch, Modal, FlatList, StatusBar, Keyboard, Dimensions,
-  Platform, KeyboardAvoidingView, ActivityIndicator,
+  Platform, KeyboardAvoidingView, ActivityIndicator, Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -215,7 +215,10 @@ export default function CreateScreen({ onClose }: Props = {}) {
   Object.assign(C, themePalette);
   Object.assign(F, isNewTheme ? F_DARK : F_LIGHT);
   const styles = React.useMemo(() => makeStyles(themePalette), [isNewTheme]);
-  const scrollViewRef = useRef<ScrollView>(null);
+  // Pager position as a translateX (not a horizontal ScrollView) so each page's
+  // KeyboardAwareScreen is the only scroll ancestor — keyboard-controller's
+  // auto-scroll no-ops when nested inside another ScrollView.
+  const pagerX = useRef(new Animated.Value(0)).current;
 
   const [currentPage, setCurrentPage] = useState(0);
 
@@ -592,7 +595,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
           setPortfolioMode('off');
           setApplicationQuestions(['']);
           setCurrentPage(0);
-          scrollViewRef.current?.scrollTo({ x: 0, animated: false });
+          pagerX.setValue(0);
           onClose?.();
         }}
       ]);
@@ -606,7 +609,12 @@ export default function CreateScreen({ onClose }: Props = {}) {
   // ===== NAVIGATION =====
 
   const goToPage = (page: number) => {
-    scrollViewRef.current?.scrollTo({ x: page * SCREEN_WIDTH, animated: true });
+    Keyboard.dismiss();
+    Animated.timing(pagerX, {
+      toValue: -page * SCREEN_WIDTH,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
     setCurrentPage(page);
   };
 
@@ -767,8 +775,6 @@ export default function CreateScreen({ onClose }: Props = {}) {
         {renderStepHeader(0)}
         <KeyboardAwareScreen
           mode="replace-scrollview"
-          enabled={Platform.OS === 'android'}
-          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
           bottomOffset={90}
           style={{ flex: 1 }}
           contentContainerStyle={{ paddingBottom: 20 }}
@@ -869,8 +875,6 @@ export default function CreateScreen({ onClose }: Props = {}) {
         {renderStepHeader(1)}
         <KeyboardAwareScreen
           mode="replace-scrollview"
-          enabled={Platform.OS === 'android'}
-          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
           bottomOffset={90}
           style={{ flex: 1 }}
           contentContainerStyle={{ paddingBottom: 20 }}
@@ -1070,8 +1074,6 @@ export default function CreateScreen({ onClose }: Props = {}) {
         {renderStepHeader(2)}
         <KeyboardAwareScreen
           mode="replace-scrollview"
-          enabled={Platform.OS === 'android'}
-          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
           bottomOffset={90}
           style={{ flex: 1 }}
           contentContainerStyle={{ paddingBottom: 40 }}
@@ -1395,19 +1397,23 @@ export default function CreateScreen({ onClose }: Props = {}) {
         <View style={{ width: 26 }} />
       </View>
 
-      <ScrollView
-        ref={scrollViewRef}
-        horizontal
-        pagingEnabled
-        scrollEnabled={false}
-        showsHorizontalScrollIndicator={false}
-        style={{ flex: 1 }}
-        keyboardShouldPersistTaps="handled"
-      >
-        {renderPage1()}
-        {renderPage2()}
-        {renderPage3()}
-      </ScrollView>
+      {/* Pager: a translateX row (not a ScrollView) so each page's
+          KeyboardAwareScreen is the sole scroll ancestor and keyboard
+          avoidance works. */}
+      <View style={{ flex: 1, overflow: 'hidden' }}>
+        <Animated.View
+          style={{
+            flex: 1,
+            flexDirection: 'row',
+            width: SCREEN_WIDTH * TOTAL_PAGES,
+            transform: [{ translateX: pagerX }],
+          }}
+        >
+          {renderPage1()}
+          {renderPage2()}
+          {renderPage3()}
+        </Animated.View>
+      </View>
 
       {/* State Picker Modal */}
       <Modal
