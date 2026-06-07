@@ -230,6 +230,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
       <TouchableOpacity
         style={[styles.filterTab, inactiveTabStyle, activeFilter === 'active' && { backgroundColor: isNewTheme ? 'rgba(200, 255, 107, 0.15)' : themedStyles.accentIconColor, borderColor: isNewTheme ? undefined : themedStyles.accentIconColor }]}
         onPress={() => setActiveFilter('active')}
+        activeOpacity={0.6}
       >
         <Text style={[styles.filterTabText, themedStyles.bodyText, { color: colors.textSecondary }, activeFilter === 'active' && (isNewTheme ? { color: colors.accentGreen } : styles.filterTabTextActive)]}>
           Active ({pods.length})
@@ -238,6 +239,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
       <TouchableOpacity
         style={[styles.filterTab, inactiveTabStyle, activeFilter === 'past' && { backgroundColor: isNewTheme ? 'rgba(200, 255, 107, 0.15)' : themedStyles.accentIconColor, borderColor: isNewTheme ? undefined : themedStyles.accentIconColor }]}
         onPress={() => setActiveFilter('past')}
+        activeOpacity={0.6}
       >
         <Text style={[styles.filterTabText, themedStyles.bodyText, { color: colors.textSecondary }, activeFilter === 'past' && (isNewTheme ? { color: colors.accentGreen } : styles.filterTabTextActive)]}>
           Past ({pastPods.length})
@@ -246,6 +248,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
       <TouchableOpacity
         style={[styles.filterTab, inactiveTabStyle, activeFilter === 'pending' && { backgroundColor: isNewTheme ? 'rgba(200, 255, 107, 0.15)' : themedStyles.accentIconColor, borderColor: isNewTheme ? undefined : themedStyles.accentIconColor }]}
         onPress={() => setActiveFilter('pending')}
+        activeOpacity={0.6}
       >
         <Text style={[styles.filterTabText, themedStyles.bodyText, { color: colors.textSecondary }, activeFilter === 'pending' && (isNewTheme ? { color: colors.accentGreen } : styles.filterTabTextActive)]}>
           Pending ({applications.length + interviewPendingApps.length})
@@ -265,7 +268,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
         style={[
           styles.podCard,
           themedStyles.card,
-          { borderWidth: isNewTheme ? 0.5 : 1, borderColor: isNewTheme ? 'rgba(168, 230, 163, 0.25)' : colors.border, overflow: 'hidden' },
+          { borderWidth: 1, borderColor: isNewTheme ? 'rgba(255,255,255,0.08)' : colors.border, overflow: 'hidden' },
           isPast && [styles.podCardPast, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f9fafb' }],
         ]}
         onPress={() => !isPast && onOpenPodDetails(pod)}
@@ -339,13 +342,13 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
           ((pod as any).pursuit_categories && (pod as any).pursuit_categories.length > 0)) && (
           <View style={styles.podTags}>
             {((pod as any).pursuit_types || []).slice(0, isNewTheme ? 2 : 3).map((type: string, i: number) => (
-              <View key={`t-${i}`} style={[styles.podTag, isNewTheme ? { backgroundColor: colors.surfaceAlt } : { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.border }]}>
-                <Text style={[styles.podTagText, { color: isNewTheme ? colors.textSecondary : '#1B1B18', fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: isNewTheme ? 'none' : 'lowercase' }]}>{type}</Text>
+              <View key={`t-${i}`} style={[styles.podTag, isNewTheme ? { backgroundColor: 'rgba(200, 255, 107, 0.10)', borderColor: 'rgba(200, 255, 107, 0.25)', borderWidth: 1 } : { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.border }]}>
+                <Text style={[styles.podTagText, { color: isNewTheme ? colors.accentGreen : '#1B1B18', fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: 'lowercase' }]}>{type}</Text>
               </View>
             ))}
             {((pod as any).pursuit_categories || []).slice(0, 2).map((cat: string, i: number) => (
-              <View key={`c-${i}`} style={[styles.podTag, isNewTheme ? { backgroundColor: 'rgba(129, 140, 248, 0.15)', borderColor: 'rgba(129, 140, 248, 0.3)', borderWidth: 1 } : { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.border }]}>
-                <Text style={[styles.podTagText, { color: isNewTheme ? colors.primary : '#1B1B18', fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: isNewTheme ? 'none' : 'lowercase' }]}>{cat}</Text>
+              <View key={`c-${i}`} style={[styles.podTag, isNewTheme ? { backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.10)', borderWidth: 1 } : { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.border }]}>
+                <Text style={[styles.podTagText, { color: isNewTheme ? colors.textSecondary : '#1B1B18', fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: isNewTheme ? 'lowercase' : 'lowercase' }]}>{cat}</Text>
               </View>
             ))}
           </View>
@@ -443,7 +446,11 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
         sortedPods.map((pod) => renderPodCard(pod))
       ) : (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyEmoji}>🌊</Text>
+          {isNewTheme ? (
+            <Ionicons name="grid-outline" size={64} color={colors.textTertiary} style={{ marginBottom: 20 }} />
+          ) : (
+            <Text style={styles.emptyEmoji}>🌊</Text>
+          )}
           <Text style={[styles.emptyText, themedStyles.emptyText]}>No active pods</Text>
           <Text style={[styles.emptyHint, themedStyles.emptySubtext]}>Create a pod or apply to join a team</Text>
         </View>
@@ -476,7 +483,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
         <>
           <Text style={[styles.sectionLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: 'uppercase', letterSpacing: isNewTheme ? 1 : 0.5 }]}>Interview Requests</Text>
           {interviewPendingApps.map((app) => (
-            <View key={app.id} style={[styles.applicationCard, styles.interviewCard, themedStyles.card, { borderColor: themedStyles.accentIconColor, borderWidth: isNewTheme ? 0.35 : 1 }]}>
+            <View key={app.id} style={[styles.applicationCard, styles.interviewCard, themedStyles.card, { borderColor: themedStyles.accentIconColor, borderWidth: 1 }]}>
               <View style={styles.applicationHeader}>
                 <Text style={[styles.applicationTitle, themedStyles.cardTitle]}>{app.pursuits?.title}</Text>
                 <View style={[styles.interviewBadge, { backgroundColor: themedStyles.accentIconColor }]}>
@@ -486,12 +493,13 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
               <Text style={[styles.applicationDescription, themedStyles.cardDescription]} numberOfLines={2}>
                 {app.pursuits?.description}
               </Text>
-              <Text style={[styles.interviewPrompt, themedStyles.textAccent]}>
+              <Text style={[styles.interviewPrompt, themedStyles.textAccent, !isNewTheme && { color: '#1B1B18' }]}>
                 The creator wants to schedule an interview! Propose your available times.
               </Text>
               <TouchableOpacity
                 style={[styles.proposeTimesButton, themedStyles.buttonPrimary, !isNewTheme && { backgroundColor: '#1B1B18' }]}
                 onPress={() => onOpenInterviewProposal?.(app.id, app.pursuit_id, app.pursuits?.title || 'Pod')}
+                activeOpacity={0.85}
               >
                 <Text style={[styles.proposeTimesButtonText, themedStyles.buttonPrimaryText, !isNewTheme && { color: '#FFFFFF' }]}>Propose Interview Times</Text>
               </TouchableOpacity>
@@ -505,7 +513,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
         <>
           {interviewPendingApps.length > 0 && <Text style={[styles.sectionLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: 'uppercase', letterSpacing: isNewTheme ? 1 : 0.5 }]}>Pending Review</Text>}
           {applications.map((app) => (
-            <View key={app.id} style={[styles.applicationCard, themedStyles.card, { borderWidth: isNewTheme ? 0.35 : 0.5, borderColor: isNewTheme ? colors.accentGreen : '#f59e0b' }]}>
+            <View key={app.id} style={[styles.applicationCard, themedStyles.card, { borderWidth: 1, borderColor: isNewTheme ? 'rgba(255,255,255,0.08)' : colors.border }]}>
               <View style={styles.applicationHeader}>
                 <Text style={[styles.applicationTitle, themedStyles.cardTitle]}>{app.pursuits?.title}</Text>
                 <View style={[styles.pendingBadge, themedStyles.tag, { backgroundColor: colors.warning }]}>
@@ -597,7 +605,7 @@ const styles = StyleSheet.create({
   interviewPrompt: { fontSize: 13, color: '#2D5016', marginTop: 10, marginBottom: 12, fontStyle: 'italic' },
   proposeTimesButton: { backgroundColor: '#2D5016', borderRadius: 8, padding: 12, alignItems: 'center' },
   proposeTimesButtonText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
-  sectionLabel: { fontSize: 14, fontWeight: '600', color: '#666', marginBottom: 10, marginTop: 5 },
+  sectionLabel: { fontSize: 11, fontWeight: '600', color: '#666', marginBottom: 10, marginTop: 5 },
   applicationHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   applicationTitle: { fontSize: 16, fontWeight: 'bold', color: '#1f2937', flex: 1, marginRight: 8 },
   applicationDescription: { fontSize: 13, color: '#6b7280', lineHeight: 18 },

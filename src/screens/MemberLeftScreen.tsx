@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { colors as legacyColors, typography, spacing, borderRadius, shadows, editorial } from '../theme/designSystem';
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
@@ -40,7 +41,7 @@ export default function MemberLeftScreen({ pursuitTitle, memberName, reason, lef
           ? { backgroundColor: colors.surface, borderBottomColor: colors.border }
           : { backgroundColor: editorial.bg, borderBottomWidth: 0 },
       ]}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
+        <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.6} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Text style={[styles.backText, { color: isNewTheme ? primaryColor : editorial.ink }]}>← Back</Text>
         </TouchableOpacity>
         <Text style={[
@@ -53,21 +54,28 @@ export default function MemberLeftScreen({ pursuitTitle, memberName, reason, lef
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
           <View style={styles.iconContainer}>
-            <Text style={styles.icon}>🚪</Text>
+            <View style={[
+              styles.iconBadge,
+              isNewTheme
+                ? { backgroundColor: colors.surfaceAlt, borderColor: colors.border }
+                : { backgroundColor: editorial.surface, borderColor: editorial.hairline },
+            ]}>
+              <Ionicons name="exit-outline" size={28} color={isNewTheme ? colors.textSecondary : editorial.muted} />
+            </View>
           </View>
 
-          <View style={[styles.infoCard, { backgroundColor: colors.surface }, !isNewTheme && styles.editorialCard]}>
+          <View style={[styles.infoCard, { backgroundColor: colors.surface, borderColor: colors.border }, !isNewTheme && styles.editorialCard]}>
             {!isNewTheme && <View style={styles.cardAccent} pointerEvents="none" />}
-            <Text style={[styles.cardTitle, { color: colors.textSecondary }, !isNewTheme && styles.editorialLabel]}>A team member has left</Text>
+            <Text style={[styles.cardTitle, { color: colors.textSecondary }, isNewTheme ? styles.darkLabel : styles.editorialLabel]}>A team member has left</Text>
             <Text style={[styles.memberName, { color: colors.textPrimary }, !isNewTheme && { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 24, letterSpacing: -0.3 }]}>{memberName}</Text>
             <Text style={[styles.pursuitText, { color: colors.textSecondary }]}>from {pursuitTitle}</Text>
-            <Text style={[styles.dateText, { color: colors.textSecondary }]}>on {formatDate(leftAt)}</Text>
+            <Text style={[styles.dateText, { color: colors.textTertiary }]}>on {formatDate(leftAt)}</Text>
           </View>
 
-          <View style={[styles.reasonCard, { backgroundColor: colors.surface }, !isNewTheme && styles.editorialCard]}>
+          <View style={[styles.reasonCard, { backgroundColor: colors.surface, borderColor: colors.border }, !isNewTheme && styles.editorialCard]}>
             {!isNewTheme && <View style={styles.cardAccent} pointerEvents="none" />}
-            <Text style={[styles.reasonLabel, { color: colors.textSecondary }, !isNewTheme && styles.editorialLabel]}>Reason provided by the member:</Text>
-            <View style={[styles.reasonBox, { backgroundColor: isNewTheme ? colors.warningLight : '#fef3c7', borderLeftColor: colors.warning }]}>
+            <Text style={[styles.reasonLabel, { color: colors.textSecondary }, isNewTheme ? styles.darkLabel : styles.editorialLabel]}>Reason provided by the member</Text>
+            <View style={[styles.reasonBox, { backgroundColor: isNewTheme ? colors.warningLight : '#FDF3DC', borderLeftColor: colors.warning }]}>
               <Text style={[styles.reasonText, { color: colors.textPrimary }]}>{reason}</Text>
             </View>
           </View>
@@ -75,16 +83,15 @@ export default function MemberLeftScreen({ pursuitTitle, memberName, reason, lef
           <View style={[
             styles.noteCard,
             isNewTheme
-              ? { backgroundColor: colors.primaryLight, borderLeftColor: primaryColor }
-              : { backgroundColor: editorial.carolinaTint, borderLeftColor: editorial.carolina },
+              ? { backgroundColor: colors.surface, borderColor: colors.border }
+              : { backgroundColor: editorial.carolinaTint, borderColor: 'transparent' },
           ]}>
-            <Text style={styles.noteIcon}>💡</Text>
             <Text style={[styles.noteText, { color: isNewTheme ? colors.textSecondary : editorial.carolinaDeep }]}>
               This team member has voluntarily left your pod. You may want to review applications or invite new members to fill the spot.
             </Text>
           </View>
 
-          <TouchableOpacity style={[styles.browseButton, { backgroundColor: isNewTheme ? primaryColor : editorial.ink }]} onPress={onBack}>
+          <TouchableOpacity style={[styles.browseButton, { backgroundColor: isNewTheme ? primaryColor : editorial.ink }]} activeOpacity={0.85} onPress={onBack}>
             <Text style={[styles.browseButtonText, { color: isNewTheme ? colors.background : legacyColors.white }, !isNewTheme && { fontFamily: 'InterTight_600SemiBold' }]}>Back to Notifications</Text>
           </TouchableOpacity>
         </View>
@@ -130,16 +137,21 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
     marginTop: spacing.lg,
   },
-  icon: {
-    fontSize: 64,
+  iconBadge: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   infoCard: {
     backgroundColor: legacyColors.white,
-    borderRadius: borderRadius.lg,
+    borderRadius: 16,
+    borderWidth: 1,
     padding: spacing.lg,
     marginBottom: spacing.lg,
     alignItems: 'center',
-    ...shadows.base,
   },
   cardTitle: {
     fontSize: typography.fontSize.sm,
@@ -165,10 +177,10 @@ const styles = StyleSheet.create({
   },
   reasonCard: {
     backgroundColor: legacyColors.white,
-    borderRadius: borderRadius.lg,
+    borderRadius: 16,
+    borderWidth: 1,
     padding: spacing.lg,
     marginBottom: spacing.lg,
-    ...shadows.base,
   },
   reasonLabel: {
     fontSize: typography.fontSize.sm,
@@ -190,31 +202,29 @@ const styles = StyleSheet.create({
     fontFamily: 'Sora_600SemiBold',
   },
   noteCard: {
-    backgroundColor: '#eff6ff',
-    borderRadius: borderRadius.base,
+    borderRadius: 16,
+    borderWidth: 1,
     padding: spacing.base,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
     marginBottom: spacing.xl,
-    borderLeftWidth: 3,
-    borderLeftColor: legacyColors.primary,
-  },
-  noteIcon: {
-    fontSize: 20,
-    marginRight: spacing.sm,
   },
   noteText: {
     flex: 1,
     fontSize: typography.fontSize.sm,
-    color: '#0369a1',
     lineHeight: 20,
     fontFamily: 'Sora_600SemiBold',
   },
   browseButton: {
     backgroundColor: legacyColors.primary,
-    borderRadius: borderRadius.lg,
+    borderRadius: 999,
     padding: spacing.base,
     alignItems: 'center',
+  },
+  darkLabel: {
+    fontSize: 12,
+    fontFamily: 'Sora_600SemiBold',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    color: 'rgba(255,255,255,0.45)',
   },
   browseButtonText: {
     color: legacyColors.white,

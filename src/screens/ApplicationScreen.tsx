@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator, Platform, StatusBar } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Platform, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,6 +10,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
 import GradientBackground from '../components/ui/GradientBackground';
+import { AppAlert } from '../components/ui/AppAlert';
 
 interface Props {
   pursuit: any;
@@ -67,7 +68,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
 
         // Check file size (max 10MB)
         if (file.size && file.size > 10 * 1024 * 1024) {
-          Alert.alert('File Too Large', 'Please select a file smaller than 10MB');
+          AppAlert.alert('File Too Large', 'Please select a file smaller than 10MB');
           return;
         }
 
@@ -80,7 +81,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
       }
     } catch (error) {
       console.error('Error picking document:', error);
-      Alert.alert('Error', 'Failed to select document');
+      AppAlert.alert('Error', 'Failed to select document');
     }
   };
 
@@ -132,7 +133,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
     // Check all questions are answered
     const unanswered = questions.some((_: string, i: number) => !answers[i] || !answers[i].trim());
     if (unanswered) {
-      Alert.alert('Incomplete', 'Please answer all questions');
+      AppAlert.alert('Incomplete', 'Please answer all questions');
       return;
     }
 
@@ -168,23 +169,23 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
 
       console.log('✅ Application created successfully!');
 
-      Alert.alert(
+      AppAlert.alert(
         'application: sent 🐋',
         "you sent it. now we wait. the creator's gonna peep your answers and get back to you.",
         [{ text: 'bet', onPress: onSubmitted }]
       );
     } catch (error: any) {
       console.error('❌ Application submission error:', error);
-      Alert.alert('Error', error.message);
+      AppAlert.alert('Error', error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // Editorial light mode: Carolina blue is the discreet primary accent.
-  const accentPurple = isNewTheme ? colors.primary : '#2E6A95';
-  const accentPurpleLight = isNewTheme ? colors.primaryLight : 'rgba(75, 156, 211, 0.10)';
-  const accentPurpleBorder = isNewTheme ? colors.primary : 'rgba(75, 156, 211, 0.30)';
+  // Dark = lime accent (kill the indigo); light = Carolina blue (discreet primary).
+  const accentPurple = isNewTheme ? colors.accentGreen : '#2E6A95';
+  const accentPurpleLight = isNewTheme ? 'rgba(200, 255, 107, 0.10)' : 'rgba(75, 156, 211, 0.10)';
+  const accentPurpleBorder = isNewTheme ? 'rgba(200, 255, 107, 0.25)' : 'rgba(75, 156, 211, 0.30)';
 
   return (
     <GradientBackground style={styles.container}>
@@ -192,7 +193,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
       {isNewTheme && <GrainTexture opacity={0.06} />}
 
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
+        <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.6} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Ionicons name="chevron-back" size={24} color={isNewTheme ? colors.textPrimary : '#1B1B18'} />
         </TouchableOpacity>
         <Text style={[styles.title, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold' }]}>Apply to Pod</Text>
@@ -226,10 +227,11 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
                     { borderColor: isNewTheme ? colors.border : (targetedRoles.length === 0 ? '#4B9CD3' : colors.border) },
                   ]}
                   onPress={() => setTargetedRoles([])}
+                  activeOpacity={0.6}
                 >
                   <Text style={[
                     styles.roleChipText,
-                    { color: targetedRoles.length === 0 ? '#FFFFFF' : colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }
+                    { color: targetedRoles.length === 0 ? (isNewTheme ? colors.background : '#FFFFFF') : colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }
                   ]}>Any</Text>
                 </TouchableOpacity>
                 {podRoles.map((role) => {
@@ -249,10 +251,11 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
                             : [...targetedRoles, role]
                         );
                       }}
+                      activeOpacity={0.6}
                     >
                       <Text style={[
                         styles.roleChipText,
-                        { color: selected ? '#FFFFFF' : colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }
+                        { color: selected ? (isNewTheme ? colors.background : '#FFFFFF') : colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }
                       ]}>{role}</Text>
                     </TouchableOpacity>
                   );
@@ -294,7 +297,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
 
           {/* Resume Upload Section */}
           {pursuit.requires_resume && (
-            <View style={[styles.resumeSection, { backgroundColor: colors.surface, borderColor: accentPurple, borderWidth: isNewTheme ? 1 : 2 }]}>
+            <View style={[styles.resumeSection, { backgroundColor: colors.surface, borderColor: isNewTheme ? 'rgba(255,255,255,0.08)' : accentPurple, borderWidth: isNewTheme ? 1 : 2 }]}>
               <View style={styles.resumeHeader}>
                 <Ionicons name="document-attach" size={24} color={accentPurple} />
                 <View style={styles.resumeHeaderText}>
@@ -313,6 +316,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
                     style={[styles.uploadButton, { backgroundColor: accentPurpleLight, borderColor: accentPurple }]}
                     onPress={pickDocument}
                     disabled={uploadingResume}
+                    activeOpacity={0.85}
                   >
                     <Ionicons name="cloud-upload-outline" size={24} color={accentPurple} />
                     <Text style={[styles.uploadButtonText, { color: accentPurple, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Choose File</Text>
@@ -343,6 +347,8 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
                     <TouchableOpacity
                       style={styles.removeFileButton}
                       onPress={() => setResumeFile(null)}
+                      activeOpacity={0.6}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     >
                       <Ionicons name="close-circle" size={24} color={colors.error} />
                     </TouchableOpacity>
@@ -351,6 +357,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
                   <TouchableOpacity
                     style={styles.changeFileButton}
                     onPress={pickDocument}
+                    activeOpacity={0.6}
                   >
                     <Ionicons name="swap-horizontal" size={16} color={accentPurple} />
                     <Text style={[styles.changeFileText, { color: accentPurple, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Change file</Text>
@@ -470,7 +477,7 @@ const styles = StyleSheet.create({
   },
   // Resume Section Styles
   resumeSection: {
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 16,
     shadowColor: '#000',

@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   KeyboardAvoidingView,
   ScrollView,
   Platform,
@@ -17,6 +16,7 @@ import {
   Image,
   ActivityIndicator,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import {
   useFonts,
@@ -27,6 +27,7 @@ import {
   Sora_600SemiBold,
 } from '@expo-google-fonts/sora';
 import { editorial } from '../theme/designSystem';
+import { AppAlert } from '../components/ui/AppAlert';
 
 const { height } = Dimensions.get('window');
 
@@ -67,6 +68,10 @@ export default function LoginScreen() {
   const [isSignup, setIsSignup] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
 
+  // Which underline input is focused — drives the Carolina focus rule.
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [focusedCode, setFocusedCode] = useState<number | null>(null);
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
 
@@ -87,7 +92,7 @@ export default function LoginScreen() {
   const handleSendPhoneCode = async () => {
     const digits = phoneNumber.replace(/\D/g, '');
     if (digits.length < 10) {
-      Alert.alert('Invalid Phone', 'Please enter a valid 10-digit phone number.');
+      AppAlert.alert('Invalid Phone', 'Please enter a valid 10-digit phone number.');
       return;
     }
     setPhoneLoading(true);
@@ -97,7 +102,7 @@ export default function LoginScreen() {
       setPhoneCooldown(60);
       setTimeout(() => phoneInputRefs.current[0]?.focus(), 400);
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to send verification code');
+      AppAlert.alert('Error', error.message || 'Failed to send verification code');
     } finally {
       setPhoneLoading(false);
     }
@@ -150,7 +155,7 @@ export default function LoginScreen() {
   const handleVerifyPhone = async (fullCode?: string) => {
     const code = fullCode || phoneCode.join('');
     if (code.length !== 6) {
-      Alert.alert('Invalid Code', 'Please enter all 6 digits.');
+      AppAlert.alert('Invalid Code', 'Please enter all 6 digits.');
       return;
     }
     setPhoneLoading(true);
@@ -158,12 +163,12 @@ export default function LoginScreen() {
       const digits = phoneNumber.replace(/\D/g, '');
       const success = await auth.verifyPhoneCode(digits, code);
       if (!success) {
-        Alert.alert('Verification Failed', 'The code you entered is incorrect. Please try again.');
+        AppAlert.alert('Verification Failed', 'The code you entered is incorrect. Please try again.');
         setPhoneCode(['', '', '', '', '', '']);
         phoneInputRefs.current[0]?.focus();
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Verification failed');
+      AppAlert.alert('Error', error.message || 'Verification failed');
       setPhoneCode(['', '', '', '', '', '']);
       phoneInputRefs.current[0]?.focus();
     } finally {
@@ -178,9 +183,9 @@ export default function LoginScreen() {
       const digits = phoneNumber.replace(/\D/g, '');
       await auth.sendPhoneVerificationCode(digits);
       setPhoneCooldown(60);
-      Alert.alert('Code Sent', 'A new verification code has been sent to your phone.');
+      AppAlert.alert('Code Sent', 'A new verification code has been sent to your phone.');
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to resend code');
+      AppAlert.alert('Error', error.message || 'Failed to resend code');
     } finally {
       setPhoneLoading(false);
     }
@@ -195,7 +200,7 @@ export default function LoginScreen() {
 
   const handleEmailSubmit = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Missing Info', 'Please enter both email and password.');
+      AppAlert.alert('Missing Info', 'Please enter both email and password.');
       return;
     }
     setEmailLoading(true);
@@ -206,7 +211,7 @@ export default function LoginScreen() {
         await auth.signIn(email, password);
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      AppAlert.alert('Error', error.message);
     } finally {
       setEmailLoading(false);
     }
@@ -247,7 +252,7 @@ export default function LoginScreen() {
                     {isSignup ? 'Enter an email and password to get started.' : 'Enter your email and password.'}
                   </Text>
 
-                  <View style={[styles.phoneInputBox, { marginBottom: 12 }]}>
+                  <View style={[styles.phoneInputBox, focusedField === 'email' && styles.phoneInputBoxFocused, { marginBottom: 12 }]}>
                     <TextInput
                       style={styles.phoneTextInput}
                       placeholder="Email"
@@ -257,10 +262,12 @@ export default function LoginScreen() {
                       autoCapitalize="none"
                       keyboardType="email-address"
                       autoFocus
+                      onFocus={() => setFocusedField('email')}
+                      onBlur={() => setFocusedField(null)}
                     />
                   </View>
 
-                  <View style={[styles.phoneInputBox, { marginBottom: 20 }]}>
+                  <View style={[styles.phoneInputBox, focusedField === 'password' && styles.phoneInputBoxFocused, { marginBottom: 20 }]}>
                     <TextInput
                       style={styles.phoneTextInput}
                       placeholder="Password"
@@ -270,6 +277,8 @@ export default function LoginScreen() {
                       secureTextEntry
                       returnKeyType="done"
                       onSubmitEditing={handleEmailSubmit}
+                      onFocus={() => setFocusedField('password')}
+                      onBlur={() => setFocusedField(null)}
                     />
                   </View>
 
@@ -286,14 +295,14 @@ export default function LoginScreen() {
                     )}
                   </TouchableOpacity>
 
-                  <TouchableOpacity onPress={() => setIsSignup(!isSignup)} style={{ marginTop: 16, alignItems: 'center' }}>
+                  <TouchableOpacity onPress={() => setIsSignup(!isSignup)} style={{ marginTop: 16, alignItems: 'center' }} activeOpacity={0.6}>
                     <Text style={styles.resendText}>
                       {isSignup ? 'Already have an account? ' : "Don't have an account? "}
                       <Text style={styles.resendLink}>{isSignup ? 'Sign In' : 'Sign Up'}</Text>
                     </Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity onPress={() => setMode('phone')} style={{ marginTop: 20, alignItems: 'center' }}>
+                  <TouchableOpacity onPress={() => setMode('phone')} style={{ marginTop: 20, alignItems: 'center' }} activeOpacity={0.6}>
                     <Text style={styles.resendLink}>Use phone number instead</Text>
                   </TouchableOpacity>
                 </>
@@ -308,7 +317,7 @@ export default function LoginScreen() {
                     <View style={styles.phonePrefixBox}>
                       <Text style={styles.phonePrefixText}>+1</Text>
                     </View>
-                    <View style={styles.phoneInputBox}>
+                    <View style={[styles.phoneInputBox, focusedField === 'phone' && styles.phoneInputBoxFocused]}>
                       <TextInput
                         style={styles.phoneTextInput}
                         placeholder="(555) 555-5555"
@@ -318,6 +327,8 @@ export default function LoginScreen() {
                         keyboardType="phone-pad"
                         maxLength={14}
                         autoFocus
+                        onFocus={() => setFocusedField('phone')}
+                        onBlur={() => setFocusedField(null)}
                       />
                     </View>
                   </View>
@@ -335,14 +346,19 @@ export default function LoginScreen() {
                     )}
                   </TouchableOpacity>
 
-                  <TouchableOpacity onPress={() => setMode('email')} style={{ marginTop: 20, alignItems: 'center' }}>
+                  <TouchableOpacity onPress={() => setMode('email')} style={{ marginTop: 20, alignItems: 'center' }} activeOpacity={0.6}>
                     <Text style={styles.resendLink}>Use email instead</Text>
                   </TouchableOpacity>
                 </>
               ) : (
                 <>
-                  <TouchableOpacity style={styles.backButton} onPress={goBackToPhoneEntry} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                    <Text style={styles.backButtonText}>‹ Back</Text>
+                  <TouchableOpacity
+                    style={styles.backButton}
+                    onPress={goBackToPhoneEntry}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                    activeOpacity={0.6}
+                  >
+                    <Ionicons name="chevron-back" size={26} color={C.text} />
                   </TouchableOpacity>
 
                   <Text style={styles.phoneSectionTitle}>Enter verification code</Text>
@@ -358,10 +374,13 @@ export default function LoginScreen() {
                         style={[
                           styles.codeBox,
                           digit !== '' && styles.codeBoxFilled,
+                          focusedCode === index && styles.codeBoxFocused,
                         ]}
                         value={digit}
                         onChangeText={(text) => handlePhoneCodeChange(text, index)}
                         onKeyPress={(e) => handlePhoneKeyPress(e, index)}
+                        onFocus={() => setFocusedCode(index)}
+                        onBlur={() => setFocusedCode(null)}
                         keyboardType="number-pad"
                         selectTextOnFocus
                         textContentType="oneTimeCode"
@@ -386,7 +405,7 @@ export default function LoginScreen() {
 
                   <View style={styles.resendRow}>
                     <Text style={styles.resendText}>Didn't receive a code? </Text>
-                    <TouchableOpacity onPress={handleResendPhoneCode} disabled={phoneCooldown > 0 || phoneLoading}>
+                    <TouchableOpacity onPress={handleResendPhoneCode} disabled={phoneCooldown > 0 || phoneLoading} activeOpacity={0.6}>
                       {phoneCooldown > 0 ? (
                         <Text style={styles.resendCooldown}>Resend in {phoneCooldown}s</Text>
                       ) : (
@@ -475,6 +494,11 @@ const styles = StyleSheet.create({
     borderBottomColor: C.border,
     height: 44,
   },
+  // Focus rule — underline goes Carolina, 2px, for a crisp focus feel
+  phoneInputBoxFocused: {
+    borderBottomColor: C.carolina,
+    borderBottomWidth: 2,
+  },
   phoneTextInput: {
     fontFamily: 'InterTight_600SemiBold',
     fontSize: 17,
@@ -497,12 +521,7 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: { opacity: 0.45 },
 
-  backButton: { marginBottom: 16 },
-  backButtonText: {
-    fontFamily: 'InterTight_600SemiBold',
-    fontSize: 15,
-    color: C.link,
-  },
+  backButton: { marginBottom: 16, marginLeft: -6, alignSelf: 'flex-start' },
 
   codeRow: {
     flexDirection: 'row',
@@ -522,6 +541,11 @@ const styles = StyleSheet.create({
     borderBottomColor: C.border,
   },
   codeBoxFilled: {
+    borderBottomColor: C.carolina,
+    borderBottomWidth: 2,
+  },
+  // Active box being typed into — Carolina rule even when empty, for crisp entry
+  codeBoxFocused: {
     borderBottomColor: C.carolina,
     borderBottomWidth: 2,
   },

@@ -24,6 +24,7 @@ import { colors as legacyColors, editorial } from '../theme/designSystem';
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
+import { AppAlert } from '../components/ui/AppAlert';
 import PursuitDetailScreen from './PursuitDetailScreen';
 import TeamWorkspaceScreen from './team/TeamWorkspaceScreen';
 
@@ -197,7 +198,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
       }
     } catch (error) {
       console.error('Error sending message:', error);
-      Alert.alert('Error', 'Failed to send message');
+      AppAlert.alert('Error', 'Failed to send message');
     }
   };
 
@@ -211,6 +212,8 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
       onNameChanged?.(tempChatName.trim());
     } catch (error) {
       console.error('Error renaming chat:', error);
+      // Keep native Alert: fires from the catch path while the Rename Modal is still visible
+      // (showRenameModal is only closed on success), and a JS overlay can't render above a native Modal.
       Alert.alert('Error', 'Failed to rename chat');
     }
   };
@@ -407,7 +410,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
                       styles.messageBubble,
                       styles.theirMessageBubble,
                       isNewTheme
-                        ? { backgroundColor: '#1F1F1F', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.12)' }
+                        ? { backgroundColor: '#161616', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.10)' }
                         : { backgroundColor: editorial.surface, borderWidth: 1, borderColor: editorial.hairline },
                     ]}
                   >
@@ -442,7 +445,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
       {/* Header */}
       <View style={{ backgroundColor: isNewTheme ? colors.surface : colors.background, paddingTop: 50, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 12 }}>
-          <TouchableOpacity onPress={onBack} style={{ padding: 4 }}>
+          <TouchableOpacity onPress={onBack} style={{ padding: 4 }} activeOpacity={0.6} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
           <View style={{ flex: 1, alignItems: 'center' }}>
@@ -453,7 +456,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
               {members.length} members
             </Text>
           </View>
-          <TouchableOpacity onPress={() => setShowOptionsMenu(true)} style={{ padding: 4 }}>
+          <TouchableOpacity onPress={() => setShowOptionsMenu(true)} style={{ padding: 4 }} activeOpacity={0.6} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons name="ellipsis-horizontal" size={20} color={colors.textPrimary} />
           </TouchableOpacity>
         </View>
@@ -468,6 +471,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
             return (
               <TouchableOpacity
                 key={tab.key}
+                activeOpacity={0.6}
                 style={{ flex: 1, paddingVertical: 12, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: active ? colors.accentGreen : 'transparent' }}
                 onPress={() => setActiveView(tab.key)}
               >
@@ -517,8 +521,8 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
               spellCheck={true}
               autoCorrect={true}
             />
-            <TouchableOpacity style={[styles.sendButton, { backgroundColor: isNewTheme ? colors.accentGreen : editorial.carolina }]} onPress={handleSend}>
-              <Ionicons name="send" size={24} color={isNewTheme ? colors.background : '#fff'} />
+            <TouchableOpacity style={[styles.sendButton, { backgroundColor: isNewTheme ? colors.accentGreen : editorial.carolina }]} activeOpacity={0.85} onPress={handleSend}>
+              <Ionicons name="send" size={20} color={isNewTheme ? colors.background : '#fff'} />
             </TouchableOpacity>
           </View>
         </>
@@ -566,6 +570,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={[styles.memberCard, { borderBottomColor: colors.border }]}
+                  activeOpacity={0.6}
                   onPress={() => {
                     setShowMembersModal(false);
                     navigation?.navigate('UserProfile', { userId: item.id });
@@ -616,12 +621,14 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
             <View style={styles.renameButtons}>
               <TouchableOpacity
                 style={[styles.cancelButton, { backgroundColor: colors.surfaceAlt }]}
+                activeOpacity={0.6}
                 onPress={() => setShowRenameModal(false)}
               >
                 <Text style={[styles.cancelButtonText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.saveButton, { backgroundColor: isNewTheme ? colors.accentGreen : editorial.carolina }]}
+                activeOpacity={0.85}
                 onPress={handleRename}
               >
                 <Text style={[styles.saveButtonText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Save</Text>
@@ -800,7 +807,9 @@ function makeStyles(colors: any, isNewTheme: boolean) {
   likeIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.95)',
+    backgroundColor: isNewTheme ? colors.surfaceAlt : '#FFFFFF',
+    borderWidth: isNewTheme ? StyleSheet.hairlineWidth : 0,
+    borderColor: colors.border,
     borderRadius: 10,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -809,9 +818,9 @@ function makeStyles(colors: any, isNewTheme: boolean) {
     alignSelf: 'flex-start',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: isNewTheme ? 0 : 0.1,
     shadowRadius: 2,
-    elevation: 2,
+    elevation: isNewTheme ? 0 : 2,
     gap: 2,
   },
   likeIndicatorRight: {
@@ -948,7 +957,7 @@ function makeStyles(colors: any, isNewTheme: boolean) {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#10b981',
+    backgroundColor: accent,
     justifyContent: 'center',
     alignItems: 'center',
   },

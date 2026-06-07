@@ -69,7 +69,7 @@ export default function PodMemberCollage({ members, size, borderRadius, style }:
   if (count === 0) {
     return (
       <View style={[styles.container, { width: size, height: size, borderRadius: radius, backgroundColor: holderBg }, style]}>
-        <Text style={[styles.initial, { fontSize: size * 0.4, color: '#9ca3af' }]}>?</Text>
+        <Text style={[styles.initial, { fontSize: size * 0.4, color: colors.textTertiary }]}>?</Text>
       </View>
     );
   }
@@ -174,9 +174,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     overflow: 'hidden',
   },
-  pool: {
-    backgroundColor: '#e5e7eb',
-  },
+  pool: {},
   bubble: {
     position: 'absolute',
     overflow: 'hidden',

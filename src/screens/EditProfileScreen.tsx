@@ -6,7 +6,6 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   Image,
   StatusBar,
@@ -20,6 +19,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
 import GradientBackground from '../components/ui/GradientBackground';
+import { AppAlert } from '../components/ui/AppAlert';
 import { colors as legacyColors, editorial } from '../theme/designSystem';
 
 interface EditProfileScreenProps {
@@ -98,13 +98,13 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
         : await ImagePicker.requestMediaLibraryPermissionsAsync();
 
       if (status !== 'granted') {
-        Alert.alert('Permission denied', 'We need permission to access your photos/camera');
+        AppAlert.alert('Permission denied', 'We need permission to access your photos/camera');
         return;
       }
 
       const remaining = 6 - profilePictures.length;
       if (remaining <= 0) {
-        Alert.alert('Maximum reached', 'You can upload up to 6 photos.');
+        AppAlert.alert('Maximum reached', 'You can upload up to 6 photos.');
         return;
       }
 
@@ -131,7 +131,7 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
       }
     } catch (error) {
       console.error('Error picking image:', error);
-      Alert.alert('Error', 'Failed to pick image');
+      AppAlert.alert('Error', 'Failed to pick image');
     }
   };
 
@@ -180,7 +180,7 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
       if (!profilePicture) setProfilePicture(newUrl);
     } catch (error: any) {
       console.error('Upload error:', error);
-      Alert.alert('Error', 'Failed to upload photo: ' + error.message);
+      AppAlert.alert('Error', 'Failed to upload photo: ' + error.message);
     }
   };
 
@@ -188,7 +188,7 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
     if (!user) return;
 
     if (!name.trim()) {
-      Alert.alert('Error', 'Name is required');
+      AppAlert.alert('Error', 'Name is required');
       return;
     }
 
@@ -217,11 +217,11 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
 
       if (error) throw error;
 
-      Alert.alert('Success', 'Profile updated!', [
+      AppAlert.alert('Success', 'Profile updated!', [
         { text: 'OK', onPress: onBack }
       ]);
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      AppAlert.alert('Error', error.message);
     } finally {
       setSaving(false);
     }
@@ -242,18 +242,18 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
       <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       {isNewTheme && <GrainTexture opacity={0.06} />}
       <View style={[styles.header, { backgroundColor: isNewTheme ? colors.surface : editorial.bg, borderBottomColor: colors.border, borderBottomWidth: isNewTheme ? 1 : 0 }]}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Text style={[styles.backButtonText, { color: isNewTheme ? colors.accentGreen : editorial.carolinaDeep }]}>← Back</Text>
+        <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.6} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Ionicons name="arrow-back" size={24} color={isNewTheme ? colors.textPrimary : editorial.ink} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: isNewTheme ? colors.textPrimary : editorial.ink, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold', letterSpacing: isNewTheme ? 0 : -0.3 }]}>Edit Profile</Text>
-        <TouchableOpacity onPress={handleSave} style={styles.saveButton} disabled={saving}>
+        <Text style={[styles.headerTitle, { color: isNewTheme ? colors.textPrimary : editorial.ink, fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold', letterSpacing: isNewTheme ? -0.3 : -0.3 }]}>Edit Profile</Text>
+        <TouchableOpacity onPress={handleSave} style={styles.saveButton} disabled={saving} activeOpacity={0.6} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Text style={[styles.saveButtonText, { color: isNewTheme ? colors.accentGreen : editorial.carolinaDeep }]}>{saving ? 'Saving...' : 'Save'}</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold', letterSpacing: isNewTheme ? 0 : -0.3 }]}>Photos</Text>
+          <Text style={[styles.sectionTitle, !isNewTheme && { color: colors.textPrimary, fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3 }]}>Photos</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
             {profilePictures.map((pic, i) => (
               <View key={i} style={{ width: (Dimensions.get('window').width - 56) / 3, aspectRatio: 0.85, borderRadius: 10, overflow: 'hidden', backgroundColor: isNewTheme ? colors.surfaceAlt : '#F2F0EB' }}>
@@ -322,7 +322,7 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
             onChangeText={setGender}
           />
 
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold', letterSpacing: isNewTheme ? 0 : -0.3 }]}>Location</Text>
+          <Text style={[styles.sectionTitle, !isNewTheme && { color: colors.textPrimary, fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3 }]}>Location</Text>
 
           <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Hometown</Text>
           <TextInput
@@ -362,7 +362,7 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
             numberOfLines={4}
           />
 
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold', letterSpacing: isNewTheme ? 0 : -0.3 }]}>Social Links</Text>
+          <Text style={[styles.sectionTitle, !isNewTheme && { color: colors.textPrimary, fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3 }]}>Social Links</Text>
 
           <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Instagram</Text>
           <TextInput
@@ -444,7 +444,15 @@ function makeStyles(colors: any, isNewTheme: boolean) {
   saveButtonText: { fontSize: 16, color: accent, fontWeight: '600' },
   scrollView: { flex: 1 },
   content: { padding: 20, paddingBottom: 100 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: colors.textPrimary, marginTop: 20, marginBottom: 16 },
+  sectionTitle: isNewTheme ? {
+    fontSize: 12,
+    fontFamily: 'Sora_600SemiBold',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    color: 'rgba(255,255,255,0.45)',
+    marginTop: 24,
+    marginBottom: 14,
+  } : { fontSize: 18, fontWeight: 'bold', color: colors.textPrimary, marginTop: 20, marginBottom: 16 },
   label: { fontSize: 14, fontWeight: '600', color: colors.textSecondary, marginBottom: 8 },
   input: isNewTheme ? {
     borderWidth: 1,

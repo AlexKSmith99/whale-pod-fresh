@@ -1,6 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
-import { colors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+import { colors, typography, spacing } from '../theme/designSystem';
 
 interface ButtonProps {
   title: string;
@@ -87,11 +87,11 @@ export default function Button({
       style={[getButtonStyle(), style]}
       onPress={onPress}
       disabled={disabled || loading}
-      activeOpacity={0.7}
+      activeOpacity={variant === 'primary' || variant === 'secondary' ? 0.85 : 0.6}
     >
       {loading ? (
         <ActivityIndicator
-          color={variant === 'primary' ? colors.white : colors.primary}
+          color={variant === 'primary' ? colors.white : colors.textPrimary}
           size="small"
         />
       ) : (
@@ -102,9 +102,9 @@ export default function Button({
 }
 
 const styles = StyleSheet.create({
-  // Base styles
+  // Base styles — editorial pill (radius 999)
   base: {
-    borderRadius: borderRadius.base,
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -133,15 +133,15 @@ const styles = StyleSheet.create({
     minHeight: 52,
   },
 
-  // Variant styles
+  // Variant styles — editorial: ink-filled primary CTA, hairline outlines, paper-flat
   primary: {
-    backgroundColor: colors.primary,
-    ...shadows.sm,
+    backgroundColor: colors.textPrimary,
   },
 
   secondary: {
-    backgroundColor: colors.secondary,
-    ...shadows.sm,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
 
   ghost: {
@@ -156,7 +156,6 @@ const styles = StyleSheet.create({
 
   disabled: {
     backgroundColor: colors.disabled,
-    ...shadows.none,
   },
 
   // Text styles
@@ -181,11 +180,11 @@ const styles = StyleSheet.create({
   },
 
   textSecondary: {
-    color: colors.white,
+    color: colors.textPrimary,
   },
 
   textGhost: {
-    color: colors.primary,
+    color: colors.textPrimary,
   },
 
   textOutline: {

@@ -416,7 +416,7 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
             isSelected && { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.primaryLight, borderLeftWidth: 3, borderLeftColor: themedStyles.accentIconColor }
           ]}
           onPress={() => selectChat(chat)}
-          activeOpacity={0.7}
+          activeOpacity={0.6}
         >
           {hasUnread && !isSelected && <View style={[styles.chatUnreadAccentBar, { backgroundColor: themedStyles.accentIconColor }]} pointerEvents="none" />}
           <View style={styles.avatarContainer}>
@@ -469,7 +469,7 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
             isSelected && { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.primaryLight, borderLeftWidth: 3, borderLeftColor: themedStyles.accentIconColor }
           ]}
           onPress={() => selectChat(chat)}
-          activeOpacity={0.7}
+          activeOpacity={0.6}
         >
           {hasUnread && !isSelected && <View style={[styles.chatUnreadAccentBar, { backgroundColor: themedStyles.accentIconColor }]} pointerEvents="none" />}
           <View style={styles.avatarContainer}>
@@ -544,7 +544,7 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
                   <Text style={[styles.headerBadgeText, themedStyles.badgeText]}>{totalUnread}</Text>
                 </View>
               )}
-              <TouchableOpacity onPress={openNewChatModal} style={styles.newChatButton}>
+              <TouchableOpacity onPress={openNewChatModal} style={styles.newChatButton} activeOpacity={0.6} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                 <Ionicons name="add-circle-outline" size={28} color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
               </TouchableOpacity>
             </View>
@@ -555,6 +555,7 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
             {(['all', 'direct', 'pods'] as FilterTab[]).map((tab) => (
               <TouchableOpacity
                 key={tab}
+                activeOpacity={0.7}
                 style={[
                   styles.filterTab,
                   themedStyles.surfaceAlt,
@@ -577,7 +578,7 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
         {/* Conversations List */}
         {filteredChats.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <View style={[styles.emptyIconContainer, { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.backgroundSecondary, borderWidth: isNewTheme ? 1 : 0, borderColor: colors.border }]}>
+            <View style={[styles.emptyIconContainer, { backgroundColor: isNewTheme ? colors.surfaceAlt : 'transparent', borderWidth: isNewTheme ? StyleSheet.hairlineWidth : 1, borderColor: colors.border }]}>
               <Ionicons name="chatbubbles-outline" size={48} color={themedStyles.accentIconColor} />
             </View>
             <Text style={[styles.emptyTitle, themedStyles.emptyText]}>No conversations yet</Text>
@@ -586,7 +587,7 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
             </Text>
           </View>
         ) : (
-          <ScrollView style={styles.conversationsList} showsVerticalScrollIndicator={false}>
+          <ScrollView style={styles.conversationsList} contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
             {filteredChats.map(chat => renderChatCard(chat))}
           </ScrollView>
         )}
@@ -602,7 +603,7 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
             <View style={[styles.newChatModalContainer, { backgroundColor: colors.background }]}>
               <View style={[styles.newChatModalHeader, { borderBottomColor: colors.border }]}>
                 <Text style={[styles.newChatModalTitle, themedStyles.headerTitle, { fontSize: 20 }]}>New Chat</Text>
-                <TouchableOpacity onPress={() => { setShowNewChatModal(false); setConnectionSearch(''); }}>
+                <TouchableOpacity onPress={() => { setShowNewChatModal(false); setConnectionSearch(''); }} activeOpacity={0.6} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                   <Ionicons name="close" size={24} color={colors.textPrimary} />
                 </TouchableOpacity>
               </View>
@@ -650,7 +651,7 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
                     <TouchableOpacity
                       style={[styles.newChatConnectionCard, { borderBottomColor: colors.border }]}
                       onPress={() => handleSelectConnection(conn)}
-                      activeOpacity={0.7}
+                      activeOpacity={0.6}
                     >
                       {conn.profile?.profile_picture ? (
                         <Image source={{ uri: conn.profile.profile_picture }} style={styles.newChatAvatar} />
@@ -710,7 +711,7 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
       >
         <View style={[styles.sidebarHeader, { borderBottomColor: colors.border }]}>
           <Text style={[styles.sidebarTitle, themedStyles.headerTitle]}>Conversations</Text>
-          <TouchableOpacity onPress={toggleSidebar} style={[styles.sidebarCloseBtn, themedStyles.iconContainer]}>
+          <TouchableOpacity onPress={toggleSidebar} activeOpacity={0.6} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={[styles.sidebarCloseBtn, themedStyles.iconContainer, !isNewTheme && { backgroundColor: 'transparent' }]}>
             <Ionicons name="close" size={24} color={themedStyles.accentIconColor} />
           </TouchableOpacity>
         </View>
@@ -720,6 +721,7 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
           {(['all', 'direct', 'pods'] as FilterTab[]).map((tab) => (
             <TouchableOpacity
               key={tab}
+              activeOpacity={0.7}
               style={[
                 styles.sidebarTab,
                 themedStyles.surfaceAlt,

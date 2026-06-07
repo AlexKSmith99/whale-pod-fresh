@@ -9,6 +9,7 @@ import { colors as legacyColors, typography, spacing, borderRadius, shadows, edi
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
+import { AppAlert } from '../components/ui/AppAlert';
 
 interface Props {
   applicationId: string;
@@ -128,6 +129,7 @@ export default function InterviewTimeSlotProposalScreen({ applicationId, pursuit
         const endMinutes = selectedTime.getHours() * 60 + selectedTime.getMinutes();
 
         if (endMinutes < startMinutes + 15) {
+          // native Alert: fires while iOS end-time picker <Modal> is open
           Alert.alert('Invalid Time', 'End time must be at least 15 minutes after start time');
           return;
         }
@@ -164,21 +166,21 @@ export default function InterviewTimeSlotProposalScreen({ applicationId, pursuit
     );
 
     if (validSlots.length === 0) {
-      Alert.alert('Missing Information', 'Please add at least one time slot with date and time');
+      AppAlert.alert('Missing Information', 'Please add at least one time slot with date and time');
       return;
     }
 
     // Check for past time slots
     const pastSlots = validSlots.filter(isTimeSlotInPast);
     if (pastSlots.length > 0) {
-      Alert.alert('Invalid Time', 'You cannot propose time slots in the past. Please select a future date and time.');
+      AppAlert.alert('Invalid Time', 'You cannot propose time slots in the past. Please select a future date and time.');
       return;
     }
 
     // Check for minimum 15 minute duration
     const invalidDurationSlots = validSlots.filter(slot => !isEndTimeValid(slot));
     if (invalidDurationSlots.length > 0) {
-      Alert.alert('Invalid Duration', 'Each time slot must be at least 15 minutes long.');
+      AppAlert.alert('Invalid Duration', 'Each time slot must be at least 15 minutes long.');
       return;
     }
 
@@ -232,7 +234,7 @@ export default function InterviewTimeSlotProposalScreen({ applicationId, pursuit
         );
       }
 
-      Alert.alert('Success!', 'Your interview time proposals have been submitted', [
+      AppAlert.alert('Success!', 'Your interview time proposals have been submitted', [
         { text: 'OK', onPress: () => {
           onSubmitted();
           onClose();
@@ -240,7 +242,7 @@ export default function InterviewTimeSlotProposalScreen({ applicationId, pursuit
       ]);
     } catch (error: any) {
       console.error('Error submitting interview proposals:', error);
-      Alert.alert('Error', error.message || 'Failed to submit interview time proposals');
+      AppAlert.alert('Error', error.message || 'Failed to submit interview time proposals');
     } finally {
       setLoading(false);
     }
@@ -267,7 +269,7 @@ export default function InterviewTimeSlotProposalScreen({ applicationId, pursuit
         <View style={styles.content}>
           <View style={[
             styles.introSection,
-            { backgroundColor: isNewTheme ? colors.primaryLight : '#E4EDDE' },
+            { backgroundColor: isNewTheme ? colors.primaryLight : editorial.surface },
             light && { backgroundColor: editorial.surface, borderWidth: 1, borderColor: editorial.hairline, borderRadius: 14, paddingLeft: 22, overflow: 'hidden', ...shadows.none },
           ]}>
             {light && <View style={styles.cardAccentLine} pointerEvents="none" />}
@@ -279,10 +281,10 @@ export default function InterviewTimeSlotProposalScreen({ applicationId, pursuit
 
           <View style={[
             styles.emphasisCallout,
-            { backgroundColor: isNewTheme ? 'rgba(252, 211, 77, 0.12)' : '#FEF3C7', borderLeftColor: colors.warning },
+            { backgroundColor: isNewTheme ? 'rgba(200, 255, 107, 0.10)' : '#FEF3C7', borderLeftColor: colors.accentGreen },
             light && { backgroundColor: editorial.carolinaTint, borderLeftColor: editorial.carolina },
           ]}>
-            <Ionicons name="alert-circle" size={18} color={light ? editorial.carolinaDeep : colors.warning} style={{ marginRight: 10, marginTop: 1 }} />
+            <Ionicons name="information-circle" size={18} color={light ? editorial.carolinaDeep : colors.accentGreen} style={{ marginRight: 10, marginTop: 1 }} />
             <Text style={[styles.emphasisText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && { color: editorial.ink, lineHeight: 20 }]}>
               <Text style={{ fontWeight: '700' }}>Submit every time slot in the next 7 days that works for you.</Text> The more availability you share, the easier it is to lock in a time — and the faster you'll hear back.
             </Text>
@@ -291,7 +293,8 @@ export default function InterviewTimeSlotProposalScreen({ applicationId, pursuit
           {/* Time Slots */}
           <Text style={[
             styles.sectionTitle,
-            { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'InterTight_600SemiBold' },
+            { color: isNewTheme ? colors.textTertiary : colors.textPrimary, fontFamily: 'Sora_600SemiBold' },
+            isNewTheme && styles.sectionLabelDark,
             light && { color: editorial.muted, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.6 },
           ]}>Your Available Times</Text>
           {timeSlots.map((slot, index) => (
@@ -475,14 +478,14 @@ export default function InterviewTimeSlotProposalScreen({ applicationId, pursuit
           <TouchableOpacity
             style={[
               styles.addSlotButton,
-              { backgroundColor: colors.backgroundSecondary, borderColor: accentColor },
-              light && { backgroundColor: 'transparent', borderColor: editorial.hairline, borderStyle: 'solid', borderRadius: 999 },
+              { backgroundColor: colors.surface, borderColor: 'rgba(255, 255, 255, 0.08)' },
+              light && { backgroundColor: 'transparent', borderColor: editorial.hairline, borderRadius: 999 },
             ]}
             onPress={addTimeSlot}
-            activeOpacity={light ? 0.6 : 0.7}
+            activeOpacity={0.6}
           >
-            <Ionicons name="add" size={20} color={light ? editorial.ink : accentColor} />
-            <Text style={[styles.addSlotText, { color: accentColor, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && { color: editorial.ink }]}>Add Another Time Slot</Text>
+            <Ionicons name="add" size={20} color={light ? editorial.ink : colors.textPrimary} />
+            <Text style={[styles.addSlotText, { color: isNewTheme ? colors.textPrimary : editorial.ink, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Add Another Time Slot</Text>
           </TouchableOpacity>
 
           {/* Submit Button */}
@@ -495,7 +498,7 @@ export default function InterviewTimeSlotProposalScreen({ applicationId, pursuit
             ]}
             onPress={handleSubmit}
             disabled={loading}
-            activeOpacity={light ? 0.85 : 0.7}
+            activeOpacity={0.85}
           >
             <Text style={[styles.submitButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && { color: '#FFFFFF', letterSpacing: 0.2 }]}>
               {loading ? 'Submitting...' : 'Submit Interview Times'}
@@ -542,15 +545,13 @@ const styles = StyleSheet.create({
     paddingBottom: spacing['4xl'],
   },
   introSection: {
-    backgroundColor: '#E4EDDE',
     padding: spacing.lg,
-    borderRadius: borderRadius.lg,
+    borderRadius: 16,
     marginBottom: spacing.xl,
   },
   pursuitTitle: {
     fontSize: typography.fontSize.lg,
     fontWeight: typography.fontWeight.bold,
-    color: '#2D5016',
     marginBottom: spacing.sm,
   },
   introText: {
@@ -562,7 +563,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     padding: spacing.base,
-    borderRadius: borderRadius.lg,
+    borderRadius: 16,
     borderLeftWidth: 3,
     marginBottom: spacing.xl,
   },
@@ -578,12 +579,18 @@ const styles = StyleSheet.create({
     marginBottom: spacing.base,
     marginTop: spacing.lg,
   },
+  // Dark de-shouted section label: 12px, ls 1, dim white
+  sectionLabelDark: {
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
   timeSlotCard: {
-    backgroundColor: legacyColors.white,
     padding: spacing.lg,
-    borderRadius: borderRadius.lg,
+    borderRadius: 16,
     marginBottom: spacing.base,
-    ...shadows.base,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 255, 255, 0.10)',
   },
   cardAccentLine: {
     position: 'absolute',
@@ -629,7 +636,7 @@ const styles = StyleSheet.create({
     backgroundColor: legacyColors.backgroundSecondary,
     borderWidth: 1,
     borderColor: legacyColors.borderLight,
-    borderRadius: borderRadius.base,
+    borderRadius: 14,
     padding: spacing.base,
     minHeight: 48,
   },
@@ -655,25 +662,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.sm,
     padding: spacing.base,
-    backgroundColor: legacyColors.backgroundSecondary,
-    borderRadius: borderRadius.base,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#2D5016',
-    borderStyle: 'dashed',
     marginTop: spacing.base,
   },
   addSlotText: {
     fontSize: typography.fontSize.base,
-    color: '#2D5016',
     fontWeight: typography.fontWeight.semibold,
   },
   submitButton: {
-    backgroundColor: '#2D5016',
-    borderRadius: borderRadius.base,
+    borderRadius: 999,
     padding: spacing.lg,
     alignItems: 'center',
     marginTop: spacing.xl,
-    ...shadows.base,
   },
   submitButtonDisabled: {
     opacity: 0.6,

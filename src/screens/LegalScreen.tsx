@@ -69,7 +69,8 @@ function renderBody(body: string, colors: any, isNewTheme: boolean) {
     } else if (line.startsWith('- ')) {
       blocks.push(
         <View key={key++} style={styles.bulletRow}>
-          <Text style={[styles.bulletDot, { color: colors.accentGreen }]}>•</Text>
+          {/* Plain muted marker — accent is reserved for the callout rule */}
+          <Text style={[styles.bulletDot, { color: colors.textTertiary }]}>•</Text>
           <Text style={[styles.body, { color: colors.textPrimary, flex: 1, fontFamily: bodyFont }]}>
             {line.slice(2)}
           </Text>
@@ -95,7 +96,7 @@ export default function LegalScreen({ doc, onBack }: Props) {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} />
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={onBack} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+        <TouchableOpacity onPress={onBack} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} activeOpacity={0.6}>
           <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>

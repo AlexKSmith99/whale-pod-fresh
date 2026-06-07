@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,
-  Alert, Image, Dimensions, Animated, Platform, StatusBar, ActivityIndicator,
+  Image, Dimensions, Animated, Platform, StatusBar, ActivityIndicator,
   KeyboardAvoidingView,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -12,6 +12,7 @@ import { supabase } from '../config/supabase';
 import { PURSUIT_TYPES } from '../constants/pursuitTypes';
 import { US_CITIES } from '../constants/usCities';
 import { LinearGradient } from 'expo-linear-gradient';
+import { AppAlert } from '../components/ui/AppAlert';
 import { editorial } from '../theme/designSystem';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -60,6 +61,8 @@ export default function OnboardingScreen({ onComplete }: Props) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const [currentStep, setCurrentStep] = useState(0);
+  // Tracks the focused underline input so it can take the Carolina focus rule.
+  const [focusedField, setFocusedField] = useState<string | null>(null);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [profilePictures, setProfilePictures] = useState<string[]>([]);
@@ -255,10 +258,10 @@ export default function OnboardingScreen({ onComplete }: Props) {
           onComplete();
           return;
         } catch (retryErr: any) {
-          Alert.alert('Error', 'Failed to save profile: ' + retryErr.message);
+          AppAlert.alert('Error', 'Failed to save profile: ' + retryErr.message);
         }
       } else {
-        Alert.alert('Error', 'Failed to save profile: ' + error.message);
+        AppAlert.alert('Error', 'Failed to save profile: ' + error.message);
       }
     } finally {
       setSaving(false);
@@ -273,13 +276,13 @@ export default function OnboardingScreen({ onComplete }: Props) {
         : await ImagePicker.requestMediaLibraryPermissionsAsync();
 
       if (status !== 'granted') {
-        Alert.alert('Permission denied', 'We need permission to access your photos/camera');
+        AppAlert.alert('Permission denied', 'We need permission to access your photos/camera');
         return;
       }
 
       const remaining = 6 - profilePictures.length;
       if (remaining <= 0) {
-        Alert.alert('Maximum reached', 'You can upload up to 6 photos.');
+        AppAlert.alert('Maximum reached', 'You can upload up to 6 photos.');
         return;
       }
 
@@ -307,7 +310,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
     } catch (error) {
       console.error('Error picking image:', error);
       setUploading(false);
-      Alert.alert('Error', 'Failed to pick image');
+      AppAlert.alert('Error', 'Failed to pick image');
     }
   };
 
@@ -348,7 +351,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
       setProfilePictures(prev => [...prev, urlData.publicUrl]);
     } catch (error: any) {
       console.error('Upload error:', error);
-      Alert.alert('Error', 'Failed to upload photo: ' + error.message);
+      AppAlert.alert('Error', 'Failed to upload photo: ' + error.message);
     }
   };
 
@@ -465,6 +468,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
         ]}
         onPress={handleNext}
         disabled={!canProceed(currentStep) || saving}
+        activeOpacity={0.85}
       >
         {saving ? (
           <ActivityIndicator size="small" color={C.white} />
@@ -483,23 +487,27 @@ export default function OnboardingScreen({ onComplete }: Props) {
         {renderStepHeader(0)}
         <View style={styles.contentArea}>
           <TextInput
-            style={styles.largeInput}
+            style={[styles.largeInput, focusedField === 'first' && styles.largeInputFocused]}
             placeholder="First name"
             placeholderTextColor={C.border}
             value={firstName}
             onChangeText={setFirstName}
             autoFocus
             returnKeyType="next"
+            onFocus={() => setFocusedField('first')}
+            onBlur={() => setFocusedField(null)}
           />
           <View style={styles.thinDivider} />
           <TextInput
-            style={styles.largeInput}
+            style={[styles.largeInput, focusedField === 'last' && styles.largeInputFocused]}
             placeholder="Last name"
             placeholderTextColor={C.border}
             value={lastName}
             onChangeText={setLastName}
             returnKeyType="next"
             onSubmitEditing={() => canProceed(0) && handleNext()}
+            onFocus={() => setFocusedField('last')}
+            onBlur={() => setFocusedField(null)}
           />
         </View>
         <Text style={styles.helperText}>This is how you'll appear to your pod mates</Text>
@@ -524,27 +532,30 @@ export default function OnboardingScreen({ onComplete }: Props) {
           {/* Photo grid */}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
             {profilePictures.map((pic, i) => (
-              <View key={i} style={{ width: (SCREEN_WIDTH - 68) / 3, aspectRatio: 0.8, borderRadius: 12, overflow: 'hidden', backgroundColor: '#F2F0EB' }}>
+              <View key={i} style={styles.photoTile}>
                 <Image source={{ uri: pic }} style={{ width: '100%', height: '100%' }} />
                 <TouchableOpacity
-                  style={{ position: 'absolute', top: 4, right: 4, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}
+                  style={styles.photoRemoveBtn}
                   onPress={() => removePhoto(i)}
+                  activeOpacity={0.6}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                 >
                   <Ionicons name="close" size={14} color="#fff" />
                 </TouchableOpacity>
                 {i === 0 && (
-                  <View style={{ position: 'absolute', bottom: 4, left: 4, backgroundColor: C.accent, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
-                    <Text style={{ fontSize: 10, color: '#fff', fontWeight: '600' }}>Default</Text>
+                  <View style={styles.photoDefaultBadge}>
+                    <Text style={styles.photoDefaultText}>default</Text>
                   </View>
                 )}
               </View>
             ))}
-            {/* Add photo button */}
+            {/* Add photo tile */}
             {profilePictures.length < 6 && (
               <TouchableOpacity
-                style={{ width: (SCREEN_WIDTH - 68) / 3, aspectRatio: 0.8, borderRadius: 12, backgroundColor: '#F2F0EB', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: C.border, borderStyle: 'dashed' }}
+                style={styles.photoAddTile}
                 onPress={() => pickImage(false)}
                 disabled={uploading}
+                activeOpacity={0.6}
               >
                 {uploading ? (
                   <ActivityIndicator color={C.muted} />
@@ -560,20 +571,22 @@ export default function OnboardingScreen({ onComplete }: Props) {
 
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
             <TouchableOpacity
-              style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: 10, backgroundColor: '#F2F0EB' }}
+              style={styles.photoSourceBtn}
               onPress={() => pickImage(true)}
               disabled={uploading}
+              activeOpacity={0.6}
             >
               <Ionicons name="camera-outline" size={18} color={C.ink} />
-              <Text style={{ fontSize: 14, color: C.ink, fontFamily: F.body }}>Camera</Text>
+              <Text style={styles.photoSourceText}>Camera</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: 10, backgroundColor: '#F2F0EB' }}
+              style={styles.photoSourceBtn}
               onPress={() => pickImage(false)}
               disabled={uploading}
+              activeOpacity={0.6}
             >
               <Ionicons name="images-outline" size={18} color={C.ink} />
-              <Text style={{ fontSize: 14, color: C.ink, fontFamily: F.body }}>Library</Text>
+              <Text style={styles.photoSourceText}>Library</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -607,13 +620,15 @@ export default function OnboardingScreen({ onComplete }: Props) {
           <View style={styles.contentArea}>
             <View style={styles.dateRow}>
               <TextInput
-                style={styles.dateField}
+                style={[styles.dateField, focusedField === 'bMonth' && styles.inputFocused]}
                 placeholder="MM"
                 placeholderTextColor={C.border}
                 keyboardType="number-pad"
                 maxLength={2}
                 value={birthMonth}
                 autoFocus={currentStep === 2}
+                onFocus={() => setFocusedField('bMonth')}
+                onBlur={() => setFocusedField(null)}
                 onChangeText={(t) => {
                   const v = t.replace(/\D/g, '');
                   setBirthMonth(v);
@@ -624,12 +639,14 @@ export default function OnboardingScreen({ onComplete }: Props) {
               <Text style={styles.dateSeparator}>/</Text>
               <TextInput
                 ref={birthDayRef}
-                style={styles.dateField}
+                style={[styles.dateField, focusedField === 'bDay' && styles.inputFocused]}
                 placeholder="DD"
                 placeholderTextColor={C.border}
                 keyboardType="number-pad"
                 maxLength={2}
                 value={birthDay}
+                onFocus={() => setFocusedField('bDay')}
+                onBlur={() => setFocusedField(null)}
                 onChangeText={(t) => {
                   const v = t.replace(/\D/g, '');
                   setBirthDay(v);
@@ -640,12 +657,14 @@ export default function OnboardingScreen({ onComplete }: Props) {
               <Text style={styles.dateSeparator}>/</Text>
               <TextInput
                 ref={birthYearRef}
-                style={[styles.dateField, styles.dateFieldYear]}
+                style={[styles.dateField, styles.dateFieldYear, focusedField === 'bYear' && styles.inputFocused]}
                 placeholder="YYYY"
                 placeholderTextColor={C.border}
                 keyboardType="number-pad"
                 maxLength={4}
                 value={birthYear}
+                onFocus={() => setFocusedField('bYear')}
+                onBlur={() => setFocusedField(null)}
                 onChangeText={(t) => {
                   const v = t.replace(/\D/g, '');
                   setBirthYear(v);
@@ -677,6 +696,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
                     gender === option && styles.genderPillActive,
                   ]}
                   onPress={() => setGender(gender === option ? '' : option)}
+                  activeOpacity={0.7}
                 >
                   <Text style={[
                     styles.genderPillText,
@@ -690,11 +710,13 @@ export default function OnboardingScreen({ onComplete }: Props) {
 
             {gender === 'Other' && (
               <TextInput
-                style={[styles.largeInput, { marginTop: 24 }]}
+                style={[styles.largeInput, { marginTop: 24 }, focusedField === 'customGender' && styles.largeInputFocused]}
                 placeholder="How do you identify?"
                 placeholderTextColor={C.border}
                 value={customGender}
                 onChangeText={setCustomGender}
+                onFocus={() => setFocusedField('customGender')}
+                onBlur={() => setFocusedField(null)}
               />
             )}
           </View>
@@ -715,13 +737,15 @@ export default function OnboardingScreen({ onComplete }: Props) {
         {renderStepHeader(4)}
         <View style={styles.contentArea}>
           <TextInput
-            style={styles.largeInput}
+            style={[styles.largeInput, focusedField === 'hometown' && styles.largeInputFocused]}
             placeholder="City, State"
             placeholderTextColor={C.border}
             value={hometown}
             onChangeText={setHometown}
             returnKeyType="next"
             onSubmitEditing={() => canProceed(4) && handleNext()}
+            onFocus={() => setFocusedField('hometown')}
+            onBlur={() => setFocusedField(null)}
           />
           {locationSuggestions.length > 0 && (
             <View style={{ marginTop: 12 }}>
@@ -730,6 +754,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
                   key={city}
                   style={{ paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.border }}
                   onPress={() => setHometown(city)}
+                  activeOpacity={0.6}
                 >
                   <Text style={{ fontSize: 17, color: C.ink, fontFamily: F.body }}>{city}</Text>
                 </TouchableOpacity>
@@ -749,7 +774,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
         {renderStepHeader(5)}
         <View style={styles.contentArea}>
           <TextInput
-            style={styles.emailInput}
+            style={[styles.emailInput, focusedField === 'email' && styles.inputFocused]}
             placeholder="your@email.com"
             placeholderTextColor={C.border}
             value={email}
@@ -758,6 +783,8 @@ export default function OnboardingScreen({ onComplete }: Props) {
             autoCapitalize="none"
             autoCorrect={false}
             autoFocus
+            onFocus={() => setFocusedField('email')}
+            onBlur={() => setFocusedField(null)}
           />
         </View>
         <Text style={styles.helperText}>For account recovery and pod updates.</Text>
@@ -774,26 +801,30 @@ export default function OnboardingScreen({ onComplete }: Props) {
           <View style={styles.socialRow}>
             <Text style={styles.socialLabel}>Instagram</Text>
             <TextInput
-              style={styles.socialInput}
+              style={[styles.socialInput, focusedField === 'instagram' && styles.inputFocused]}
               placeholder="@handle"
               placeholderTextColor={C.border}
               value={instagram}
               onChangeText={setInstagram}
               autoCapitalize="none"
               autoCorrect={false}
+              onFocus={() => setFocusedField('instagram')}
+              onBlur={() => setFocusedField(null)}
             />
           </View>
           <View style={styles.thinDivider} />
           <View style={styles.socialRow}>
             <Text style={styles.socialLabel}>LinkedIn</Text>
             <TextInput
-              style={styles.socialInput}
+              style={[styles.socialInput, focusedField === 'linkedin' && styles.inputFocused]}
               placeholder="linkedin.com/in/you"
               placeholderTextColor={C.border}
               value={linkedin}
               onChangeText={setLinkedin}
               autoCapitalize="none"
               autoCorrect={false}
+              onFocus={() => setFocusedField('linkedin')}
+              onBlur={() => setFocusedField(null)}
             />
           </View>
         </View>
@@ -813,7 +844,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
           <View style={styles.aboutYouField}>
             <Text style={styles.aboutYouLabel}>Bio</Text>
             <TextInput
-              style={styles.aboutYouTextArea}
+              style={[styles.aboutYouTextArea, focusedField === 'bio' && styles.inputFocused]}
               placeholder="Tell people a bit about yourself..."
               placeholderTextColor={C.border}
               value={bio}
@@ -822,27 +853,33 @@ export default function OnboardingScreen({ onComplete }: Props) {
               numberOfLines={3}
               maxLength={200}
               textAlignVertical="top"
+              onFocus={() => setFocusedField('bio')}
+              onBlur={() => setFocusedField(null)}
             />
             <Text style={styles.aboutYouCharCount}>{bio.length}/200</Text>
           </View>
           <View style={styles.aboutYouField}>
             <Text style={styles.aboutYouLabel}>College</Text>
             <TextInput
-              style={styles.aboutYouInput}
+              style={[styles.aboutYouInput, focusedField === 'college' && styles.inputFocused]}
               placeholder="Where did/do you go to school?"
               placeholderTextColor={C.border}
               value={college}
               onChangeText={setCollege}
+              onFocus={() => setFocusedField('college')}
+              onBlur={() => setFocusedField(null)}
             />
           </View>
           <View style={styles.aboutYouField}>
             <Text style={styles.aboutYouLabel}>Work</Text>
             <TextInput
-              style={styles.aboutYouInput}
+              style={[styles.aboutYouInput, focusedField === 'work' && styles.inputFocused]}
               placeholder="What do you do?"
               placeholderTextColor={C.border}
               value={work}
               onChangeText={setWork}
+              onFocus={() => setFocusedField('work')}
+              onBlur={() => setFocusedField(null)}
             />
           </View>
         </View>
@@ -877,6 +914,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
                   selected && styles.interestPillActive,
                 ]}
                 onPress={() => toggleInterest(type)}
+                activeOpacity={0.7}
               >
                 <Text style={[
                   styles.interestPillText,
@@ -919,6 +957,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
                   teamRolePreference === role.key && styles.prefCardActive,
                 ]}
                 onPress={() => setTeamRolePreference(role.key)}
+                activeOpacity={0.7}
               >
                 <View style={{ flex: 1 }}>
                   <Text style={styles.prefCardLabel}>{role.label}</Text>
@@ -940,6 +979,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
                     teamSizePreference === size.key && styles.sizeCardActive,
                   ]}
                   onPress={() => setTeamSizePreference(size.key)}
+                  activeOpacity={0.7}
                 >
                   <Text style={[
                     styles.sizeLabel,
@@ -992,11 +1032,12 @@ export default function OnboardingScreen({ onComplete }: Props) {
                 <TouchableOpacity
                   style={styles.enableNotifBtn}
                   onPress={handleEnableNotifications}
+                  activeOpacity={0.85}
                 >
                   <Ionicons name="notifications" size={18} color={C.white} />
                   <Text style={styles.enableNotifText}>Enable Notifications</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => goToStep(currentStep + 1)}>
+                <TouchableOpacity onPress={() => goToStep(currentStep + 1)} activeOpacity={0.6}>
                   <Text style={[styles.helperText, { marginTop: 16 }]}>Maybe later</Text>
                 </TouchableOpacity>
               </>
@@ -1029,6 +1070,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
             style={styles.forwardButton}
             onPress={handleComplete}
             disabled={saving}
+            activeOpacity={0.85}
           >
             {saving ? (
               <ActivityIndicator size="small" color={C.white} />
@@ -1177,6 +1219,16 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
 
+  // Focus rules — underline/border goes Carolina for a crisp focus feel
+  inputFocused: {
+    borderBottomColor: C.accent,
+    borderColor: C.accent,
+  },
+  largeInputFocused: {
+    borderBottomWidth: 2,
+    borderBottomColor: C.accent,
+  },
+
   // Helper text
   helperText: {
     fontFamily: F.body,
@@ -1203,48 +1255,73 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  // Photo step
-  photoCircle: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    borderWidth: 1.5,
-    borderColor: C.border,
-    borderStyle: 'dashed',
-    justifyContent: 'center',
-    alignItems: 'center',
+  // Photo tiles — neat editorial: radius 14, hairline border
+  photoTile: {
+    width: (SCREEN_WIDTH - 68) / 3,
+    aspectRatio: 0.8,
+    borderRadius: 14,
     overflow: 'hidden',
-    marginBottom: 24,
-  },
-  photoImage: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-  },
-  photoActions: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  photoActionBtn: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
+    backgroundColor: C.white,
     borderWidth: 1,
     borderColor: C.border,
   },
-  photoActionText: {
+  photoRemoveBtn: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(27,27,24,0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  photoDefaultBadge: {
+    position: 'absolute',
+    bottom: 6,
+    left: 6,
+    backgroundColor: C.ink,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  photoDefaultText: {
+    fontSize: 10,
+    color: C.white,
     fontFamily: F.bodyMedium,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  photoAddTile: {
+    width: (SCREEN_WIDTH - 68) / 3,
+    aspectRatio: 0.8,
+    borderRadius: 14,
+    backgroundColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: C.border,
+    borderStyle: 'dashed',
+  },
+  // Secondary buttons — transparent, hairline border, ink text
+  photoSourceBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 9999,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  photoSourceText: {
     fontSize: 14,
     color: C.ink,
+    fontFamily: F.body,
   },
 
-  // Birthday large display
-  largeDateDisplay: {
-    fontFamily: F.bodyMedium,
-    fontSize: 40,
-    color: C.ink,
-    letterSpacing: 2,
-  },
+  // Birthday
   dateRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1299,17 +1376,6 @@ const styles = StyleSheet.create({
     fontFamily: F.bodyMedium,
   },
 
-  // Phone
-  phoneRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  phonePrefix: {
-    fontFamily: F.bodyMedium,
-    fontSize: 40,
-    color: C.ink,
-    marginRight: 8,
-  },
   aboutYouField: {
     marginBottom: 20,
   },
@@ -1352,48 +1418,6 @@ const styles = StyleSheet.create({
     borderBottomColor: C.border,
     paddingVertical: 8,
   },
-  phoneLargeInput: {
-    flex: 1,
-    fontFamily: F.bodyMedium,
-    fontSize: 40,
-    color: C.ink,
-    paddingVertical: 0,
-  },
-  phoneErrorText: {
-    fontFamily: F.body,
-    fontSize: 14,
-    color: editorial.red,
-    marginTop: 12,
-  },
-  otpPromptText: {
-    fontFamily: F.body,
-    fontSize: 16,
-    color: C.muted,
-    marginBottom: 6,
-  },
-  otpPhoneText: {
-    fontFamily: F.bodyMedium,
-    fontSize: 22,
-    color: C.ink,
-    marginBottom: 24,
-  },
-  otpInput: {
-    fontFamily: F.bodyMedium,
-    fontSize: 40,
-    color: C.ink,
-    letterSpacing: 8,
-    textAlign: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: C.border,
-    paddingVertical: 6,
-    minWidth: 220,
-  },
-  otpChangeText: {
-    fontFamily: F.bodyMedium,
-    fontSize: 14,
-    color: C.accent,
-    textAlign: 'center',
-  },
 
   // Socials
   socialRow: {
@@ -1413,6 +1437,8 @@ const styles = StyleSheet.create({
     fontSize: 17,
     color: C.ink,
     paddingVertical: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: 'transparent',
   },
 
   // Interests

@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   StatusBar,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { getMeetingNotes, createMeetingNote, updateMeetingNote, deleteMeetingNote, MeetingNote } from '../../services/meetingNotesService';
 import { useTheme } from '../../theme/ThemeContext';
 import { getThemedStyles } from '../../theme/themedStyles';
@@ -141,7 +142,7 @@ export default function MeetingNotesScreen({ pursuitId, onBack }: MeetingNotesSc
           ? { backgroundColor: colors.surface, borderBottomColor: colors.border }
           : { backgroundColor: editorial.bg, borderBottomWidth: 0 },
       ]}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
+        <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.6} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Text style={[styles.backButtonText, { color: isNewTheme ? primaryColor : editorial.ink }]}>← Back</Text>
         </TouchableOpacity>
         <Text style={[
@@ -149,8 +150,8 @@ export default function MeetingNotesScreen({ pursuitId, onBack }: MeetingNotesSc
           { color: colors.textPrimary },
           !isNewTheme && { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 24, letterSpacing: -0.4 },
         ]}>Meeting Notes</Text>
-        <TouchableOpacity onPress={() => setShowAddModal(true)} style={[styles.addButton, { backgroundColor: isNewTheme ? primaryColor : editorial.ink }]}>
-          <Text style={[styles.addButtonText, !isNewTheme && { fontFamily: 'InterTight_600SemiBold' }]}>+ New Note</Text>
+        <TouchableOpacity onPress={() => setShowAddModal(true)} activeOpacity={0.85} style={[styles.addButton, { backgroundColor: isNewTheme ? primaryColor : editorial.ink }]}>
+          <Text style={[styles.addButtonText, { color: isNewTheme ? '#000000' : legacyColors.white }, !isNewTheme && { fontFamily: 'InterTight_600SemiBold' }]}>+ New Note</Text>
         </TouchableOpacity>
       </View>
 
@@ -158,8 +159,8 @@ export default function MeetingNotesScreen({ pursuitId, onBack }: MeetingNotesSc
       <ScrollView style={styles.scrollView}>
         {notes.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyEmoji}>📝</Text>
-            <Text style={[styles.emptyText, { color: colors.textSecondary }, !isNewTheme && { fontFamily: 'PlayfairDisplay_700Bold', color: editorial.ink, letterSpacing: -0.3 }]}>No meeting notes yet</Text>
+            <Ionicons name="document-text-outline" size={44} color={isNewTheme ? colors.textTertiary : editorial.muted} />
+            <Text style={[styles.emptyText, { color: colors.textSecondary, marginTop: 16 }, !isNewTheme && { fontFamily: 'PlayfairDisplay_700Bold', color: editorial.ink, letterSpacing: -0.3 }]}>No meeting notes yet</Text>
             <Text style={[styles.emptyHint, { color: colors.textTertiary }, !isNewTheme && { fontFamily: 'InterTight_600SemiBold', lineHeight: 20 }]}>Tap "+ New Note" to create your first meeting note</Text>
           </View>
         ) : (
@@ -167,6 +168,7 @@ export default function MeetingNotesScreen({ pursuitId, onBack }: MeetingNotesSc
             <TouchableOpacity
               key={note.id}
               style={[styles.noteCard, { backgroundColor: colors.surface, borderColor: colors.border }, !isNewTheme && styles.editorialCard]}
+              activeOpacity={0.85}
               onPress={() => {
                 setSelectedNote(note);
                 setShowDetailModal(true);
@@ -180,17 +182,15 @@ export default function MeetingNotesScreen({ pursuitId, onBack }: MeetingNotesSc
 
               {note.agenda && (
                 <Text style={[styles.notePreview, { color: colors.textSecondary }]} numberOfLines={2}>
-                  📋 {note.agenda}
+                  {note.agenda}
                 </Text>
               )}
 
               {note.attendees && note.attendees.length > 0 && (
                 <View style={styles.attendeesRow}>
-                  <Text style={[styles.attendeesLabel, { color: primaryColor }]}>👥 {note.attendees.length} attendees</Text>
+                  <Text style={[styles.attendeesLabel, { color: colors.textTertiary }, !isNewTheme && { color: editorial.muted, fontFamily: 'InterTight_600SemiBold' }]}>{note.attendees.length} attendees</Text>
                 </View>
               )}
-
-              <Text style={[styles.tapHint, { color: primaryColor }]}>Tap to view details →</Text>
             </TouchableOpacity>
           ))
         )}
@@ -200,7 +200,7 @@ export default function MeetingNotesScreen({ pursuitId, onBack }: MeetingNotesSc
       <Modal visible={showAddModal} animationType="slide" transparent>
         <View style={styles.modalContainer}>
           <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>New Meeting Note</Text>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold' }, !isNewTheme && { letterSpacing: -0.3 }]}>New Meeting Note</Text>
 
             <TextInput
               style={[styles.input, { borderColor: colors.border, backgroundColor: colors.surface, color: colors.textPrimary }]}
@@ -249,6 +249,7 @@ export default function MeetingNotesScreen({ pursuitId, onBack }: MeetingNotesSc
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={[styles.cancelButton, { borderColor: colors.border }]}
+                activeOpacity={0.85}
                 onPress={() => {
                   setShowAddModal(false);
                   resetForm();
@@ -257,8 +258,8 @@ export default function MeetingNotesScreen({ pursuitId, onBack }: MeetingNotesSc
                 <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>Cancel</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={[styles.createButton, { backgroundColor: primaryColor }]} onPress={handleAddNote}>
-                <Text style={styles.createButtonText}>Create Note</Text>
+              <TouchableOpacity style={[styles.createButton, { backgroundColor: isNewTheme ? primaryColor : editorial.ink }]} activeOpacity={0.85} onPress={handleAddNote}>
+                <Text style={[styles.createButtonText, { color: isNewTheme ? '#000000' : legacyColors.white }]}>Create Note</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -271,26 +272,26 @@ export default function MeetingNotesScreen({ pursuitId, onBack }: MeetingNotesSc
           <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             {selectedNote && (
               <>
-                <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{selectedNote.title}</Text>
+                <Text style={[styles.modalTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold' }, !isNewTheme && { letterSpacing: -0.3 }]}>{selectedNote.title}</Text>
                 <Text style={[styles.detailDate, { color: colors.textSecondary }]}>{formatDate(selectedNote.meeting_date)}</Text>
 
                 {selectedNote.agenda && (
                   <View style={styles.detailSection}>
-                    <Text style={[styles.detailLabel, { color: colors.textPrimary }]}>📋 Agenda</Text>
+                    <Text style={[styles.detailLabel, { color: isNewTheme ? colors.textTertiary : editorial.muted }, isNewTheme ? styles.detailLabelDark : styles.detailLabelLight]}>Agenda</Text>
                     <Text style={[styles.detailText, { color: colors.textSecondary }]}>{selectedNote.agenda}</Text>
                   </View>
                 )}
 
                 {selectedNote.notes && (
                   <View style={styles.detailSection}>
-                    <Text style={[styles.detailLabel, { color: colors.textPrimary }]}>📝 Notes</Text>
+                    <Text style={[styles.detailLabel, { color: isNewTheme ? colors.textTertiary : editorial.muted }, isNewTheme ? styles.detailLabelDark : styles.detailLabelLight]}>Notes</Text>
                     <Text style={[styles.detailText, { color: colors.textSecondary }]}>{selectedNote.notes}</Text>
                   </View>
                 )}
 
                 {selectedNote.attendees && selectedNote.attendees.length > 0 && (
                   <View style={styles.detailSection}>
-                    <Text style={[styles.detailLabel, { color: colors.textPrimary }]}>👥 Attendees</Text>
+                    <Text style={[styles.detailLabel, { color: isNewTheme ? colors.textTertiary : editorial.muted }, isNewTheme ? styles.detailLabelDark : styles.detailLabelLight]}>Attendees</Text>
                     {selectedNote.attendees.map((attendee, index) => (
                       <Text key={index} style={[styles.attendeeItem, { color: colors.textSecondary }]}>• {attendee}</Text>
                     ))}
@@ -299,17 +300,19 @@ export default function MeetingNotesScreen({ pursuitId, onBack }: MeetingNotesSc
 
                 <View style={styles.modalActions}>
                   <TouchableOpacity
-                    style={styles.deleteButtonModal}
+                    style={[styles.deleteButtonModal, { backgroundColor: isNewTheme ? colors.error : editorial.red }]}
+                    activeOpacity={0.85}
                     onPress={() => handleDeleteNote(selectedNote.id)}
                   >
                     <Text style={styles.deleteButtonText}>Delete</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[styles.closeButton, { backgroundColor: primaryColor }]}
+                    style={[styles.closeButton, { backgroundColor: isNewTheme ? primaryColor : editorial.ink }]}
+                    activeOpacity={0.85}
                     onPress={() => setShowDetailModal(false)}
                   >
-                    <Text style={styles.closeButtonText}>Close</Text>
+                    <Text style={[styles.closeButtonText, { color: isNewTheme ? '#000000' : legacyColors.white }]}>Close</Text>
                   </TouchableOpacity>
                 </View>
               </>
@@ -477,10 +480,19 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   detailLabel: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#3D3D3D',
     marginBottom: 8,
+  },
+  detailLabelDark: {
+    fontSize: 12,
+    fontFamily: 'Sora_600SemiBold',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  detailLabelLight: {
+    fontSize: 11,
+    fontFamily: 'InterTight_600SemiBold',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
   },
   detailText: {
     fontSize: 15,

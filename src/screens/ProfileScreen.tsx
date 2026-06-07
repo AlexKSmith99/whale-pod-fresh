@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Linking, Image, Alert, Modal, TextInput, KeyboardAvoidingView, Platform, StatusBar, Switch, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Linking, Image, Modal, TextInput, KeyboardAvoidingView, Platform, StatusBar, Switch, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
@@ -13,6 +13,7 @@ import PieButton from '../components/ui/PieButton';
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
+import { AppAlert } from '../components/ui/AppAlert';
 
 export default function ProfileScreen({ navigation }: any) {
   const { user, signOut } = useAuth();
@@ -143,7 +144,7 @@ const handleAcceptConnection = async (connectionId: string) => {
     await connectionService.acceptConnection(connectionId);
     loadConnections();
   } catch (error: any) {
-    Alert.alert('Error', error.message);
+    AppAlert.alert('Error', error.message);
   }
 };
 
@@ -152,7 +153,7 @@ const handleRejectConnection = async (connectionId: string) => {
     await connectionService.rejectConnection(connectionId);
     loadConnections();
   } catch (error: any) {
-    Alert.alert('Error', error.message);
+    AppAlert.alert('Error', error.message);
   }
 };
 
@@ -205,10 +206,10 @@ const handleRejectConnection = async (connectionId: string) => {
       <View style={[styles.header, themedStyles.surface, !isNewTheme && { backgroundColor: editorial.bg, borderWidth: 0, shadowOpacity: 0, elevation: 0 }]}>
         <View style={styles.headerTop}>
           <View>
-            <Text style={[styles.headerTitle, themedStyles.headerTitle, !isNewTheme && { color: editorial.ink, fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.5 }]}>Profile</Text>
+            <Text style={[styles.headerTitle, themedStyles.headerTitle, isNewTheme ? { color: colors.textPrimary, fontFamily: 'Sora_700Bold', letterSpacing: -0.5 } : { color: editorial.ink, fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.5 }]}>Profile</Text>
           </View>
-          <TouchableOpacity onPress={() => setShowMenu(true)} style={styles.menuButton}>
-            <Ionicons name="settings-outline" size={24} color={isNewTheme ? themedStyles.accentIconColor : editorial.ink} />
+          <TouchableOpacity onPress={() => setShowMenu(true)} style={styles.menuButton} activeOpacity={0.6} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="settings-outline" size={24} color={isNewTheme ? colors.textPrimary : editorial.ink} />
           </TouchableOpacity>
         </View>
       </View>
@@ -229,9 +230,9 @@ const handleRejectConnection = async (connectionId: string) => {
         >
           <View style={[styles.menuContainer, themedStyles.surface]}>
             <View style={[styles.menuHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.menuTitle, themedStyles.cardTitle, isNewTheme ? { color: colors.accentGreen } : { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3, color: editorial.ink }]}>Settings</Text>
-              <TouchableOpacity onPress={() => setShowMenu(false)}>
-                <Ionicons name="close" size={24} color={themedStyles.accentIconColor} />
+              <Text style={[styles.menuTitle, themedStyles.cardTitle, isNewTheme ? { color: colors.textPrimary, fontFamily: 'Sora_700Bold', letterSpacing: -0.3 } : { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3, color: editorial.ink }]}>Settings</Text>
+              <TouchableOpacity onPress={() => setShowMenu(false)} activeOpacity={0.6} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Ionicons name="close" size={24} color={isNewTheme ? colors.textPrimary : editorial.ink} />
               </TouchableOpacity>
             </View>
 
@@ -241,15 +242,16 @@ const handleRejectConnection = async (connectionId: string) => {
                 setShowMenu(false);
                 setShowEdit(true);
               }}
+              activeOpacity={0.6}
             >
-              <View style={[styles.menuItemIcon, themedStyles.iconContainer]}>
-                <Ionicons name="person-outline" size={22} color={themedStyles.accentIconColor} />
+              <View style={[styles.menuItemIcon, themedStyles.iconContainer, !isNewTheme && { backgroundColor: 'transparent', borderWidth: 1, borderColor: editorial.hairline }]}>
+                <Ionicons name="person-outline" size={22} color={isNewTheme ? colors.textPrimary : editorial.ink} />
               </View>
               <View style={styles.menuItemContent}>
                 <Text style={[styles.menuItemText, themedStyles.listItemTitle]}>Account Details</Text>
                 <Text style={[styles.menuItemSubtext, themedStyles.listItemSubtitle]}>Edit your profile information</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={themedStyles.accentIconColor} />
+              <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -258,21 +260,22 @@ const handleRejectConnection = async (connectionId: string) => {
                 setShowMenu(false);
                 setShowPrivacyPreferences(true);
               }}
+              activeOpacity={0.6}
             >
-              <View style={[styles.menuItemIcon, themedStyles.iconContainer]}>
-                <Ionicons name="shield-outline" size={22} color={themedStyles.accentIconColor} />
+              <View style={[styles.menuItemIcon, themedStyles.iconContainer, !isNewTheme && { backgroundColor: 'transparent', borderWidth: 1, borderColor: editorial.hairline }]}>
+                <Ionicons name="shield-outline" size={22} color={isNewTheme ? colors.textPrimary : editorial.ink} />
               </View>
               <View style={styles.menuItemContent}>
                 <Text style={[styles.menuItemText, themedStyles.listItemTitle]}>Privacy Preferences</Text>
                 <Text style={[styles.menuItemSubtext, themedStyles.listItemSubtitle]}>Manage your privacy settings</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={themedStyles.accentIconColor} />
+              <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
             </TouchableOpacity>
 
             {/* Dark Mode Toggle */}
             <View style={[styles.menuItem, themedStyles.listItem]}>
-              <View style={[styles.menuItemIcon, themedStyles.iconContainer]}>
-                <Ionicons name="moon-outline" size={22} color={themedStyles.accentIconColor} />
+              <View style={[styles.menuItemIcon, themedStyles.iconContainer, !isNewTheme && { backgroundColor: 'transparent', borderWidth: 1, borderColor: editorial.hairline }]}>
+                <Ionicons name="moon-outline" size={22} color={isNewTheme ? colors.textPrimary : editorial.ink} />
               </View>
               <View style={styles.menuItemContent}>
                 <Text style={[styles.menuItemText, themedStyles.listItemTitle]}>Dark Mode</Text>
@@ -330,7 +333,7 @@ const handleRejectConnection = async (connectionId: string) => {
               {pics.length > 1 && (
                 <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 8 }}>
                   {pics.map((_: string, i: number) => (
-                    <View key={i} style={{ width: activePhotoIdx === i ? 18 : 6, height: 6, borderRadius: 3, backgroundColor: activePhotoIdx === i ? (isNewTheme ? '#2D5016' : editorial.carolina) : (isNewTheme ? '#D6D3CC' : editorial.hairline) }} />
+                    <View key={i} style={{ width: activePhotoIdx === i ? 18 : 6, height: 6, borderRadius: 3, backgroundColor: activePhotoIdx === i ? (isNewTheme ? colors.accentGreen : editorial.carolina) : (isNewTheme ? colors.border : editorial.hairline) }} />
                   ))}
                 </View>
               )}
@@ -339,7 +342,7 @@ const handleRejectConnection = async (connectionId: string) => {
         })()}
 
         <View style={{ alignItems: 'center', marginBottom: 16 }}>
-          <Text style={[styles.name, themedStyles.textPrimary, { fontSize: typography.fontSize.xl, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold', letterSpacing: isNewTheme ? 0 : -0.5 }]}>{profile?.name || 'No name set'}</Text>
+          <Text style={[styles.name, themedStyles.textPrimary, { fontSize: typography.fontSize.xl, fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold', letterSpacing: -0.5 }]}>{profile?.name || 'No name set'}</Text>
         </View>
 {/* Modern Pill Tabs */}
         <ScrollView
@@ -351,6 +354,7 @@ const handleRejectConnection = async (connectionId: string) => {
           <TouchableOpacity
             style={[styles.tabPill, themedStyles.surfaceAlt, !isNewTheme && { backgroundColor: 'transparent', borderWidth: 1, borderColor: editorial.hairline }, activeTab === 'info' && [styles.tabPillActive, { backgroundColor: isNewTheme ? colors.accentGreen : colors.primary, borderColor: isNewTheme ? colors.accentGreen : colors.primary }]]}
             onPress={() => setActiveTab('info')}
+            activeOpacity={0.7}
           >
             <Ionicons
               name="person-outline"
@@ -364,6 +368,7 @@ const handleRejectConnection = async (connectionId: string) => {
           <TouchableOpacity
             style={[styles.tabPill, themedStyles.surfaceAlt, !isNewTheme && { backgroundColor: 'transparent', borderWidth: 1, borderColor: editorial.hairline }, activeTab === 'connections' && [styles.tabPillActive, { backgroundColor: isNewTheme ? colors.accentGreen : colors.primary, borderColor: isNewTheme ? colors.accentGreen : colors.primary }]]}
             onPress={() => setActiveTab('connections')}
+            activeOpacity={0.7}
           >
             <Ionicons
               name="people-outline"
@@ -377,6 +382,7 @@ const handleRejectConnection = async (connectionId: string) => {
           <TouchableOpacity
             style={[styles.tabPill, themedStyles.surfaceAlt, !isNewTheme && { backgroundColor: 'transparent', borderWidth: 1, borderColor: editorial.hairline }, activeTab === 'pods' && [styles.tabPillActive, { backgroundColor: isNewTheme ? colors.accentGreen : colors.primary, borderColor: isNewTheme ? colors.accentGreen : colors.primary }]]}
             onPress={() => setActiveTab('pods')}
+            activeOpacity={0.7}
           >
             <Ionicons
               name="rocket-outline"
@@ -410,7 +416,7 @@ const handleRejectConnection = async (connectionId: string) => {
 
         {(profile?.hometown || profile?.college || profile?.work) && (
           <View style={[styles.section, themedStyles.card]}>
-            <Text style={[styles.sectionTitle, themedStyles.cardTitle, isNewTheme ? { color: colors.accentGreen } : { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3, color: editorial.ink }]}>Location</Text>
+            <Text style={isNewTheme ? styles.sectionTitleNew : [styles.sectionTitle, themedStyles.cardTitle, { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3, color: editorial.ink }]}>Location</Text>
             {profile?.hometown && (
               <View style={styles.infoRow}>
                 <Text style={[styles.infoLabel, themedStyles.labelText]}>Hometown:</Text>
@@ -434,78 +440,86 @@ const handleRejectConnection = async (connectionId: string) => {
 
         {profile?.bio && (
           <View style={[styles.section, themedStyles.card]}>
-            <Text style={[styles.sectionTitle, themedStyles.cardTitle, isNewTheme ? { color: colors.accentGreen } : { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3, color: editorial.ink }]}>Bio</Text>
+            <Text style={isNewTheme ? styles.sectionTitleNew : [styles.sectionTitle, themedStyles.cardTitle, { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3, color: editorial.ink }]}>Bio</Text>
             <Text style={[styles.bioText, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{profile.bio}</Text>
           </View>
         )}
 
         {(profile?.instagram || profile?.linkedin || profile?.facebook || profile?.github || profile?.portfolio_website) && (
           <View style={[styles.section, themedStyles.card]}>
-            <Text style={[styles.sectionTitle, themedStyles.cardTitle, isNewTheme ? { color: colors.accentGreen } : { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3, color: editorial.ink }]}>Social Links</Text>
+            <Text style={isNewTheme ? styles.sectionTitleNew : [styles.sectionTitle, themedStyles.cardTitle, { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3, color: editorial.ink }]}>Social Links</Text>
             {profile?.instagram && (
-              <TouchableOpacity style={[styles.linkRow, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.instagram)}>
-                <Ionicons name="logo-instagram" size={20} color={themedStyles.accentIconColor} style={styles.linkIconNew} />
+              <TouchableOpacity style={[styles.linkRow, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.instagram)} activeOpacity={0.6}>
+                <Ionicons name="logo-instagram" size={20} color="#e4405f" style={styles.linkIconNew} />
                 <Text style={[styles.linkText, themedStyles.listItemTitle]}>Instagram</Text>
-                <Ionicons name="chevron-forward" size={16} color={themedStyles.accentIconColor} />
+                <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
               </TouchableOpacity>
             )}
             {profile?.linkedin && (
-              <TouchableOpacity style={[styles.linkRow, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.linkedin)}>
-                <Ionicons name="logo-linkedin" size={20} color={themedStyles.accentIconColor} style={styles.linkIconNew} />
+              <TouchableOpacity style={[styles.linkRow, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.linkedin)} activeOpacity={0.6}>
+                <Ionicons name="logo-linkedin" size={20} color="#0077b5" style={styles.linkIconNew} />
                 <Text style={[styles.linkText, themedStyles.listItemTitle]}>LinkedIn</Text>
-                <Ionicons name="chevron-forward" size={16} color={themedStyles.accentIconColor} />
+                <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
               </TouchableOpacity>
             )}
             {profile?.facebook && (
-              <TouchableOpacity style={[styles.linkRow, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.facebook)}>
-                <Ionicons name="logo-facebook" size={20} color={themedStyles.accentIconColor} style={styles.linkIconNew} />
+              <TouchableOpacity style={[styles.linkRow, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.facebook)} activeOpacity={0.6}>
+                <Ionicons name="logo-facebook" size={20} color="#1877f2" style={styles.linkIconNew} />
                 <Text style={[styles.linkText, themedStyles.listItemTitle]}>Facebook</Text>
-                <Ionicons name="chevron-forward" size={16} color={themedStyles.accentIconColor} />
+                <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
               </TouchableOpacity>
             )}
             {profile?.github && (
-              <TouchableOpacity style={[styles.linkRow, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.github)}>
-                <Ionicons name="logo-github" size={20} color={themedStyles.accentIconColor} style={styles.linkIconNew} />
+              <TouchableOpacity style={[styles.linkRow, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.github)} activeOpacity={0.6}>
+                <Ionicons name="logo-github" size={20} color={isNewTheme ? colors.textPrimary : '#1B1B18'} style={styles.linkIconNew} />
                 <Text style={[styles.linkText, themedStyles.listItemTitle]}>GitHub</Text>
-                <Ionicons name="chevron-forward" size={16} color={themedStyles.accentIconColor} />
+                <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
               </TouchableOpacity>
             )}
             {profile?.portfolio_website && (
-              <TouchableOpacity style={[styles.linkRow, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.portfolio_website)}>
-                <Ionicons name="globe-outline" size={20} color={themedStyles.accentIconColor} style={styles.linkIconNew} />
+              <TouchableOpacity style={[styles.linkRow, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.portfolio_website)} activeOpacity={0.6}>
+                <Ionicons name="globe-outline" size={20} color={isNewTheme ? colors.accentGreen : editorial.carolina} style={styles.linkIconNew} />
                 <Text style={[styles.linkText, themedStyles.listItemTitle]}>Portfolio</Text>
-                <Ionicons name="chevron-forward" size={16} color={themedStyles.accentIconColor} />
+                <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
               </TouchableOpacity>
             )}
           </View>
         )}
 
         {!profile?.name && (
-          <View style={styles.warningBox}>
-            <Text style={[styles.warningText, themedStyles.bodyText]}>Please add your name to complete your profile</Text>
+          <View style={[styles.warningBox, {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+            borderWidth: isNewTheme ? StyleSheet.hairlineWidth : 1,
+            borderRadius: isNewTheme ? 16 : 14,
+          }]}>
+            <Text style={[styles.warningText, {
+              color: isNewTheme ? colors.warning : editorial.gold,
+              fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold',
+            }]}>Please add your name to complete your profile</Text>
           </View>
         )}
 
         {/* Legal — Terms / Privacy / Support */}
         <View style={[styles.section, themedStyles.card, { marginTop: 12 }]}>
-          <Text style={[styles.sectionTitle, themedStyles.cardTitle, isNewTheme ? { color: colors.accentGreen } : { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3, color: editorial.ink }]}>Legal</Text>
+          <Text style={isNewTheme ? styles.sectionTitleNew : [styles.sectionTitle, themedStyles.cardTitle, { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3, color: editorial.ink }]}>Legal</Text>
           <TouchableOpacity
             style={[styles.legalRow, { borderBottomColor: colors.border }]}
-            onPress={() => navigation?.navigate?.('Legal', { doc: 'terms' })}
+            onPress={() => navigation?.navigate?.('Legal', { doc: 'terms' })} activeOpacity={0.6}
           >
             <Text style={[styles.legalRowText, themedStyles.bodyText]}>Terms of Service</Text>
             <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.legalRow, { borderBottomColor: colors.border }]}
-            onPress={() => navigation?.navigate?.('Legal', { doc: 'privacy' })}
+            onPress={() => navigation?.navigate?.('Legal', { doc: 'privacy' })} activeOpacity={0.6}
           >
             <Text style={[styles.legalRowText, themedStyles.bodyText]}>Privacy Policy</Text>
             <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.legalRow, { borderBottomWidth: 0 }]}
-            onPress={() => navigation?.navigate?.('Legal', { doc: 'support' })}
+            onPress={() => navigation?.navigate?.('Legal', { doc: 'support' })} activeOpacity={0.6}
           >
             <Text style={[styles.legalRowText, themedStyles.bodyText]}>Support</Text>
             <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
@@ -524,7 +538,7 @@ const handleRejectConnection = async (connectionId: string) => {
             />
           </View>
         ) : (
-          <TouchableOpacity style={[styles.signOutButton, { backgroundColor: colors.error }]} onPress={signOut}>
+          <TouchableOpacity style={[styles.signOutButton, { backgroundColor: colors.error }]} onPress={signOut} activeOpacity={0.85}>
             <Text style={[styles.signOutText, themedStyles.buttonPrimaryText, { color: colors.white }]}>Sign Out</Text>
           </TouchableOpacity>
         )}
@@ -542,7 +556,7 @@ const handleRejectConnection = async (connectionId: string) => {
           >
             {/* Search Bar */}
             <View style={[styles.connectionSearchContainer, themedStyles.searchContainer, !isNewTheme && { backgroundColor: 'transparent', borderRadius: 0, borderBottomWidth: 1, borderBottomColor: editorial.hairline }]}>
-              <Ionicons name="search" size={18} color={isNewTheme ? themedStyles.accentIconColor : editorial.muted} style={styles.connectionSearchIcon} />
+              <Ionicons name="search" size={18} color={colors.textTertiary} style={styles.connectionSearchIcon} />
               <TextInput
                 style={[styles.connectionSearchInput, themedStyles.inputText, { fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
                 placeholder="Search connections..."
@@ -561,7 +575,7 @@ const handleRejectConnection = async (connectionId: string) => {
 
             {pendingRequests.length > 0 && !connectionSearchQuery && (
               <View style={[styles.section, themedStyles.card]}>
-                <Text style={[styles.sectionTitle, themedStyles.cardTitle, isNewTheme ? { color: colors.accentGreen } : { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3, color: editorial.ink }]}>Pending Requests ({pendingRequests.length})</Text>
+                <Text style={isNewTheme ? styles.sectionTitleNew : [styles.sectionTitle, themedStyles.cardTitle, { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3, color: editorial.ink }]}>Pending Requests ({pendingRequests.length})</Text>
                 {pendingRequests.map((request: any) => (
                   <View key={request.id} style={[styles.connectionCard, { borderBottomColor: colors.border }]}>
                     {request.profile?.profile_picture ? (
@@ -578,16 +592,18 @@ const handleRejectConnection = async (connectionId: string) => {
                     </View>
                     <View style={styles.requestActions}>
                       <TouchableOpacity
-                        style={[styles.acceptButton, { backgroundColor: isNewTheme ? colors.success : editorial.ink }]}
+                        style={[styles.acceptButton, { backgroundColor: isNewTheme ? colors.accentGreen : editorial.ink }]}
                         onPress={() => handleAcceptConnection(request.id)}
+                        activeOpacity={0.85}
                       >
-                        <Text style={styles.acceptButtonText}>✓</Text>
+                        <Ionicons name="checkmark" size={20} color={isNewTheme ? colors.background : colors.white} />
                       </TouchableOpacity>
                       <TouchableOpacity
-                        style={[styles.rejectButton, { backgroundColor: colors.error }]}
+                        style={[styles.rejectButton, { backgroundColor: 'transparent', borderWidth: 1, borderColor: isNewTheme ? colors.border : editorial.hairline }]}
                         onPress={() => handleRejectConnection(request.id)}
+                        activeOpacity={0.85}
                       >
-                        <Text style={styles.rejectButtonText}>✕</Text>
+                        <Ionicons name="close" size={20} color={isNewTheme ? colors.textSecondary : editorial.red} />
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -597,7 +613,7 @@ const handleRejectConnection = async (connectionId: string) => {
 
             {connections.length === 0 && pendingRequests.length === 0 ? (
               <View style={styles.emptyReviews}>
-                <Ionicons name="people-outline" size={64} color={isNewTheme ? themedStyles.accentIconColor : editorial.muted} style={{ marginBottom: 16 }} />
+                <Ionicons name="people-outline" size={64} color={colors.textTertiary} style={{ marginBottom: 16 }} />
                 <Text style={[styles.emptyReviewsText, themedStyles.emptyText, !isNewTheme && { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3 }]}>No connections yet</Text>
                 <Text style={[styles.emptyReviewsHint, themedStyles.emptySubtext]}>
                   Connect with teammates to build your network
@@ -620,6 +636,7 @@ const handleRejectConnection = async (connectionId: string) => {
     key={conn.id}
     style={[styles.connectionCard, { borderBottomColor: colors.border }]}
     onPress={() => navigation.navigate('UserProfile', { userId: conn.otherUserId })}
+    activeOpacity={0.7}
   >
     {conn.profile?.profile_picture ? (
       <Image source={{ uri: conn.profile.profile_picture }} style={styles.connectionAvatar} />
@@ -663,7 +680,7 @@ const handleRejectConnection = async (connectionId: string) => {
               </View>
             ) : userPods.length === 0 ? (
               <View style={styles.emptyReviews}>
-                <Ionicons name="rocket-outline" size={64} color={isNewTheme ? themedStyles.accentIconColor : editorial.muted} style={{ marginBottom: 16 }} />
+                <Ionicons name="rocket-outline" size={64} color={colors.textTertiary} style={{ marginBottom: 16 }} />
                 <Text style={[styles.emptyReviewsText, themedStyles.emptyText, !isNewTheme && { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3 }]}>No pods yet</Text>
                 <Text style={[styles.emptyReviewsHint, themedStyles.emptySubtext]}>
                   Join or create a pod to get started
@@ -674,7 +691,7 @@ const handleRejectConnection = async (connectionId: string) => {
                 {/* Current Pods */}
                 {userPods.filter(p => !p.status || ['awaiting_kickoff', 'collecting_proposals', 'active'].includes(p.status) || ['active', 'accepted'].includes(p.membership_status)).length > 0 && (
                   <View style={[styles.section, themedStyles.card]}>
-                    <Text style={[styles.sectionTitle, themedStyles.cardTitle, isNewTheme ? { color: colors.accentGreen } : { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3, color: editorial.ink }]}>Current Pods</Text>
+                    <Text style={isNewTheme ? styles.sectionTitleNew : [styles.sectionTitle, themedStyles.cardTitle, { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3, color: editorial.ink }]}>Current Pods</Text>
                     {userPods
                       .filter(p => !p.status || ['awaiting_kickoff', 'collecting_proposals', 'active'].includes(p.status) || ['active', 'accepted'].includes(p.membership_status))
                       .map((pod) => (
@@ -682,6 +699,7 @@ const handleRejectConnection = async (connectionId: string) => {
                           key={pod.id}
                           style={[styles.podCard, themedStyles.surfaceAlt]}
                           onPress={() => navigation.navigate('PursuitDetail', { pursuitId: pod.id })}
+                          activeOpacity={0.7}
                         >
                           {pod.default_picture ? (
                             <Image source={{ uri: pod.default_picture }} style={styles.podCardImage} />
@@ -702,7 +720,7 @@ const handleRejectConnection = async (connectionId: string) => {
                               </Text>
                             </View>
                           </View>
-                          <Ionicons name="chevron-forward" size={20} color={themedStyles.accentIconColor} />
+                          <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
                         </TouchableOpacity>
                       ))}
                   </View>
@@ -711,7 +729,7 @@ const handleRejectConnection = async (connectionId: string) => {
                 {/* Past Pods */}
                 {userPods.filter(p => ['completed', 'archived'].includes(p.status) || ['left', 'removed'].includes(p.membership_status)).length > 0 && (
                   <View style={[styles.section, themedStyles.card]}>
-                    <Text style={[styles.sectionTitle, themedStyles.cardTitle, isNewTheme ? { color: colors.accentGreen } : { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3, color: editorial.ink }]}>Past Pods</Text>
+                    <Text style={isNewTheme ? styles.sectionTitleNew : [styles.sectionTitle, themedStyles.cardTitle, { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3, color: editorial.ink }]}>Past Pods</Text>
                     {userPods
                       .filter(p => ['completed', 'archived'].includes(p.status) || ['left', 'removed'].includes(p.membership_status))
                       .map((pod) => (
@@ -719,6 +737,7 @@ const handleRejectConnection = async (connectionId: string) => {
                           key={pod.id}
                           style={[styles.podCard, styles.podCardPast, themedStyles.surfaceAlt, { opacity: 0.7 }]}
                           onPress={() => navigation.navigate('PursuitDetail', { pursuitId: pod.id })}
+                          activeOpacity={0.7}
                         >
                           {pod.default_picture ? (
                             <Image source={{ uri: pod.default_picture }} style={[styles.podCardImage, styles.podCardImagePast]} />
@@ -933,6 +952,14 @@ const styles = StyleSheet.create({
     color: legacyColors.textPrimary,
     marginBottom: spacing.sm,
   },
+  sectionTitleNew: {
+    fontSize: 12,
+    fontFamily: 'Sora_600SemiBold',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    color: 'rgba(255,255,255,0.45)',
+    marginBottom: spacing.sm,
+  },
   sectionDotDivider: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -1051,14 +1078,10 @@ const styles = StyleSheet.create({
   linkText: { flex: 1, fontSize: 15, color: '#1f2937', fontWeight: '500' },
   linkArrow: { fontSize: 16, color: '#9ca3af' },
   warningBox: {
-    backgroundColor: '#fef3c7',
     padding: 16,
-    borderRadius: 12,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#f59e0b',
   },
-  warningText: { fontSize: 14, color: '#92400e', fontWeight: '600', textAlign: 'center' },
+  warningText: { fontSize: 14, fontWeight: '600', textAlign: 'center' },
   signOutButton: {
     backgroundColor: legacyColors.error,
     borderRadius: borderRadius.lg,
@@ -1273,30 +1296,18 @@ requestActions: {
   gap: 8,
 },
 acceptButton: {
-  backgroundColor: '#10b981',
   width: 36,
   height: 36,
   borderRadius: 18,
   justifyContent: 'center',
   alignItems: 'center',
-},
-acceptButtonText: {
-  color: '#fff',
-  fontSize: 20,
-  fontWeight: 'bold',
 },
 rejectButton: {
-  backgroundColor: '#ef4444',
   width: 36,
   height: 36,
   borderRadius: 18,
   justifyContent: 'center',
   alignItems: 'center',
-},
-rejectButtonText: {
-  color: '#fff',
-  fontSize: 20,
-  fontWeight: 'bold',
 }, calendarRow: {
   flexDirection: 'row',
   justifyContent: 'space-between',

@@ -8,6 +8,7 @@ import { AuthProvider } from './src/contexts/AuthContext';
 import { appFonts } from './src/constants/fonts';
 import { queryClient } from './src/config/queryClient';
 import ThemeTransitionWrapper from './src/components/ThemeTransitionWrapper';
+import { AppAlertHost } from './src/components/ui/AppAlert';
 import AppContent from './src/AppContent';
 import './src/utils/enableTextSelection';
 
@@ -51,6 +52,7 @@ export default function App() {
         <AuthProvider>
           <AppContent />
           <ThemeTransitionWrapper />
+          <AppAlertHost />
           <StatusBar style="auto" />
         </AuthProvider>
       </ThemeProvider>

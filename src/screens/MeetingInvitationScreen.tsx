@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +16,7 @@ import { colors as legacyColors, typography, spacing, borderRadius, editorial } 
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
+import { AppAlert } from '../components/ui/AppAlert';
 
 // Editorial light-mode card: white surface, hairline border, soft shadow.
 const lightCard = {
@@ -69,6 +69,9 @@ export default function MeetingInvitationScreen({ meetingId, onBack, onResponded
   const [currentStatus, setCurrentStatus] = useState<string>('invited');
 
   const accentColor = isNewTheme ? colors.accentGreen : legacyColors.primary;
+  // Detail-row icons demoted off-accent (white tint dark / muted ink light) so the
+  // accent budget is spent on the pod link + the primary Accept action.
+  const detailIconColor = isNewTheme ? 'rgba(255, 255, 255, 0.55)' : editorial.muted;
 
   useEffect(() => {
     loadMeetingDetails();
@@ -106,7 +109,7 @@ export default function MeetingInvitationScreen({ meetingId, onBack, onResponded
       }
     } catch (error) {
       console.error('Error loading meeting details:', error);
-      Alert.alert('Error', 'Failed to load meeting details');
+      AppAlert.alert('Error', 'Failed to load meeting details');
     } finally {
       setLoading(false);
     }
@@ -126,14 +129,14 @@ export default function MeetingInvitationScreen({ meetingId, onBack, onResponded
         maybe: 'Marked as tentative. It has been added to your calendar.',
       };
 
-      Alert.alert('Response Recorded', statusMessages[status], [
+      AppAlert.alert('Response Recorded', statusMessages[status], [
         { text: 'OK', onPress: () => {
           onResponded?.();
         }}
       ]);
     } catch (error) {
       console.error('Error responding to meeting:', error);
-      Alert.alert('Error', 'Failed to record your response');
+      AppAlert.alert('Error', 'Failed to record your response');
     } finally {
       setResponding(false);
     }
@@ -213,10 +216,10 @@ export default function MeetingInvitationScreen({ meetingId, onBack, onResponded
       {isNewTheme && <GrainTexture opacity={0.06} />}
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }, !isNewTheme && { backgroundColor: editorial.bg, borderBottomWidth: 0 }]}>
-        <TouchableOpacity onPress={onBack} style={styles.closeButton} activeOpacity={isNewTheme ? 0.7 : 0.6}>
+        <TouchableOpacity onPress={onBack} style={styles.closeButton} activeOpacity={0.6} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Ionicons name="close" size={28} color={isNewTheme ? colors.textPrimary : editorial.ink} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }, !isNewTheme && { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 22, letterSpacing: -0.4 }]}>Meeting Invitation</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }, isNewTheme ? { fontFamily: 'Sora_700Bold', letterSpacing: -0.3 } : { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 22, letterSpacing: -0.4 }]}>Meeting Invitation</Text>
         <View style={{ width: 28 }} />
       </View>
 
@@ -224,16 +227,16 @@ export default function MeetingInvitationScreen({ meetingId, onBack, onResponded
         {/* Pod Badge */}
         <View style={[styles.podBadge, { backgroundColor: colors.backgroundSecondary }, !isNewTheme && { backgroundColor: 'transparent', borderWidth: 1, borderColor: editorial.hairline }]}>
           <Ionicons name="people-circle" size={16} color={isNewTheme ? accentColor : editorial.carolinaDeep} />
-          <Text style={[styles.podBadgeText, { color: accentColor }, !isNewTheme && { color: editorial.carolinaDeep, fontFamily: 'InterTight_600SemiBold', letterSpacing: 0.3 }]}>{meeting.pursuit?.title}</Text>
+          <Text style={[styles.podBadgeText, { color: accentColor, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && { color: editorial.carolinaDeep, letterSpacing: 0.3 }]}>{meeting.pursuit?.title}</Text>
         </View>
 
         {/* Meeting Title */}
-        <Text style={[styles.meetingTitle, { color: colors.textPrimary }, !isNewTheme && { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 28, letterSpacing: -0.5 }]}>{meeting.title}</Text>
+        <Text style={[styles.meetingTitle, { color: colors.textPrimary }, isNewTheme ? { fontFamily: 'Sora_700Bold', letterSpacing: -0.3 } : { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 28, letterSpacing: -0.5 }]}>{meeting.title}</Text>
 
         {/* Organizer */}
         <View style={styles.organizerRow}>
-          <Text style={[styles.organizerLabel, { color: colors.textSecondary }, !isNewTheme && { fontFamily: 'InterTight_600SemiBold', color: editorial.muted }]}>Organized by </Text>
-          <Text style={[styles.organizerName, { color: colors.textPrimary }, !isNewTheme && { fontFamily: 'InterTight_600SemiBold' }]}>
+          <Text style={[styles.organizerLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && { color: editorial.muted }]}>Organized by </Text>
+          <Text style={[styles.organizerName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
             {meeting.creator?.name || meeting.creator?.email?.split('@')[0] || 'The organizer'}
           </Text>
         </View>
@@ -242,24 +245,24 @@ export default function MeetingInvitationScreen({ meetingId, onBack, onResponded
         <View style={[styles.detailsCard, { backgroundColor: colors.surface, borderWidth: isNewTheme ? 1 : 0, borderColor: colors.border }, !isNewTheme && lightCard]}>
           {/* Date & Time */}
           <View style={styles.detailRow}>
-            <View style={[styles.detailIcon, { backgroundColor: colors.backgroundSecondary }, !isNewTheme && { backgroundColor: 'transparent' }]}>
-              <Ionicons name="calendar" size={22} color={accentColor} />
+            <View style={[styles.detailIcon, { backgroundColor: 'transparent' }]}>
+              <Ionicons name="calendar" size={22} color={detailIconColor} />
             </View>
             <View style={styles.detailContent}>
-              <Text style={[styles.detailTitle, { color: colors.textPrimary }, !isNewTheme && { fontFamily: 'InterTight_600SemiBold' }]}>{date}</Text>
-              <Text style={[styles.detailSubtitle, { color: colors.textSecondary }, !isNewTheme && { fontFamily: 'InterTight_600SemiBold', color: editorial.muted }]}>{time} ({meeting.duration_minutes} min)</Text>
+              <Text style={[styles.detailTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{date}</Text>
+              <Text style={[styles.detailSubtitle, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && { color: editorial.muted }]}>{time} ({meeting.duration_minutes} min)</Text>
             </View>
           </View>
 
           {/* Meeting Type */}
           <View style={styles.detailRow}>
-            <View style={[styles.detailIcon, { backgroundColor: colors.backgroundSecondary }, !isNewTheme && { backgroundColor: 'transparent' }]}>
-              <Ionicons name={getMeetingTypeIcon(meeting.meeting_type) as any} size={22} color={accentColor} />
+            <View style={[styles.detailIcon, { backgroundColor: 'transparent' }]}>
+              <Ionicons name={getMeetingTypeIcon(meeting.meeting_type) as any} size={22} color={detailIconColor} />
             </View>
             <View style={styles.detailContent}>
-              <Text style={[styles.detailTitle, { color: colors.textPrimary }, !isNewTheme && { fontFamily: 'InterTight_600SemiBold' }]}>{getMeetingTypeLabel(meeting.meeting_type)}</Text>
+              <Text style={[styles.detailTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{getMeetingTypeLabel(meeting.meeting_type)}</Text>
               {meeting.location && (
-                <Text style={[styles.detailSubtitle, { color: colors.textSecondary }, !isNewTheme && { fontFamily: 'InterTight_600SemiBold', color: editorial.muted }]}>{meeting.location}</Text>
+                <Text style={[styles.detailSubtitle, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && { color: editorial.muted }]}>{meeting.location}</Text>
               )}
             </View>
           </View>
@@ -267,41 +270,18 @@ export default function MeetingInvitationScreen({ meetingId, onBack, onResponded
           {/* Description */}
           {meeting.description && (
             <View style={[styles.descriptionSection, { borderTopColor: colors.border }]}>
-              <Text style={[styles.descriptionLabel, { color: colors.textSecondary }, !isNewTheme && { ...{ color: editorial.muted, fontFamily: 'InterTight_600SemiBold', fontSize: 10, textTransform: 'uppercase' as const, letterSpacing: 0.6 } }]}>Description</Text>
-              <Text style={[styles.descriptionText, { color: colors.textPrimary }, !isNewTheme && { fontFamily: 'InterTight_600SemiBold' }]}>{meeting.description}</Text>
+              <Text style={[styles.descriptionLabel, isNewTheme
+                ? { color: 'rgba(255, 255, 255, 0.45)', fontFamily: 'Sora_600SemiBold', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 }
+                : { color: editorial.muted, fontFamily: 'InterTight_600SemiBold', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.6 }]}>Description</Text>
+              <Text style={[styles.descriptionText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{meeting.description}</Text>
             </View>
           )}
         </View>
 
-        {/* Current Status */}
-        {hasResponded && (
-          <View style={styles.currentStatusContainer}>
-            <Text style={[styles.currentStatusLabel, { color: colors.textSecondary }, !isNewTheme && { color: editorial.muted, fontFamily: 'InterTight_600SemiBold' }]}>Your Response:</Text>
-            <View style={[
-              styles.currentStatusBadge,
-              currentStatus === 'accepted' && styles.statusAccepted,
-              currentStatus === 'declined' && styles.statusDeclined,
-              currentStatus === 'maybe' && styles.statusMaybe,
-              // Light editorial: ink (accepted), red (declined), gold (tentative).
-              !isNewTheme && currentStatus === 'accepted' && { backgroundColor: editorial.ink },
-              !isNewTheme && currentStatus === 'declined' && { backgroundColor: editorial.red },
-              !isNewTheme && currentStatus === 'maybe' && { backgroundColor: editorial.gold },
-            ]}>
-              <Ionicons
-                name={currentStatus === 'accepted' ? 'checkmark-circle' : currentStatus === 'declined' ? 'close-circle' : 'help-circle'}
-                size={18}
-                color={colors.white}
-              />
-              <Text style={[styles.currentStatusText, { color: colors.white }, !isNewTheme && { fontFamily: 'InterTight_600SemiBold' }]}>
-                {currentStatus === 'accepted' ? 'Accepted' : currentStatus === 'declined' ? 'Declined' : 'Tentative'}
-              </Text>
-            </View>
-          </View>
-        )}
-
-        {/* Response Buttons */}
+        {/* Response Buttons — the selected button itself reflects the current
+            response, so a separate "Your Response" badge would be redundant. */}
         <View style={[styles.responseSection, { backgroundColor: colors.surface, borderWidth: isNewTheme ? 1 : 0, borderColor: colors.border }, !isNewTheme && lightCard]}>
-          <Text style={[styles.responseSectionTitle, { color: colors.textPrimary }, !isNewTheme && { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3 }]}>
+          <Text style={[styles.responseSectionTitle, { color: colors.textPrimary }, isNewTheme ? { fontFamily: 'Sora_700Bold', letterSpacing: -0.3 } : { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3 }]}>
             {hasResponded ? 'Change your response' : 'Will you attend?'}
           </Text>
 
@@ -309,62 +289,63 @@ export default function MeetingInvitationScreen({ meetingId, onBack, onResponded
             <TouchableOpacity
               style={[
                 styles.responseButton,
-                styles.acceptButton,
-                // Light: hairline-outline pill, fills ink when selected (positive confirm).
-                !isNewTheme && { backgroundColor: 'transparent', borderColor: editorial.hairline, borderWidth: 1, borderRadius: 999 },
-                currentStatus === 'accepted' && { backgroundColor: '#22c55e', borderColor: '#22c55e' },
-                !isNewTheme && currentStatus === 'accepted' && { backgroundColor: editorial.ink, borderColor: editorial.ink },
+                // Dark: hairline-outline pill; fills lime (black text) when selected (primary confirm).
+                // Light: hairline-outline pill; fills ink when selected (positive confirm).
+                { backgroundColor: 'transparent', borderColor: isNewTheme ? colors.border : editorial.hairline, borderWidth: 1, borderRadius: 999 },
+                currentStatus === 'accepted' && (isNewTheme
+                  ? { backgroundColor: colors.accentGreen, borderColor: colors.accentGreen }
+                  : { backgroundColor: editorial.ink, borderColor: editorial.ink }),
               ]}
               onPress={() => handleResponse('accepted')}
               disabled={responding}
+              activeOpacity={0.85}
             >
-              <Ionicons name="checkmark-circle" size={24} color={currentStatus === 'accepted' ? colors.white : (isNewTheme ? '#22c55e' : editorial.ink)} />
+              <Ionicons name="checkmark-circle" size={24} color={currentStatus === 'accepted' ? (isNewTheme ? colors.background : colors.white) : (isNewTheme ? colors.accentGreen : editorial.ink)} />
               <Text style={[
                 styles.responseButtonText,
-                styles.acceptButtonText,
-                !isNewTheme && { color: editorial.ink, fontFamily: 'InterTight_600SemiBold' },
-                currentStatus === 'accepted' && { color: colors.white },
+                { color: isNewTheme ? colors.accentGreen : editorial.ink, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' },
+                currentStatus === 'accepted' && { color: isNewTheme ? colors.background : colors.white },
               ]}>Accept</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[
                 styles.responseButton,
-                styles.maybeButton,
-                // Light: hairline-outline pill, fills gold when selected.
-                !isNewTheme && { backgroundColor: 'transparent', borderColor: editorial.hairline, borderWidth: 1, borderRadius: 999 },
-                currentStatus === 'maybe' && { backgroundColor: '#f59e0b', borderColor: '#f59e0b' },
-                !isNewTheme && currentStatus === 'maybe' && { backgroundColor: editorial.gold, borderColor: editorial.gold },
+                // Hairline-outline pill; fills warning/gold when selected (tentative).
+                { backgroundColor: 'transparent', borderColor: isNewTheme ? colors.border : editorial.hairline, borderWidth: 1, borderRadius: 999 },
+                currentStatus === 'maybe' && (isNewTheme
+                  ? { backgroundColor: colors.warning, borderColor: colors.warning }
+                  : { backgroundColor: editorial.gold, borderColor: editorial.gold }),
               ]}
               onPress={() => handleResponse('maybe')}
               disabled={responding}
+              activeOpacity={0.85}
             >
-              <Ionicons name="help-circle" size={24} color={currentStatus === 'maybe' ? colors.white : (isNewTheme ? '#f59e0b' : editorial.muted)} />
+              <Ionicons name="help-circle" size={24} color={currentStatus === 'maybe' ? (isNewTheme ? colors.background : colors.white) : (isNewTheme ? 'rgba(255, 255, 255, 0.55)' : editorial.muted)} />
               <Text style={[
                 styles.responseButtonText,
-                styles.maybeButtonText,
-                !isNewTheme && { color: editorial.muted, fontFamily: 'InterTight_600SemiBold' },
-                currentStatus === 'maybe' && { color: colors.white },
+                { color: isNewTheme ? 'rgba(255, 255, 255, 0.55)' : editorial.muted, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' },
+                currentStatus === 'maybe' && { color: isNewTheme ? colors.background : colors.white },
               ]}>Tentative</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[
                 styles.responseButton,
-                styles.declineButton,
-                // Light: hairline-outline pill with red text/glyph; fills red when selected (destructive).
-                !isNewTheme && { backgroundColor: 'transparent', borderColor: editorial.hairline, borderWidth: 1, borderRadius: 999 },
-                currentStatus === 'declined' && { backgroundColor: '#ef4444', borderColor: '#ef4444' },
-                !isNewTheme && currentStatus === 'declined' && { backgroundColor: editorial.red, borderColor: editorial.red },
+                // Hairline-outline pill with red glyph/text; fills red when selected (destructive).
+                { backgroundColor: 'transparent', borderColor: isNewTheme ? colors.border : editorial.hairline, borderWidth: 1, borderRadius: 999 },
+                currentStatus === 'declined' && (isNewTheme
+                  ? { backgroundColor: colors.error, borderColor: colors.error }
+                  : { backgroundColor: editorial.red, borderColor: editorial.red }),
               ]}
               onPress={() => handleResponse('declined')}
               disabled={responding}
+              activeOpacity={0.85}
             >
-              <Ionicons name="close-circle" size={24} color={currentStatus === 'declined' ? colors.white : (isNewTheme ? '#ef4444' : editorial.red)} />
+              <Ionicons name="close-circle" size={24} color={currentStatus === 'declined' ? colors.white : (isNewTheme ? colors.error : editorial.red)} />
               <Text style={[
                 styles.responseButtonText,
-                styles.declineButtonText,
-                !isNewTheme && { color: editorial.red, fontFamily: 'InterTight_600SemiBold' },
+                { color: isNewTheme ? colors.error : editorial.red, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' },
                 currentStatus === 'declined' && { color: colors.white },
               ]}>Decline</Text>
             </TouchableOpacity>
@@ -491,37 +472,6 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.base,
     lineHeight: 22,
   },
-  currentStatusContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.lg,
-  },
-  currentStatusLabel: {
-    fontSize: typography.fontSize.base,
-    marginRight: spacing.sm,
-  },
-  currentStatusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.base,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.full,
-  },
-  statusAccepted: {
-    backgroundColor: '#22c55e',
-  },
-  statusDeclined: {
-    backgroundColor: '#ef4444',
-  },
-  statusMaybe: {
-    backgroundColor: '#f59e0b',
-  },
-  currentStatusText: {
-    fontSize: typography.fontSize.sm,
-    fontWeight: typography.fontWeight.semibold,
-    marginLeft: spacing.xs,
-  },
   responseSection: {
     borderRadius: borderRadius.lg,
     padding: spacing.lg,
@@ -542,34 +492,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: spacing.lg,
-    borderRadius: borderRadius.lg,
-    borderWidth: 2,
-  },
-  acceptButton: {
-    borderColor: '#22c55e',
-    backgroundColor: '#f0fdf4',
-  },
-  maybeButton: {
-    borderColor: '#f59e0b',
-    backgroundColor: '#fffbeb',
-  },
-  declineButton: {
-    borderColor: '#ef4444',
-    backgroundColor: '#fef2f2',
+    borderRadius: 999,
+    borderWidth: 1,
   },
   responseButtonText: {
     fontSize: typography.fontSize.sm,
     fontWeight: typography.fontWeight.semibold,
     marginTop: spacing.xs,
-  },
-  acceptButtonText: {
-    color: '#22c55e',
-  },
-  maybeButtonText: {
-    color: '#f59e0b',
-  },
-  declineButtonText: {
-    color: '#ef4444',
   },
   respondingOverlay: {
     flexDirection: 'row',

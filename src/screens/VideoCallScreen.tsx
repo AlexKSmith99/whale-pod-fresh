@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   Platform,
   Dimensions,
   StatusBar,
@@ -23,6 +22,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
 import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+import { AppAlert } from '../components/ui/AppAlert';
 
 const { width, height } = Dimensions.get('window');
 
@@ -64,14 +64,14 @@ export default function VideoCallScreen({
       // Request camera permission
       const cameraStatus = await Camera.requestCameraPermissionsAsync();
       if (cameraStatus.status !== 'granted') {
-        Alert.alert('Permission Denied', 'Camera permission is required for video calls');
+        AppAlert.alert('Permission Denied', 'Camera permission is required for video calls');
         return false;
       }
 
       // Request microphone permission
       const audioStatus = await Audio.requestPermissionsAsync();
       if (audioStatus.status !== 'granted') {
-        Alert.alert('Permission Denied', 'Microphone permission is required for video calls');
+        AppAlert.alert('Permission Denied', 'Microphone permission is required for video calls');
         return false;
       }
 
@@ -122,7 +122,7 @@ export default function VideoCallScreen({
       await agoraService.joinChannel(agoraToken, channelName);
     } catch (error) {
       console.error('Failed to initialize video call:', error);
-      Alert.alert('Error', 'Failed to start video call');
+      AppAlert.alert('Error', 'Failed to start video call');
       onEndCall();
     }
   };
@@ -177,8 +177,8 @@ export default function VideoCallScreen({
       {isNewTheme && <GrainTexture opacity={0.06} />}
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.podTitle}>{podTitle}</Text>
-        <Text style={styles.channelName}>Channel: {channelName}</Text>
+        <Text style={styles.podTitle} numberOfLines={1}>{podTitle}</Text>
+        <Text style={styles.channelName} numberOfLines={1}>{channelName}</Text>
       </View>
 
       {/* Video Grid */}
@@ -212,8 +212,10 @@ export default function VideoCallScreen({
           </View>
         ) : (
           <View style={styles.emptyState}>
-            <Ionicons name="people-outline" size={64} color="#999" />
-            <Text style={styles.emptyStateText}>Waiting for others to join...</Text>
+            <View style={[styles.emptyStateBadge, { borderColor: vcAccent }]}>
+              <Ionicons name="people-outline" size={40} color={vcAccent} />
+            </View>
+            <Text style={styles.emptyStateText}>Waiting for others to join</Text>
           </View>
         )}
 
@@ -283,14 +285,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.3)',
   },
   podTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 22,
     color: '#fff',
-    marginBottom: 5,
+    marginBottom: 4,
+    fontFamily: 'Sora_700Bold',
+    letterSpacing: -0.3,
   },
   channelName: {
-    fontSize: 14,
-    color: '#ccc',
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.45)',
+    fontFamily: 'Sora_600SemiBold',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   videoContainer: {
     flex: 1,
@@ -342,10 +348,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  emptyStateBadge: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   emptyStateText: {
-    color: '#999',
-    fontSize: 16,
-    marginTop: 20,
+    color: 'rgba(255,255,255,0.55)',
+    fontSize: 15,
+    marginTop: 18,
+    fontFamily: 'Sora_600SemiBold',
   },
   localVideoContainer: {
     position: 'absolute',

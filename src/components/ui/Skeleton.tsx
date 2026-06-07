@@ -17,18 +17,21 @@ interface SkeletonProps {
 export function Skeleton({ width = '100%', height = 20, borderRadius = 4, style }: SkeletonProps) {
   const { theme, isNewTheme } = useTheme();
   const colors = theme.colors;
-  const opacity = useRef(new Animated.Value(0.3)).current;
+  // Dark shimmer floats higher so the #1F1F1F base stays legible on pure black.
+  const lo = isNewTheme ? 0.45 : 0.3;
+  const hi = isNewTheme ? 0.85 : 0.7;
+  const opacity = useRef(new Animated.Value(lo)).current;
 
   useEffect(() => {
     const animation = Animated.loop(
       Animated.sequence([
         Animated.timing(opacity, {
-          toValue: 0.7,
+          toValue: hi,
           duration: 800,
           useNativeDriver: true,
         }),
         Animated.timing(opacity, {
-          toValue: 0.3,
+          toValue: lo,
           duration: 800,
           useNativeDriver: true,
         }),
@@ -36,7 +39,7 @@ export function Skeleton({ width = '100%', height = 20, borderRadius = 4, style 
     );
     animation.start();
     return () => animation.stop();
-  }, [opacity]);
+  }, [opacity, lo, hi]);
 
   return (
     <Animated.View
@@ -255,7 +258,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: editorial.hairline,
   },
   conversationText: {
     flex: 1,

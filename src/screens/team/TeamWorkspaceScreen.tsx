@@ -41,6 +41,7 @@ import WebRichTextEditor from '../../components/WebRichTextEditor';
 import { useTheme } from '../../theme/ThemeContext';
 import { getThemedStyles } from '../../theme/themedStyles';
 import GrainTexture from '../../components/ui/GrainTexture';
+import { AppAlert } from '../../components/ui/AppAlert';
 import { colors as legacyColors, typography, spacing, borderRadius, shadows, editorial } from '../../theme/designSystem';
 
 // ===== Editorial light-mode theme =====
@@ -179,6 +180,12 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
     ? { borderWidth: 0, backgroundColor: theme.bgElevated, color: theme.text }
     : { backgroundColor: editorial.surface, color: theme.text, borderWidth: 1, borderColor: editorial.hairline, borderRadius: 14 };
 
+  // Unified de-shouted section label (Mission / Vision / References, etc.):
+  // dark = 12px Sora ls 1 rgba(255,255,255,0.45); light = 11px InterTight ls 0.6 muted.
+  const sectionLabel = isNewTheme
+    ? { fontSize: 12, color: 'rgba(255,255,255,0.45)', fontFamily: 'Sora_600SemiBold', letterSpacing: 1, textTransform: 'uppercase' as const }
+    : { fontSize: 11, color: editorial.muted, fontFamily: 'InterTight_600SemiBold', letterSpacing: 0.6, textTransform: 'uppercase' as const };
+
   const { user } = useAuth();
   const [pods, setPods] = useState<any[]>([]);
   const [selectedPodId, setSelectedPodId] = useState<string | null>(null);
@@ -277,7 +284,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
     try {
       if (page === 'roles') {
         await roleService.requestRoleEditAccess(selectedPodId, user.id);
-        Alert.alert('Request Sent', 'Pod editors will review your request.');
+        AppAlert.alert('Request Sent', 'Pod editors will review your request.');
       } else {
         const { data: pursuit } = await supabase
           .from('pursuits')
@@ -296,11 +303,11 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
           selectedPodId,
           'pursuit'
         );
-        Alert.alert('Request Sent', 'The pod leader will be notified of your request.');
+        AppAlert.alert('Request Sent', 'The pod leader will be notified of your request.');
       }
     } catch (error: any) {
       console.error('Error requesting edit access:', error);
-      Alert.alert('Error', error?.message || 'Failed to send request');
+      AppAlert.alert('Error', error?.message || 'Failed to send request');
     } finally {
       setRequestingAccess(null);
     }
@@ -346,6 +353,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
       setRoleEditorMember(null);
     } catch (err: any) {
       console.error('Save roles failed:', err);
+      // native Alert: fires while Role Editor modal is open
       Alert.alert('Error', err?.message || 'Failed to update roles');
     } finally {
       setSavingRoles(false);
@@ -360,7 +368,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
       await loadRoles();
     } catch (err: any) {
       console.error('Approve failed:', err);
-      Alert.alert('Error', err?.message || 'Failed to approve request');
+      AppAlert.alert('Error', err?.message || 'Failed to approve request');
     }
   };
 
@@ -371,7 +379,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
       await loadRoles();
     } catch (err: any) {
       console.error('Reject failed:', err);
-      Alert.alert('Error', err?.message || 'Failed to reject request');
+      AppAlert.alert('Error', err?.message || 'Failed to reject request');
     }
   };
 
@@ -641,9 +649,9 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
         northstar_rich: docNorthstar,
         reference_rich: docReference,
       });
-      Alert.alert('Saved', 'Pod Doc saved successfully');
+      AppAlert.alert('Saved', 'Pod Doc saved successfully');
     } catch (error) {
-      Alert.alert('Error', 'Failed to save Pod Doc');
+      AppAlert.alert('Error', 'Failed to save Pod Doc');
     } finally {
       setDocSaving(false);
     }
@@ -654,16 +662,16 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
     setRulesSaving(true);
     try {
       await podRulesService.saveRules(selectedPodId, rulesContent);
-      Alert.alert('Saved', 'Pod Rules saved successfully');
+      AppAlert.alert('Saved', 'Pod Rules saved successfully');
     } catch (error) {
-      Alert.alert('Error', 'Failed to save Pod Rules');
+      AppAlert.alert('Error', 'Failed to save Pod Rules');
     } finally {
       setRulesSaving(false);
     }
   };
 
   const handleUseRulesTemplate = () => {
-    Alert.alert(
+    AppAlert.alert(
       'Use Template',
       'This will replace your current rules with the default template. Continue?',
       [
@@ -732,10 +740,10 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
       if (error) throw error;
       
       setIsInEditMode(false);
-      Alert.alert('Saved', 'Document saved successfully');
+      AppAlert.alert('Saved', 'Document saved successfully');
     } catch (error: any) {
       console.error('Error saving agenda document:', error);
-      Alert.alert('Error', 'Failed to save document: ' + (error?.message || JSON.stringify(error)));
+      AppAlert.alert('Error', 'Failed to save document: ' + (error?.message || JSON.stringify(error)));
     } finally {
       setAgendaDocumentSaving(false);
     }
@@ -806,7 +814,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
       }
     } catch (error: any) {
       console.error('Error saving document:', error);
-      Alert.alert('Error', 'Failed to save changes');
+      AppAlert.alert('Error', 'Failed to save changes');
     } finally {
       setSavingDocument(false);
     }
@@ -932,7 +940,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
       }
     } catch (error) {
       console.error('Error saving document:', error);
-      Alert.alert('Error', 'Failed to save changes');
+      AppAlert.alert('Error', 'Failed to save changes');
     } finally {
       setSavingDocument(false);
       setIsInEditMode(false);
@@ -1093,7 +1101,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
         : await ImagePicker.requestMediaLibraryPermissionsAsync();
 
       if (status !== 'granted') {
-        Alert.alert('Permission denied', 'We need permission to access your photos/camera');
+        AppAlert.alert('Permission denied', 'We need permission to access your photos/camera');
         return;
       }
 
@@ -1114,7 +1122,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
       }
     } catch (error) {
       console.error('Error picking media:', error);
-      Alert.alert('Error', 'Failed to pick media');
+      AppAlert.alert('Error', 'Failed to pick media');
     }
   };
 
@@ -1140,17 +1148,17 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
         );
       }
 
-      Alert.alert('Success', 'Photo uploaded!');
+      AppAlert.alert('Success', 'Photo uploaded!');
     } catch (error: any) {
       console.error('Error uploading media:', error);
-      Alert.alert('Error', error.message || 'Failed to upload photo');
+      AppAlert.alert('Error', error.message || 'Failed to upload photo');
     } finally {
       setUploadingMedia(false);
     }
   };
 
   const handleDeleteMedia = async (photoId: string) => {
-    Alert.alert(
+    AppAlert.alert(
       'Delete Photo',
       'Are you sure you want to delete this photo?',
       [
@@ -1164,7 +1172,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
               setMediaItems(mediaItems.filter(m => m.id !== photoId));
             } catch (error) {
               console.error('Error deleting photo:', error);
-              Alert.alert('Error', 'Failed to delete photo');
+              AppAlert.alert('Error', 'Failed to delete photo');
             }
           },
         },
@@ -1182,6 +1190,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
     try {
       const { status } = await MediaLibrary.requestPermissionsAsync();
       if (status !== 'granted') {
+        // native Alert: fires while Image Viewer modal is open
         Alert.alert('Permission denied', 'We need permission to save photos to your library');
         return;
       }
@@ -1193,9 +1202,11 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
 
       await MediaLibrary.saveToLibraryAsync(localFile.uri);
 
+      // native Alert: fires while Image Viewer modal is open
       Alert.alert('Saved!', 'Photo saved to your photo library');
     } catch (error: any) {
       console.error('Error saving image:', error);
+      // native Alert: fires while Image Viewer modal is open
       Alert.alert('Error', 'Failed to save photo to library');
     } finally {
       setSavingImage(false);
@@ -1213,6 +1224,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
     if (!selectedPodId || !editingRole) return;
 
     if (!roleTitle.trim()) {
+      // native Alert: fires while Role modal is open
       Alert.alert('Error', 'Please enter a role title');
       return;
     }
@@ -1271,9 +1283,10 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
       setEditingRole(null);
       setShowRoleModal(false);
 
-      Alert.alert('Success', 'Role saved!');
+      AppAlert.alert('Success', 'Role saved!');
     } catch (error: any) {
       console.error('Error saving role:', error);
+      // native Alert: fires while Role modal is open (modal only closes on the success path)
       Alert.alert('Error', 'Failed to save role');
     } finally {
       setSubmittingRole(false);
@@ -1281,7 +1294,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
   };
 
   const handleDeleteRole = async (roleId: string) => {
-    Alert.alert(
+    AppAlert.alert(
       'Delete Role',
       'Are you sure you want to delete this role?',
       [
@@ -1301,7 +1314,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
               setRoles(roles.filter(r => r.id !== roleId));
             } catch (error) {
               console.error('Error deleting role:', error);
-              Alert.alert('Error', 'Failed to delete role');
+              AppAlert.alert('Error', 'Failed to delete role');
             }
           },
         },
@@ -1539,14 +1552,15 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
           <Text style={isNewTheme ? { fontSize: 18, fontWeight: '600', color: theme.text, fontFamily: 'Sora_600SemiBold' } : { fontSize: 24, color: theme.text, fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.4 }}>Pod Guide</Text>
           {canEdit ? (
             <TouchableOpacity
-              style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, backgroundColor: isNewTheme ? theme.accent : editorial.ink }}
+              activeOpacity={0.85}
+              style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999, backgroundColor: isNewTheme ? theme.accent : editorial.ink }}
               onPress={handleSavePodDoc}
               disabled={docSaving}
             >
               {docSaving ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size="small" color={isNewTheme ? '#000000' : '#fff'} />
               ) : (
-                <Text style={{ fontSize: 14, color: '#fff', fontWeight: '600', fontFamily: 'Sora_600SemiBold' }}>Save</Text>
+                <Text style={{ fontSize: 14, color: isNewTheme ? '#000000' : '#fff', fontWeight: '600', fontFamily: 'Sora_600SemiBold' }}>Save</Text>
               )}
             </TouchableOpacity>
           ) : (
@@ -1568,7 +1582,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
         </View>
 
         <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}>
-          <Text style={{ fontSize: 13, fontWeight: '600', color: theme.textMuted, marginBottom: 8, marginTop: 8, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.5, textTransform: 'uppercase' }}>Mission</Text>
+          <Text style={[sectionLabel, { marginBottom: 8, marginTop: 8 }]}>Mission</Text>
           <TextInput
             style={[styles.podDocInput, editorialTextarea]}
             value={docMission}
@@ -1580,7 +1594,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
             editable={canEdit}
           />
 
-          <Text style={{ fontSize: 13, fontWeight: '600', color: theme.textMuted, marginBottom: 8, marginTop: 24, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.5, textTransform: 'uppercase' }}>Vision</Text>
+          <Text style={[sectionLabel, { marginBottom: 8, marginTop: 24 }]}>Vision</Text>
           <TextInput
             style={[styles.podDocInput, editorialTextarea]}
             value={docNorthstar}
@@ -1592,7 +1606,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
             editable={canEdit}
           />
 
-          <Text style={{ fontSize: 13, fontWeight: '600', color: theme.textMuted, marginBottom: 8, marginTop: 24, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.5, textTransform: 'uppercase' }}>References</Text>
+          <Text style={[sectionLabel, { marginBottom: 8, marginTop: 24 }]}>References</Text>
           <TextInput
             style={[styles.podDocInput, { minHeight: 200 }, editorialTextarea]}
             value={docReference}
@@ -1623,14 +1637,15 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
                 <Text style={{ fontSize: 14, color: theme.textSecondary, fontFamily: 'Sora_600SemiBold' }}>Template</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, backgroundColor: isNewTheme ? theme.accent : editorial.ink }}
+                activeOpacity={0.85}
+                style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999, backgroundColor: isNewTheme ? theme.accent : editorial.ink }}
                 onPress={handleSavePodRules}
                 disabled={rulesSaving}
               >
                 {rulesSaving ? (
-                  <ActivityIndicator size="small" color="#fff" />
+                  <ActivityIndicator size="small" color={isNewTheme ? '#000000' : '#fff'} />
                 ) : (
-                  <Text style={{ fontSize: 14, color: '#fff', fontWeight: '600', fontFamily: 'Sora_600SemiBold' }}>Save</Text>
+                  <Text style={{ fontSize: 14, color: isNewTheme ? '#000000' : '#fff', fontWeight: '600', fontFamily: 'Sora_600SemiBold' }}>Save</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -1696,24 +1711,26 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
           {/* Pending role-edit requests — shown only to editors */}
           {canEdit && pendingRoleRequests.length > 0 && (
             <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: theme.textSecondary, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 8, fontFamily: 'Sora_600SemiBold' }}>
+              <Text style={[sectionLabel, { marginBottom: 8 }]}>
                 Pending access requests
               </Text>
               {pendingRoleRequests.map(req => (
-                <View key={req.id} style={{ backgroundColor: '#FEF3C7', borderRadius: 12, padding: 14, marginBottom: 8, borderLeftWidth: 3, borderLeftColor: '#F59E0B' }}>
-                  <Text style={{ fontSize: 14, color: '#1B1B18', marginBottom: 10, fontFamily: 'Sora_600SemiBold' }}>
+                <View key={req.id} style={{ backgroundColor: isNewTheme ? theme.secondaryLight : '#FDF3DC', borderRadius: 14, padding: 14, marginBottom: 8, borderLeftWidth: 3, borderLeftColor: theme.secondary }}>
+                  <Text style={{ fontSize: 14, color: theme.text, marginBottom: 10, fontFamily: 'Sora_600SemiBold' }}>
                     <Text style={{ fontWeight: '600' }}>{req.requester?.name || req.requester?.email?.split('@')[0] || 'A member'}</Text> wants to manage pod roles.
                   </Text>
                   <View style={{ flexDirection: 'row', gap: 8 }}>
                     <TouchableOpacity
                       onPress={() => handleApproveRoleRequest(req.id)}
-                      style={{ flex: 1, backgroundColor: theme.accent, borderRadius: 8, paddingVertical: 8, alignItems: 'center' }}
+                      activeOpacity={0.85}
+                      style={{ flex: 1, backgroundColor: isNewTheme ? theme.accent : editorial.ink, borderRadius: 999, paddingVertical: 8, alignItems: 'center' }}
                     >
-                      <Text style={{ color: '#fff', fontWeight: '600', fontFamily: 'Sora_600SemiBold' }}>Approve</Text>
+                      <Text style={{ color: isNewTheme ? '#000000' : '#fff', fontWeight: '600', fontFamily: 'Sora_600SemiBold' }}>Approve</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => handleRejectRoleRequest(req.id)}
-                      style={{ flex: 1, backgroundColor: theme.bgDocument, borderWidth: 1, borderColor: theme.textSecondary, borderRadius: 8, paddingVertical: 8, alignItems: 'center' }}
+                      activeOpacity={0.85}
+                      style={{ flex: 1, backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.border, borderRadius: 999, paddingVertical: 8, alignItems: 'center' }}
                     >
                       <Text style={{ color: theme.textSecondary, fontWeight: '600', fontFamily: 'Sora_600SemiBold' }}>Decline</Text>
                     </TouchableOpacity>
@@ -1742,7 +1759,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
                       <Image source={{ uri: member.profile_picture }} style={{ width: 44, height: 44, borderRadius: 22 }} />
                     ) : (
                       <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: theme.accent, justifyContent: 'center', alignItems: 'center' }}>
-                        <Text style={{ fontSize: 15, fontWeight: '600', color: '#fff' }}>{getUserInitials(member)}</Text>
+                        <Text style={{ fontSize: 15, fontWeight: '600', color: isNewTheme ? '#000000' : '#fff', fontFamily: 'Sora_600SemiBold' }}>{getUserInitials(member)}</Text>
                       </View>
                     )}
                     <View style={{ flex: 1 }}>
@@ -1887,11 +1904,11 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
       {isNewTheme && <GrainTexture opacity={0.06} />}
       {/* Header — flat cream paper in light mode (no border / no shadow) */}
       <View style={[styles.header, isNewTheme ? { backgroundColor: theme.bgCard } : { backgroundColor: editorial.bg, borderBottomWidth: 0 }]}>
-        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
+        <TouchableOpacity onPress={onBack} style={styles.backBtn} activeOpacity={0.6} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Ionicons name="chevron-back" size={24} color={theme.text} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Team Board</Text>
+          <Text style={[styles.headerTitle, { color: theme.text }, isNewTheme && { fontFamily: 'Sora_700Bold', letterSpacing: -0.3 }]}>Team Board</Text>
           {selectedPod && (
             <TouchableOpacity onPress={toggleSidebar} style={styles.podSelector}>
               {selectedPod.default_picture && (
@@ -1902,7 +1919,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
             </TouchableOpacity>
           )}
         </View>
-        <TouchableOpacity onPress={toggleSidebar} style={styles.menuBtn}>
+        <TouchableOpacity onPress={toggleSidebar} style={styles.menuBtn} activeOpacity={0.6} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Ionicons name={sidebarOpen ? "close" : "menu"} size={24} color={theme.text} />
         </TouchableOpacity>
       </View>
@@ -1934,7 +1951,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
             }
           ]}
         >
-          <Text style={[styles.sidebarTitle, { color: theme.text }]}>Pods</Text>
+          <Text style={[styles.sidebarTitle, isNewTheme ? styles.sidebarTitleDark : { color: editorial.muted }]}>Pods</Text>
           <ScrollView style={styles.podList} showsVerticalScrollIndicator={false}>
             {pods.map((pod) => (
               <TouchableOpacity
@@ -1997,7 +2014,6 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
                         key={tab}
                         style={[
                           styles.tab,
-                          isActive && isNewTheme && styles.tabActive,
                           isActive && { backgroundColor: isNewTheme ? theme.accent : editorial.carolinaTint },
                         ]}
                         onPress={() => setActiveSubTab(tab)}
@@ -2031,27 +2047,29 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
           style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' }}
         >
           <View style={{ backgroundColor: theme.bgDocument, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '85%', paddingBottom: 24 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#E8E6E0' }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border }}>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 17, fontWeight: '600', color: '#1B1B18', fontFamily: 'Sora_600SemiBold' }}>
+                <Text style={{ fontSize: 17, fontWeight: '600', color: theme.text, fontFamily: 'Sora_600SemiBold' }}>
                   Assign roles
                 </Text>
-                <Text style={{ fontSize: 13, color: '#8A8A85', marginTop: 2, fontFamily: 'Sora_600SemiBold' }}>
+                <Text style={{ fontSize: 13, color: theme.textMuted, marginTop: 2, fontFamily: 'Sora_600SemiBold' }}>
                   {roleEditorMember?.name || 'Team Member'}
                 </Text>
               </View>
               <TouchableOpacity
                 onPress={() => setShowRoleEditor(false)}
-                style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#F2F0EB', justifyContent: 'center', alignItems: 'center' }}
+                activeOpacity={0.6}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.bgElevated, justifyContent: 'center', alignItems: 'center' }}
               >
-                <Ionicons name="close" size={18} color="#52524E" />
+                <Ionicons name="close" size={18} color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
               {(['core', 'optional'] as const).map(tier => (
                 <View key={tier} style={{ paddingTop: 12 }}>
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#8A8A85', textTransform: 'uppercase', letterSpacing: 0.8, paddingHorizontal: 20, marginBottom: 6, fontFamily: 'Sora_600SemiBold' }}>
+                  <Text style={[sectionLabel, { paddingHorizontal: 20, marginBottom: 6 }]}>
                     {tier === 'core' ? 'Core roles' : 'Optional roles'}
                   </Text>
                   {POD_ROLES.filter(r => r.tier === tier).map(role => {
@@ -2060,22 +2078,23 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
                       <TouchableOpacity
                         key={role.title}
                         onPress={() => toggleRoleSelection(role.title)}
-                        style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#F2F0EB' }}
+                        activeOpacity={0.7}
+                        style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.divider }}
                       >
                         <View style={{
                           width: 22, height: 22, borderRadius: 6,
                           borderWidth: 2,
-                          borderColor: selected ? (isNewTheme ? '#2D5016' : editorial.carolina) : (isNewTheme ? '#D6D3CC' : editorial.hairline),
-                          backgroundColor: selected ? (isNewTheme ? '#2D5016' : editorial.carolina) : '#FFFFFF',
+                          borderColor: selected ? (isNewTheme ? theme.accent : editorial.carolina) : (isNewTheme ? 'rgba(255,255,255,0.20)' : editorial.hairline),
+                          backgroundColor: selected ? (isNewTheme ? theme.accent : editorial.carolina) : (isNewTheme ? 'transparent' : '#FFFFFF'),
                           alignItems: 'center', justifyContent: 'center', marginRight: 12,
                         }}>
-                          {selected && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
+                          {selected && <Ionicons name="checkmark" size={16} color={isNewTheme ? '#000000' : '#FFFFFF'} />}
                         </View>
                         <View style={{ flex: 1 }}>
-                          <Text style={{ fontSize: 15, fontWeight: '600', color: '#1B1B18', fontFamily: 'Sora_600SemiBold' }}>
+                          <Text style={{ fontSize: 15, fontWeight: '600', color: theme.text, fontFamily: 'Sora_600SemiBold' }}>
                             {role.title}
                           </Text>
-                          <Text style={{ fontSize: 13, color: '#8A8A85', marginTop: 2, fontFamily: 'Sora_600SemiBold' }}>
+                          <Text style={{ fontSize: 13, color: theme.textMuted, marginTop: 2, fontFamily: 'Sora_600SemiBold' }}>
                             {role.description}
                           </Text>
                         </View>
@@ -2086,22 +2105,24 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
               ))}
             </ScrollView>
 
-            <View style={{ flexDirection: 'row', gap: 10, paddingHorizontal: 20, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#E8E6E0' }}>
+            <View style={{ flexDirection: 'row', gap: 10, paddingHorizontal: 20, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border }}>
               <TouchableOpacity
                 onPress={() => setShowRoleEditor(false)}
-                style={{ flex: 1, backgroundColor: '#F2F0EB', borderRadius: 10, paddingVertical: 12, alignItems: 'center' }}
+                activeOpacity={0.85}
+                style={{ flex: 1, backgroundColor: 'transparent', borderRadius: 999, borderWidth: 1, borderColor: theme.border, paddingVertical: 12, alignItems: 'center' }}
               >
-                <Text style={{ fontSize: 15, fontWeight: '600', color: '#52524E', fontFamily: 'Sora_600SemiBold' }}>Cancel</Text>
+                <Text style={{ fontSize: 15, fontWeight: '600', color: theme.textSecondary, fontFamily: 'Sora_600SemiBold' }}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={saveRoleEditor}
                 disabled={savingRoles}
-                style={{ flex: 1, backgroundColor: isNewTheme ? '#2D5016' : editorial.ink, borderRadius: 10, paddingVertical: 12, alignItems: 'center', opacity: savingRoles ? 0.6 : 1 }}
+                activeOpacity={0.85}
+                style={{ flex: 1, backgroundColor: isNewTheme ? theme.accent : editorial.ink, borderRadius: 999, paddingVertical: 12, alignItems: 'center', opacity: savingRoles ? 0.6 : 1 }}
               >
                 {savingRoles ? (
-                  <ActivityIndicator color="#FFFFFF" />
+                  <ActivityIndicator color={isNewTheme ? '#000000' : '#FFFFFF'} />
                 ) : (
-                  <Text style={{ fontSize: 15, fontWeight: '600', color: '#FFFFFF', fontFamily: 'Sora_600SemiBold' }}>Save</Text>
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: isNewTheme ? '#000000' : '#FFFFFF', fontFamily: 'Sora_600SemiBold' }}>Save</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -2336,13 +2357,15 @@ const styles = StyleSheet.create({
     borderRightColor: styleSheetColors.border,
   },
   sidebarTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: styleSheetColors.text,
-    letterSpacing: 2.5,
+    fontSize: 12,
+    color: styleSheetColors.textMuted,
+    letterSpacing: 1,
     textTransform: 'uppercase',
     marginBottom: 18,
-    fontFamily: 'Sora_700Bold',
+    fontFamily: 'Sora_600SemiBold',
+  },
+  sidebarTitleDark: {
+    color: 'rgba(255,255,255,0.45)',
   },
   podList: {
     flex: 1,

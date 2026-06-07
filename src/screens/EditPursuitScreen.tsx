@@ -6,7 +6,6 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   Image,
   StatusBar,
@@ -14,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import PodCoverImagePicker from '../components/ui/PodCoverImagePicker';
+import { AppAlert } from '../components/ui/AppAlert';
 import { supabase } from '../config/supabase';
 import { pursuitService } from '../services/pursuitService';
 import { useTheme } from '../theme/ThemeContext';
@@ -53,6 +53,9 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
 
   // Editorial light mode: Carolina blue is the discreet primary accent.
   const primaryColor = isNewTheme ? colors.accentGreen : '#4B9CD3';
+  // Theme fonts — keep this screen on-system instead of falling back to system sans.
+  const bodyFont = isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold';
+  const titleFont = isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold';
 
   const [title, setTitle] = useState(pursuit.title || '');
   const [description, setDescription] = useState(pursuit.description || '');
@@ -69,12 +72,12 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
   const handleSave = async () => {
     // Validation
     if (!title || !description || !meetingCadence) {
-      Alert.alert('Missing Fields', 'Please fill in all required fields');
+      AppAlert.alert('Missing Fields', 'Please fill in all required fields');
       return;
     }
 
     if (description.length < 50) {
-      Alert.alert('Description Too Short', 'Description must be at least 50 characters');
+      AppAlert.alert('Description Too Short', 'Description must be at least 50 characters');
       return;
     }
 
@@ -82,7 +85,7 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
     const maxSize = parseInt(teamSizeMax);
 
     if (minSize > maxSize) {
-      Alert.alert('Invalid Team Size', 'Minimum team size cannot be greater than maximum');
+      AppAlert.alert('Invalid Team Size', 'Minimum team size cannot be greater than maximum');
       return;
     }
 
@@ -105,7 +108,7 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
 
       if (error) throw error;
 
-      Alert.alert('Success', 'Pod updated successfully!', [
+      AppAlert.alert('Success', 'Pod updated successfully!', [
         {
           text: 'OK',
           onPress: () => {
@@ -116,14 +119,14 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
       ]);
     } catch (error: any) {
       console.error('Error updating pursuit:', error);
-      Alert.alert('Error', error.message || 'Failed to update pursuit');
+      AppAlert.alert('Error', error.message || 'Failed to update pursuit');
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = () => {
-    Alert.alert(
+    AppAlert.alert(
       'Delete Pod',
       'Are you sure you want to delete this pod? This action cannot be undone. All team members will be removed and all data will be lost.',
       [
@@ -135,7 +138,7 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
             setDeleting(true);
             try {
               await pursuitService.deletePursuit(pursuit.id);
-              Alert.alert('Deleted', 'Pod deleted successfully', [
+              AppAlert.alert('Deleted', 'Pod deleted successfully', [
                 {
                   text: 'OK',
                   onPress: () => {
@@ -146,7 +149,7 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
               ]);
             } catch (error: any) {
               console.error('Error deleting pursuit:', error);
-              Alert.alert('Error', error.message || 'Failed to delete pursuit');
+              AppAlert.alert('Error', error.message || 'Failed to delete pursuit');
               setDeleting(false);
             }
           },
@@ -159,7 +162,7 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission Required', 'We need access to your photo library to set a pod picture.');
+        AppAlert.alert('Permission Required', 'We need access to your photo library to set a pod picture.');
         return;
       }
 
@@ -175,7 +178,7 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
       }
     } catch (error) {
       console.error('Error picking image:', error);
-      Alert.alert('Error', 'Failed to pick image');
+      AppAlert.alert('Error', 'Failed to pick image');
     }
   };
 
@@ -221,17 +224,17 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
 
       setDefaultPicture(urlData.publicUrl);
 
-      Alert.alert('Success', 'Pod picture uploaded! Remember to save your changes.');
+      AppAlert.alert('Success', 'Pod picture uploaded! Remember to save your changes.');
     } catch (error: any) {
       console.error('Error uploading image:', error);
-      Alert.alert('Error', error.message || 'Failed to upload image');
+      AppAlert.alert('Error', error.message || 'Failed to upload image');
     } finally {
       setUploadingImage(false);
     }
   };
 
   const removeImage = () => {
-    Alert.alert(
+    AppAlert.alert(
       'Remove Picture',
       'Are you sure you want to remove the pod picture?',
       [
@@ -262,7 +265,7 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
       {isNewTheme && <GrainTexture opacity={0.06} />}
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+        <TouchableOpacity onPress={onClose} style={styles.closeButton} activeOpacity={0.6} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Ionicons name="close" size={28} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold' }]}>Edit Pod</Text>
@@ -272,11 +275,11 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Title */}
         <View style={styles.section}>
-          <Text style={[styles.label, { color: colors.textPrimary }]}>
+          <Text style={[styles.label, { color: colors.textPrimary, fontFamily: bodyFont }]}>
             Title <Text style={styles.required}>*</Text>
           </Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: bodyFont }]}
             value={title}
             onChangeText={setTitle}
             placeholder="e.g., Weekly Book Club"
@@ -287,8 +290,8 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
 
         {/* Pod Picture */}
         <View style={styles.section}>
-          <Text style={[styles.label, { color: colors.textPrimary }]}>Pod Picture</Text>
-          <Text style={[styles.hint, { color: colors.textSecondary }]}>This picture will appear in the pod header and chat</Text>
+          <Text style={[styles.label, { color: colors.textPrimary, fontFamily: bodyFont }]}>Pod Picture</Text>
+          <Text style={[styles.hint, { color: colors.textSecondary, fontFamily: bodyFont }]}>This picture will appear in the pod header and chat</Text>
           <View style={styles.pictureContainer}>
             {defaultPicture ? (
               <View style={styles.picturePreview}>
@@ -298,32 +301,35 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
                     style={[styles.changePictureButton, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f3f4f6' }]}
                     onPress={pickImage}
                     disabled={uploadingImage}
+                    activeOpacity={0.6}
                   >
                     <Ionicons name="camera-outline" size={18} color={primaryColor} />
-                    <Text style={[styles.changePictureText, { color: primaryColor }]}>Change</Text>
+                    <Text style={[styles.changePictureText, { color: primaryColor, fontFamily: bodyFont }]}>Change</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.removePictureButton, { backgroundColor: isNewTheme ? colors.errorLight : '#fef2f2' }]}
                     onPress={removeImage}
                     disabled={uploadingImage}
+                    activeOpacity={0.6}
                   >
                     <Ionicons name="trash-outline" size={18} color={colors.error} />
-                    <Text style={[styles.removePictureText, { color: colors.error }]}>Remove</Text>
+                    <Text style={[styles.removePictureText, { color: colors.error, fontFamily: bodyFont }]}>Remove</Text>
                   </TouchableOpacity>
                 </View>
               </View>
             ) : (
               <TouchableOpacity
-                style={[styles.addPictureButton, { backgroundColor: isNewTheme ? colors.secondaryLight : 'rgba(75, 156, 211, 0.10)', borderColor: primaryColor }]}
+                style={[styles.addPictureButton, { backgroundColor: isNewTheme ? 'rgba(200, 255, 107, 0.10)' : 'rgba(75, 156, 211, 0.10)', borderColor: primaryColor }]}
                 onPress={pickImage}
                 disabled={uploadingImage}
+                activeOpacity={0.85}
               >
                 {uploadingImage ? (
                   <ActivityIndicator color={primaryColor} />
                 ) : (
                   <>
                     <Ionicons name="image-outline" size={32} color={primaryColor} />
-                    <Text style={[styles.addPictureText, { color: primaryColor }]}>Add Pod Picture</Text>
+                    <Text style={[styles.addPictureText, { color: primaryColor, fontFamily: bodyFont }]}>Add Pod Picture</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -333,8 +339,8 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
 
         {/* Cover Photo */}
         <View style={styles.section}>
-          <Text style={[styles.label, { color: colors.textPrimary }]}>Cover Photo</Text>
-          <Text style={[styles.hint, { color: colors.textSecondary }]}>Shown on the Feed and detail page</Text>
+          <Text style={[styles.label, { color: colors.textPrimary, fontFamily: bodyFont }]}>Cover Photo</Text>
+          <Text style={[styles.hint, { color: colors.textSecondary, fontFamily: bodyFont }]}>Shown on the Feed and detail page</Text>
           <PodCoverImagePicker
             value={coverImageUrl}
             onChange={setCoverImageUrl}
@@ -345,12 +351,12 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
 
         {/* Description */}
         <View style={styles.section}>
-          <Text style={[styles.label, { color: colors.textPrimary }]}>
+          <Text style={[styles.label, { color: colors.textPrimary, fontFamily: bodyFont }]}>
             Description <Text style={styles.required}>*</Text>
           </Text>
-          <Text style={[styles.hint, { color: colors.textSecondary }]}>Maximum 150 words</Text>
+          <Text style={[styles.hint, { color: colors.textSecondary, fontFamily: bodyFont }]}>Maximum 150 words</Text>
           <TextInput
-            style={[styles.input, styles.textArea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
+            style={[styles.input, styles.textArea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: bodyFont }]}
             value={description}
             onChangeText={(text) => setDescription(capWords(text, 150))}
             placeholder="Describe your pod in detail..."
@@ -359,20 +365,20 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
             numberOfLines={6}
             textAlignVertical="top"
           />
-          <Text style={[styles.charCount, { color: colors.textTertiary }]}>{countWords(description)} / 150 words</Text>
+          <Text style={[styles.charCount, { color: colors.textTertiary, fontFamily: bodyFont }]}>{countWords(description)} / 150 words</Text>
         </View>
 
         {/* Team Size */}
         <View style={styles.section}>
-          <Text style={[styles.label, { color: colors.textPrimary }]}>Team Size</Text>
-          <Text style={[styles.hint, { color: colors.textSecondary }]}>
+          <Text style={[styles.label, { color: colors.textPrimary, fontFamily: bodyFont }]}>Team Size</Text>
+          <Text style={[styles.hint, { color: colors.textSecondary, fontFamily: bodyFont }]}>
             Current members: {pursuit.current_members_count} (cannot be edited)
           </Text>
           <View style={styles.row}>
             <View style={styles.halfInput}>
-              <Text style={[styles.subLabel, { color: colors.textSecondary }]}>Min</Text>
+              <Text style={[styles.subLabel, { color: colors.textSecondary, fontFamily: bodyFont }]}>Min</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
+                style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: bodyFont }]}
                 value={teamSizeMin}
                 onChangeText={setTeamSizeMin}
                 keyboardType="numeric"
@@ -381,9 +387,9 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
               />
             </View>
             <View style={styles.halfInput}>
-              <Text style={[styles.subLabel, { color: colors.textSecondary }]}>Max</Text>
+              <Text style={[styles.subLabel, { color: colors.textSecondary, fontFamily: bodyFont }]}>Max</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
+                style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: bodyFont }]}
                 value={teamSizeMax}
                 onChangeText={setTeamSizeMax}
                 keyboardType="numeric"
@@ -396,11 +402,11 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
 
         {/* Meeting Cadence */}
         <View style={styles.section}>
-          <Text style={[styles.label, { color: colors.textPrimary }]}>
+          <Text style={[styles.label, { color: colors.textPrimary, fontFamily: bodyFont }]}>
             Meeting Cadence <Text style={styles.required}>*</Text>
           </Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: bodyFont }]}
             value={meetingCadence}
             onChangeText={setMeetingCadence}
             placeholder="e.g., Weekly on Mondays at 7pm"
@@ -410,9 +416,9 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
 
         {/* Location */}
         <View style={styles.section}>
-          <Text style={[styles.label, { color: colors.textPrimary }]}>Location</Text>
+          <Text style={[styles.label, { color: colors.textPrimary, fontFamily: bodyFont }]}>Location</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: bodyFont }]}
             value={location}
             onChangeText={setLocation}
             placeholder="e.g., San Francisco, CA or Remote"
@@ -425,18 +431,19 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
           style={[styles.saveButton, { backgroundColor: isNewTheme ? colors.accentGreen : '#1B1B18' }, saving && styles.saveButtonDisabled]}
           onPress={handleSave}
           disabled={saving}
+          activeOpacity={0.85}
         >
           {saving ? (
             <ActivityIndicator color={isNewTheme ? colors.background : '#fff'} />
           ) : (
-            <Text style={[styles.saveButtonText, { color: isNewTheme ? colors.background : '#fff' }]}>Save Changes</Text>
+            <Text style={[styles.saveButtonText, { color: isNewTheme ? colors.background : '#fff', fontFamily: titleFont }]}>Save Changes</Text>
           )}
         </TouchableOpacity>
 
         {/* Delete Button */}
-        <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+        <TouchableOpacity style={styles.deleteButton} onPress={handleDelete} activeOpacity={0.85}>
           <Ionicons name="trash-outline" size={20} color="#fff" />
-          <Text style={styles.deleteButtonText}>Delete Pod</Text>
+          <Text style={[styles.deleteButtonText, { fontFamily: bodyFont }]}>Delete Pod</Text>
         </TouchableOpacity>
 
         <View style={{ height: 40 }} />
@@ -510,7 +517,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: '#d1d5db',
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 12,
     fontSize: 16,
     color: '#1f2937',
@@ -540,7 +547,7 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     backgroundColor: '#2D5016',
-    borderRadius: 8,
+    borderRadius: 999,
     padding: 16,
     alignItems: 'center',
     marginTop: 8,
@@ -555,7 +562,7 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     backgroundColor: '#ef4444',
-    borderRadius: 8,
+    borderRadius: 999,
     padding: 16,
     alignItems: 'center',
     marginTop: 16,

@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
-  Alert,
   Linking,
   ActivityIndicator,
   TextInput,
@@ -27,6 +26,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
 import GradientBackground from '../components/ui/GradientBackground';
+import { AppAlert } from '../components/ui/AppAlert';
 
 interface PrivacyVisibility {
   canAccessProfile: boolean;
@@ -146,11 +146,11 @@ export default function UserProfileScreen({ route, navigation }: any) {
     try {
       if (user) {
         await connectionService.sendConnectionRequest(user.id, userId);
-        Alert.alert('Success', 'Connection request sent!');
+        AppAlert.alert('Success', 'Connection request sent!');
       }
     } catch (error) {
       console.error('Error sending connection request:', error);
-      Alert.alert('Error', 'Failed to send connection request');
+      AppAlert.alert('Error', 'Failed to send connection request');
     }
   };
 
@@ -171,7 +171,7 @@ export default function UserProfileScreen({ route, navigation }: any) {
 
     Linking.openURL(fullUrl).catch((err) => {
       console.error('Error opening link:', err);
-      Alert.alert('Error', 'Could not open link');
+      AppAlert.alert('Error', 'Could not open link');
     });
   };
 
@@ -194,11 +194,11 @@ export default function UserProfileScreen({ route, navigation }: any) {
   if (!privacyVisibility?.canAccessProfile) {
     return (
       <GradientBackground style={styles.container}>
-      <ScrollView style={{ flex: 1 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 120 }}>
         <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         {isNewTheme && <GrainTexture opacity={0.06} />}
         <View style={[styles.header, { backgroundColor: isNewTheme ? colors.surface : editorial.bg }]}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} activeOpacity={0.6} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <Ionicons name="arrow-back" size={24} color={isNewTheme ? colors.textPrimary : editorial.ink} />
           </TouchableOpacity>
         </View>
@@ -225,7 +225,7 @@ export default function UserProfileScreen({ route, navigation }: any) {
           </View>
 
           {!isConnected && user && (
-            <TouchableOpacity style={[styles.connectButtonLarge, { backgroundColor: isNewTheme ? colors.accentGreen : editorial.ink }]} onPress={handleConnect}>
+            <TouchableOpacity style={[styles.connectButtonLarge, { backgroundColor: isNewTheme ? colors.accentGreen : editorial.ink }]} onPress={handleConnect} activeOpacity={0.85}>
               <Ionicons name="person-add" size={20} color={isNewTheme ? colors.background : legacyColors.white} />
               <Text style={[styles.connectButtonLargeText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Send Connection Request</Text>
             </TouchableOpacity>
@@ -256,38 +256,38 @@ export default function UserProfileScreen({ route, navigation }: any) {
     if (!hasSocialLinks) return null;
 
     return (
-      <View style={[styles.section, { backgroundColor: colors.surface }, !isNewTheme && styles.sectionEditorial]}>
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold', letterSpacing: isNewTheme ? 0 : -0.3 }]}>Links</Text>
+      <View style={[styles.section, { backgroundColor: colors.surface }, isNewTheme ? styles.sectionNew : styles.sectionEditorial]}>
+        <Text style={[styles.sectionTitle, isNewTheme ? styles.sectionTitleNew : { color: colors.textPrimary, fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3 }]}>Links</Text>
         {profile?.linkedin && (
-          <TouchableOpacity style={[styles.linkItem, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.linkedin)}>
+          <TouchableOpacity style={[styles.linkItem, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.linkedin)} activeOpacity={0.6}>
             <Ionicons name="logo-linkedin" size={20} color="#0077b5" />
             <Text style={[styles.linkText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>LinkedIn</Text>
             <Ionicons name="open-outline" size={16} color={colors.textTertiary} style={styles.linkArrow} />
           </TouchableOpacity>
         )}
         {profile?.instagram && (
-          <TouchableOpacity style={[styles.linkItem, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.instagram)}>
+          <TouchableOpacity style={[styles.linkItem, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.instagram)} activeOpacity={0.6}>
             <Ionicons name="logo-instagram" size={20} color="#e4405f" />
             <Text style={[styles.linkText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Instagram</Text>
             <Ionicons name="open-outline" size={16} color={colors.textTertiary} style={styles.linkArrow} />
           </TouchableOpacity>
         )}
         {profile?.facebook && (
-          <TouchableOpacity style={[styles.linkItem, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.facebook)}>
+          <TouchableOpacity style={[styles.linkItem, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.facebook)} activeOpacity={0.6}>
             <Ionicons name="logo-facebook" size={20} color="#1877f2" />
             <Text style={[styles.linkText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Facebook</Text>
             <Ionicons name="open-outline" size={16} color={colors.textTertiary} style={styles.linkArrow} />
           </TouchableOpacity>
         )}
         {profile?.github && (
-          <TouchableOpacity style={[styles.linkItem, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.github)}>
+          <TouchableOpacity style={[styles.linkItem, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.github)} activeOpacity={0.6}>
             <Ionicons name="logo-github" size={20} color={isNewTheme ? colors.textPrimary : '#333'} />
             <Text style={[styles.linkText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>GitHub</Text>
             <Ionicons name="open-outline" size={16} color={colors.textTertiary} style={styles.linkArrow} />
           </TouchableOpacity>
         )}
         {profile?.portfolio_website && (
-          <TouchableOpacity style={[styles.linkItem, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.portfolio_website)}>
+          <TouchableOpacity style={[styles.linkItem, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.portfolio_website)} activeOpacity={0.6}>
             <Ionicons name="globe-outline" size={20} color={isNewTheme ? colors.accentGreen : editorial.carolina} />
             <Text style={[styles.linkText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Portfolio</Text>
             <Ionicons name="open-outline" size={16} color={colors.textTertiary} style={styles.linkArrow} />
@@ -323,7 +323,7 @@ export default function UserProfileScreen({ route, navigation }: any) {
             {/* Current Pods */}
             {userPods.filter(p => !p.status || ['awaiting_kickoff', 'collecting_proposals', 'active'].includes(p.status) || ['active', 'accepted'].includes(p.membership_status)).length > 0 && (
               <>
-                <Text style={[styles.podsSectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>Current Pods</Text>
+                <Text style={[styles.podsSectionTitle, isNewTheme ? styles.sectionTitleNew : { color: colors.textPrimary, fontFamily: 'PlayfairDisplay_700Bold' }]}>Current Pods</Text>
                 {userPods
                   .filter(p => !p.status || ['awaiting_kickoff', 'collecting_proposals', 'active'].includes(p.status) || ['active', 'accepted'].includes(p.membership_status))
                   .map((pod) => (
@@ -331,6 +331,7 @@ export default function UserProfileScreen({ route, navigation }: any) {
                       key={pod.id}
                       style={[styles.podCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
                       onPress={() => handlePodPress(pod.id)}
+                      activeOpacity={0.7}
                     >
                       {pod.default_picture ? (
                         <Image source={{ uri: pod.default_picture }} style={styles.podImage} />
@@ -360,7 +361,7 @@ export default function UserProfileScreen({ route, navigation }: any) {
             {/* Past Pods */}
             {userPods.filter(p => ['completed', 'archived'].includes(p.status) || ['left', 'removed'].includes(p.membership_status)).length > 0 && (
               <>
-                <Text style={[styles.podsSectionTitle, { marginTop: 24, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>Past Pods</Text>
+                <Text style={[styles.podsSectionTitle, isNewTheme ? [styles.sectionTitleNew, { marginTop: 24 }] : { marginTop: 24, color: colors.textPrimary, fontFamily: 'PlayfairDisplay_700Bold' }]}>Past Pods</Text>
                 {userPods
                   .filter(p => ['completed', 'archived'].includes(p.status) || ['left', 'removed'].includes(p.membership_status))
                   .map((pod) => (
@@ -368,6 +369,7 @@ export default function UserProfileScreen({ route, navigation }: any) {
                       key={pod.id}
                       style={[styles.podCard, styles.podCardPast, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }]}
                       onPress={() => handlePodPress(pod.id)}
+                      activeOpacity={0.7}
                     >
                       {pod.default_picture ? (
                         <Image source={{ uri: pod.default_picture }} style={[styles.podImage, styles.podImagePast]} />
@@ -403,11 +405,13 @@ export default function UserProfileScreen({ route, navigation }: any) {
 
   return (
     <GradientBackground style={styles.container}>
-    <ScrollView style={{ flex: 1 }}>
+    {/* paddingBottom keeps the last items in every tab (About/Pods/Network)
+        scrollable above the floating tab bar */}
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 120 }}>
       <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       {isNewTheme && <GrainTexture opacity={0.06} />}
       <View style={[styles.header, { backgroundColor: colors.surface }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} activeOpacity={0.6} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
       </View>
@@ -452,7 +456,7 @@ export default function UserProfileScreen({ route, navigation }: any) {
             {pics.length > 1 && (
               <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 8 }}>
                 {pics.map((_: string, i: number) => (
-                  <View key={i} style={{ width: activePhotoIdx === i ? 18 : 6, height: 6, borderRadius: 3, backgroundColor: activePhotoIdx === i ? (isNewTheme ? colors.accentGreen : editorial.carolina) : editorial.hairline }} />
+                  <View key={i} style={{ width: activePhotoIdx === i ? 18 : 6, height: 6, borderRadius: 3, backgroundColor: activePhotoIdx === i ? (isNewTheme ? colors.accentGreen : editorial.carolina) : (isNewTheme ? colors.border : editorial.hairline) }} />
                 ))}
               </View>
             )}
@@ -470,12 +474,12 @@ export default function UserProfileScreen({ route, navigation }: any) {
 
       <View style={styles.actionButtons}>
         {!isConnected && user && (
-          <TouchableOpacity style={[styles.connectButton, { backgroundColor: isNewTheme ? colors.accentGreen : editorial.ink }]} onPress={handleConnect}>
+          <TouchableOpacity style={[styles.connectButton, { backgroundColor: isNewTheme ? colors.accentGreen : editorial.ink }]} onPress={handleConnect} activeOpacity={0.85}>
             <Ionicons name="person-add" size={20} color={isNewTheme ? colors.background : legacyColors.white} />
             <Text style={[styles.connectButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Connect</Text>
           </TouchableOpacity>
         )}
-        <TouchableOpacity style={[styles.messageButton, { backgroundColor: isNewTheme ? colors.surface : 'transparent', borderColor: isNewTheme ? colors.accentGreen : editorial.hairline }]} onPress={handleMessage}>
+        <TouchableOpacity style={[styles.messageButton, { backgroundColor: 'transparent', borderColor: isNewTheme ? colors.accentGreen : editorial.hairline }]} onPress={handleMessage} activeOpacity={0.85}>
           <Ionicons name="chatbubble" size={20} color={isNewTheme ? colors.accentGreen : editorial.ink} />
           <Text style={[styles.messageButtonText, { color: isNewTheme ? colors.accentGreen : editorial.ink, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Message</Text>
         </TouchableOpacity>
@@ -485,7 +489,7 @@ export default function UserProfileScreen({ route, navigation }: any) {
       <View style={[styles.tabsContainer, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'about' && styles.tabActive, activeTab === 'about' && { borderBottomColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]}
-          onPress={() => setActiveTab('about')}
+          onPress={() => setActiveTab('about')} activeOpacity={0.7}
         >
           <Text style={[styles.tabText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, activeTab === 'about' && { color: isNewTheme ? colors.accentGreen : legacyColors.primary }]}>
             About
@@ -493,7 +497,7 @@ export default function UserProfileScreen({ route, navigation }: any) {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'pods' && styles.tabActive, activeTab === 'pods' && { borderBottomColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]}
-          onPress={() => setActiveTab('pods')}
+          onPress={() => setActiveTab('pods')} activeOpacity={0.7}
         >
           <View style={styles.tabContent}>
             <Text style={[styles.tabText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, activeTab === 'pods' && { color: isNewTheme ? colors.accentGreen : legacyColors.primary }]} numberOfLines={1}>
@@ -506,7 +510,7 @@ export default function UserProfileScreen({ route, navigation }: any) {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'connections' && styles.tabActive, activeTab === 'connections' && { borderBottomColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]}
-          onPress={() => setActiveTab('connections')}
+          onPress={() => setActiveTab('connections')} activeOpacity={0.7}
         >
           <View style={styles.tabContent}>
             <Text style={[styles.tabText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, activeTab === 'connections' && { color: isNewTheme ? colors.accentGreen : legacyColors.primary }]} numberOfLines={1}>
@@ -523,7 +527,7 @@ export default function UserProfileScreen({ route, navigation }: any) {
         <>
           {/* Age & Gender */}
           {(profile?.age || profile?.gender) && (
-            <View style={[styles.section, { backgroundColor: colors.surface }, !isNewTheme && styles.sectionEditorial]}>
+            <View style={[styles.section, { backgroundColor: colors.surface }, isNewTheme ? styles.sectionNew : styles.sectionEditorial]}>
               {profile?.age && (
                 <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
                   <Text style={[styles.infoLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Age:</Text>
@@ -541,8 +545,8 @@ export default function UserProfileScreen({ route, navigation }: any) {
 
           {/* Location Section */}
           {(profile?.hometown || profile?.college || profile?.work) && (
-            <View style={[styles.section, { backgroundColor: colors.surface }, !isNewTheme && styles.sectionEditorial]}>
-              <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold', letterSpacing: isNewTheme ? 0 : -0.3 }]}>Location</Text>
+            <View style={[styles.section, { backgroundColor: colors.surface }, isNewTheme ? styles.sectionNew : styles.sectionEditorial]}>
+              <Text style={[styles.sectionTitle, isNewTheme ? styles.sectionTitleNew : { color: colors.textPrimary, fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3 }]}>Location</Text>
               {profile?.hometown && (
                 <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
                   <Text style={[styles.infoLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Hometown:</Text>
@@ -566,8 +570,8 @@ export default function UserProfileScreen({ route, navigation }: any) {
 
           {/* Bio Section - show separately if not already in header */}
           {profile?.bio && (
-            <View style={[styles.section, { backgroundColor: colors.surface }, !isNewTheme && styles.sectionEditorial]}>
-              <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold', letterSpacing: isNewTheme ? 0 : -0.3 }]}>Bio</Text>
+            <View style={[styles.section, { backgroundColor: colors.surface }, isNewTheme ? styles.sectionNew : styles.sectionEditorial]}>
+              <Text style={[styles.sectionTitle, isNewTheme ? styles.sectionTitleNew : { color: colors.textPrimary, fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3 }]}>Bio</Text>
               <Text style={[styles.bioText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{profile.bio}</Text>
             </View>
           )}
@@ -623,7 +627,7 @@ export default function UserProfileScreen({ route, navigation }: any) {
                 )}
               </View>
 
-              <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold', letterSpacing: isNewTheme ? 0 : -0.3 }]}>
+              <Text style={[styles.sectionTitle, isNewTheme ? styles.sectionTitleNew : { color: colors.textPrimary, fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3 }]}>
                 Network ({userConnections.length})
               </Text>
               {userConnections
@@ -639,13 +643,14 @@ export default function UserProfileScreen({ route, navigation }: any) {
                 .map((conn) => (
                 <TouchableOpacity
                   key={conn.id}
-                  style={[styles.connectionCard, { backgroundColor: colors.surface }, !isNewTheme && { borderWidth: 1, borderColor: editorial.hairline }]}
+                  style={[styles.connectionCard, { backgroundColor: colors.surface, borderWidth: isNewTheme ? StyleSheet.hairlineWidth : 1, borderColor: isNewTheme ? colors.border : editorial.hairline }]}
                   onPress={() => {
                     // Use otherUserId which is already computed by connectionService
                     if (conn.otherUserId) {
                       navigation.navigate('UserProfile', { userId: conn.otherUserId });
                     }
                   }}
+                  activeOpacity={0.7}
                 >
                   {conn.profile?.profile_picture ? (
                     <Image source={{ uri: conn.profile.profile_picture }} style={styles.connectionAvatar} />
@@ -752,7 +757,6 @@ const styles = StyleSheet.create({
   connectButton: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: '#0ea5e9',
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
@@ -760,7 +764,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   connectButtonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -773,16 +776,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     borderWidth: 1,
-    borderColor: '#0ea5e9',
   },
   messageButtonText: {
-    color: '#0ea5e9',
     fontSize: 16,
     fontWeight: '600',
   },
   section: {
     marginTop: 10,
     padding: 20,
+  },
+  // Pie dark-mode card: surface, radius 16, hairline border, no shadow
+  sectionNew: {
+    marginHorizontal: 20,
+    marginTop: 12,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.10)',
   },
   // Editorial light-mode card: white surface, hairline border, soft shadow
   sectionEditorial: {
@@ -801,6 +810,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
+    marginBottom: 16,
+  },
+  sectionTitleNew: {
+    fontSize: 12,
+    fontFamily: 'Sora_600SemiBold',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    color: 'rgba(255,255,255,0.45)',
     marginBottom: 16,
   },
   infoRow: {
@@ -856,7 +873,7 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   tabActive: {
-    borderBottomColor: '#0ea5e9',
+    borderBottomWidth: 2,
   },
   tabContent: {
     flexDirection: 'row',
@@ -915,7 +932,6 @@ const styles = StyleSheet.create({
   },
   connectButtonLarge: {
     flexDirection: 'row',
-    backgroundColor: '#0ea5e9',
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 12,
@@ -925,7 +941,6 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   connectButtonLargeText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },

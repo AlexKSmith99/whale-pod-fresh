@@ -9,6 +9,7 @@ import { colors as legacyColors, typography, spacing, borderRadius, shadows, edi
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
+import { AppAlert } from '../components/ui/AppAlert';
 
 // Editorial light-mode helpers.
 const lightLabel = {
@@ -17,6 +18,14 @@ const lightLabel = {
   fontSize: 10,
   textTransform: 'uppercase' as const,
   letterSpacing: 0.6,
+};
+// Pie dark-mode label — 12px uppercase, dimmed, ls 1 (de-shouted section labels).
+const darkLabel = {
+  color: 'rgba(255, 255, 255, 0.45)' as const,
+  fontFamily: 'Sora_600SemiBold' as const,
+  fontSize: 12,
+  textTransform: 'uppercase' as const,
+  letterSpacing: 1,
 };
 const lightInput = {
   backgroundColor: 'transparent' as const,
@@ -201,12 +210,12 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
 
   const handleJoinCall = () => {
     if (!meeting.agora_channel_name) {
-      Alert.alert('Error', 'Video channel not available for this meeting');
+      AppAlert.alert('Error', 'Video channel not available for this meeting');
       return;
     }
 
     if (meeting.meeting_type === 'in_person') {
-      Alert.alert('In-Person Meeting', 'This is an in-person meeting. Please go to the location.');
+      AppAlert.alert('In-Person Meeting', 'This is an in-person meeting. Please go to the location.');
       return;
     }
 
@@ -230,7 +239,7 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
           location: editLocation.trim() || null,
           time_of_day: timeOfDay,
         });
-        Alert.alert('Series Updated', 'All future occurrences have been updated.');
+        AppAlert.alert('Series Updated', 'All future occurrences have been updated.');
       } else if (meeting.series_id) {
         // Single occurrence inside a series — flag as exception
         await meetingService.updateSingleMeetingInSeries(meeting.id, {
@@ -241,7 +250,7 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
           meeting_type: editMeetingType,
           location: editLocation.trim() || null,
         });
-        Alert.alert('Meeting Updated', 'This occurrence was updated. Other occurrences in the series were not affected.');
+        AppAlert.alert('Meeting Updated', 'This occurrence was updated. Other occurrences in the series were not affected.');
       } else {
         await meetingService.updateMeeting(meeting.id, {
           title: editTitle.trim(),
@@ -251,7 +260,7 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
           meeting_type: editMeetingType,
           location: editLocation.trim() || null,
         });
-        Alert.alert('Success', 'Meeting updated successfully');
+        AppAlert.alert('Success', 'Meeting updated successfully');
       }
       setIsEditing(false);
       if (onMeetingUpdated) {
@@ -267,7 +276,7 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
       }
     } catch (error: any) {
       console.error('Error updating meeting:', error);
-      Alert.alert('Error', error.message || 'Failed to update meeting');
+      AppAlert.alert('Error', error.message || 'Failed to update meeting');
     } finally {
       setSaving(false);
     }
@@ -275,13 +284,13 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
 
   const handleSaveChanges = async () => {
     if (!editTitle.trim()) {
-      Alert.alert('Error', 'Meeting title is required');
+      AppAlert.alert('Error', 'Meeting title is required');
       return;
     }
 
     // If this meeting belongs to a series, ask scope
     if (meeting.series_id) {
-      Alert.alert(
+      AppAlert.alert(
         'Save Changes',
         'This meeting is part of a recurring series. What would you like to update?',
         [
@@ -305,7 +314,7 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
         location: editLocation.trim() || null,
       });
 
-      Alert.alert('Success', 'Meeting updated successfully');
+      AppAlert.alert('Success', 'Meeting updated successfully');
       setIsEditing(false);
 
       if (onMeetingUpdated) {
@@ -313,7 +322,7 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
       }
     } catch (error: any) {
       console.error('Error updating meeting:', error);
-      Alert.alert('Error', error.message || 'Failed to update meeting');
+      AppAlert.alert('Error', error.message || 'Failed to update meeting');
     } finally {
       setSaving(false);
     }
@@ -324,20 +333,21 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
       await meetingService.addParticipant(meeting.id, userId);
       await loadParticipants();
       setShowAddParticipant(false);
-      Alert.alert('Success', 'Participant added');
+      AppAlert.alert('Success', 'Participant added');
     } catch (error: any) {
       console.error('Error adding participant:', error);
+      // native Alert: fires while Add Participant modal is open (error thrown before modal closes)
       Alert.alert('Error', error.message || 'Failed to add participant');
     }
   };
 
   const handleRemoveParticipant = (participant: any) => {
     if (participant.user_id === meeting.creator_id) {
-      Alert.alert('Cannot Remove', 'Cannot remove the meeting creator');
+      AppAlert.alert('Cannot Remove', 'Cannot remove the meeting creator');
       return;
     }
 
-    Alert.alert(
+    AppAlert.alert(
       'Remove Participant',
       `Remove ${participant.user?.name || 'this person'} from the meeting?`,
       [
@@ -350,7 +360,7 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
               await meetingService.removeParticipant(meeting.id, participant.user_id);
               await loadParticipants();
             } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to remove participant');
+              AppAlert.alert('Error', error.message || 'Failed to remove participant');
             }
           }
         }
@@ -393,6 +403,9 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
   );
 
   const accentColor = isNewTheme ? colors.accentGreen : legacyColors.primary;
+  // Info-card icons: lime in dark, but demoted to muted ink in light so Carolina
+  // stays an exception (≤3 accents/screen — editorial restraint).
+  const infoIconColor = isNewTheme ? colors.accentGreen : editorial.muted;
 
   const renderParticipant = (participant: any) => {
     const profile = participant.user;
@@ -437,11 +450,11 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
         <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         {isNewTheme && <GrainTexture opacity={0.06} />}
         <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }, !isNewTheme && { backgroundColor: editorial.bg, borderBottomWidth: 0 }]}>
-          <TouchableOpacity onPress={() => setIsEditing(false)} style={styles.closeButton}>
+          <TouchableOpacity onPress={() => setIsEditing(false)} style={styles.closeButton} activeOpacity={0.6} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons name="close" size={28} color={colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.textPrimary }, !isNewTheme && { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 22, letterSpacing: -0.4 }]}>Edit Meeting</Text>
-          <TouchableOpacity onPress={handleSaveChanges} disabled={saving}>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }, isNewTheme ? { fontFamily: 'Sora_700Bold', letterSpacing: -0.3 } : { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 22, letterSpacing: -0.4 }]}>Edit Meeting</Text>
+          <TouchableOpacity onPress={handleSaveChanges} disabled={saving} activeOpacity={0.6} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             {saving ? (
               <ActivityIndicator size="small" color={accentColor} />
             ) : (
@@ -452,7 +465,7 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
 
         <ScrollView style={styles.scrollView} keyboardShouldPersistTaps="handled">
           <View style={styles.editForm}>
-            <Text style={[styles.editLabel, { color: colors.textSecondary }, !isNewTheme && lightLabel]}>Title *</Text>
+            <Text style={[styles.editLabel, (isNewTheme ? darkLabel : lightLabel)]}>Title *</Text>
             <TextInput
               style={[styles.editInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }, !isNewTheme && lightInput]}
               value={editTitle}
@@ -461,7 +474,7 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
               placeholderTextColor={colors.textTertiary}
             />
 
-            <Text style={[styles.editLabel, { color: colors.textSecondary }, !isNewTheme && lightLabel]}>Description</Text>
+            <Text style={[styles.editLabel, (isNewTheme ? darkLabel : lightLabel)]}>Description</Text>
             <TextInput
               style={[styles.editInput, styles.editTextArea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }, !isNewTheme && lightSurfaceInput]}
               value={editDescription}
@@ -472,7 +485,7 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
               numberOfLines={4}
             />
 
-            <Text style={[styles.editLabel, { color: colors.textSecondary }, !isNewTheme && lightLabel]}>Date & Time</Text>
+            <Text style={[styles.editLabel, (isNewTheme ? darkLabel : lightLabel)]}>Date & Time</Text>
             <View style={styles.dateTimeRow}>
               <TouchableOpacity
                 style={[styles.editInput, styles.dateTimeButton, { backgroundColor: colors.surface, borderColor: colors.border }, !isNewTheme && lightSurfaceInput]}
@@ -522,7 +535,7 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
               />
             )}
 
-            <Text style={[styles.editLabel, { color: colors.textSecondary }, !isNewTheme && lightLabel]}>Duration (minutes)</Text>
+            <Text style={[styles.editLabel, (isNewTheme ? darkLabel : lightLabel)]}>Duration (minutes)</Text>
             <TextInput
               style={[styles.editInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }, !isNewTheme && lightInput]}
               value={editDuration}
@@ -532,17 +545,17 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
               keyboardType="numeric"
             />
 
-            <Text style={[styles.editLabel, { color: colors.textSecondary }, !isNewTheme && lightLabel]}>Meeting Type</Text>
+            <Text style={[styles.editLabel, (isNewTheme ? darkLabel : lightLabel)]}>Meeting Type</Text>
             <View style={styles.meetingTypeOptions}>
               {['video', 'in_person', 'hybrid'].map((type) => (
                 <TouchableOpacity
                   key={type}
                   style={[
                     styles.meetingTypeOption,
-                    { backgroundColor: colors.backgroundSecondary, borderColor: colors.border },
-                    !isNewTheme && { backgroundColor: 'transparent', borderColor: editorial.hairline },
+                    { backgroundColor: 'transparent', borderColor: isNewTheme ? colors.border : editorial.hairline },
                     editMeetingType === type && { backgroundColor: accentColor, borderColor: accentColor }
                   ]}
+                  activeOpacity={0.6}
                   onPress={() => setEditMeetingType(type as any)}
                 >
                   <Ionicons
@@ -563,7 +576,7 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
 
             {(editMeetingType === 'in_person' || editMeetingType === 'hybrid') && (
               <>
-                <Text style={[styles.editLabel, { color: colors.textSecondary }, !isNewTheme && lightLabel]}>Location</Text>
+                <Text style={[styles.editLabel, (isNewTheme ? darkLabel : lightLabel)]}>Location</Text>
                 <TextInput
                   style={[styles.editInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }, !isNewTheme && lightInput]}
                   value={editLocation}
@@ -585,12 +598,12 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
       {isNewTheme && <GrainTexture opacity={0.06} />}
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+        <TouchableOpacity onPress={onClose} style={styles.closeButton} activeOpacity={0.6} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Ionicons name="close" size={28} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Meeting Details</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }, isNewTheme ? { fontFamily: 'Sora_700Bold', letterSpacing: -0.3 } : { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 22, letterSpacing: -0.4 }]}>Meeting Details</Text>
         {isCreator || (meeting.series_id && canEditRecurring) ? (
-          <TouchableOpacity onPress={() => setIsEditing(true)} activeOpacity={isNewTheme ? 0.7 : 0.6}>
+          <TouchableOpacity onPress={() => setIsEditing(true)} activeOpacity={0.6} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons name="create-outline" size={24} color={isNewTheme ? accentColor : editorial.ink} />
           </TouchableOpacity>
         ) : (
@@ -602,18 +615,18 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
         <View style={styles.content}>
           {/* Meeting Title */}
           <View style={styles.titleSection}>
-            <Text style={[styles.meetingTitle, { color: colors.textPrimary }, !isNewTheme && { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 28, letterSpacing: -0.5 }]}>{meeting.title}</Text>
+            <Text style={[styles.meetingTitle, { color: colors.textPrimary }, isNewTheme ? { fontFamily: 'Sora_700Bold', letterSpacing: -0.3 } : { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 28, letterSpacing: -0.5 }]}>{meeting.title}</Text>
             {meeting.is_kickoff && (
               <View style={[
                 styles.kickoffBadge,
                 isNewTheme
-                  ? { backgroundColor: colors.warning }
+                  ? { backgroundColor: 'rgba(184, 134, 11, 0.16)', borderWidth: 1, borderColor: 'rgba(184, 134, 11, 0.40)' }
                   : { backgroundColor: editorial.goldTint, borderWidth: 1, borderColor: 'rgba(196, 155, 0, 0.30)' },
               ]}>
                 <Text style={[
                   styles.kickoffBadgeText,
                   isNewTheme
-                    ? { color: colors.background }
+                    ? { color: colors.warning, fontFamily: 'Sora_600SemiBold', fontSize: 10, letterSpacing: 1, textTransform: 'uppercase' }
                     : { color: editorial.gold, fontFamily: 'InterTight_600SemiBold', fontSize: 10, letterSpacing: 0.6, textTransform: 'uppercase' },
                 ]}>KICKOFF MEETING</Text>
               </View>
@@ -631,9 +644,9 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
           {/* Time & Date */}
           <View style={[styles.infoCard, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }, !isNewTheme && lightCard]}>
             <View style={styles.infoRow}>
-              <Ionicons name="calendar" size={24} color={accentColor} />
+              <Ionicons name="calendar" size={24} color={infoIconColor} />
               <View style={styles.infoTextContainer}>
-                <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Date</Text>
+                <Text style={[styles.infoLabel, (isNewTheme ? darkLabel : lightLabel)]}>Date</Text>
                 <Text style={[styles.infoValue, { color: colors.textPrimary }]}>{formatDate(meeting.scheduled_time)}</Text>
                 {seriesCadence && (
                   <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 4 }}>
@@ -647,9 +660,9 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
             </View>
 
             <View style={styles.infoRow}>
-              <Ionicons name="time" size={24} color={accentColor} />
+              <Ionicons name="time" size={24} color={infoIconColor} />
               <View style={styles.infoTextContainer}>
-                <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Time</Text>
+                <Text style={[styles.infoLabel, (isNewTheme ? darkLabel : lightLabel)]}>Time</Text>
                 <Text style={[styles.infoValue, { color: colors.textPrimary }]}>
                   {formatTime(meeting.scheduled_time)} ({meeting.duration_minutes || 60} min)
                 </Text>
@@ -657,18 +670,18 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
             </View>
 
             <View style={styles.infoRow}>
-              <Ionicons name={getMeetingTypeIcon()} size={24} color={accentColor} />
+              <Ionicons name={getMeetingTypeIcon()} size={24} color={infoIconColor} />
               <View style={styles.infoTextContainer}>
-                <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Meeting Type</Text>
+                <Text style={[styles.infoLabel, (isNewTheme ? darkLabel : lightLabel)]}>Meeting Type</Text>
                 <Text style={[styles.infoValue, { color: colors.textPrimary }]}>{getMeetingTypeLabel()}</Text>
               </View>
             </View>
 
             {meeting.location && (
               <View style={styles.infoRow}>
-                <Ionicons name="location" size={24} color={accentColor} />
+                <Ionicons name="location" size={24} color={infoIconColor} />
                 <View style={styles.infoTextContainer}>
-                  <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Location</Text>
+                  <Text style={[styles.infoLabel, (isNewTheme ? darkLabel : lightLabel)]}>Location</Text>
                   <Text style={[styles.infoValue, { color: colors.textPrimary }]}>{meeting.location}</Text>
                 </View>
               </View>
@@ -678,7 +691,7 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
           {/* Description */}
           {meeting.description && (
             <View style={[styles.descriptionCard, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }, !isNewTheme && lightCard]}>
-              <Text style={[styles.descriptionLabel, { color: colors.textSecondary }]}>Description</Text>
+              <Text style={[styles.descriptionLabel, (isNewTheme ? darkLabel : lightLabel)]}>Description</Text>
               <Text style={[styles.descriptionText, { color: colors.textPrimary }]}>{meeting.description}</Text>
             </View>
           )}
@@ -686,7 +699,7 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
           {/* Participants Section */}
           <View style={[styles.participantsCard, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }, !isNewTheme && lightCard]}>
             <View style={styles.participantsHeader}>
-              <Text style={[styles.participantsTitle, { color: colors.textPrimary }, !isNewTheme && { fontFamily: 'InterTight_600SemiBold' }]}>
+              <Text style={[styles.participantsTitle, { color: colors.textPrimary }, { fontFamily: isNewTheme ? 'Sora_700Bold' : 'InterTight_600SemiBold' }]}>
                 Participants ({participants.length})
               </Text>
               {isCreator && availableMembers.length > 0 && (
@@ -709,12 +722,13 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
             )}
           </View>
 
-          {/* Status Badge — passive status = plain muted label in light editorial mode */}
-          <View style={[styles.statusBadge, { backgroundColor: colors.backgroundSecondary }, !isNewTheme && { backgroundColor: 'transparent', paddingHorizontal: 0 }]}>
+          {/* Status — passive status = plain de-shouted label (no pill) in both themes */}
+          <View style={[styles.statusBadge, { backgroundColor: 'transparent', paddingHorizontal: 0 }]}>
             <Text style={[
               styles.statusText,
-              { color: colors.textSecondary },
-              !isNewTheme && { color: editorial.muted, fontFamily: 'InterTight_600SemiBold', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.6 },
+              isNewTheme
+                ? { color: 'rgba(255, 255, 255, 0.45)', fontFamily: 'Sora_600SemiBold', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 }
+                : { color: editorial.muted, fontFamily: 'InterTight_600SemiBold', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.6 },
             ]}>
               {isUpcoming ? 'Upcoming' : 'Completed'}
             </Text>
@@ -723,21 +737,15 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
           {/* Join Video Call Button */}
           {canJoinVideo && (
             <TouchableOpacity
-              style={[styles.joinButton, { backgroundColor: accentColor }, !isNewTheme && { backgroundColor: editorial.ink, borderRadius: 999, shadowOpacity: 0 }]}
+              style={[styles.joinButton, { backgroundColor: accentColor, borderRadius: 999 }, !isNewTheme && { backgroundColor: editorial.ink, shadowOpacity: 0 }]}
               onPress={handleJoinCall}
+              activeOpacity={0.85}
             >
               <Ionicons name="videocam" size={24} color={isNewTheme ? colors.background : colors.white} />
               <Text style={[styles.joinButtonText, { color: isNewTheme ? colors.background : colors.white }, !isNewTheme && { fontFamily: 'InterTight_600SemiBold' }]}>Join Video Call</Text>
             </TouchableOpacity>
           )}
 
-          {/* Channel Info for debugging (only show to creator) */}
-          {isCreator && meeting.agora_channel_name && (
-            <View style={[styles.debugInfo, { backgroundColor: colors.backgroundSecondary }]}>
-              <Text style={[styles.debugLabel, { color: colors.textTertiary }]}>Video Channel:</Text>
-              <Text style={[styles.debugValue, { color: colors.textSecondary }]}>{meeting.agora_channel_name}</Text>
-            </View>
-          )}
         </View>
       </ScrollView>
 
@@ -751,8 +759,8 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
         <View style={[styles.modalOverlay, { backgroundColor: isNewTheme ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)' }]}>
           <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.modalTitle, { color: colors.textPrimary }, !isNewTheme && { fontFamily: 'PlayfairDisplay_700Bold' }]}>Add Participant</Text>
-              <TouchableOpacity onPress={() => setShowAddParticipant(false)}>
+              <Text style={[styles.modalTitle, { color: colors.textPrimary }, { fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold' }]}>Add Participant</Text>
+              <TouchableOpacity onPress={() => setShowAddParticipant(false)} activeOpacity={0.6} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                 <Ionicons name="close" size={24} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
@@ -876,7 +884,7 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: typography.fontSize.sm,
-    marginBottom: 2,
+    marginBottom: 5,
   },
   infoValue: {
     fontSize: typography.fontSize.base,
@@ -983,19 +991,6 @@ const styles = StyleSheet.create({
   joinButtonText: {
     fontSize: typography.fontSize.lg,
     fontWeight: typography.fontWeight.bold,
-  },
-  debugInfo: {
-    marginTop: spacing.lg,
-    padding: spacing.base,
-    borderRadius: borderRadius.base,
-  },
-  debugLabel: {
-    fontSize: typography.fontSize.xs,
-    marginBottom: 2,
-  },
-  debugValue: {
-    fontSize: typography.fontSize.sm,
-    fontFamily: 'monospace',
   },
   // Edit form styles
   editForm: {

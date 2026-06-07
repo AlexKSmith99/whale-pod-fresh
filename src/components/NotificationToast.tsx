@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Animated, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+import { colors, typography, spacing } from '../theme/designSystem';
 import { hapticService } from '../services/hapticService';
 
 interface Props {
@@ -97,10 +97,10 @@ export default function NotificationToast({ notification, onPress, onDismiss }: 
       <TouchableOpacity
         style={styles.toast}
         onPress={handlePress}
-        activeOpacity={0.9}
+        activeOpacity={0.85}
       >
         <View style={styles.iconContainer}>
-          <Ionicons name={getIcon(notification.type) as any} size={24} color={colors.white} />
+          <Ionicons name={getIcon(notification.type) as any} size={22} color={colors.primary} />
         </View>
         <View style={styles.content}>
           <Text style={styles.title} numberOfLines={2}>
@@ -110,8 +110,13 @@ export default function NotificationToast({ notification, onPress, onDismiss }: 
             {notification.body}
           </Text>
         </View>
-        <TouchableOpacity onPress={dismiss} style={styles.closeButton}>
-          <Ionicons name="close" size={20} color={colors.white} />
+        <TouchableOpacity
+          onPress={dismiss}
+          style={styles.closeButton}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          activeOpacity={0.6}
+        >
+          <Ionicons name="close" size={20} color={colors.textTertiary} />
         </TouchableOpacity>
       </TouchableOpacity>
     </Animated.View>
@@ -128,20 +133,25 @@ const styles = StyleSheet.create({
   },
   toast: {
     flexDirection: 'row',
-    backgroundColor: colors.primary,
-    borderRadius: borderRadius.base,
+    backgroundColor: colors.white,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
     padding: spacing.base,
     alignItems: 'center',
-    ...shadows.lg,
+    // Soft shadow kept for legibility over busy content.
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 4,
   },
   iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    width: 36,
+    height: 36,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing.base,
+    marginRight: spacing.md,
   },
   content: {
     flex: 1,
@@ -149,12 +159,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.bold,
-    color: colors.white,
-    marginBottom: spacing.xs,
+    color: colors.textPrimary,
+    marginBottom: 2,
   },
   body: {
     fontSize: typography.fontSize.sm,
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: colors.textTertiary,
   },
   closeButton: {
     padding: spacing.xs,

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Alert, ActivityIndicator, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../theme/ThemeContext';
 import { editorial } from '../../theme/designSystem';
+import { AppAlert } from './AppAlert';
 
 interface Props {
   value?: string | null;             // Current cover image URL
@@ -37,7 +38,7 @@ export default function PodCoverImagePicker({ value, onChange, height = 220, pla
     setShowActions(false);
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (perm.status !== 'granted') {
-      Alert.alert('photo access needed', 'enable photo library access in settings to add a cover.');
+      AppAlert.alert('photo access needed', 'enable photo library access in settings to add a cover.');
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -53,7 +54,7 @@ export default function PodCoverImagePicker({ value, onChange, height = 220, pla
     setShowActions(false);
     const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (perm.status !== 'granted') {
-      Alert.alert('camera access needed', 'enable camera access in settings to snap a pic.');
+      AppAlert.alert('camera access needed', 'enable camera access in settings to snap a pic.');
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
@@ -85,7 +86,7 @@ export default function PodCoverImagePicker({ value, onChange, height = 220, pla
       onChange(pub.publicUrl);
     } catch (err: any) {
       console.error('cover upload failed', err);
-      Alert.alert('upload failed', err?.message || 'try again in a sec.');
+      AppAlert.alert('upload failed', err?.message || 'try again in a sec.');
     } finally {
       setUploading(false);
     }

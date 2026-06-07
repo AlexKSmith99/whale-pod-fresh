@@ -13,6 +13,7 @@ import LocationMapView from '../components/ui/LocationMapView';
 import PodCoverImagePicker from '../components/ui/PodCoverImagePicker';
 import { POD_TYPES, POD_CATEGORIES } from '../constants/pursuitTypes';
 import { NEIGHBORHOODS } from '../constants/neighborhoods';
+import { AppAlert } from '../components/ui/AppAlert';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const TOTAL_PAGES = 3;
@@ -50,9 +51,6 @@ const C_LIGHT = {
   accentText: '#2E6A95',
   accentLine: '#4B9CD3',
   accentTint: 'rgba(75, 156, 211, 0.10)',
-  tintRed: '#FCE8E6',
-  tintBlue: '#E6EEFC',
-  tintYellow: '#FEF3C7',
   border: '#E5E1D8',
   white: '#FFFFFF',
   gradientTop: '#FAF9F6',
@@ -70,9 +68,6 @@ const C_DARK = {
   accentText: '#9BC568',
   accentLine: '#C8FF6B',
   accentTint: 'rgba(200, 255, 107, 0.10)',
-  tintRed: 'rgba(252, 165, 165, 0.18)',
-  tintBlue: 'rgba(129, 140, 248, 0.18)',
-  tintYellow: 'rgba(252, 211, 77, 0.18)',
   border: 'rgba(255, 255, 255, 0.10)',
   white: '#000000',
   gradientTop: '#000000',
@@ -82,12 +77,21 @@ const C_DARK = {
 // definitions don't break. Inside the component we overwrite with a theme-correct copy.
 const C: any = { ...C_LIGHT };
 
-const F = {
-  title: 'InterTight_600SemiBold',           // Matches "Whale Pods" header font
-  header: 'InterTight_600SemiBold',          // Section titles use the same stack for consistency
-  body: 'InterTight_600SemiBold',                // body text — Inter Tight per 3-font system
+// Light = editorial InterTight; dark = Pie Sora. Assigned per theme inside the
+// component (mirrors the C palette pattern) so the dark flow doesn't leak InterTight.
+const F_LIGHT = {
+  title: 'InterTight_600SemiBold',
+  header: 'InterTight_600SemiBold',
+  body: 'InterTight_600SemiBold',
   bodyMedium: 'InterTight_600SemiBold',
 };
+const F_DARK = {
+  title: 'Sora_700Bold',
+  header: 'Sora_700Bold',
+  body: 'Sora_600SemiBold',
+  bodyMedium: 'Sora_600SemiBold',
+};
+const F: any = { ...F_LIGHT };
 
 const DECISION_SYSTEMS = ['Standard Vote', 'Admin Has Ultimate Say', 'Delegated', 'Weighted Voting'];
 const ATTENDANCE_STYLES = ['Mandatory', 'Optional', 'Frequent'];
@@ -208,6 +212,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
   // right theme. Then build the StyleSheet from the same C so it stays in sync.
   const themePalette = isNewTheme ? C_DARK : C_LIGHT;
   Object.assign(C, themePalette);
+  Object.assign(F, isNewTheme ? F_DARK : F_LIGHT);
   const styles = React.useMemo(() => makeStyles(themePalette), [isNewTheme]);
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -304,6 +309,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
     } else if (selectedTypes.length < 5) {
       setSelectedTypes([...selectedTypes, type]);
     } else {
+      // native Alert: fires while pursuit type picker modal is open
       Alert.alert('Limit Reached', 'You can select up to 5 pod types');
     }
   };
@@ -314,6 +320,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
     } else if (selectedCategories.length < 5) {
       setSelectedCategories([...selectedCategories, cat]);
     } else {
+      // native Alert: fires while category picker modal is open
       Alert.alert('Limit Reached', 'You can select up to 5 categories');
     }
   };
@@ -326,6 +333,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
       return;
     }
     if (selectedTypes.length >= 5) {
+      // native Alert: fires while pursuit type picker modal is open (onSubmitEditing)
       Alert.alert('Limit Reached', 'You can select up to 5 pod types');
       return;
     }
@@ -341,6 +349,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
       return;
     }
     if (selectedCategories.length >= 5) {
+      // native Alert: fires while category picker modal is open (onSubmitEditing)
       Alert.alert('Limit Reached', 'You can select up to 5 categories');
       return;
     }
@@ -441,32 +450,32 @@ export default function CreateScreen({ onClose }: Props = {}) {
 
   const handleCreate = async () => {
     if (!title || !description || !meetingCadence) {
-      Alert.alert('Missing Fields', 'Please fill in all required fields (marked with *)');
+      AppAlert.alert('Missing Fields', 'Please fill in all required fields (marked with *)');
       return;
     }
 
     if (description.length < 50) {
-      Alert.alert('Description Too Short', 'Description must be at least 50 characters');
+      AppAlert.alert('Description Too Short', 'Description must be at least 50 characters');
       return;
     }
 
     if (selectedTypes.length < 1) {
-      Alert.alert('Missing Type', 'Please select at least 1 pod type');
+      AppAlert.alert('Missing Type', 'Please select at least 1 pod type');
       return;
     }
 
     if (locationTypes.length === 0) {
-      Alert.alert('Missing Location', 'Please select at least one location type (In-person, Hybrid, or Remote)');
+      AppAlert.alert('Missing Location', 'Please select at least one location type (In-person, Hybrid, or Remote)');
       return;
     }
 
     const requiresLocation = locationTypes.includes('In-person') || locationTypes.includes('Hybrid');
     if (requiresLocation && !locationCity.trim()) {
-      Alert.alert('Missing City', 'Please select a city');
+      AppAlert.alert('Missing City', 'Please select a city');
       return;
     }
     if (requiresLocation && !locationState.trim()) {
-      Alert.alert('Missing State', 'Please select a state');
+      AppAlert.alert('Missing State', 'Please select a state');
       return;
     }
 
@@ -540,7 +549,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
 
       const successHypes = ['Rip it baby', "You're a beast", 'LFG!'];
       const hype = successHypes[Math.floor(Math.random() * successHypes.length)];
-      Alert.alert('You created Pod.', hype, [
+      AppAlert.alert('You created Pod.', hype, [
         { text: "let's go", onPress: () => {
           setTitle('');
           setCoverImageUrl(null);
@@ -587,7 +596,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
         }}
       ]);
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      AppAlert.alert('Error', error.message);
     } finally {
       setLoading(false);
     }
@@ -693,26 +702,30 @@ export default function CreateScreen({ onClose }: Props = {}) {
         <TouchableOpacity
           style={[
             styles.forwardButton,
+            { backgroundColor: isNewTheme ? C.accent : C.ink },
             !canProceedPage(page) && { opacity: 0.3 },
           ]}
           onPress={handleNext}
           disabled={!canProceedPage(page)}
+          activeOpacity={0.85}
         >
-          <Ionicons name="chevron-forward" size={24} color={C.white} />
+          <Ionicons name="chevron-forward" size={24} color={isNewTheme ? '#000000' : C.white} />
         </TouchableOpacity>
       ) : (
         <TouchableOpacity
           style={[
             styles.createButton,
+            { backgroundColor: isNewTheme ? C.accent : C.ink },
             (!canProceedPage(page) || loading) && { opacity: 0.3 },
           ]}
           onPress={handleCreate}
           disabled={!canProceedPage(page) || loading}
+          activeOpacity={0.85}
         >
           {loading ? (
-            <ActivityIndicator size="small" color={C.white} />
+            <ActivityIndicator size="small" color={isNewTheme ? '#000000' : C.white} />
           ) : (
-            <Text style={styles.createButtonText}>Create Pod</Text>
+            <Text style={[styles.createButtonText, { color: isNewTheme ? '#000000' : C.white }]}>Create Pod</Text>
           )}
         </TouchableOpacity>
       )}
@@ -791,75 +804,55 @@ export default function CreateScreen({ onClose }: Props = {}) {
             textAlignVertical="top"
           />
 
-          {/* Pod Type */}
-          {renderFieldLabel('Type', true)}
-          {renderHint(`Selected: ${selectedTypes.length}/5`)}
+          {/* Type & Categories — one compact section, mirroring the detail
+              screen's chip cluster: types pop (accent tint), categories stay
+              quiet (neutral). Two slim selectors share a single row. */}
+          {renderFieldLabel('Type & Categories', true)}
+          {renderHint(`Types: ${selectedTypes.length}/5  ·  Categories: ${selectedCategories.length}/5`)}
 
-          {selectedTypes.length > 0 && (
+          {(selectedTypes.length > 0 || selectedCategories.length > 0) && (
             <View style={styles.selectedTypesContainer}>
-              {selectedTypes.map((type, i) => {
-                const tints = [
-                  { bg: C.accentTint, ink: C.accent },
-                  { bg: C.tintBlue,   ink: '#1E3A8A' },
-                  { bg: C.tintRed,    ink: '#9B1C1C' },
-                  { bg: C.tintYellow, ink: '#92400E' },
-                ];
-                const t = tints[i % tints.length];
-                return (
-                  <View key={type} style={[styles.selectedTypeChip, { backgroundColor: t.bg }]}>
-                    <Text style={[styles.selectedTypeText, { color: t.ink }]}>{type}</Text>
-                    <TouchableOpacity onPress={() => setSelectedTypes(selectedTypes.filter(v => v !== type))}>
-                      <Ionicons name="close-circle" size={16} color={t.ink} />
-                    </TouchableOpacity>
-                  </View>
-                );
-              })}
+              {selectedTypes.map((type) => (
+                <View key={`t-${type}`} style={[styles.selectedTypeChip, { backgroundColor: C.accentTint, borderWidth: 1, borderColor: isNewTheme ? 'rgba(200, 255, 107, 0.25)' : C.border }]}>
+                  <Text style={[styles.selectedTypeText, { color: C.accent }]}>{type.toLowerCase()}</Text>
+                  <TouchableOpacity onPress={() => setSelectedTypes(selectedTypes.filter(v => v !== type))} activeOpacity={0.6} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Ionicons name="close-circle" size={16} color={C.accent} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              {selectedCategories.map((cat) => (
+                <View key={`c-${cat}`} style={[styles.selectedTypeChip, { backgroundColor: isNewTheme ? 'rgba(255,255,255,0.06)' : 'transparent', borderWidth: 1, borderColor: isNewTheme ? 'rgba(255,255,255,0.10)' : C.border }]}>
+                  <Text style={[styles.selectedTypeText, { color: isNewTheme ? C.muted : C.ink }]}>{cat.toLowerCase()}</Text>
+                  <TouchableOpacity onPress={() => setSelectedCategories(selectedCategories.filter(v => v !== cat))} activeOpacity={0.6} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Ionicons name="close-circle" size={16} color={isNewTheme ? C.muted : C.ink} />
+                  </TouchableOpacity>
+                </View>
+              ))}
             </View>
           )}
 
-          <TouchableOpacity
-            style={styles.dropdownButton}
-            onPress={() => setShowPursuitTypeModal(true)}
-          >
-            <Text style={styles.dropdownButtonText}>
-              {selectedTypes.length === 0 ? 'Select pod types...' : 'Add more types...'}
-            </Text>
-            <Ionicons name="chevron-down" size={20} color={C.muted} />
-          </TouchableOpacity>
-
-          {/* Categories */}
-          {renderFieldLabel('Categories')}
-          {renderHint(`Selected: ${selectedCategories.length}/5`)}
-          {selectedCategories.length > 0 && (
-            <View style={styles.selectedTypesContainer}>
-              {selectedCategories.map((cat, i) => {
-                const tints = [
-                  { bg: C.tintBlue,   ink: '#1E3A8A' },
-                  { bg: C.accentTint, ink: C.accent },
-                  { bg: C.tintRed,    ink: '#9B1C1C' },
-                  { bg: C.tintYellow, ink: '#92400E' },
-                ];
-                const t = tints[i % tints.length];
-                return (
-                  <View key={cat} style={[styles.selectedTypeChip, { backgroundColor: t.bg }]}>
-                    <Text style={[styles.selectedTypeText, { color: t.ink }]}>{cat}</Text>
-                    <TouchableOpacity onPress={() => setSelectedCategories(selectedCategories.filter(v => v !== cat))}>
-                      <Ionicons name="close-circle" size={16} color={t.ink} />
-                    </TouchableOpacity>
-                  </View>
-                );
-              })}
-            </View>
-          )}
-          <TouchableOpacity
-            style={styles.dropdownButton}
-            onPress={() => setShowCategoryModal(true)}
-          >
-            <Text style={styles.dropdownButtonText}>
-              {selectedCategories.length === 0 ? 'Select categories...' : 'Add more categories...'}
-            </Text>
-            <Ionicons name="chevron-down" size={20} color={C.muted} />
-          </TouchableOpacity>
+          <View style={styles.selectorRow}>
+            <TouchableOpacity
+              style={[styles.dropdownButton, styles.selectorRowButton]}
+              onPress={() => setShowPursuitTypeModal(true)}
+              activeOpacity={0.6}
+            >
+              <Text style={styles.dropdownButtonText} numberOfLines={1}>
+                {selectedTypes.length === 0 ? 'Add types...' : 'More types...'}
+              </Text>
+              <Ionicons name="chevron-down" size={18} color={C.muted} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.dropdownButton, styles.selectorRowButton]}
+              onPress={() => setShowCategoryModal(true)}
+              activeOpacity={0.6}
+            >
+              <Text style={styles.dropdownButtonText} numberOfLines={1}>
+                {selectedCategories.length === 0 ? 'Add categories...' : 'More categories...'}
+              </Text>
+              <Ionicons name="chevron-down" size={18} color={C.muted} />
+            </TouchableOpacity>
+          </View>
         </ScrollView>
         {renderBottomNav(0)}
       </View>
@@ -1811,12 +1804,12 @@ function makeStyles(C: any) { return StyleSheet.create({
     color: C.white,
   },
 
-  // Form fields — dark green uppercase labels with strong contrast
+  // Form fields — quiet, tracked, muted labels (de-shouted; accent reserved for CTAs)
   fieldLabel: {
     fontFamily: F.bodyMedium,
-    fontSize: 13,
-    fontWeight: '700',
-    color: C.accentDeep,
+    fontSize: 12,
+    fontWeight: '600',
+    color: C.muted,
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginTop: 24,
@@ -1929,6 +1922,15 @@ function makeStyles(C: any) { return StyleSheet.create({
     fontFamily: F.body,
     fontSize: 14,
     color: C.muted,
+  },
+  // Type & Categories selectors share one slim row
+  selectorRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  selectorRowButton: {
+    flex: 1,
+    padding: 12,
   },
 
   // Row layout

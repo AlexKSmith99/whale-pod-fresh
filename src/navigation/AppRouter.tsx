@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, ActivityIndicator, TouchableOpacity, Text, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, ActivityIndicator, TouchableOpacity, Text, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { supabase } from '../config/supabase';
+import { AppAlert } from '../components/ui/AppAlert';
 import NotificationToast from '../components/NotificationToast';
 import FeedScreen from '../screens/FeedScreen';
 import CreateScreen from '../screens/CreateScreen';
@@ -357,7 +358,7 @@ if (viewingPodDetail) {
         setEditingPursuit(viewingPodDetail);
       }}
       onDelete={async () => {
-        Alert.alert(
+        AppAlert.alert(
           'Delete Pursuit',
           'Are you sure you want to delete this pursuit? This action cannot be undone.',
           [
@@ -374,12 +375,12 @@ if (viewingPodDetail) {
 
                   if (error) throw error;
 
-                  Alert.alert('Success', 'Pursuit deleted successfully');
+                  AppAlert.alert('Success', 'Pursuit deleted successfully');
                   setViewingPodDetail(null);
                   setCurrentScreen('Pods');
                 } catch (error: any) {
                   console.error('Error deleting pursuit:', error);
-                  Alert.alert('Error', error.message || 'Failed to delete pursuit');
+                  AppAlert.alert('Error', error.message || 'Failed to delete pursuit');
                 }
               },
             },
@@ -508,7 +509,7 @@ if (teamBoardPursuitId) {
                 setVideoCallPodTitle(meeting.title || 'Meeting');
                 setSelectedMeeting(null);
               } else {
-                Alert.alert('Error', 'Video channel not available for this meeting');
+                AppAlert.alert('Error', 'Video channel not available for this meeting');
               }
             }}
           />

@@ -2,6 +2,7 @@ import React, { useRef, useCallback } from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { CITY_COORDINATES } from '../../constants/cityCoordinates';
+import { editorial } from '../../theme/designSystem';
 
 interface LocationMapViewProps {
   latitude?: number | null;
@@ -124,7 +125,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#D0D8D4',
+    borderColor: editorial.hairline,
   },
   webview: {
     flex: 1,

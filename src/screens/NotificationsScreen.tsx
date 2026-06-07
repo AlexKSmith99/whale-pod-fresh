@@ -325,7 +325,7 @@ export default function NotificationsScreen({ navigation }: any) {
       <TouchableOpacity
         style={[styles.card, isUnread && styles.cardUnread]}
         onPress={() => handleNotificationPress(item)}
-        activeOpacity={0.7}
+        activeOpacity={0.6}
       >
         {/* Left accent bar for unread */}
         {isUnread && <View style={styles.cardAccentBar} pointerEvents="none" />}
@@ -390,6 +390,7 @@ export default function NotificationsScreen({ navigation }: any) {
           <TouchableOpacity
             style={[styles.filterButton, podFilter && styles.filterButtonActive]}
             onPress={() => setShowFilterDropdown(true)}
+            activeOpacity={0.7}
           >
             <Ionicons name="filter-outline" size={16} color={podFilter ? (isNewTheme ? '#000' : '#FFFFFF') : colors.textSecondary} />
             <Text style={[styles.filterButtonText, podFilter && styles.filterButtonTextActive]} numberOfLines={1}>
@@ -398,8 +399,8 @@ export default function NotificationsScreen({ navigation }: any) {
             <Ionicons name="chevron-down" size={14} color={podFilter ? (isNewTheme ? '#000' : '#FFFFFF') : colors.textTertiary} />
           </TouchableOpacity>
           {podFilter && (
-            <TouchableOpacity style={styles.clearFilter} onPress={() => setPodFilter(null)}>
-              <Ionicons name="close-circle" size={18} color="#8A8A85" />
+            <TouchableOpacity style={styles.clearFilter} onPress={() => setPodFilter(null)} activeOpacity={0.6} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="close-circle" size={18} color={colors.textTertiary} />
             </TouchableOpacity>
           )}
         </View>
@@ -416,6 +417,7 @@ export default function NotificationsScreen({ navigation }: any) {
                   <TouchableOpacity
                     style={[styles.dropdownItem, !podFilter && styles.dropdownItemActive]}
                     onPress={() => { setPodFilter(null); setShowFilterDropdown(false); }}
+                    activeOpacity={0.6}
                   >
                     <Text style={[styles.dropdownItemText, !podFilter && styles.dropdownItemTextActive]}>All Notifications</Text>
                     {!podFilter && <Ionicons name="checkmark" size={18} color={colors.accentGreen} />}
@@ -427,6 +429,7 @@ export default function NotificationsScreen({ navigation }: any) {
                         key={pod.id}
                         style={[styles.dropdownItem, active && styles.dropdownItemActive]}
                         onPress={() => { setPodFilter(pod.id); setShowFilterDropdown(false); }}
+                        activeOpacity={0.6}
                       >
                         <Text style={[styles.dropdownItemText, active && styles.dropdownItemTextActive]} numberOfLines={1}>{pod.title}</Text>
                         {active && <Ionicons name="checkmark" size={18} color={colors.accentGreen} />}
@@ -627,13 +630,16 @@ function makeStyles(colors: any, isNewTheme: boolean) {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: subtleBg,
+    backgroundColor: isNewTheme ? subtleBg : 'transparent',
+    borderWidth: isNewTheme ? 0 : StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   iconCircleUnread: {
-    backgroundColor: isNewTheme ? 'rgba(200, 255, 107, 0.18)' : 'rgba(75, 156, 211, 0.18)',
+    backgroundColor: isNewTheme ? 'rgba(200, 255, 107, 0.18)' : editorial.carolinaTint,
+    borderColor: isNewTheme ? 'transparent' : editorial.carolinaTint,
   },
 
   // Content

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Platform, Modal, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Platform, Modal, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '../contexts/AuthContext';
@@ -12,6 +12,7 @@ import { colors as legacyColors, typography, spacing, borderRadius, shadows, edi
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
+import { AppAlert } from '../components/ui/AppAlert';
 
 interface Props {
   pursuitId: string;
@@ -62,7 +63,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
       setProposals(data || []);
     } catch (error) {
       console.error('Error loading proposals:', error);
-      Alert.alert('Error', 'Failed to load time proposals');
+      AppAlert.alert('Error', 'Failed to load time proposals');
     } finally {
       setLoading(false);
     }
@@ -125,19 +126,19 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
 
   const handleScheduleKickoff = async () => {
     if (!useCustomTime && !selectedTime) {
-      Alert.alert('Missing Selection', 'Please select a meeting time or choose a custom time');
+      AppAlert.alert('Missing Selection', 'Please select a meeting time or choose a custom time');
       return;
     }
 
     if ((meetingType === 'in_person' || meetingType === 'hybrid') && !location.trim()) {
-      Alert.alert('Missing Location', 'Please enter a location for the meeting');
+      AppAlert.alert('Missing Location', 'Please enter a location for the meeting');
       return;
     }
 
     const displayDateTime = getDisplayDateTime();
     if (!displayDateTime) return;
 
-    Alert.alert(
+    AppAlert.alert(
       'Schedule Kickoff',
       `This will schedule the kickoff meeting for ${displayDateTime.date} at ${displayDateTime.time}. All team members will be notified.`,
       [
@@ -254,12 +255,12 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                 error?.code === '23505' ||
                 /duplicate key|meetings_one_kickoff_per_pursuit/i.test(error?.message || '');
               if (isDuplicateKickoff) {
-                Alert.alert(
+                AppAlert.alert(
                   'Already scheduled',
                   'Someone else just scheduled the kickoff for this pod. Please refresh.'
                 );
               } else {
-                Alert.alert('Error', error.message || 'Failed to schedule kickoff');
+                AppAlert.alert('Error', error.message || 'Failed to schedule kickoff');
               }
             } finally {
               setLoading(false);
@@ -356,15 +357,15 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
         <View style={styles.content}>
           <View style={[
             styles.introSection,
-            { backgroundColor: isNewTheme ? colors.warningLight : legacyColors.warningLight },
+            { backgroundColor: isNewTheme ? colors.surface : editorial.surface, borderWidth: isNewTheme ? StyleSheet.hairlineWidth : 0, borderColor: 'rgba(255, 255, 255, 0.10)' },
             light && { backgroundColor: editorial.surface, borderWidth: 1, borderColor: editorial.hairline, borderRadius: 14, paddingLeft: 22, overflow: 'hidden', ...shadows.none },
           ]}>
             {light && <View style={styles.cardAccentLine} pointerEvents="none" />}
-            <Text style={[styles.pursuitTitle, { color: colors.warning, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }, light && { color: editorial.ink, fontSize: 24, letterSpacing: -0.3 }]}>{pursuitTitle}</Text>
+            <Text style={[styles.pursuitTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold' }, light && { color: editorial.ink, fontSize: 24, letterSpacing: -0.3 }]}>{pursuitTitle}</Text>
             <Text style={[styles.introText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && { color: editorial.muted, lineHeight: 20 }]}>
               Review all time proposals from your team members and select the final meeting time.
             </Text>
-            <Text style={[styles.statsText, { color: colors.warning, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && { color: editorial.carolinaDeep }]}>
+            <Text style={[styles.statsText, { color: colors.accentGreen, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && { color: editorial.carolinaDeep }]}>
               {proposals.length}/{teamMembersCount} team member{teamMembersCount !== 1 ? 's' : ''} submitted proposals
             </Text>
             {proposals.length < teamMembersCount && (
@@ -375,7 +376,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
           </View>
 
           {/* Proposed Times Calendar */}
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'InterTight_600SemiBold' }, light && styles.sectionTitleLight]}>Proposed Meeting Times</Text>
+          <Text style={[styles.sectionTitle, { color: isNewTheme ? colors.textTertiary : colors.textPrimary, fontFamily: 'Sora_600SemiBold' }, isNewTheme && styles.sectionLabelDark, light && styles.sectionTitleLight]}>Proposed Meeting Times</Text>
 
           {/* Legend */}
           {Object.keys(groupedTimeSlots).length > 0 && (
@@ -384,7 +385,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
               { backgroundColor: colors.backgroundSecondary },
               light && { backgroundColor: editorial.surface, borderWidth: 1, borderColor: editorial.hairline, borderRadius: 14 },
             ]}>
-              <Text style={[styles.legendTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }, light && styles.sectionTitleLight]}>Team Members:</Text>
+              <Text style={[styles.legendTitle, { color: isNewTheme ? colors.textTertiary : colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }, isNewTheme && styles.sectionLabelDark, light && styles.sectionTitleLight]}>Team Members</Text>
               <View style={styles.legendItems}>
                 {proposals.map((proposal) => (
                   <View key={proposal.user_id} style={styles.legendItem}>
@@ -432,7 +433,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                       key={`${date}-${timeKey}`}
                       style={[
                         styles.timeSlotOption,
-                        { backgroundColor: colors.surface, borderColor: isSelected ? accentColor : 'transparent' },
+                        { backgroundColor: colors.surface, borderColor: isSelected ? accentColor : 'rgba(255, 255, 255, 0.10)' },
                         isSelected && { backgroundColor: isNewTheme ? colors.primaryLight : legacyColors.primaryLight },
                         light && { borderWidth: 1, borderColor: editorial.hairline, borderRadius: 14, ...shadows.none },
                         light && isSelected && { backgroundColor: editorial.carolina, borderColor: editorial.carolina },
@@ -441,7 +442,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                         setSelectedTime(firstSlot);
                         setUseCustomTime(false);
                       }}
-                      activeOpacity={light ? 0.85 : 0.7}
+                      activeOpacity={light ? 0.85 : 0.85}
                     >
                       <View style={styles.timeSlotInfo}>
                         <Text style={[styles.timeSlotTime, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && { color: isSelected ? '#FFFFFF' : editorial.ink }]}>
@@ -451,11 +452,11 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                           {slots.map((slot, idx) => (
                             <View key={idx} style={[
                               styles.memberBadge,
-                              { backgroundColor: colors.backgroundSecondary },
+                              { backgroundColor: 'rgba(255, 255, 255, 0.06)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255, 255, 255, 0.10)' },
                               light && { backgroundColor: isSelected ? 'rgba(255,255,255,0.18)' : editorial.bg, borderWidth: 1, borderColor: isSelected ? 'rgba(255,255,255,0.30)' : editorial.hairline },
                             ]}>
                               <View style={[styles.memberColorDot, { backgroundColor: slot.color }]} />
-                              <Text style={[styles.memberName, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }, light && { color: isSelected ? '#FFFFFF' : editorial.ink, fontFamily: 'InterTight_600SemiBold' }]}>{slot.proposer?.name || 'Team member'}</Text>
+                              <Text style={[styles.memberName, { color: colors.textSecondary, fontFamily: 'Sora_600SemiBold' }, light && { color: isSelected ? '#FFFFFF' : editorial.ink, fontFamily: 'InterTight_600SemiBold' }]}>{slot.proposer?.name || 'Team member'}</Text>
                             </View>
                           ))}
                         </View>
@@ -479,8 +480,8 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
           <TouchableOpacity
             style={[
               styles.customTimeButton,
-              { backgroundColor: colors.surface, borderColor: useCustomTime ? accentColor : colors.borderLight },
-              useCustomTime && { backgroundColor: isNewTheme ? colors.primaryLight : legacyColors.primaryLight, borderStyle: 'solid' as const },
+              { backgroundColor: colors.surface, borderStyle: 'solid' as const, borderColor: useCustomTime ? accentColor : 'rgba(255, 255, 255, 0.10)' },
+              useCustomTime && { backgroundColor: isNewTheme ? colors.primaryLight : legacyColors.primaryLight },
               light && { borderWidth: 1, borderStyle: 'solid' as const, borderColor: useCustomTime ? editorial.carolina : editorial.hairline, borderRadius: 14, ...shadows.none },
               light && useCustomTime && { backgroundColor: editorial.carolinaTint },
             ]}
@@ -488,7 +489,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
               setUseCustomTime(true);
               setSelectedTime(null);
             }}
-            activeOpacity={light ? 0.85 : 0.7}
+            activeOpacity={0.85}
           >
             <View style={styles.customTimeButtonContent}>
               <Ionicons
@@ -633,7 +634,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
           {/* Meeting Type Selection */}
           {(selectedTime || useCustomTime) && (
             <>
-              <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'InterTight_600SemiBold' }, light && styles.sectionTitleLight]}>Meeting Type</Text>
+              <Text style={[styles.sectionTitle, { color: isNewTheme ? colors.textTertiary : colors.textPrimary, fontFamily: 'Sora_600SemiBold' }, isNewTheme && styles.sectionLabelDark, light && styles.sectionTitleLight]}>Meeting Type</Text>
               <View style={styles.chipContainer}>
                 {(['in_person', 'video', 'hybrid'] as const).map((type) => (
                   <TouchableOpacity
@@ -689,13 +690,13 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
               <TouchableOpacity
                 style={[
                   styles.scheduleButton,
-                  { backgroundColor: colors.warning },
+                  { backgroundColor: accentColor },
                   light && { backgroundColor: editorial.ink, borderRadius: 999, ...shadows.none },
                   loading && styles.scheduleButtonDisabled,
                 ]}
                 onPress={handleScheduleKickoff}
                 disabled={loading}
-                activeOpacity={light ? 0.85 : 0.7}
+                activeOpacity={0.85}
               >
                 <Text style={[styles.scheduleButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && { letterSpacing: 0.2 }]}>
                   {loading ? 'Sending Invites...' : 'Send Kick-Off Invites'}
@@ -714,7 +715,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
         onRequestClose={handleCloseSuccessModal}
       >
         <View style={styles.successModalOverlay}>
-          <View style={[styles.successModalContent, { backgroundColor: colors.surface }]}>
+          <View style={[styles.successModalContent, { backgroundColor: colors.surface }, isNewTheme && { borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255, 255, 255, 0.10)', ...shadows.none }]}>
             {/* Close button */}
             <TouchableOpacity
               style={styles.successModalClose}
@@ -730,7 +731,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
             <Text style={[styles.successModalTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>
               Kick-Off Scheduled!
             </Text>
-            <Text style={[styles.successModalSubtitle, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>
+            <Text style={[styles.successModalSubtitle, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
               Let your team members know in the Pod Chat
             </Text>
 
@@ -743,8 +744,9 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
 
             {/* Send button */}
             <TouchableOpacity
-              style={[styles.sendMessageButton, { backgroundColor: accentColor }]}
+              style={[styles.sendMessageButton, { backgroundColor: accentColor }, light && { backgroundColor: editorial.ink }]}
               onPress={handleSendPodChatMessage}
+              activeOpacity={0.85}
             >
               <Ionicons name="send" size={20} color={isNewTheme ? colors.background : '#fff'} />
               <Text style={[styles.sendMessageButtonText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
@@ -803,15 +805,13 @@ const styles = StyleSheet.create({
     paddingBottom: spacing['4xl'],
   },
   introSection: {
-    backgroundColor: legacyColors.warningLight,
     padding: spacing.lg,
-    borderRadius: borderRadius.lg,
+    borderRadius: 16,
     marginBottom: spacing.xl,
   },
   pursuitTitle: {
     fontSize: typography.fontSize.lg,
     fontWeight: typography.fontWeight.bold,
-    color: legacyColors.warning,
     marginBottom: spacing.sm,
   },
   introText: {
@@ -855,6 +855,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     color: editorial.muted,
   },
+  // Dark de-shouted section label: 12px, ls 1, dim white
+  sectionLabelDark: {
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
   inputLabelLight: {
     fontSize: 10,
     textTransform: 'uppercase',
@@ -877,8 +883,7 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     padding: spacing['3xl'],
-    backgroundColor: legacyColors.white,
-    borderRadius: borderRadius.lg,
+    borderRadius: 16,
   },
   emptyText: {
     fontSize: typography.fontSize.lg,
@@ -905,17 +910,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: legacyColors.white,
     padding: spacing.lg,
-    borderRadius: borderRadius.base,
+    borderRadius: 16,
     marginBottom: spacing.sm,
-    ...shadows.sm,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: 'transparent',
-  },
-  timeSlotSelected: {
-    borderColor: legacyColors.primary,
-    backgroundColor: legacyColors.primaryLight,
   },
   timeSlotInfo: {
     flex: 1,
@@ -931,9 +930,8 @@ const styles = StyleSheet.create({
     color: legacyColors.textSecondary,
   },
   legend: {
-    backgroundColor: legacyColors.backgroundSecondary,
     padding: spacing.base,
-    borderRadius: borderRadius.base,
+    borderRadius: 16,
     marginBottom: spacing.base,
   },
   legendTitle: {
@@ -971,10 +969,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    backgroundColor: legacyColors.backgroundSecondary,
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
-    borderRadius: borderRadius.base,
+    borderRadius: 999,
   },
   memberColorDot: {
     width: 8,
@@ -1005,18 +1002,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: legacyColors.borderLight,
   },
-  chipSelected: {
-    backgroundColor: legacyColors.primary,
-    borderColor: legacyColors.primary,
-  },
   chipText: {
     fontSize: typography.fontSize.sm,
     color: legacyColors.textSecondary,
     fontWeight: typography.fontWeight.medium,
-  },
-  chipTextSelected: {
-    color: legacyColors.white,
-    fontWeight: typography.fontWeight.bold,
   },
   inputLabel: {
     fontSize: typography.fontSize.sm,
@@ -1029,18 +1018,16 @@ const styles = StyleSheet.create({
     backgroundColor: legacyColors.white,
     borderWidth: 1,
     borderColor: legacyColors.borderLight,
-    borderRadius: borderRadius.base,
+    borderRadius: 14,
     padding: spacing.base,
     fontSize: typography.fontSize.base,
     color: legacyColors.textPrimary,
   },
   scheduleButton: {
-    backgroundColor: legacyColors.warning,
-    borderRadius: borderRadius.base,
+    borderRadius: 999,
     padding: spacing.lg,
     alignItems: 'center',
     marginTop: spacing.xl,
-    ...shadows.base,
   },
   scheduleButtonDisabled: {
     opacity: 0.6,
@@ -1054,19 +1041,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: legacyColors.white,
     padding: spacing.lg,
-    borderRadius: borderRadius.base,
+    borderRadius: 16,
     marginTop: spacing.lg,
-    ...shadows.sm,
-    borderWidth: 2,
-    borderColor: legacyColors.borderLight,
-    borderStyle: 'dashed',
-  },
-  customTimeButtonSelected: {
-    borderColor: legacyColors.primary,
-    borderStyle: 'solid',
-    backgroundColor: legacyColors.primaryLight,
+    borderWidth: 1,
   },
   customTimeButtonContent: {
     flexDirection: 'row',
@@ -1082,20 +1060,15 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeight.semibold,
     color: legacyColors.textSecondary,
   },
-  customTimeButtonTextSelected: {
-    color: legacyColors.primary,
-  },
   customTimeSubtext: {
     fontSize: typography.fontSize.sm,
     color: legacyColors.textTertiary,
     marginTop: 2,
   },
   customTimePickerSection: {
-    backgroundColor: legacyColors.white,
     padding: spacing.lg,
-    borderRadius: borderRadius.base,
+    borderRadius: 16,
     marginTop: spacing.base,
-    ...shadows.sm,
   },
   pickerOverlay: {
     flex: 1,
@@ -1123,7 +1096,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: legacyColors.backgroundSecondary,
     padding: spacing.base,
-    borderRadius: borderRadius.base,
+    borderRadius: 14,
     marginBottom: spacing.base,
     gap: spacing.sm,
   },
@@ -1173,7 +1146,7 @@ const styles = StyleSheet.create({
   messagePreview: {
     width: '100%',
     backgroundColor: legacyColors.backgroundSecondary,
-    borderRadius: borderRadius.base,
+    borderRadius: 14,
     padding: spacing.base,
     marginBottom: spacing.lg,
     borderWidth: 1,
@@ -1189,10 +1162,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: legacyColors.primary,
     paddingVertical: spacing.base,
     paddingHorizontal: spacing.xl,
-    borderRadius: borderRadius.base,
+    borderRadius: 999,
     width: '100%',
     gap: spacing.sm,
     marginBottom: spacing.base,

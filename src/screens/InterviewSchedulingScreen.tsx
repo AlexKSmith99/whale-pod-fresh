@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Platform, Modal, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Platform, Modal, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '../contexts/AuthContext';
@@ -11,6 +11,7 @@ import { colors as legacyColors, typography, spacing, borderRadius, shadows, edi
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
+import { AppAlert } from '../components/ui/AppAlert';
 
 interface Props {
   applicationId: string;
@@ -91,7 +92,7 @@ export default function InterviewSchedulingScreen({
       setScheduledTime(data.interview_scheduled_time || null);
     } catch (error) {
       console.error('Error loading proposed times:', error);
-      Alert.alert('Error', 'Failed to load proposed interview times');
+      AppAlert.alert('Error', 'Failed to load proposed interview times');
     } finally {
       setLoading(false);
     }
@@ -136,33 +137,33 @@ export default function InterviewSchedulingScreen({
 
   const handleScheduleInterview = async () => {
     if (!useCustomTime && !selectedTime) {
-      Alert.alert('Missing Selection', 'Please select an interview time or choose a custom time');
+      AppAlert.alert('Missing Selection', 'Please select an interview time or choose a custom time');
       return;
     }
 
     if ((meetingType === 'in_person' || meetingType === 'hybrid') && !location.trim()) {
-      Alert.alert('Missing Location', 'Please enter a location for the interview');
+      AppAlert.alert('Missing Location', 'Please enter a location for the interview');
       return;
     }
 
     // Validate that the selected time is not in the past
     const scheduledDateTimeObj = getScheduledDateTime();
     if (scheduledDateTimeObj && scheduledDateTimeObj < new Date()) {
-      Alert.alert('Invalid Time', 'You cannot schedule an interview in the past. Please select a future date and time.');
+      AppAlert.alert('Invalid Time', 'You cannot schedule an interview in the past. Please select a future date and time.');
       return;
     }
 
     // Validate minimum duration (15 minutes)
     const durationNum = parseInt(duration) || 30;
     if (durationNum < 15) {
-      Alert.alert('Invalid Duration', 'Interview duration must be at least 15 minutes.');
+      AppAlert.alert('Invalid Duration', 'Interview duration must be at least 15 minutes.');
       return;
     }
 
     const displayDateTime = getDisplayDateTime();
     if (!displayDateTime) return;
 
-    Alert.alert(
+    AppAlert.alert(
       'Schedule Interview',
       `This will schedule the interview with ${applicantName} for ${displayDateTime.date} at ${displayDateTime.time}.`,
       [
@@ -234,7 +235,7 @@ export default function InterviewSchedulingScreen({
                 displayDateTime.time
               );
 
-              Alert.alert('Success!', 'Interview scheduled successfully!', [
+              AppAlert.alert('Success!', 'Interview scheduled successfully!', [
                 {
                   text: 'OK',
                   onPress: () => {
@@ -245,7 +246,7 @@ export default function InterviewSchedulingScreen({
               ]);
             } catch (error: any) {
               console.error('Error scheduling interview:', error);
-              Alert.alert('Error', error.message || 'Failed to schedule interview');
+              AppAlert.alert('Error', error.message || 'Failed to schedule interview');
             } finally {
               setLoading(false);
             }
@@ -352,7 +353,7 @@ export default function InterviewSchedulingScreen({
           </View>
 
           {/* Proposed Times */}
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'InterTight_600SemiBold' }, light && styles.sectionTitleLight]}>Proposed Interview Times</Text>
+          <Text style={[styles.sectionTitle, { color: isNewTheme ? colors.textTertiary : colors.textPrimary, fontFamily: 'Sora_600SemiBold' }, isNewTheme && styles.sectionLabelDark, light && styles.sectionTitleLight]}>Proposed Interview Times</Text>
 
           {proposedTimes.length === 0 ? (
             <View style={[
@@ -376,7 +377,7 @@ export default function InterviewSchedulingScreen({
                   key={index}
                   style={[
                     styles.timeSlotOption,
-                    { backgroundColor: colors.surface, borderColor: isSelected ? accentColor : 'transparent' },
+                    { backgroundColor: colors.surface, borderColor: isSelected ? accentColor : 'rgba(255, 255, 255, 0.10)' },
                     isSelected && { backgroundColor: isNewTheme ? colors.primaryLight : '#f3e8ff' },
                     light && { borderWidth: 1, borderColor: editorial.hairline, borderRadius: 14, ...shadows.none },
                     light && isSelected && { backgroundColor: editorial.carolina, borderColor: editorial.carolina },
@@ -385,7 +386,7 @@ export default function InterviewSchedulingScreen({
                     setSelectedTime(slot);
                     setUseCustomTime(false);
                   }}
-                  activeOpacity={light ? 0.85 : 0.7}
+                  activeOpacity={0.85}
                 >
                   <View style={styles.timeSlotInfo}>
                     <Text style={[styles.timeSlotDate, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && { color: isSelected ? '#FFFFFF' : editorial.ink }]}>
@@ -411,8 +412,8 @@ export default function InterviewSchedulingScreen({
           <TouchableOpacity
             style={[
               styles.customTimeButton,
-              { backgroundColor: colors.surface, borderColor: useCustomTime ? accentColor : colors.borderLight },
-              useCustomTime && { backgroundColor: isNewTheme ? colors.primaryLight : '#f3e8ff', borderStyle: 'solid' as const },
+              { backgroundColor: colors.surface, borderStyle: 'solid' as const, borderColor: useCustomTime ? accentColor : 'rgba(255, 255, 255, 0.10)' },
+              useCustomTime && { backgroundColor: isNewTheme ? colors.primaryLight : '#f3e8ff' },
               light && { borderWidth: 1, borderStyle: 'solid' as const, borderColor: useCustomTime ? editorial.carolina : editorial.hairline, borderRadius: 14, ...shadows.none },
               light && useCustomTime && { backgroundColor: editorial.carolinaTint },
             ]}
@@ -420,7 +421,7 @@ export default function InterviewSchedulingScreen({
               setUseCustomTime(true);
               setSelectedTime(null);
             }}
-            activeOpacity={light ? 0.85 : 0.7}
+            activeOpacity={0.85}
           >
             <View style={styles.customTimeButtonContent}>
               <Ionicons
@@ -567,7 +568,7 @@ export default function InterviewSchedulingScreen({
           {/* Meeting Type Selection */}
           {(selectedTime || useCustomTime) && (
             <>
-              <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'InterTight_600SemiBold' }, light && styles.sectionTitleLight]}>Meeting Type</Text>
+              <Text style={[styles.sectionTitle, { color: isNewTheme ? colors.textTertiary : colors.textPrimary, fontFamily: 'Sora_600SemiBold' }, isNewTheme && styles.sectionLabelDark, light && styles.sectionTitleLight]}>Meeting Type</Text>
               <View style={styles.chipContainer}>
                 {(['in_person', 'video', 'hybrid'] as const).map((type) => (
                   <TouchableOpacity
@@ -629,7 +630,7 @@ export default function InterviewSchedulingScreen({
                 ]}
                 onPress={handleScheduleInterview}
                 disabled={loading}
-                activeOpacity={light ? 0.85 : 0.7}
+                activeOpacity={0.85}
               >
                 <Text style={[styles.scheduleButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && { letterSpacing: 0.2 }]}>
                   {loading ? 'Scheduling...' : 'Schedule Interview'}
@@ -678,15 +679,13 @@ const styles = StyleSheet.create({
     paddingBottom: spacing['4xl'],
   },
   introSection: {
-    backgroundColor: '#f3e8ff',
     padding: spacing.lg,
-    borderRadius: borderRadius.lg,
+    borderRadius: 16,
     marginBottom: spacing.xl,
   },
   pursuitTitle: {
     fontSize: typography.fontSize.lg,
     fontWeight: typography.fontWeight.bold,
-    color: '#8b5cf6',
     marginBottom: spacing.sm,
   },
   applicantLabel: {
@@ -716,8 +715,7 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     padding: spacing['3xl'],
-    backgroundColor: legacyColors.white,
-    borderRadius: borderRadius.lg,
+    borderRadius: 16,
   },
   emptyText: {
     fontSize: typography.fontSize.lg,
@@ -734,12 +732,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: legacyColors.white,
     padding: spacing.lg,
-    borderRadius: borderRadius.base,
+    borderRadius: 16,
     marginBottom: spacing.sm,
-    ...shadows.sm,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: 'transparent',
   },
   cardAccentLine: {
@@ -762,6 +758,12 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
+  // Dark de-shouted section label: 12px, ls 1, dim white
+  sectionLabelDark: {
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
   dateTimeButtonLight: {
     backgroundColor: editorial.surface,
     borderWidth: 1,
@@ -776,10 +778,6 @@ const styles = StyleSheet.create({
     borderRadius: 0,
     paddingHorizontal: 0,
   },
-  timeSlotSelected: {
-    borderColor: '#8b5cf6',
-    backgroundColor: '#f3e8ff',
-  },
   timeSlotInfo: {
     flex: 1,
   },
@@ -792,7 +790,6 @@ const styles = StyleSheet.create({
   timeSlotTime: {
     fontSize: typography.fontSize.lg,
     fontWeight: typography.fontWeight.bold,
-    color: '#8b5cf6',
   },
   chipContainer: {
     flexDirection: 'row',
@@ -808,18 +805,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: legacyColors.borderLight,
   },
-  chipSelected: {
-    backgroundColor: '#8b5cf6',
-    borderColor: '#8b5cf6',
-  },
   chipText: {
     fontSize: typography.fontSize.sm,
     color: legacyColors.textSecondary,
     fontWeight: typography.fontWeight.medium,
-  },
-  chipTextSelected: {
-    color: legacyColors.white,
-    fontWeight: typography.fontWeight.bold,
   },
   inputLabel: {
     fontSize: typography.fontSize.sm,
@@ -832,20 +821,18 @@ const styles = StyleSheet.create({
     backgroundColor: legacyColors.white,
     borderWidth: 1,
     borderColor: legacyColors.borderLight,
-    borderRadius: borderRadius.base,
+    borderRadius: 14,
     padding: spacing.base,
     fontSize: typography.fontSize.base,
     color: legacyColors.textPrimary,
   },
   scheduleButton: {
-    backgroundColor: '#8b5cf6',
-    borderRadius: borderRadius.base,
+    borderRadius: 999,
     padding: spacing.lg,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: spacing.xl,
-    ...shadows.base,
   },
   scheduleButtonDisabled: {
     opacity: 0.6,
@@ -859,19 +846,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: legacyColors.white,
     padding: spacing.lg,
-    borderRadius: borderRadius.base,
+    borderRadius: 16,
     marginTop: spacing.lg,
-    ...shadows.sm,
-    borderWidth: 2,
-    borderColor: legacyColors.borderLight,
-    borderStyle: 'dashed',
-  },
-  customTimeButtonSelected: {
-    borderColor: '#8b5cf6',
-    borderStyle: 'solid',
-    backgroundColor: '#f3e8ff',
+    borderWidth: 1,
   },
   customTimeButtonContent: {
     flexDirection: 'row',
@@ -887,27 +865,22 @@ const styles = StyleSheet.create({
     fontWeight: typography.fontWeight.semibold,
     color: legacyColors.textSecondary,
   },
-  customTimeButtonTextSelected: {
-    color: '#8b5cf6',
-  },
   customTimeSubtext: {
     fontSize: typography.fontSize.sm,
     color: legacyColors.textTertiary,
     marginTop: 2,
   },
   customTimePickerSection: {
-    backgroundColor: legacyColors.white,
     padding: spacing.lg,
-    borderRadius: borderRadius.base,
+    borderRadius: 16,
     marginTop: spacing.base,
-    ...shadows.sm,
   },
   dateTimeButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: legacyColors.backgroundSecondary,
     padding: spacing.base,
-    borderRadius: borderRadius.base,
+    borderRadius: 14,
     marginBottom: spacing.base,
     gap: spacing.sm,
   },
@@ -935,7 +908,6 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
   },
   doneButton: {
-    backgroundColor: '#8b5cf6',
     padding: spacing.sm,
     alignItems: 'center',
   },

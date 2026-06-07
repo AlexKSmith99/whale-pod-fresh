@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, LayoutChangeEvent, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, LayoutChangeEvent, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { meetingService } from '../services/meetingService';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,6 +7,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
 import { colors as legacyColors, typography, spacing, borderRadius, shadows, editorial } from '../theme/designSystem';
+import { AppAlert } from '../components/ui/AppAlert';
 
 interface Props {
   onCreateMeeting?: () => void;
@@ -46,7 +47,7 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
       setMeetings(data || []);
     } catch (error: any) {
       console.error('❌ CalendarScreen: Error loading meetings:', error);
-      Alert.alert('Error', 'Failed to load meetings');
+      AppAlert.alert('Error', 'Failed to load meetings');
     } finally {
       setLoading(false);
     }
@@ -198,13 +199,16 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
     },
     dayName: {
       ...themedStyles.textAccent,
-      fontSize: isNewTheme ? typography.fontSize.xs : 10,
+      fontSize: isNewTheme ? 12 : 10,
       fontWeight: typography.fontWeight.semibold as '600',
-      color: isNewTheme ? colors.textSecondary : editorial.muted,
+      color: isNewTheme ? 'rgba(255, 255, 255, 0.45)' : editorial.muted,
       marginBottom: spacing.xs,
-      ...(isNewTheme ? {} : {
+      textTransform: 'uppercase' as const,
+      ...(isNewTheme ? {
+        fontFamily: 'Sora_600SemiBold',
+        letterSpacing: 1,
+      } : {
         fontFamily: 'InterTight_600SemiBold',
-        textTransform: 'uppercase' as const,
         letterSpacing: 0.6,
       }),
     },
@@ -264,7 +268,8 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
         <TouchableOpacity
           style={styles.createButton}
           onPress={onCreateMeeting}
-          activeOpacity={isNewTheme ? 0.7 : 0.6}
+          activeOpacity={0.6}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           <Ionicons
             name={isNewTheme ? 'add-circle' : 'add'}
@@ -277,6 +282,7 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
       <ScrollView
         ref={scrollViewRef}
         style={styles.scrollView}
+        contentContainerStyle={{ paddingBottom: 120 }}
         refreshControl={
           <RefreshControl
             refreshing={loading}
@@ -327,10 +333,9 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
                           hour: 'numeric',
                           minute: '2-digit'
                         });
-                        const accentColor = isNewTheme
-                          ? (meeting.meeting_type === 'in_person' ? '#10b981' : meeting.meeting_type === 'hybrid' ? '#f59e0b' : colors.accentGreen)
-                          // Light: discreet Carolina stripe for all meeting types (editorial restraint).
-                          : editorial.carolina;
+                        // Dark: lime stripe/icon for every meeting type (lime restraint — no alien accents).
+                        // Light: discreet Carolina stripe for all meeting types (editorial restraint).
+                        const accentColor = isNewTheme ? colors.accentGreen : editorial.carolina;
 
                         return (
                           <TouchableOpacity
@@ -363,14 +368,15 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
                                   <View style={[
                                     styles.kickoffBadge,
                                     isNewTheme
-                                      ? { backgroundColor: colors.warning }
+                                      // Dark: small warning-tinted pill, hairline warning border (semantic, not a shout).
+                                      ? { backgroundColor: 'rgba(184, 134, 11, 0.16)', borderWidth: 1, borderColor: 'rgba(184, 134, 11, 0.40)' }
                                       // Light: gold-tinted pill, hairline-gold border, 10px uppercase gold text.
                                       : { backgroundColor: editorial.goldTint, borderWidth: 1, borderColor: 'rgba(196, 155, 0, 0.30)' },
                                   ]}>
                                     <Text style={[
                                       styles.kickoffBadgeText,
                                       isNewTheme
-                                        ? { color: colors.background }
+                                        ? { color: colors.warning, fontFamily: 'Sora_600SemiBold', letterSpacing: 1, fontSize: 10 }
                                         : { color: editorial.gold, fontFamily: 'InterTight_600SemiBold', letterSpacing: 0.6, fontSize: 10 },
                                     ]}>KICKOFF</Text>
                                   </View>

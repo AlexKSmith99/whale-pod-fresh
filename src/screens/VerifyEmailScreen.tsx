@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Keyboard,
@@ -21,6 +20,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
 import { editorial } from '../theme/designSystem';
+import { AppAlert } from '../components/ui/AppAlert';
 
 const { height } = Dimensions.get('window');
 
@@ -69,6 +69,7 @@ export default function VerifyEmailScreen({ email, onVerify, onResendCode, onBac
   const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [focusedCode, setFocusedCode] = useState<number | null>(null);
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
   // Animations
@@ -140,7 +141,7 @@ export default function VerifyEmailScreen({ email, onVerify, onResendCode, onBac
     const verifyCode = fullCode || code.join('');
 
     if (verifyCode.length !== 6) {
-      Alert.alert('Invalid Code', 'Please enter all 6 digits of your verification code.');
+      AppAlert.alert('Invalid Code', 'Please enter all 6 digits of your verification code.');
       return;
     }
 
@@ -148,7 +149,7 @@ export default function VerifyEmailScreen({ email, onVerify, onResendCode, onBac
     try {
       await onVerify(verifyCode);
     } catch (error: any) {
-      Alert.alert('Verification Failed', error.message || 'The code you entered is incorrect. Please try again.');
+      AppAlert.alert('Verification Failed', error.message || 'The code you entered is incorrect. Please try again.');
       // Clear the code on failure
       setCode(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
@@ -164,9 +165,9 @@ export default function VerifyEmailScreen({ email, onVerify, onResendCode, onBac
     try {
       await onResendCode();
       setResendCooldown(60); // 60 second cooldown
-      Alert.alert('Code Sent', 'A new verification code has been sent to your email.');
+      AppAlert.alert('Code Sent', 'A new verification code has been sent to your email.');
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to resend code. Please try again.');
+      AppAlert.alert('Error', error.message || 'Failed to resend code. Please try again.');
     } finally {
       setResendLoading(false);
     }
@@ -178,11 +179,16 @@ export default function VerifyEmailScreen({ email, onVerify, onResendCode, onBac
     <View style={[styles.container, { backgroundColor: isNewTheme ? colors.background : legacyColors.white }]}>
       <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={isNewTheme ? colors.background : legacyColors.white} />
       {isNewTheme && <GrainTexture opacity={0.06} />}
-      {/* Decorative circles — editorial Carolina tints in light; dark keeps
-          its original tints pinned so it renders pixel-identical. */}
-      <View style={[styles.decorativeCircle1, { backgroundColor: isNewTheme ? decorCirclesDark.purpleLight : loginColorsLight.purpleLight }]} />
-      <View style={[styles.decorativeCircle2, { backgroundColor: isNewTheme ? decorCirclesDark.greenLight : loginColorsLight.greenLight }]} />
-      <View style={[styles.decorativeCircle3, { backgroundColor: isNewTheme ? decorCirclesDark.accentLight : loginColorsLight.accentLight }]} />
+      {/* Decorative circles — dark only. Light editorial chrome is paper-flat,
+          so the tinted blobs are dropped there. Dark keeps its original
+          pinned tints so it renders pixel-identical. */}
+      {isNewTheme && (
+        <>
+          <View style={[styles.decorativeCircle1, { backgroundColor: decorCirclesDark.purpleLight }]} />
+          <View style={[styles.decorativeCircle2, { backgroundColor: decorCirclesDark.greenLight }]} />
+          <View style={[styles.decorativeCircle3, { backgroundColor: decorCirclesDark.accentLight }]} />
+        </>
+      )}
 
       <KeyboardAvoidingView
         style={styles.keyboardView}
@@ -214,8 +220,9 @@ export default function VerifyEmailScreen({ email, onVerify, onResendCode, onBac
                 },
               ]}
             >
-              <View style={[styles.iconContainer, { backgroundColor: isNewTheme ? decorCirclesDark.accentLight : loginColorsLight.accentLight }]}>
-                <Ionicons name="mail-open-outline" size={48} color={loginColors.accent} />
+              {/* Light: plain ink glyph (no filled halo, no accent). Dark: keeps its tinted circle. */}
+              <View style={[styles.iconContainer, isNewTheme ? { backgroundColor: decorCirclesDark.accentLight } : styles.iconContainerLight]}>
+                <Ionicons name="mail-open-outline" size={isNewTheme ? 48 : 40} color={isNewTheme ? loginColors.accent : editorial.ink} />
               </View>
               <Text style={[styles.title, { color: legacyColors.textPrimary }, !isNewTheme && { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3 }]}>Verify Your Email</Text>
               <Text style={[styles.subtitle, { color: legacyColors.textSecondary }, !isNewTheme && { fontFamily: 'InterTight_600SemiBold', lineHeight: 20 }]}>
@@ -260,10 +267,14 @@ export default function VerifyEmailScreen({ email, onVerify, onResendCode, onBac
                       digit && (isNewTheme
                         ? [styles.codeInputFilled, { borderColor: loginColors.accent, backgroundColor: loginColorsLight.accentLight }]
                         : { borderBottomColor: editorial.carolina, borderBottomWidth: 2 }),
+                      // Light: active box gets the Carolina rule for crisp entry
+                      !isNewTheme && focusedCode === index && { borderBottomColor: editorial.carolina, borderBottomWidth: 2 },
                     ]}
                     value={digit}
                     onChangeText={(text) => handleCodeChange(text, index)}
                     onKeyPress={(e) => handleKeyPress(e, index)}
+                    onFocus={() => setFocusedCode(index)}
+                    onBlur={() => setFocusedCode(null)}
                     keyboardType="number-pad"
                     maxLength={1}
                     selectTextOnFocus
@@ -289,7 +300,8 @@ export default function VerifyEmailScreen({ email, onVerify, onResendCode, onBac
                 ) : (
                   <>
                     <Text style={[styles.verifyButtonText, { color: isNewTheme ? colors.background : legacyColors.white }, !isNewTheme && { fontFamily: 'InterTight_600SemiBold' }]}>Verify Email</Text>
-                    <Ionicons name="checkmark-circle-outline" size={20} color={isNewTheme ? colors.background : '#fff'} style={styles.buttonIcon} />
+                    {/* Decorative checkmark — dark only; light editorial CTA stays clean */}
+                    {isNewTheme && <Ionicons name="checkmark-circle-outline" size={20} color={colors.background} style={styles.buttonIcon} />}
                   </>
                 )}
               </TouchableOpacity>
@@ -390,6 +402,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.lg,
+  },
+  // Light editorial: plain glyph, no filled halo
+  iconContainerLight: {
+    width: 'auto',
+    height: 'auto',
+    borderRadius: 0,
+    backgroundColor: 'transparent',
+    marginBottom: spacing.md,
   },
   title: {
     fontSize: typography.fontSize['2xl'],

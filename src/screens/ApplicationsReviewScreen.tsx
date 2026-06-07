@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert, Image, Linking, StatusBar } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, Linking, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { applicationService } from '../services/applicationService';
 import { notificationService } from '../services/notificationService';
@@ -10,6 +10,7 @@ import { colors as legacyColors, typography, spacing } from '../theme/designSyst
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
+import { AppAlert } from '../components/ui/AppAlert';
 
 interface Props {
   pursuitId: string;
@@ -47,7 +48,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
       .from('resumes')
       .createSignedUrl(resumePath, 60 * 60);
     if (error || !data?.signedUrl) {
-      Alert.alert('Could not open resume', error?.message || 'Unknown error');
+      AppAlert.alert('Could not open resume', error?.message || 'Unknown error');
       return;
     }
     Linking.openURL(data.signedUrl);
@@ -69,7 +70,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
   };
 
   const handleAccept = async (applicationId: string, applicantEmail: string) => {
-    Alert.alert(
+    AppAlert.alert(
       'Accept Application',
       `Accept ${applicantEmail}?`,
       [
@@ -79,10 +80,10 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
           onPress: async () => {
             try {
               await applicationService.acceptApplication(applicationId);
-              Alert.alert('✅ Accepted!', 'Application accepted');
+              AppAlert.alert('✅ Accepted!', 'Application accepted');
               loadApplications();
             } catch (error: any) {
-              Alert.alert('Error', error.message);
+              AppAlert.alert('Error', error.message);
             }
           },
         },
@@ -91,7 +92,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
   };
 
   const handleReject = async (applicationId: string) => {
-    Alert.alert(
+    AppAlert.alert(
       'Decline Application',
       'Are you sure?',
       [
@@ -102,10 +103,10 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
           onPress: async () => {
             try {
               await applicationService.rejectApplication(applicationId);
-              Alert.alert('Application declined');
+              AppAlert.alert('Application declined');
               loadApplications();
             } catch (error: any) {
-              Alert.alert('Error', error.message);
+              AppAlert.alert('Error', error.message);
             }
           },
         },
@@ -116,7 +117,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
   const handleScheduleInterview = async (app: any) => {
     const applicantName = app.applicant?.name || app.applicant?.email?.split('@')[0] || 'the applicant';
 
-    Alert.alert(
+    AppAlert.alert(
       'Schedule Interview',
       `Request ${applicantName} to propose interview times?`,
       [
@@ -161,11 +162,11 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
               );
 
               console.log('✅ Notification sent successfully');
-              Alert.alert('Request Sent!', `${applicantName} will be notified to propose interview times.`);
+              AppAlert.alert('Request Sent!', `${applicantName} will be notified to propose interview times.`);
               loadApplications();
             } catch (error: any) {
               console.error('Error scheduling interview:', error);
-              Alert.alert('Error', error.message || 'Failed to send interview request');
+              AppAlert.alert('Error', error.message || 'Failed to send interview request');
             }
           },
         },
@@ -196,10 +197,10 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
     }
   };
 
-  // Editorial light mode: Carolina blue is the discreet primary accent.
-  const accentPurple = isNewTheme ? colors.primary : '#2E6A95';
-  const accentPurpleLight = isNewTheme ? colors.primaryLight : 'rgba(75, 156, 211, 0.10)';
-  const accentPurpleBorder = isNewTheme ? colors.primary : 'rgba(75, 156, 211, 0.30)';
+  // Dark = lime accent (kill the indigo); light = Carolina blue (discreet primary).
+  const accentPurple = isNewTheme ? colors.accentGreen : '#2E6A95';
+  const accentPurpleLight = isNewTheme ? 'rgba(200, 255, 107, 0.10)' : 'rgba(75, 156, 211, 0.10)';
+  const accentPurpleBorder = isNewTheme ? 'rgba(200, 255, 107, 0.25)' : 'rgba(75, 156, 211, 0.30)';
   // Link/accent color for light mode (replaces the old sky-blue #0ea5e9).
   const linkColor = isNewTheme ? colors.accentGreen : '#2E6A95';
 
@@ -231,7 +232,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
       {isNewTheme && <GrainTexture opacity={0.06} />}
 
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
+        <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.6} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Text style={[styles.backText, { color: linkColor, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>← Back</Text>
         </TouchableOpacity>
         <Text style={[styles.title, { color: isNewTheme ? colors.accentGreen : colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold' }]}>Applications</Text>
@@ -275,7 +276,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
                             Applied {new Date(app.created_at).toLocaleDateString()}
                           </Text>
                           {app.status === 'interview_pending' && (
-                            <View style={[styles.interviewStatusBadge, { backgroundColor: isNewTheme ? colors.primaryLight : 'rgba(75, 156, 211, 0.10)' }]}>
+                            <View style={[styles.interviewStatusBadge, { backgroundColor: isNewTheme ? 'rgba(255,255,255,0.06)' : 'rgba(75, 156, 211, 0.10)' }]}>
                               <Text style={[styles.interviewStatusText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>⏳ Awaiting time proposals</Text>
                             </View>
                           )}
@@ -353,6 +354,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
                                 }
                               }}
                               disabled={buttonState.disabled}
+                              activeOpacity={0.85}
                             >
                               <Text style={[
                                 styles.interviewButtonText,
@@ -367,12 +369,14 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
                         <TouchableOpacity
                           style={[styles.acceptButton, { backgroundColor: colors.success }]}
                           onPress={() => handleAccept(app.id, app.applicant?.name || 'this applicant')}
+                          activeOpacity={0.85}
                         >
                           <Text style={[styles.acceptButtonText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>✓ Accept</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                           style={[styles.rejectButton, { backgroundColor: colors.error }]}
                           onPress={() => handleReject(app.id)}
+                          activeOpacity={0.85}
                         >
                           <Text style={[styles.rejectButtonText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>✕ Decline</Text>
                         </TouchableOpacity>
@@ -487,13 +491,13 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 18, fontWeight: '600' },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 16, marginTop: 8 },
   appCard: {
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
     elevation: 3,
   },
   appHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
@@ -572,7 +576,7 @@ const styles = StyleSheet.create({
   actionButtons: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
   interviewButton: {
     flex: 1,
-    borderRadius: 8,
+    borderRadius: 999,
     padding: 12,
     alignItems: 'center',
     minWidth: '100%',
@@ -585,14 +589,14 @@ const styles = StyleSheet.create({
   interviewButtonTextDisabled: { opacity: 0.9 },
   acceptButton: {
     flex: 1,
-    borderRadius: 8,
+    borderRadius: 999,
     padding: 12,
     alignItems: 'center',
   },
   acceptButtonText: { fontSize: 15, fontWeight: 'bold' },
   rejectButton: {
     flex: 1,
-    borderRadius: 8,
+    borderRadius: 999,
     padding: 12,
     alignItems: 'center',
   },

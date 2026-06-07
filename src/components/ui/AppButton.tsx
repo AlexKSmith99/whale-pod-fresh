@@ -60,8 +60,8 @@ export default function AppButton({
   style,
   textStyle,
 }: AppButtonProps) {
-  const { theme } = useTheme();
-  const { colors, spacing, borderRadius, typography } = theme;
+  const { theme, isNewTheme } = useTheme();
+  const { colors, spacing, typography } = theme;
 
   const handlePress = useCallback(() => {
     if (disabled || loading) return;
@@ -106,26 +106,34 @@ export default function AppButton({
   };
 
   // Get variant styles
+  // Primary CTA fill follows the law per theme:
+  //   light = ink (#1B1B18) with white text · dark = lime with black text.
+  // Carolina/lime accent is reserved for active states, not big fills.
   const getVariantStyles = (): { container: ViewStyle; text: TextStyle } => {
     const isDisabled = disabled || loading;
+    const primaryFill = isNewTheme ? colors.accentGreen : colors.textPrimary;
+    const primaryText = isNewTheme ? '#000000' : '#FFFFFF';
 
     switch (variant) {
       case 'primary':
         return {
           container: {
-            backgroundColor: isDisabled ? colors.disabled : colors.primary,
+            backgroundColor: isDisabled ? colors.disabled : primaryFill,
           },
           text: {
-            color: isDisabled ? colors.disabledText : colors.textInverse,
+            color: isDisabled ? colors.disabledText : primaryText,
           },
         };
       case 'secondary':
+        // Secondary = transparent w/ hairline border, ink/white text.
         return {
           container: {
-            backgroundColor: isDisabled ? colors.disabled : colors.secondary,
+            backgroundColor: isNewTheme ? colors.surfaceAlt : 'transparent',
+            borderWidth: 1,
+            borderColor: isDisabled ? colors.disabled : colors.border,
           },
           text: {
-            color: isDisabled ? colors.disabledText : colors.textInverse,
+            color: isDisabled ? colors.disabledText : colors.textPrimary,
           },
         };
       case 'ghost':
@@ -134,14 +142,14 @@ export default function AppButton({
             backgroundColor: 'transparent',
           },
           text: {
-            color: isDisabled ? colors.disabledText : colors.primary,
+            color: isDisabled ? colors.disabledText : colors.textPrimary,
           },
         };
       case 'outline':
         return {
           container: {
             backgroundColor: 'transparent',
-            borderWidth: 1.5,
+            borderWidth: 1,
             borderColor: isDisabled ? colors.disabled : colors.border,
           },
           text: {
@@ -154,7 +162,7 @@ export default function AppButton({
             backgroundColor: isDisabled ? colors.disabled : colors.error,
           },
           text: {
-            color: isDisabled ? colors.disabledText : colors.white,
+            color: isDisabled ? colors.disabledText : (isNewTheme ? '#000000' : colors.white),
           },
         };
       default:
@@ -175,7 +183,7 @@ export default function AppButton({
     paddingVertical: paddingV,
     paddingHorizontal: paddingH,
     minHeight,
-    borderRadius: borderRadius.lg,
+    borderRadius: 999,
     ...(fullWidth && { width: '100%' }),
     ...variantStyles.container,
     ...style,
@@ -194,7 +202,7 @@ export default function AppButton({
       onPress={handlePress}
       onLongPress={onLongPress ? handleLongPress : undefined}
       disabled={disabled || loading}
-      activeOpacity={0.7}
+      activeOpacity={variant === 'ghost' || variant === 'outline' ? 0.6 : 0.85}
       style={containerStyle}
     >
       {loading ? (

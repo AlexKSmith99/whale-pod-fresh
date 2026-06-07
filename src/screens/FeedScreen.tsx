@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, StatusBar, TextInput, Modal, KeyboardAvoidingView, Platform, Image, Animated, Easing } from 'react-native';
+import { AppAlert } from '../components/ui/AppAlert';
 import { useCardPress } from '../hooks/useCardPress';
 import { Ionicons } from '@expo/vector-icons';
 import { pursuitService } from '../services/pursuitService';
@@ -195,7 +196,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
   };
 
   const handleDelete = async () => {
-    Alert.alert(
+    AppAlert.alert(
       'Delete Pod',
       'Are you sure you want to delete this pod?',
       [
@@ -208,9 +209,9 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
               await pursuitService.deletePursuit(selectedPursuit.id);
               setSelectedPursuit(null);
               loadPursuits();
-              Alert.alert('Success', 'Pod deleted!');
+              AppAlert.alert('Success', 'Pod deleted!');
             } catch (error: any) {
-              Alert.alert('Error', error.message);
+              AppAlert.alert('Error', error.message);
             }
           },
         },

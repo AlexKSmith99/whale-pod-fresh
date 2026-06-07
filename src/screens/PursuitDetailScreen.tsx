@@ -21,6 +21,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
 import LocationMapView from '../components/ui/LocationMapView';
+import { AppAlert } from '../components/ui/AppAlert';
 
 interface Props {
   pursuit: any;
@@ -346,7 +347,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
   };
 
   const handleActivateKickoff = async () => {
-    Alert.alert(
+    AppAlert.alert(
       'Activate Kickoff',
       `Your team has reached the minimum size (${pursuit.current_members_count}/${pursuit.team_size_min}). Activating kickoff will prompt all team members to propose available meeting times.`,
       [
@@ -387,11 +388,11 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                 // Don't throw - notification failure shouldn't block activation
               }
 
-              Alert.alert('Success!', 'Kickoff activated! Team members will be prompted to propose meeting times.');
+              AppAlert.alert('Success!', 'Kickoff activated! Team members will be prompted to propose meeting times.');
               onBack(); // Refresh by going back
             } catch (error: any) {
               console.error('Error activating kickoff:', error);
-              Alert.alert('Error', error.message || 'Failed to activate kickoff');
+              AppAlert.alert('Error', error.message || 'Failed to activate kickoff');
             }
           }
         }
@@ -401,6 +402,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
 
   const handleRemoveMemberConfirm = (member: any) => {
     const memberName = member.user?.name || 'this member';
+    // native Alert: fires while Edit Team modal is open
     Alert.alert(
       `Remove ${memberName} from the Pod?`,
       '',
@@ -419,6 +421,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
 
   const handleRemoveMember = async () => {
     if (!memberToRemove || !selectedRemovalReason) {
+      // native Alert: fires while Edit Team modal is open
       Alert.alert('Error', 'Please select a reason for removal');
       return;
     }
@@ -473,6 +476,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
         }
       }
 
+      // native Alert: fires while Edit Team modal is open (closed below, after this alert)
       Alert.alert('Member Removed', `${memberToRemove.user?.name || 'Member'} has been removed from the pod.`);
 
       // Reset state
@@ -487,6 +491,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
       loadTeamMembers();
     } catch (error: any) {
       console.error('Error removing member:', error);
+      // native Alert: fires while Edit Team modal is open
       Alert.alert('Error', error.message || 'Failed to remove member');
     } finally {
       setRemovingMember(false);
@@ -498,7 +503,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
   const handleJoinOpenPod = async () => {
     if (!user) return;
     if (pursuit.current_members_count >= pursuit.team_size_max) {
-      Alert.alert('Pod full', 'This pod has reached its maximum team size.');
+      AppAlert.alert('Pod full', 'This pod has reached its maximum team size.');
       return;
     }
     setJoiningOpenPod(true);
@@ -518,10 +523,10 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
       if (countError) console.error('Count update error:', countError);
 
       setIsTeamMember(true);
-      Alert.alert("you're in! 🐋", `welcome to "${pursuit.title}". get in, loser — we're makin' plans.`);
+      AppAlert.alert("you're in! 🐋", `welcome to "${pursuit.title}". get in, loser — we're makin' plans.`);
     } catch (err: any) {
       console.error('Join open pod error:', err);
-      Alert.alert('Error', err.message || 'Failed to join pod');
+      AppAlert.alert('Error', err.message || 'Failed to join pod');
     } finally {
       setJoiningOpenPod(false);
     }
@@ -529,6 +534,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
 
   const handleLeavePod = async () => {
     if (!user || !selectedLeaveReason) {
+      // native Alert: fires while Leave Pod modal is open
       Alert.alert('Error', 'Please select a reason for leaving');
       return;
     }
@@ -552,6 +558,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
       if (updateError) throw updateError;
 
       if (!updateData || updateData.length === 0) {
+        // native Alert: fires while Leave Pod modal is open
         Alert.alert('Error', 'Failed to leave pod. Please try again.');
         setLeavingPod(false);
         return;
@@ -599,6 +606,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
         }
       }
 
+      // native Alert: fires while Leave Pod modal is open (closed below, after this alert)
       Alert.alert(
         'Left Pod',
         `You have left ${pursuit.title}.`,
@@ -612,6 +620,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
       setShareWithLeader(false);
     } catch (error: any) {
       console.error('Error leaving pod:', error);
+      // native Alert: fires while Leave Pod modal is open
       Alert.alert('Error', error.message || 'Failed to leave pod');
     } finally {
       setLeavingPod(false);
@@ -620,6 +629,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
 
   const handleDeletePursuit = async () => {
     if (!selectedTerminationReason) {
+      // native Alert: fires while Delete Pod modal is open
       Alert.alert('Required', 'Please select a reason for pod termination.');
       return;
     }
@@ -659,6 +669,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
       if (onDelete) onDelete();
     } catch (error: any) {
       console.error('Error deleting pursuit:', error);
+      // native Alert: fires while Delete Pod modal is open
       Alert.alert('Error', error.message || 'Failed to delete pursuit');
     } finally {
       setDeletingPursuit(false);
@@ -845,9 +856,9 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
 
       <View style={styles.content}>
         <View style={styles.creatorSection}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0 }]}>Created By</Text>
+          <Text style={[styles.sectionTitle, isNewTheme && styles.pieSectionLabel, { color: isNewTheme ? 'rgba(255,255,255,0.45)' : colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0 }]}>Created By</Text>
           <TouchableOpacity
-            style={[styles.creatorCard, { backgroundColor: colors.surface, borderColor: isNewTheme ? colors.accentGreen : colors.border, borderWidth: isNewTheme ? 0.35 : 0 }]}
+            style={[styles.creatorCard, { backgroundColor: colors.surface, borderColor: isNewTheme ? 'rgba(255,255,255,0.08)' : colors.border, borderWidth: isNewTheme ? 1 : 0 }]}
             onPress={() => {
               setSelectedMemberId(pursuit.creator_id);
               setShowUserProfile(true);
@@ -870,9 +881,9 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
 
         {/* Team Members Section */}
         {teamMembers.length > 0 && (
-          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: isNewTheme ? colors.accentGreen : colors.border, borderWidth: isNewTheme ? 0.35 : 0 }]}>
+          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: isNewTheme ? 'rgba(255,255,255,0.08)' : colors.border, borderWidth: isNewTheme ? 1 : 0 }]}>
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0 }]}>Team Members</Text>
+              <Text style={[styles.sectionTitle, isNewTheme && styles.pieSectionLabel, { color: isNewTheme ? 'rgba(255,255,255,0.45)' : colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0 }]}>Team Members</Text>
               {isOwner && (
                 <TouchableOpacity
                   style={styles.editTeamIconButton}
@@ -950,17 +961,16 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
           </View>
         )}
 
-        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: isNewTheme ? colors.accentGreen : colors.border, borderWidth: isNewTheme ? 0.35 : 0, borderRadius: isNewTheme ? 12 : 16, padding: isNewTheme ? 16 : 20 }]}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0.3 }]}>Description</Text>
+        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: isNewTheme ? 'rgba(255,255,255,0.08)' : colors.border, borderWidth: isNewTheme ? 1 : 0, borderRadius: isNewTheme ? 16 : 16, padding: isNewTheme ? 16 : 20 }]}>
+          <Text style={[styles.sectionTitle, isNewTheme && styles.pieSectionLabel, { color: isNewTheme ? 'rgba(255,255,255,0.45)' : colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0.3 }]}>Description</Text>
           <Text style={[styles.description, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', lineHeight: isNewTheme ? 22 : 24 }]}>
             {typedDescription}
             {descriptionTyping && <Text style={{ color: colors.primary, fontWeight: '700' }}>|</Text>}
           </Text>
         </View>
 
-        <Animated.View style={[styles.section, { backgroundColor: colors.surface, borderColor: isNewTheme ? colors.accentGreen : colors.border, borderWidth: isNewTheme ? 0.35 : 0, borderRadius: isNewTheme ? 12 : 16, padding: isNewTheme ? 16 : 20, opacity: detailsOpacity, transform: [{ translateY: detailsTranslateY }], overflow: 'hidden' }]}>
-          <View style={[styles.detailCardAccentLine, { backgroundColor: colors.accentGreen }]} pointerEvents="none" />
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0.3 }]}>Details</Text>
+        <Animated.View style={[styles.section, { backgroundColor: colors.surface, borderColor: isNewTheme ? 'rgba(255,255,255,0.08)' : colors.border, borderWidth: isNewTheme ? 1 : 0, borderRadius: isNewTheme ? 16 : 16, padding: isNewTheme ? 16 : 20, opacity: detailsOpacity, transform: [{ translateY: detailsTranslateY }], overflow: 'hidden' }]}>
+          <Text style={[styles.sectionTitle, isNewTheme && styles.pieSectionLabel, { color: isNewTheme ? 'rgba(255,255,255,0.45)' : colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0.3 }]}>Details</Text>
 
           {/* Location - conditional display based on membership */}
           {(isTeamMember || isOwner) && pursuit.address ? (
@@ -1100,7 +1110,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
             sections. Lowercase micro-chips matching the feed card — lime tint for
             types, barely-there white for categories/sub-category. */}
         {isNewTheme && ((pursuit.pursuit_types?.length ?? 0) > 0 || (pursuit.pursuit_categories?.length ?? 0) > 0 || pursuit.subcategory) && (
-          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.accentGreen, borderWidth: 0.35, borderRadius: 12, padding: 16 }]}>
+          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderRadius: 16, padding: 16 }]}>
             <View style={styles.pieChipCluster}>
               {(pursuit.pursuit_types || []).map((type: string, i: number) => (
                 <View key={`t-${i}`} style={[styles.pieChip, { backgroundColor: 'rgba(200, 255, 107, 0.10)', borderColor: 'rgba(200, 255, 107, 0.25)' }]}>
@@ -1122,8 +1132,8 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
         )}
 
         {!isNewTheme && pursuit.pursuit_types && pursuit.pursuit_types.length > 0 && (
-          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: isNewTheme ? colors.accentGreen : colors.border, borderWidth: isNewTheme ? 0.35 : 0, borderRadius: isNewTheme ? 12 : 16, padding: isNewTheme ? 16 : 20 }]}>
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0.3 }]}>Pod Types</Text>
+          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: isNewTheme ? 'rgba(255,255,255,0.08)' : colors.border, borderWidth: isNewTheme ? 1 : 0, borderRadius: isNewTheme ? 16 : 16, padding: isNewTheme ? 16 : 20 }]}>
+            <Text style={[styles.sectionTitle, isNewTheme && styles.pieSectionLabel, { color: isNewTheme ? 'rgba(255,255,255,0.45)' : colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0.3 }]}>Pod Types</Text>
             <View style={styles.tagContainer}>
               {pursuit.pursuit_types.map((type: string, i: number) => {
                 const tagView = (
@@ -1145,8 +1155,8 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
         )}
 
         {!isNewTheme && pursuit.pursuit_categories && pursuit.pursuit_categories.length > 0 && (
-          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: isNewTheme ? colors.accentGreen : colors.border, borderWidth: isNewTheme ? 0.35 : 0, borderRadius: isNewTheme ? 12 : 16, padding: isNewTheme ? 16 : 20 }]}>
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0.3 }]}>Categories</Text>
+          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: isNewTheme ? 'rgba(255,255,255,0.08)' : colors.border, borderWidth: isNewTheme ? 1 : 0, borderRadius: isNewTheme ? 16 : 16, padding: isNewTheme ? 16 : 20 }]}>
+            <Text style={[styles.sectionTitle, isNewTheme && styles.pieSectionLabel, { color: isNewTheme ? 'rgba(255,255,255,0.45)' : colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0.3 }]}>Categories</Text>
             <View style={styles.tagContainer}>
               {pursuit.pursuit_categories.map((category: string, i: number) => {
                 const tagView = (
@@ -1168,8 +1178,8 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
         )}
 
         {!isNewTheme && pursuit.subcategory && (
-          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: isNewTheme ? colors.accentGreen : colors.border, borderWidth: isNewTheme ? 0.35 : 0, borderRadius: isNewTheme ? 12 : 16, padding: isNewTheme ? 16 : 20 }]}>
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0.3 }]}>Sub-category</Text>
+          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: isNewTheme ? 'rgba(255,255,255,0.08)' : colors.border, borderWidth: isNewTheme ? 1 : 0, borderRadius: isNewTheme ? 16 : 16, padding: isNewTheme ? 16 : 20 }]}>
+            <Text style={[styles.sectionTitle, isNewTheme && styles.pieSectionLabel, { color: isNewTheme ? 'rgba(255,255,255,0.45)' : colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0.3 }]}>Sub-category</Text>
             <View style={styles.tagContainer}>
               <View style={[styles.tag, styles.subcategoryTag, { backgroundColor: isNewTheme ? 'rgba(252, 211, 77, 0.15)' : 'transparent', borderWidth: 1, borderColor: isNewTheme ? colors.warning : colors.border }]}>
                 <Text style={[styles.tagText, styles.subcategoryTagText, { color: isNewTheme ? colors.warning : '#1B1B18', fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'lowercase', letterSpacing: isNewTheme ? 0.5 : 0.3, fontSize: isNewTheme ? 15 : 11 }]}>{pursuit.subcategory}</Text>
@@ -1178,8 +1188,8 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
           </View>
         )}
 
-        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: isNewTheme ? colors.accentGreen : colors.border, borderWidth: isNewTheme ? 0.35 : 0, borderRadius: isNewTheme ? 12 : 16, padding: isNewTheme ? 16 : 20 }]}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0.3 }]}>Decision System</Text>
+        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: isNewTheme ? 'rgba(255,255,255,0.08)' : colors.border, borderWidth: isNewTheme ? 1 : 0, borderRadius: isNewTheme ? 16 : 16, padding: isNewTheme ? 16 : 20 }]}>
+          <Text style={[styles.sectionTitle, isNewTheme && styles.pieSectionLabel, { color: isNewTheme ? 'rgba(255,255,255,0.45)' : colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0.3 }]}>Decision System</Text>
           <Text style={[styles.detailValue, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
             {pursuit.decision_system === 'admin_has_ultimate_say'
               ? 'Admin has full control'
@@ -1190,7 +1200,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
         {/* Next Meeting Section */}
         {nextMeeting && (
           <View style={[styles.section, styles.nextMeetingSection, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#FFFFFF', borderColor: isNewTheme ? colors.accentGreen : '#4B9CD3', borderWidth: 1 }]}>
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0 }]}>📅 Next Meeting</Text>
+            <Text style={[styles.sectionTitle, isNewTheme && styles.pieSectionLabel, { color: isNewTheme ? 'rgba(255,255,255,0.45)' : colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0 }]}>Next Meeting</Text>
             <View style={styles.nextMeetingCard}>
               <Text style={[styles.nextMeetingTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>{nextMeeting.title}</Text>
               <Text style={[styles.nextMeetingTime, { color: isNewTheme ? colors.accentGreen : '#2E6A95', fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
@@ -1960,6 +1970,8 @@ const styles = StyleSheet.create({
   viewProfileText: { fontSize: 14, color: '#0ea5e9', fontWeight: '600' },
   section: { backgroundColor: '#fff', borderRadius: 12, padding: 18, marginBottom: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 2 },
   sectionTitle: { fontSize: 20, fontWeight: 'bold', color: '#333', marginBottom: 14 },
+  // Dark-mode de-shouted section label — quiet, tracked, secondary white
+  pieSectionLabel: { fontSize: 12, fontWeight: '600', letterSpacing: 1, marginBottom: 10 },
   description: { fontSize: 17, color: '#666', lineHeight: 26 },
   detailRow: { marginBottom: 12 },
   detailLabel: { fontSize: 16, fontWeight: '600', color: '#333', marginBottom: 4 },

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, TextInput, Text, StyleSheet, TextInputProps, ViewStyle } from 'react-native';
-import { colors, typography, spacing, borderRadius } from '../theme/designSystem';
+import { colors, typography, spacing } from '../theme/designSystem';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -49,12 +49,14 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
 
+  // Editorial single-line input: paper-flat underline, hairline bottom border,
+  // Carolina accent on focus.
   input: {
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: borderRadius.base,
-    paddingHorizontal: spacing.base,
+    backgroundColor: 'transparent',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    borderRadius: 0,
+    paddingHorizontal: 0,
     paddingVertical: spacing.md,
     fontSize: typography.fontSize.base,
     color: colors.textPrimary,
@@ -62,12 +64,12 @@ const styles = StyleSheet.create({
   },
 
   inputFocused: {
-    borderColor: colors.primary,
-    borderWidth: 1.5,
+    borderBottomColor: colors.primary,
+    borderBottomWidth: 1.5,
   },
 
   inputError: {
-    borderColor: colors.error,
+    borderBottomColor: colors.error,
   },
 
   errorText: {

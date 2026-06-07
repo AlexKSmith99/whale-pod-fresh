@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, Modal, FlatList, Switch, Image, Platform, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Modal, FlatList, Switch, Image, Platform, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '../contexts/AuthContext';
@@ -11,6 +11,7 @@ import { colors as legacyColors, typography, spacing, borderRadius, editorial } 
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
+import { AppAlert } from '../components/ui/AppAlert';
 
 interface Props {
   onClose: () => void;
@@ -24,6 +25,14 @@ const lightLabel = {
   fontSize: 10,
   textTransform: 'uppercase' as const,
   letterSpacing: 0.6,
+};
+// Pie dark-mode label treatment — 12px uppercase, dimmed, ls 1 (de-shouted form labels).
+const darkLabel = {
+  color: 'rgba(255, 255, 255, 0.45)' as const,
+  fontFamily: 'Sora_600SemiBold' as const,
+  fontSize: 12,
+  textTransform: 'uppercase' as const,
+  letterSpacing: 1,
 };
 // Single-line underline input (transparent bg, hairline bottom rule, radius 0).
 const lightInput = {
@@ -206,12 +215,12 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
   const handleCreate = async () => {
     // Validation
     if (!title.trim()) {
-      Alert.alert('Missing Title', 'Please enter a meeting title');
+      AppAlert.alert('Missing Title', 'Please enter a meeting title');
       return;
     }
 
     if (!selectedPursuit) {
-      Alert.alert('Missing Pursuit', 'Please select a pursuit');
+      AppAlert.alert('Missing Pursuit', 'Please select a pursuit');
       return;
     }
 
@@ -221,24 +230,24 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
 
     // Validate date/time is not in the past
     if (scheduledDateTime < new Date()) {
-      Alert.alert('Invalid Time', 'You cannot schedule a meeting in the past. Please select a future date and time.');
+      AppAlert.alert('Invalid Time', 'You cannot schedule a meeting in the past. Please select a future date and time.');
       return;
     }
 
     // Validate minimum duration (15 minutes)
     const durationNum = parseInt(duration) || 60;
     if (durationNum < 15) {
-      Alert.alert('Invalid Duration', 'Meeting duration must be at least 15 minutes.');
+      AppAlert.alert('Invalid Duration', 'Meeting duration must be at least 15 minutes.');
       return;
     }
 
     if (meetingType === 'in_person' && !location.trim()) {
-      Alert.alert('Missing Location', 'Please enter a location for in-person meeting');
+      AppAlert.alert('Missing Location', 'Please enter a location for in-person meeting');
       return;
     }
 
     if (selectedParticipants.length === 0) {
-      Alert.alert('No Participants', 'Please select at least one participant');
+      AppAlert.alert('No Participants', 'Please select at least one participant');
       return;
     }
 
@@ -332,7 +341,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
       }
 
       const seriesSuffix = cadence !== 'none' ? ` (repeats ${cadence})` : '';
-      Alert.alert('Invites Sent!', `Meeting invitations sent to ${participantsToNotify.length} team member${participantsToNotify.length !== 1 ? 's' : ''}${seriesSuffix}`, [
+      AppAlert.alert('Invites Sent!', `Meeting invitations sent to ${participantsToNotify.length} team member${participantsToNotify.length !== 1 ? 's' : ''}${seriesSuffix}`, [
         { text: 'OK', onPress: () => {
           onMeetingCreated?.();
           onClose();
@@ -340,7 +349,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
       ]);
     } catch (error: any) {
       console.error('Error creating meeting:', error);
-      Alert.alert('Error', error.message || 'Failed to create meeting');
+      AppAlert.alert('Error', error.message || 'Failed to create meeting');
     } finally {
       setLoading(false);
     }
@@ -364,7 +373,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
         <Text style={[
           styles.headerTitle,
           isNewTheme
-            ? { color: colors.textPrimary, fontFamily: 'Sora_600SemiBold' }
+            ? { color: colors.textPrimary, fontFamily: 'Sora_700Bold', letterSpacing: -0.3 }
             : { color: editorial.ink, fontFamily: 'PlayfairDisplay_700Bold', fontSize: 22, letterSpacing: -0.4 },
         ]}>Create Meeting</Text>
         <View style={{ width: 28 }} />
@@ -373,7 +382,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
       <ScrollView style={styles.scrollView}>
         <View style={styles.form}>
           {/* Pod Selection - First field */}
-          <Text style={[styles.label, { marginTop: 0, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && lightLabel]}>Pod *</Text>
+          <Text style={[styles.label, (isNewTheme ? darkLabel : lightLabel), { marginTop: 0 }]}>Pod *</Text>
           <TouchableOpacity
             style={[styles.input, styles.pickerButton, { backgroundColor: colors.surface, borderColor: colors.border }, !isNewTheme && lightSurfaceInput]}
             onPress={() => setShowPursuitModal(true)}
@@ -385,7 +394,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
           </TouchableOpacity>
 
           {/* Title */}
-          <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && lightLabel]}>Meeting Title *</Text>
+          <Text style={[styles.label, (isNewTheme ? darkLabel : lightLabel)]}>Meeting Title *</Text>
           <TextInput
             style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && lightInput]}
             placeholder="e.g., Weekly Standup"
@@ -397,7 +406,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
           {/* Participants - shown after Pod is selected */}
           {selectedPursuit && (
             <>
-              <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && lightLabel]}>Participants * ({selectedParticipants.length} selected)</Text>
+              <Text style={[styles.label, (isNewTheme ? darkLabel : lightLabel)]}>Participants * ({selectedParticipants.length} selected)</Text>
               <TouchableOpacity
                 style={[styles.input, styles.pickerButton, { backgroundColor: colors.surface, borderColor: colors.border }, !isNewTheme && lightSurfaceInput]}
                 onPress={() => setShowParticipantsModal(true)}
@@ -442,7 +451,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
           )}
 
           {/* Description */}
-          <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && lightLabel]}>Description (optional)</Text>
+          <Text style={[styles.label, (isNewTheme ? darkLabel : lightLabel)]}>Description (optional)</Text>
           <TextInput
             style={[styles.input, styles.textArea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && lightSurfaceInput]}
             placeholder="Add meeting details..."
@@ -454,15 +463,16 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
           />
 
           {/* Meeting Type */}
-          <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && lightLabel]}>Meeting Type *</Text>
+          <Text style={[styles.label, (isNewTheme ? darkLabel : lightLabel)]}>Meeting Type *</Text>
           <View style={styles.chipContainer}>
             {(['in_person', 'video', 'hybrid'] as const).map((type) => (
               <TouchableOpacity
                 key={type}
-                style={[styles.chip, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }, !isNewTheme && { backgroundColor: 'transparent', borderColor: editorial.hairline }, meetingType === type && { backgroundColor: isNewTheme ? colors.accentGreen : editorial.carolina, borderColor: isNewTheme ? colors.accentGreen : editorial.carolina }]}
+                activeOpacity={0.6}
+                style={[styles.chip, { backgroundColor: 'transparent', borderColor: isNewTheme ? colors.border : editorial.hairline }, meetingType === type && { backgroundColor: isNewTheme ? colors.accentGreen : editorial.carolina, borderColor: isNewTheme ? colors.accentGreen : editorial.carolina }]}
                 onPress={() => setMeetingType(type)}
               >
-                <Text style={[styles.chipText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, meetingType === type && { color: isNewTheme ? colors.background : legacyColors.white }]}>
+                <Text style={[styles.chipText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, isNewTheme && { textTransform: 'lowercase' }, meetingType === type && { color: isNewTheme ? colors.background : legacyColors.white }]}>
                   {type === 'in_person' ? 'In Person' : type === 'video' ? 'Video' : 'Hybrid'}
                 </Text>
               </TouchableOpacity>
@@ -472,7 +482,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
           {/* Location (for in-person) */}
           {(meetingType === 'in_person' || meetingType === 'hybrid') && (
             <>
-              <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && lightLabel]}>Location *</Text>
+              <Text style={[styles.label, (isNewTheme ? darkLabel : lightLabel)]}>Location *</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && lightInput]}
                 placeholder="e.g., Conference Room A"
@@ -484,7 +494,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
           )}
 
           {/* Date */}
-          <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && lightLabel]}>Date *</Text>
+          <Text style={[styles.label, (isNewTheme ? darkLabel : lightLabel)]}>Date *</Text>
           <TouchableOpacity
             style={[styles.input, styles.pickerButton, { backgroundColor: colors.surface, borderColor: colors.border }, !isNewTheme && lightSurfaceInput]}
             onPress={() => setShowDatePicker(!showDatePicker)}
@@ -539,7 +549,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
           )}
 
           {/* Time */}
-          <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && lightLabel]}>Time *</Text>
+          <Text style={[styles.label, (isNewTheme ? darkLabel : lightLabel)]}>Time *</Text>
           <TouchableOpacity
             style={[styles.input, styles.pickerButton, { backgroundColor: colors.surface, borderColor: colors.border }, !isNewTheme && lightSurfaceInput]}
             onPress={() => setShowTimePicker(!showTimePicker)}
@@ -593,7 +603,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
           )}
 
           {/* Duration */}
-          <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && lightLabel]}>Duration (minutes)</Text>
+          <Text style={[styles.label, (isNewTheme ? darkLabel : lightLabel)]}>Duration (minutes)</Text>
           <TextInput
             style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && lightInput]}
             placeholder="60"
@@ -606,7 +616,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
           {/* Recording */}
           {(meetingType === 'video' || meetingType === 'hybrid') && (
             <View style={styles.switchRow}>
-              <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && lightLabel]}>Enable Recording</Text>
+              <Text style={[styles.label, (isNewTheme ? darkLabel : lightLabel)]}>Enable Recording</Text>
               <Switch
                 value={recordingEnabled}
                 onValueChange={setRecordingEnabled}
@@ -619,7 +629,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
           {/* Repeat — only surface for pod creator / scheduler */}
           {canMakeRecurring && (
             <>
-              <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && lightLabel]}>Repeat</Text>
+              <Text style={[styles.label, (isNewTheme ? darkLabel : lightLabel)]}>Repeat</Text>
               <TouchableOpacity
                 style={[styles.input, styles.pickerButton, { backgroundColor: colors.surface, borderColor: colors.border }, !isNewTheme && lightSurfaceInput]}
                 onPress={() => setShowCadenceModal(true)}
@@ -632,7 +642,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
 
               {cadence !== 'none' && (
                 <>
-                  <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && lightLabel]}>Ends</Text>
+                  <Text style={[styles.label, (isNewTheme ? darkLabel : lightLabel)]}>Ends</Text>
                   <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
                     {(['never', 'on_date'] as const).map(opt => (
                       <TouchableOpacity
@@ -696,9 +706,10 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
 
           {/* Create Button */}
           <TouchableOpacity
-            style={[styles.createButton, { backgroundColor: isNewTheme ? colors.accentGreen : editorial.ink }, !isNewTheme && { borderRadius: 999 }, loading && styles.createButtonDisabled]}
+            style={[styles.createButton, { backgroundColor: isNewTheme ? colors.accentGreen : editorial.ink, borderRadius: 999 }, loading && styles.createButtonDisabled]}
             onPress={handleCreate}
             disabled={loading}
+            activeOpacity={0.85}
           >
             <Text style={[styles.createButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
               {loading ? 'Sending...' : 'Send Meeting Invites'}
@@ -717,7 +728,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
         <View style={[styles.modalOverlay, { backgroundColor: isNewTheme ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)' }]}>
           <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.modalTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>Select Pod</Text>
+              <Text style={[styles.modalTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold' }]}>Select Pod</Text>
               <TouchableOpacity onPress={() => setShowPursuitModal(false)}>
                 <Ionicons name="close" size={24} color={colors.textPrimary} />
               </TouchableOpacity>
@@ -758,7 +769,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
         >
           <View style={[styles.modalContent, { backgroundColor: colors.surface, maxHeight: 320 }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.modalTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>Repeat</Text>
+              <Text style={[styles.modalTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold' }]}>Repeat</Text>
               <TouchableOpacity onPress={() => setShowCadenceModal(false)}>
                 <Ionicons name="close" size={24} color={colors.textPrimary} />
               </TouchableOpacity>
@@ -795,7 +806,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
         <View style={[styles.modalOverlay, { backgroundColor: isNewTheme ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)' }]}>
           <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.modalTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>Select Participants</Text>
+              <Text style={[styles.modalTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold' }]}>Select Participants</Text>
               <TouchableOpacity onPress={() => setShowParticipantsModal(false)}>
                 <Ionicons name="close" size={24} color={colors.textPrimary} />
               </TouchableOpacity>

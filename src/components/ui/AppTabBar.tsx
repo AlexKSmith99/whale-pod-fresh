@@ -60,11 +60,12 @@ export default function AppTabBar({
       backgroundColor: themeColors.tabBarBackground,
       borderTopColor: themeColors.tabBarBorder,
     }]}>
-      <TouchableOpacity style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : editorial.hairline }]} onPress={() => onTabPress('Feed')}>
+      <TouchableOpacity style={[styles.tab, { borderRightColor: editorial.hairline }]} activeOpacity={0.6} onPress={() => onTabPress('Feed')}>
         <Text style={[styles.tabIcon, { opacity: currentScreen === 'Feed' ? 1 : 0.4 }]}>🌊</Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : editorial.hairline }]}
+        style={[styles.tab, { borderRightColor: editorial.hairline }]}
+        activeOpacity={0.6}
         onPress={() => onTabPress('Messages')}
       >
         <View style={styles.tabContent}>
@@ -80,7 +81,8 @@ export default function AppTabBar({
         </View>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : editorial.hairline }]}
+        style={[styles.tab, { borderRightColor: editorial.hairline }]}
+        activeOpacity={0.6}
         onPress={() => onTabPress('Pods')}
       >
         <View style={styles.tabContent}>
@@ -93,7 +95,8 @@ export default function AppTabBar({
         </View>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : editorial.hairline }]}
+        style={[styles.tab, { borderRightColor: editorial.hairline }]}
+        activeOpacity={0.6}
         onPress={() => onTabPress('Calendar')}
       >
         <View style={styles.tabContent}>
@@ -106,7 +109,8 @@ export default function AppTabBar({
         </View>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : editorial.hairline }]}
+        style={[styles.tab, { borderRightColor: editorial.hairline }]}
+        activeOpacity={0.6}
         onPress={() => onTabPress('Notifications')}
       >
         <View style={styles.tabContent}>
@@ -120,6 +124,7 @@ export default function AppTabBar({
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.tab, { borderRightWidth: 0 }]}
+        activeOpacity={0.6}
         onPress={() => onTabPress('Profile')}
       >
         <View style={styles.tabContent}>
@@ -136,11 +141,12 @@ export default function AppTabBar({
 }
 
 const styles = StyleSheet.create({
+  // Defaults reference editorial tokens; theme colors are applied inline.
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
+    backgroundColor: editorial.surface,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: editorial.hairline,
     paddingBottom: 20,
     paddingTop: 8,
   },
@@ -150,7 +156,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 6,
     borderRightWidth: 1,
-    borderRightColor: '#f0f0f0',
+    borderRightColor: editorial.hairline,
   },
   tabContent: {
     position: 'relative',
@@ -163,7 +169,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -6,
     right: -10,
-    backgroundColor: '#ef4444',
+    backgroundColor: editorial.red,
     borderRadius: 10,
     minWidth: 18,
     height: 18,

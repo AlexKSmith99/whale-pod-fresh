@@ -281,7 +281,7 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
       borderRadius: 20,
       backgroundColor: isNewTheme ? colors.surface : legacyColors.white,
       borderBottomLeftRadius: 4,
-      borderWidth: 1,
+      borderWidth: isNewTheme ? StyleSheet.hairlineWidth : 1,
       borderColor: colors.border,
     },
     messageText: {
@@ -322,9 +322,9 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
     },
     input: {
       flex: 1,
-      borderWidth: 1,
+      borderWidth: isNewTheme ? StyleSheet.hairlineWidth : 1,
       borderColor: colors.border,
-      borderRadius: 20,
+      borderRadius: 22,
       paddingHorizontal: spacing.base,
       paddingVertical: spacing.sm,
       marginRight: spacing.sm,
@@ -542,11 +542,12 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
       <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       {isNewTheme && <GrainTexture opacity={0.06} />}
       <View style={dynamicStyles.header}>
-        <TouchableOpacity activeOpacity={0.6} onPress={handleMenuPress} style={[styles.backButton, showMenuButton && isNewTheme && { backgroundColor: 'rgba(168, 230, 163, 0.15)', borderRadius: 20, padding: 6 }]}>
+        <TouchableOpacity activeOpacity={0.6} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} onPress={handleMenuPress} style={[styles.backButton, showMenuButton && isNewTheme && { backgroundColor: 'rgba(200, 255, 107, 0.12)', borderRadius: 20, padding: 6 }]}>
           <Ionicons name={showMenuButton ? "ellipsis-vertical" : "arrow-back"} size={showMenuButton ? 22 : 24} color={showMenuButton ? (isNewTheme ? colors.accentGreen : colors.textPrimary) : colors.textPrimary} />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.headerUserInfo}
+          activeOpacity={0.6}
           onPress={() => navigation?.navigate('UserProfile', { userId: partnerId })}
         >
           {otherUserProfile?.profile_picture ? (
@@ -593,8 +594,8 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
           spellCheck={true}
           autoCorrect={true}
         />
-        <TouchableOpacity style={dynamicStyles.sendButton} onPress={handleSend}>
-          <Ionicons name="send" size={24} color={isNewTheme ? colors.background : legacyColors.white} />
+        <TouchableOpacity style={dynamicStyles.sendButton} activeOpacity={0.85} onPress={handleSend}>
+          <Ionicons name="send" size={20} color={isNewTheme ? colors.background : legacyColors.white} />
         </TouchableOpacity>
       </View>
 
@@ -756,7 +757,9 @@ function makeStyles(colors: any, isNewTheme: boolean) {
   likeIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.95)',
+    backgroundColor: isNewTheme ? colors.surfaceAlt : '#FFFFFF',
+    borderWidth: isNewTheme ? StyleSheet.hairlineWidth : 0,
+    borderColor: colors.border,
     borderRadius: 10,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -765,9 +768,9 @@ function makeStyles(colors: any, isNewTheme: boolean) {
     alignSelf: 'flex-start',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: isNewTheme ? 0 : 0.1,
     shadowRadius: 2,
-    elevation: 2,
+    elevation: isNewTheme ? 0 : 2,
     gap: 2,
   },
   likeIndicatorRight: {
