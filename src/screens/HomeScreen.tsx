@@ -1,16 +1,20 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
+import { editorial } from '../theme/designSystem';
 
 export default function HomeScreen() {
   const { user, signOut } = useAuth();
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>🐋 Whale Pod</Text>
-      <Text style={styles.subtitle}>Welcome{user?.name ? `, ${user.name}` : ''}!</Text>
+      <View style={styles.wordmarkWrap}>
+        <Text style={styles.title}>whale pod</Text>
+        <View style={styles.underline} />
+      </View>
+      <Text style={styles.subtitle}>Welcome{user?.name ? `, ${user.name}` : ''}</Text>
       <Text style={styles.text}>Your pod feed will go here</Text>
-      <TouchableOpacity style={styles.button} onPress={signOut}>
+      <TouchableOpacity style={styles.button} onPress={signOut} activeOpacity={0.85}>
         <Text style={styles.buttonText}>Sign Out</Text>
       </TouchableOpacity>
     </View>
@@ -18,10 +22,42 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20, backgroundColor: '#fff' },
-  title: { fontSize: 48, fontWeight: 'bold', color: '#0ea5e9', marginBottom: 20 },
-  subtitle: { fontSize: 18, color: '#666', marginBottom: 10 },
-  text: { fontSize: 14, color: '#999', marginBottom: 30 },
-  button: { backgroundColor: '#ef4444', paddingHorizontal: 30, paddingVertical: 12, borderRadius: 8 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: editorial.bg },
+  wordmarkWrap: { alignItems: 'center', marginBottom: 24 },
+  title: {
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 36,
+    color: editorial.ink,
+    letterSpacing: -0.8,
+  },
+  underline: {
+    height: 2,
+    width: 64,
+    backgroundColor: editorial.carolina,
+    marginTop: 8,
+  },
+  subtitle: {
+    fontFamily: 'InterTight_600SemiBold',
+    fontSize: 16,
+    color: editorial.ink,
+    marginBottom: 8,
+  },
+  text: {
+    fontFamily: 'InterTight_600SemiBold',
+    fontSize: 14,
+    lineHeight: 20,
+    color: editorial.muted,
+    marginBottom: 32,
+  },
+  button: {
+    backgroundColor: editorial.ink,
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 9999,
+  },
+  buttonText: {
+    fontFamily: 'InterTight_600SemiBold',
+    color: editorial.surface,
+    fontSize: 15,
+  },
 });

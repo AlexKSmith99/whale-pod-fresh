@@ -7,7 +7,7 @@ import { meetingService } from '../services/meetingService';
 import { agoraService } from '../services/agoraService';
 import { notificationService } from '../services/notificationService';
 import { supabase } from '../config/supabase';
-import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+import { colors as legacyColors, typography, spacing, borderRadius, shadows, editorial } from '../theme/designSystem';
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
@@ -44,8 +44,9 @@ export default function InterviewSchedulingScreen({
   const { theme, isNewTheme } = useTheme();
   const colors = theme.colors;
   const themedStyles = getThemedStyles(colors, isNewTheme);
-  // Interview uses purple accent color (#8b5cf6)
-  const interviewAccent = '#8b5cf6';
+  const light = !isNewTheme;
+  // Light mode uses Carolina blue as the discreet primary accent.
+  const interviewAccent = editorial.carolina;
   const accentColor = isNewTheme ? colors.accentGreen : interviewAccent;
   const [proposedTimes, setProposedTimes] = useState<any[]>([]);
   const [timezone, setTimezone] = useState<string>('');
@@ -264,38 +265,50 @@ export default function InterviewSchedulingScreen({
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         {isNewTheme && <GrainTexture opacity={0.06} />}
-        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+        <View style={[
+          styles.header,
+          { backgroundColor: colors.surface, borderBottomColor: colors.border },
+          light && { backgroundColor: editorial.bg, borderBottomWidth: 0, shadowOpacity: 0, elevation: 0 },
+        ]}>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton} activeOpacity={0.6}>
             <Ionicons name="close" size={28} color={colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold' }]}>Interview Scheduled</Text>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold' }, light && { letterSpacing: -0.5 }]}>Interview Scheduled</Text>
           <View style={{ width: 28 }} />
         </View>
 
         <ScrollView style={styles.scrollView}>
           <View style={styles.content}>
-            <View style={[styles.introSection, { backgroundColor: isNewTheme ? colors.primaryLight : '#f3e8ff', alignItems: 'center' }]}>
-              <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(134, 239, 172, 0.25)', justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
+            <View style={[
+              styles.introSection,
+              { backgroundColor: isNewTheme ? colors.primaryLight : '#f3e8ff', alignItems: 'center' },
+              light && { backgroundColor: editorial.surface, borderWidth: 1, borderColor: editorial.hairline, borderRadius: 14, ...shadows.none },
+            ]}>
+              <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: light ? editorial.carolinaTint : 'rgba(134, 239, 172, 0.25)', justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
                 <Ionicons name="checkmark-circle" size={36} color={colors.success} />
               </View>
-              <Text style={[styles.pursuitTitle, { color: accentColor, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold', textAlign: 'center' }]}>{pursuitTitle}</Text>
-              <Text style={[styles.applicantLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textAlign: 'center' }]}>Interview with:</Text>
-              <Text style={[styles.applicantName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold', textAlign: 'center' }]}>{applicantName}</Text>
-              <Text style={[styles.introText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textAlign: 'center', marginTop: 12, fontSize: 16, fontWeight: '600' }]}>
+              <Text style={[styles.pursuitTitle, { color: accentColor, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold', textAlign: 'center' }, light && { color: editorial.ink, fontSize: 24, letterSpacing: -0.3 }]}>{pursuitTitle}</Text>
+              <Text style={[styles.applicantLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textAlign: 'center' }, light && { color: editorial.muted, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.6 }]}>Interview with:</Text>
+              <Text style={[styles.applicantName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold', textAlign: 'center' }, light && { fontSize: 20, letterSpacing: -0.3 }]}>{applicantName}</Text>
+              <Text style={[styles.introText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textAlign: 'center', marginTop: 12, fontSize: 16, fontWeight: '600' }, light && { color: editorial.ink }]}>
                 Scheduled for {timeStr}
               </Text>
-              <Text style={[styles.introText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textAlign: 'center', marginTop: 4 }]}>
+              <Text style={[styles.introText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textAlign: 'center', marginTop: 4 }, light && { color: editorial.muted }]}>
                 {dateStr}
               </Text>
             </View>
 
             <TouchableOpacity
-              style={[styles.scheduleButton, { backgroundColor: accentColor, marginTop: 12 }]}
+              style={[
+                styles.scheduleButton,
+                { backgroundColor: accentColor, marginTop: 12 },
+                light && { backgroundColor: editorial.ink, borderRadius: 999, ...shadows.none },
+              ]}
               onPress={onScheduled}
               activeOpacity={0.85}
             >
               <Ionicons name="calendar" size={18} color={isNewTheme ? colors.background : '#fff'} style={{ marginRight: 8 }} />
-              <Text style={[styles.scheduleButtonText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
+              <Text style={[styles.scheduleButtonText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && { letterSpacing: 0.2 }]}>
                 View Meeting Details on Calendar
               </Text>
             </TouchableOpacity>
@@ -310,33 +323,46 @@ export default function InterviewSchedulingScreen({
       <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       {isNewTheme && <GrainTexture opacity={0.06} />}
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+      <View style={[
+        styles.header,
+        { backgroundColor: colors.surface, borderBottomColor: colors.border },
+        light && { backgroundColor: editorial.bg, borderBottomWidth: 0, shadowOpacity: 0, elevation: 0 },
+      ]}>
+        <TouchableOpacity onPress={onClose} style={styles.closeButton} activeOpacity={0.6}>
           <Ionicons name="close" size={28} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold' }]}>Schedule Interview</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold' }, light && { letterSpacing: -0.5 }]}>Schedule Interview</Text>
         <View style={{ width: 28 }} />
       </View>
 
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
-          <View style={[styles.introSection, { backgroundColor: isNewTheme ? colors.primaryLight : '#f3e8ff' }]}>
-            <Text style={[styles.pursuitTitle, { color: accentColor, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>{pursuitTitle}</Text>
-            <Text style={[styles.applicantLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Interview with:</Text>
-            <Text style={[styles.applicantName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>{applicantName}</Text>
-            <Text style={[styles.introText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
+          <View style={[
+            styles.introSection,
+            { backgroundColor: isNewTheme ? colors.primaryLight : '#f3e8ff' },
+            light && { backgroundColor: editorial.surface, borderWidth: 1, borderColor: editorial.hairline, borderRadius: 14, paddingLeft: 22, overflow: 'hidden', ...shadows.none },
+          ]}>
+            {light && <View style={styles.cardAccentLine} pointerEvents="none" />}
+            <Text style={[styles.pursuitTitle, { color: accentColor, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }, light && { color: editorial.ink, fontSize: 24, letterSpacing: -0.3 }]}>{pursuitTitle}</Text>
+            <Text style={[styles.applicantLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && { color: editorial.muted, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.6 }]}>Interview with:</Text>
+            <Text style={[styles.applicantName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }, light && { fontSize: 20, letterSpacing: -0.3 }]}>{applicantName}</Text>
+            <Text style={[styles.introText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && { color: editorial.muted, lineHeight: 20 }]}>
               Review the proposed times below and select when to schedule the interview.
             </Text>
           </View>
 
           {/* Proposed Times */}
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'InterTight_600SemiBold' }]}>Proposed Interview Times</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'InterTight_600SemiBold' }, light && styles.sectionTitleLight]}>Proposed Interview Times</Text>
 
           {proposedTimes.length === 0 ? (
-            <View style={[styles.emptyState, { backgroundColor: colors.surface }]}>
+            <View style={[
+              styles.emptyState,
+              { backgroundColor: colors.surface },
+              light && { borderWidth: 1, borderColor: editorial.hairline, borderRadius: 14 },
+            ]}>
               <Ionicons name="time-outline" size={48} color={colors.textTertiary} />
-              <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>No times proposed yet</Text>
-              <Text style={[styles.emptySubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>The applicant hasn't submitted their availability</Text>
+              <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && { color: editorial.ink, fontFamily: 'PlayfairDisplay_700Bold' }]}>No times proposed yet</Text>
+              <Text style={[styles.emptySubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && { color: editorial.muted }]}>The applicant hasn't submitted their availability</Text>
             </View>
           ) : (
             proposedTimes.map((slot, index) => {
@@ -351,27 +377,30 @@ export default function InterviewSchedulingScreen({
                   style={[
                     styles.timeSlotOption,
                     { backgroundColor: colors.surface, borderColor: isSelected ? accentColor : 'transparent' },
-                    isSelected && { backgroundColor: isNewTheme ? colors.primaryLight : '#f3e8ff' }
+                    isSelected && { backgroundColor: isNewTheme ? colors.primaryLight : '#f3e8ff' },
+                    light && { borderWidth: 1, borderColor: editorial.hairline, borderRadius: 14, ...shadows.none },
+                    light && isSelected && { backgroundColor: editorial.carolina, borderColor: editorial.carolina },
                   ]}
                   onPress={() => {
                     setSelectedTime(slot);
                     setUseCustomTime(false);
                   }}
+                  activeOpacity={light ? 0.85 : 0.7}
                 >
                   <View style={styles.timeSlotInfo}>
-                    <Text style={[styles.timeSlotDate, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
+                    <Text style={[styles.timeSlotDate, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && { color: isSelected ? '#FFFFFF' : editorial.ink }]}>
                       {new Date(slot.date).toLocaleDateString('en-US', {
                         weekday: 'short',
                         month: 'short',
                         day: 'numeric'
                       })}
                     </Text>
-                    <Text style={[styles.timeSlotTime, { color: accentColor, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
+                    <Text style={[styles.timeSlotTime, { color: accentColor, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && { color: isSelected ? '#FFFFFF' : editorial.muted }]}>
                       {formatTime12Hour(slot.start_time)} - {formatTime12Hour(slot.end_time)}
                     </Text>
                   </View>
                   {isSelected && (
-                    <Ionicons name="checkmark-circle" size={24} color={accentColor} />
+                    <Ionicons name="checkmark-circle" size={24} color={light ? '#FFFFFF' : accentColor} />
                   )}
                 </TouchableOpacity>
               );
@@ -383,46 +412,55 @@ export default function InterviewSchedulingScreen({
             style={[
               styles.customTimeButton,
               { backgroundColor: colors.surface, borderColor: useCustomTime ? accentColor : colors.borderLight },
-              useCustomTime && { backgroundColor: isNewTheme ? colors.primaryLight : '#f3e8ff', borderStyle: 'solid' as const }
+              useCustomTime && { backgroundColor: isNewTheme ? colors.primaryLight : '#f3e8ff', borderStyle: 'solid' as const },
+              light && { borderWidth: 1, borderStyle: 'solid' as const, borderColor: useCustomTime ? editorial.carolina : editorial.hairline, borderRadius: 14, ...shadows.none },
+              light && useCustomTime && { backgroundColor: editorial.carolinaTint },
             ]}
             onPress={() => {
               setUseCustomTime(true);
               setSelectedTime(null);
             }}
+            activeOpacity={light ? 0.85 : 0.7}
           >
             <View style={styles.customTimeButtonContent}>
               <Ionicons
                 name="calendar-outline"
                 size={24}
-                color={useCustomTime ? accentColor : colors.textSecondary}
+                color={useCustomTime ? (light ? editorial.carolinaDeep : accentColor) : (light ? editorial.muted : colors.textSecondary)}
               />
               <View style={styles.customTimeTextContainer}>
                 <Text style={[
                   styles.customTimeButtonText,
-                  { color: useCustomTime ? accentColor : colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }
+                  { color: useCustomTime ? accentColor : colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' },
+                  light && { color: useCustomTime ? editorial.carolinaDeep : editorial.ink },
                 ]}>
                   Schedule for a different time
                 </Text>
-                <Text style={[styles.customTimeSubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
+                <Text style={[styles.customTimeSubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && { color: editorial.muted }]}>
                   Choose your own date and time
                 </Text>
               </View>
             </View>
             {useCustomTime && (
-              <Ionicons name="checkmark-circle" size={24} color={accentColor} />
+              <Ionicons name="checkmark-circle" size={24} color={light ? editorial.carolinaDeep : accentColor} />
             )}
           </TouchableOpacity>
 
           {/* Custom Date/Time Picker */}
           {useCustomTime && (
-            <View style={[styles.customTimePickerSection, { backgroundColor: colors.surface }]}>
-              <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Select Date</Text>
+            <View style={[
+              styles.customTimePickerSection,
+              { backgroundColor: colors.surface },
+              light && { borderWidth: 1, borderColor: editorial.hairline, borderRadius: 14, ...shadows.none },
+            ]}>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && styles.inputLabelLight]}>Select Date</Text>
               <TouchableOpacity
-                style={[styles.dateTimeButton, { backgroundColor: colors.backgroundSecondary }]}
+                style={[styles.dateTimeButton, { backgroundColor: colors.backgroundSecondary }, light && styles.dateTimeButtonLight]}
                 onPress={() => setShowDatePicker(!showDatePicker)}
+                activeOpacity={light ? 0.7 : 0.2}
               >
                 <Ionicons name="calendar" size={20} color={accentColor} />
-                <Text style={[styles.dateTimeButtonText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
+                <Text style={[styles.dateTimeButtonText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && { color: editorial.ink }]}>
                   {customDate.toLocaleDateString('en-US', {
                     weekday: 'long',
                     month: 'long',
@@ -471,13 +509,14 @@ export default function InterviewSchedulingScreen({
                 />
               )}
 
-              <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Select Time</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && styles.inputLabelLight]}>Select Time</Text>
               <TouchableOpacity
-                style={[styles.dateTimeButton, { backgroundColor: colors.backgroundSecondary }]}
+                style={[styles.dateTimeButton, { backgroundColor: colors.backgroundSecondary }, light && styles.dateTimeButtonLight]}
                 onPress={() => setShowTimePicker(!showTimePicker)}
+                activeOpacity={light ? 0.7 : 0.2}
               >
                 <Ionicons name="time" size={20} color={accentColor} />
-                <Text style={[styles.dateTimeButtonText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
+                <Text style={[styles.dateTimeButtonText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && { color: editorial.ink }]}>
                   {customTime.toLocaleTimeString('en-US', {
                     hour: 'numeric',
                     minute: '2-digit',
@@ -528,7 +567,7 @@ export default function InterviewSchedulingScreen({
           {/* Meeting Type Selection */}
           {(selectedTime || useCustomTime) && (
             <>
-              <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'InterTight_600SemiBold' }]}>Meeting Type</Text>
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'InterTight_600SemiBold' }, light && styles.sectionTitleLight]}>Meeting Type</Text>
               <View style={styles.chipContainer}>
                 {(['in_person', 'video', 'hybrid'] as const).map((type) => (
                   <TouchableOpacity
@@ -536,14 +575,18 @@ export default function InterviewSchedulingScreen({
                     style={[
                       styles.chip,
                       { backgroundColor: colors.backgroundSecondary, borderColor: colors.borderLight },
-                      meetingType === type && { backgroundColor: accentColor, borderColor: accentColor }
+                      meetingType === type && { backgroundColor: accentColor, borderColor: accentColor },
+                      light && { backgroundColor: 'transparent', borderColor: editorial.hairline },
+                      light && meetingType === type && { backgroundColor: editorial.carolina, borderColor: editorial.carolina },
                     ]}
                     onPress={() => setMeetingType(type)}
+                    activeOpacity={light ? 0.85 : 0.7}
                   >
                     <Text style={[
                       styles.chipText,
                       { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' },
-                      meetingType === type && { color: isNewTheme ? colors.background : legacyColors.white }
+                      meetingType === type && { color: isNewTheme ? colors.background : legacyColors.white },
+                      light && { color: meetingType === type ? '#FFFFFF' : editorial.ink },
                     ]}>
                       {type === 'in_person' ? 'In Person' : type === 'video' ? 'Video' : 'Hybrid'}
                     </Text>
@@ -554,9 +597,9 @@ export default function InterviewSchedulingScreen({
               {/* Location (if needed) */}
               {(meetingType === 'in_person' || meetingType === 'hybrid') && (
                 <>
-                  <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Location</Text>
+                  <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && styles.inputLabelLight]}>Location</Text>
                   <TextInput
-                    style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.borderLight, color: colors.textPrimary }]}
+                    style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.borderLight, color: colors.textPrimary }, light && styles.inputLight]}
                     placeholder="e.g., Coffee Shop, Office"
                     placeholderTextColor={colors.textTertiary}
                     value={location}
@@ -566,9 +609,9 @@ export default function InterviewSchedulingScreen({
               )}
 
               {/* Duration */}
-              <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Duration (minutes)</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && styles.inputLabelLight]}>Duration (minutes)</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.borderLight, color: colors.textPrimary }]}
+                style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.borderLight, color: colors.textPrimary }, light && styles.inputLight]}
                 placeholder="30"
                 placeholderTextColor={colors.textTertiary}
                 value={duration}
@@ -578,11 +621,17 @@ export default function InterviewSchedulingScreen({
 
               {/* Schedule Button */}
               <TouchableOpacity
-                style={[styles.scheduleButton, { backgroundColor: accentColor }, loading && styles.scheduleButtonDisabled]}
+                style={[
+                  styles.scheduleButton,
+                  { backgroundColor: accentColor },
+                  light && { backgroundColor: editorial.ink, borderRadius: 999, ...shadows.none },
+                  loading && styles.scheduleButtonDisabled,
+                ]}
                 onPress={handleScheduleInterview}
                 disabled={loading}
+                activeOpacity={light ? 0.85 : 0.7}
               >
-                <Text style={[styles.scheduleButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
+                <Text style={[styles.scheduleButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && { letterSpacing: 0.2 }]}>
                   {loading ? 'Scheduling...' : 'Schedule Interview'}
                 </Text>
               </TouchableOpacity>
@@ -692,6 +741,40 @@ const styles = StyleSheet.create({
     ...shadows.sm,
     borderWidth: 2,
     borderColor: 'transparent',
+  },
+  cardAccentLine: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3,
+    backgroundColor: editorial.carolina,
+  },
+  inputLabelLight: {
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    color: editorial.muted,
+  },
+  sectionTitleLight: {
+    color: editorial.muted,
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  dateTimeButtonLight: {
+    backgroundColor: editorial.surface,
+    borderWidth: 1,
+    borderColor: editorial.hairline,
+    borderRadius: 14,
+  },
+  inputLight: {
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: editorial.hairline,
+    borderRadius: 0,
+    paddingHorizontal: 0,
   },
   timeSlotSelected: {
     borderColor: '#8b5cf6',

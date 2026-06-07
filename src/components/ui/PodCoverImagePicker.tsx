@@ -5,6 +5,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../theme/ThemeContext';
+import { editorial } from '../../theme/designSystem';
 
 interface Props {
   value?: string | null;             // Current cover image URL
@@ -27,9 +28,10 @@ export default function PodCoverImagePicker({ value, onChange, height = 220, pla
   const [uploading, setUploading] = useState(false);
   const [showActions, setShowActions] = useState(false);
 
-  const accent = isNewTheme ? colors.accentGreen : '#2D5016';
+  const accent = isNewTheme ? colors.accentGreen : editorial.carolina;
   const surface = isNewTheme ? colors.surfaceAlt : '#F2F0EB';
   const inkOnAccent = isNewTheme ? '#000000' : '#FFFFFF';
+  const bodyFont = isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold';
 
   async function pickFromLibrary() {
     setShowActions(false);
@@ -109,7 +111,7 @@ export default function PodCoverImagePicker({ value, onChange, height = 220, pla
             <View style={[styles.cameraBadge, { backgroundColor: accent }]}>
               <Ionicons name="camera" size={22} color={inkOnAccent} />
             </View>
-            <Text style={[styles.placeholderText, { color: colors.textSecondary }]}>
+            <Text style={[styles.placeholderText, { color: colors.textSecondary, fontFamily: bodyFont }]}>
               {placeholderText || 'add a cover photo'}
             </Text>
           </View>
@@ -137,26 +139,26 @@ export default function PodCoverImagePicker({ value, onChange, height = 220, pla
           onPress={() => setShowActions(false)}
         >
           <View style={[styles.sheet, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>cover photo</Text>
+            <Text style={[styles.sheetTitle, { color: colors.textPrimary, fontFamily: bodyFont }]}>cover photo</Text>
             <TouchableOpacity style={styles.sheetRow} onPress={pickFromCamera}>
               <Ionicons name="camera" size={20} color={colors.textPrimary} />
-              <Text style={[styles.sheetRowText, { color: colors.textPrimary }]}>take a pic</Text>
+              <Text style={[styles.sheetRowText, { color: colors.textPrimary, fontFamily: bodyFont }]}>take a pic</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.sheetRow} onPress={pickFromLibrary}>
               <Ionicons name="images" size={20} color={colors.textPrimary} />
-              <Text style={[styles.sheetRowText, { color: colors.textPrimary }]}>pick from library</Text>
+              <Text style={[styles.sheetRowText, { color: colors.textPrimary, fontFamily: bodyFont }]}>pick from library</Text>
             </TouchableOpacity>
             {value && (
               <TouchableOpacity style={styles.sheetRow} onPress={clear}>
                 <Ionicons name="trash" size={20} color={colors.error} />
-                <Text style={[styles.sheetRowText, { color: colors.error }]}>remove cover</Text>
+                <Text style={[styles.sheetRowText, { color: colors.error, fontFamily: bodyFont }]}>remove cover</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity
               style={[styles.sheetCancel, { backgroundColor: colors.surfaceAlt }]}
               onPress={() => setShowActions(false)}
             >
-              <Text style={[styles.sheetCancelText, { color: colors.textPrimary }]}>nvm</Text>
+              <Text style={[styles.sheetCancelText, { color: colors.textPrimary, fontFamily: bodyFont }]}>nvm</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>

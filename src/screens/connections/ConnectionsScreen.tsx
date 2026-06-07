@@ -14,7 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { connectionService } from '../../services/connectionService';
-import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../../theme/designSystem';
+import { colors as legacyColors, typography, spacing, borderRadius, shadows, editorial } from '../../theme/designSystem';
 import { useTheme } from '../../theme/ThemeContext';
 import { getThemedStyles } from '../../theme/themedStyles';
 import GrainTexture from '../../components/ui/GrainTexture';
@@ -100,11 +100,11 @@ export default function ConnectionsScreen({ navigation }: any) {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       {isNewTheme && <GrainTexture opacity={0.06} />}
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+      <View style={[styles.header, { backgroundColor: isNewTheme ? colors.surface : editorial.bg, borderBottomColor: colors.border, borderBottomWidth: isNewTheme ? 1 : 0 }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={isNewTheme ? colors.textPrimary : editorial.ink} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Connections</Text>
+        <Text style={[styles.headerTitle, { color: isNewTheme ? colors.textPrimary : editorial.ink, fontFamily: isNewTheme ? undefined : 'PlayfairDisplay_700Bold', letterSpacing: isNewTheme ? 0 : -0.5 }]}>Connections</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -113,7 +113,7 @@ export default function ConnectionsScreen({ navigation }: any) {
           style={[styles.tab, activeTab === 'connections' && [styles.activeTab, { borderBottomColor: accentColor }]]}
           onPress={() => setActiveTab('connections')}
         >
-          <Text style={[styles.tabText, { color: colors.textSecondary }, activeTab === 'connections' && [styles.activeTabText, { color: accentColor }]]}>
+          <Text style={[styles.tabText, { color: colors.textSecondary, fontFamily: isNewTheme ? undefined : 'InterTight_600SemiBold' }, activeTab === 'connections' && [styles.activeTabText, { color: accentColor }]]}>
             My Connections ({connections.length})
           </Text>
         </TouchableOpacity>
@@ -121,7 +121,7 @@ export default function ConnectionsScreen({ navigation }: any) {
           style={[styles.tab, activeTab === 'pending' && [styles.activeTab, { borderBottomColor: accentColor }]]}
           onPress={() => setActiveTab('pending')}
         >
-          <Text style={[styles.tabText, { color: colors.textSecondary }, activeTab === 'pending' && [styles.activeTabText, { color: accentColor }]]}>
+          <Text style={[styles.tabText, { color: colors.textSecondary, fontFamily: isNewTheme ? undefined : 'InterTight_600SemiBold' }, activeTab === 'pending' && [styles.activeTabText, { color: accentColor }]]}>
             Requests ({pendingRequests.length + sentRequests.length})
           </Text>
         </TouchableOpacity>
@@ -143,14 +143,14 @@ export default function ConnectionsScreen({ navigation }: any) {
             {connections.length === 0 ? (
               <View style={styles.emptyState}>
                 <Ionicons name="people-outline" size={64} color={colors.textTertiary} />
-                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No connections yet</Text>
-                <Text style={[styles.emptySubtext, { color: colors.textTertiary }]}>Connect with people you work with!</Text>
+                <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? undefined : 'PlayfairDisplay_700Bold' }]}>No connections yet</Text>
+                <Text style={[styles.emptySubtext, { color: colors.textTertiary, fontFamily: isNewTheme ? undefined : 'InterTight_600SemiBold' }]}>Connect with people you work with!</Text>
               </View>
             ) : (
               connections.map((connection) => (
                 <TouchableOpacity
                   key={connection.id}
-                  style={[styles.connectionCard, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }]}
+                  style={[styles.connectionCard, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }]}
                   onPress={() => navigation.navigate('UserProfile', { userId: connection.otherUserId })}
                 >
                   {connection.profile?.profile_picture ? (
@@ -166,7 +166,7 @@ export default function ConnectionsScreen({ navigation }: any) {
                     </View>
                   )}
                   <View style={styles.connectionInfo}>
-                    <Text style={[styles.connectionName, { color: colors.textPrimary }]}>
+                    <Text style={[styles.connectionName, { color: colors.textPrimary, fontFamily: isNewTheme ? undefined : 'PlayfairDisplay_700Bold' }]}>
                       {connection.profile?.name || 'Unknown'}
                     </Text>
                   </View>
@@ -180,15 +180,15 @@ export default function ConnectionsScreen({ navigation }: any) {
             {pendingRequests.length === 0 && sentRequests.length === 0 ? (
               <View style={styles.emptyState}>
                 <Ionicons name="mail-outline" size={64} color={colors.textTertiary} />
-                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No pending requests</Text>
+                <Text style={[styles.emptyText, { color: colors.textSecondary, fontFamily: isNewTheme ? undefined : 'PlayfairDisplay_700Bold' }]}>No pending requests</Text>
               </View>
             ) : (
               <>
                 {pendingRequests.length > 0 && (
                   <>
-                    <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Received Requests</Text>
+                    <Text style={[styles.sectionTitle, { fontFamily: isNewTheme ? undefined : 'InterTight_600SemiBold', textTransform: isNewTheme ? undefined : 'uppercase', fontSize: isNewTheme ? typography.fontSize.base : 11, letterSpacing: isNewTheme ? 0 : 0.6, color: isNewTheme ? colors.textPrimary : editorial.muted }]}>Received Requests</Text>
                     {pendingRequests.map((request) => (
-                      <View key={request.id} style={[styles.requestCard, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }]}>
+                      <View key={request.id} style={[styles.requestCard, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }]}>
                         <TouchableOpacity
                           style={styles.requestInfo}
                           onPress={() => navigation.navigate('UserProfile', { userId: request.user_id_1 })}
@@ -206,23 +206,23 @@ export default function ConnectionsScreen({ navigation }: any) {
                             </View>
                           )}
                           <View style={styles.requestDetails}>
-                            <Text style={[styles.requestName, { color: colors.textPrimary }]}>
+                            <Text style={[styles.requestName, { color: colors.textPrimary, fontFamily: isNewTheme ? undefined : 'PlayfairDisplay_700Bold' }]}>
                               {request.profile?.name || 'Unknown'}
                             </Text>
                           </View>
                         </TouchableOpacity>
                         <View style={styles.requestActions}>
                           <TouchableOpacity
-                            style={[styles.acceptButton, { backgroundColor: colors.success }]}
+                            style={[styles.acceptButton, { backgroundColor: isNewTheme ? colors.success : editorial.ink }]}
                             onPress={() => handleAccept(request.id)}
                           >
-                            <Text style={[styles.acceptButtonText, { color: colors.white }]}>Accept</Text>
+                            <Text style={[styles.acceptButtonText, { color: colors.white, fontFamily: isNewTheme ? undefined : 'InterTight_600SemiBold' }]}>Accept</Text>
                           </TouchableOpacity>
                           <TouchableOpacity
-                            style={[styles.rejectButton, { backgroundColor: colors.error }]}
+                            style={[styles.rejectButton, isNewTheme ? { backgroundColor: colors.error } : { backgroundColor: 'transparent', borderWidth: 1, borderColor: editorial.hairline }]}
                             onPress={() => handleReject(request.id)}
                           >
-                            <Text style={[styles.rejectButtonText, { color: colors.white }]}>Decline</Text>
+                            <Text style={[styles.rejectButtonText, { color: isNewTheme ? colors.white : editorial.red, fontFamily: isNewTheme ? undefined : 'InterTight_600SemiBold' }]}>Decline</Text>
                           </TouchableOpacity>
                         </View>
                       </View>
@@ -232,13 +232,13 @@ export default function ConnectionsScreen({ navigation }: any) {
 
                 {sentRequests.length > 0 && (
                   <>
-                    <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginTop: pendingRequests.length > 0 ? 20 : 0 }]}>
+                    <Text style={[styles.sectionTitle, { marginTop: pendingRequests.length > 0 ? 20 : 0, fontFamily: isNewTheme ? undefined : 'InterTight_600SemiBold', textTransform: isNewTheme ? undefined : 'uppercase', fontSize: isNewTheme ? typography.fontSize.base : 11, letterSpacing: isNewTheme ? 0 : 0.6, color: isNewTheme ? colors.textPrimary : editorial.muted }]}>
                       Sent Requests
                     </Text>
                     {sentRequests.map((request) => (
                       <TouchableOpacity
                         key={request.id}
-                        style={[styles.sentRequestCard, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }]}
+                        style={[styles.sentRequestCard, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }]}
                         onPress={() => navigation.navigate('UserProfile', { userId: request.user_id_2 })}
                       >
                         {request.profile?.profile_picture ? (
@@ -255,10 +255,10 @@ export default function ConnectionsScreen({ navigation }: any) {
                           </View>
                         )}
                         <View style={styles.connectionInfo}>
-                          <Text style={[styles.connectionName, { color: colors.textPrimary }]}>
+                          <Text style={[styles.connectionName, { color: colors.textPrimary, fontFamily: isNewTheme ? undefined : 'PlayfairDisplay_700Bold' }]}>
                             {request.profile?.name || 'Unknown'}
                           </Text>
-                          <Text style={[styles.sentStatus, { color: colors.warning }]}>Pending...</Text>
+                          <Text style={[styles.sentStatus, { color: isNewTheme ? colors.warning : editorial.muted, fontFamily: isNewTheme ? undefined : 'InterTight_600SemiBold' }]}>Pending...</Text>
                         </View>
                         <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
                       </TouchableOpacity>

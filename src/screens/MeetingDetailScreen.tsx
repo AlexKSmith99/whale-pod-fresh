@@ -5,10 +5,48 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '../contexts/AuthContext';
 import { meetingService } from '../services/meetingService';
 import { supabase } from '../config/supabase';
-import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+import { colors as legacyColors, typography, spacing, borderRadius, shadows, editorial } from '../theme/designSystem';
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
+
+// Editorial light-mode helpers.
+const lightLabel = {
+  color: editorial.muted,
+  fontFamily: 'InterTight_600SemiBold' as const,
+  fontSize: 10,
+  textTransform: 'uppercase' as const,
+  letterSpacing: 0.6,
+};
+const lightInput = {
+  backgroundColor: 'transparent' as const,
+  borderWidth: 0,
+  borderBottomWidth: 1,
+  borderColor: editorial.hairline,
+  borderRadius: 0,
+  paddingHorizontal: 0,
+  fontFamily: 'InterTight_600SemiBold' as const,
+  color: editorial.ink,
+};
+const lightSurfaceInput = {
+  backgroundColor: editorial.surface,
+  borderWidth: 1,
+  borderColor: editorial.hairline,
+  borderRadius: 14,
+  fontFamily: 'InterTight_600SemiBold' as const,
+};
+// White card with hairline border + soft editorial shadow.
+const lightCard = {
+  backgroundColor: editorial.surface,
+  borderWidth: 1,
+  borderColor: editorial.hairline,
+  borderRadius: 14,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 6 },
+  shadowOpacity: 0.06,
+  shadowRadius: 14,
+  elevation: 3,
+};
 
 interface Props {
   meeting: any;
@@ -372,11 +410,11 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
           </View>
         )}
         <View style={styles.participantInfo}>
-          <Text style={[styles.participantName, { color: colors.textPrimary }]}>
+          <Text style={[styles.participantName, { color: colors.textPrimary }, !isNewTheme && { fontFamily: 'InterTight_600SemiBold' }]}>
             {profile?.name || profile?.email?.split('@')[0] || 'Unknown'}
             {isParticipantCreator && ' (Organizer)'}
           </Text>
-          <Text style={[styles.participantStatus, { color: getParticipantStatusColor(participant.status) }]}>
+          <Text style={[styles.participantStatus, { color: getParticipantStatusColor(participant.status) }, !isNewTheme && { fontFamily: 'InterTight_600SemiBold' }]}>
             {getParticipantStatusLabel(participant.status)}
           </Text>
         </View>
@@ -398,11 +436,11 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         {isNewTheme && <GrainTexture opacity={0.06} />}
-        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }, !isNewTheme && { backgroundColor: editorial.bg, borderBottomWidth: 0 }]}>
           <TouchableOpacity onPress={() => setIsEditing(false)} style={styles.closeButton}>
             <Ionicons name="close" size={28} color={colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Edit Meeting</Text>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }, !isNewTheme && { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 22, letterSpacing: -0.4 }]}>Edit Meeting</Text>
           <TouchableOpacity onPress={handleSaveChanges} disabled={saving}>
             {saving ? (
               <ActivityIndicator size="small" color={accentColor} />
@@ -414,18 +452,18 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
 
         <ScrollView style={styles.scrollView} keyboardShouldPersistTaps="handled">
           <View style={styles.editForm}>
-            <Text style={[styles.editLabel, { color: colors.textSecondary }]}>Title *</Text>
+            <Text style={[styles.editLabel, { color: colors.textSecondary }, !isNewTheme && lightLabel]}>Title *</Text>
             <TextInput
-              style={[styles.editInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
+              style={[styles.editInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }, !isNewTheme && lightInput]}
               value={editTitle}
               onChangeText={setEditTitle}
               placeholder="Meeting title"
               placeholderTextColor={colors.textTertiary}
             />
 
-            <Text style={[styles.editLabel, { color: colors.textSecondary }]}>Description</Text>
+            <Text style={[styles.editLabel, { color: colors.textSecondary }, !isNewTheme && lightLabel]}>Description</Text>
             <TextInput
-              style={[styles.editInput, styles.editTextArea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
+              style={[styles.editInput, styles.editTextArea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }, !isNewTheme && lightSurfaceInput]}
               value={editDescription}
               onChangeText={setEditDescription}
               placeholder="Add a description..."
@@ -434,17 +472,17 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
               numberOfLines={4}
             />
 
-            <Text style={[styles.editLabel, { color: colors.textSecondary }]}>Date & Time</Text>
+            <Text style={[styles.editLabel, { color: colors.textSecondary }, !isNewTheme && lightLabel]}>Date & Time</Text>
             <View style={styles.dateTimeRow}>
               <TouchableOpacity
-                style={[styles.editInput, styles.dateTimeButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                style={[styles.editInput, styles.dateTimeButton, { backgroundColor: colors.surface, borderColor: colors.border }, !isNewTheme && lightSurfaceInput]}
                 onPress={() => setShowDatePicker(true)}
               >
                 <Ionicons name="calendar" size={20} color={colors.textSecondary} />
                 <Text style={[styles.dateTimeText, { color: colors.textPrimary }]}>{editDate.toLocaleDateString()}</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.editInput, styles.dateTimeButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                style={[styles.editInput, styles.dateTimeButton, { backgroundColor: colors.surface, borderColor: colors.border }, !isNewTheme && lightSurfaceInput]}
                 onPress={() => setShowTimePicker(true)}
               >
                 <Ionicons name="time" size={20} color={colors.textSecondary} />
@@ -484,9 +522,9 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
               />
             )}
 
-            <Text style={[styles.editLabel, { color: colors.textSecondary }]}>Duration (minutes)</Text>
+            <Text style={[styles.editLabel, { color: colors.textSecondary }, !isNewTheme && lightLabel]}>Duration (minutes)</Text>
             <TextInput
-              style={[styles.editInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
+              style={[styles.editInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }, !isNewTheme && lightInput]}
               value={editDuration}
               onChangeText={setEditDuration}
               placeholder="60"
@@ -494,7 +532,7 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
               keyboardType="numeric"
             />
 
-            <Text style={[styles.editLabel, { color: colors.textSecondary }]}>Meeting Type</Text>
+            <Text style={[styles.editLabel, { color: colors.textSecondary }, !isNewTheme && lightLabel]}>Meeting Type</Text>
             <View style={styles.meetingTypeOptions}>
               {['video', 'in_person', 'hybrid'].map((type) => (
                 <TouchableOpacity
@@ -502,6 +540,7 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
                   style={[
                     styles.meetingTypeOption,
                     { backgroundColor: colors.backgroundSecondary, borderColor: colors.border },
+                    !isNewTheme && { backgroundColor: 'transparent', borderColor: editorial.hairline },
                     editMeetingType === type && { backgroundColor: accentColor, borderColor: accentColor }
                   ]}
                   onPress={() => setEditMeetingType(type as any)}
@@ -524,9 +563,9 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
 
             {(editMeetingType === 'in_person' || editMeetingType === 'hybrid') && (
               <>
-                <Text style={[styles.editLabel, { color: colors.textSecondary }]}>Location</Text>
+                <Text style={[styles.editLabel, { color: colors.textSecondary }, !isNewTheme && lightLabel]}>Location</Text>
                 <TextInput
-                  style={[styles.editInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }]}
+                  style={[styles.editInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary }, !isNewTheme && lightInput]}
                   value={editLocation}
                   onChangeText={setEditLocation}
                   placeholder="Enter meeting location"
@@ -551,8 +590,8 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Meeting Details</Text>
         {isCreator || (meeting.series_id && canEditRecurring) ? (
-          <TouchableOpacity onPress={() => setIsEditing(true)}>
-            <Ionicons name="create-outline" size={24} color={accentColor} />
+          <TouchableOpacity onPress={() => setIsEditing(true)} activeOpacity={isNewTheme ? 0.7 : 0.6}>
+            <Ionicons name="create-outline" size={24} color={isNewTheme ? accentColor : editorial.ink} />
           </TouchableOpacity>
         ) : (
           <View style={{ width: 24 }} />
@@ -563,10 +602,20 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
         <View style={styles.content}>
           {/* Meeting Title */}
           <View style={styles.titleSection}>
-            <Text style={[styles.meetingTitle, { color: colors.textPrimary }]}>{meeting.title}</Text>
+            <Text style={[styles.meetingTitle, { color: colors.textPrimary }, !isNewTheme && { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 28, letterSpacing: -0.5 }]}>{meeting.title}</Text>
             {meeting.is_kickoff && (
-              <View style={[styles.kickoffBadge, { backgroundColor: colors.warning }]}>
-                <Text style={[styles.kickoffBadgeText, { color: isNewTheme ? colors.background : colors.white }]}>KICKOFF MEETING</Text>
+              <View style={[
+                styles.kickoffBadge,
+                isNewTheme
+                  ? { backgroundColor: colors.warning }
+                  : { backgroundColor: editorial.goldTint, borderWidth: 1, borderColor: 'rgba(196, 155, 0, 0.30)' },
+              ]}>
+                <Text style={[
+                  styles.kickoffBadgeText,
+                  isNewTheme
+                    ? { color: colors.background }
+                    : { color: editorial.gold, fontFamily: 'InterTight_600SemiBold', fontSize: 10, letterSpacing: 0.6, textTransform: 'uppercase' },
+                ]}>KICKOFF MEETING</Text>
               </View>
             )}
           </View>
@@ -580,7 +629,7 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
           )}
 
           {/* Time & Date */}
-          <View style={[styles.infoCard, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }]}>
+          <View style={[styles.infoCard, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }, !isNewTheme && lightCard]}>
             <View style={styles.infoRow}>
               <Ionicons name="calendar" size={24} color={accentColor} />
               <View style={styles.infoTextContainer}>
@@ -628,16 +677,16 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
 
           {/* Description */}
           {meeting.description && (
-            <View style={[styles.descriptionCard, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }]}>
+            <View style={[styles.descriptionCard, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }, !isNewTheme && lightCard]}>
               <Text style={[styles.descriptionLabel, { color: colors.textSecondary }]}>Description</Text>
               <Text style={[styles.descriptionText, { color: colors.textPrimary }]}>{meeting.description}</Text>
             </View>
           )}
 
           {/* Participants Section */}
-          <View style={[styles.participantsCard, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }]}>
+          <View style={[styles.participantsCard, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }, !isNewTheme && lightCard]}>
             <View style={styles.participantsHeader}>
-              <Text style={[styles.participantsTitle, { color: colors.textPrimary }]}>
+              <Text style={[styles.participantsTitle, { color: colors.textPrimary }, !isNewTheme && { fontFamily: 'InterTight_600SemiBold' }]}>
                 Participants ({participants.length})
               </Text>
               {isCreator && availableMembers.length > 0 && (
@@ -660,9 +709,13 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
             )}
           </View>
 
-          {/* Status Badge */}
-          <View style={[styles.statusBadge, { backgroundColor: colors.backgroundSecondary }]}>
-            <Text style={[styles.statusText, { color: colors.textSecondary }]}>
+          {/* Status Badge — passive status = plain muted label in light editorial mode */}
+          <View style={[styles.statusBadge, { backgroundColor: colors.backgroundSecondary }, !isNewTheme && { backgroundColor: 'transparent', paddingHorizontal: 0 }]}>
+            <Text style={[
+              styles.statusText,
+              { color: colors.textSecondary },
+              !isNewTheme && { color: editorial.muted, fontFamily: 'InterTight_600SemiBold', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.6 },
+            ]}>
               {isUpcoming ? 'Upcoming' : 'Completed'}
             </Text>
           </View>
@@ -670,11 +723,11 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
           {/* Join Video Call Button */}
           {canJoinVideo && (
             <TouchableOpacity
-              style={[styles.joinButton, { backgroundColor: accentColor }]}
+              style={[styles.joinButton, { backgroundColor: accentColor }, !isNewTheme && { backgroundColor: editorial.ink, borderRadius: 999, shadowOpacity: 0 }]}
               onPress={handleJoinCall}
             >
               <Ionicons name="videocam" size={24} color={isNewTheme ? colors.background : colors.white} />
-              <Text style={[styles.joinButtonText, { color: isNewTheme ? colors.background : colors.white }]}>Join Video Call</Text>
+              <Text style={[styles.joinButtonText, { color: isNewTheme ? colors.background : colors.white }, !isNewTheme && { fontFamily: 'InterTight_600SemiBold' }]}>Join Video Call</Text>
             </TouchableOpacity>
           )}
 
@@ -698,7 +751,7 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
         <View style={[styles.modalOverlay, { backgroundColor: isNewTheme ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)' }]}>
           <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Add Participant</Text>
+              <Text style={[styles.modalTitle, { color: colors.textPrimary }, !isNewTheme && { fontFamily: 'PlayfairDisplay_700Bold' }]}>Add Participant</Text>
               <TouchableOpacity onPress={() => setShowAddParticipant(false)}>
                 <Ionicons name="close" size={24} color={colors.textPrimary} />
               </TouchableOpacity>
@@ -725,7 +778,7 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
                           </Text>
                         </View>
                       )}
-                      <Text style={[styles.memberName, { color: colors.textPrimary }]}>
+                      <Text style={[styles.memberName, { color: colors.textPrimary }, !isNewTheme && { fontFamily: 'InterTight_600SemiBold' }]}>
                         {profile?.name || profile?.email?.split('@')[0] || 'Unknown'}
                       </Text>
                       <Ionicons name="add-circle" size={24} color={accentColor} />

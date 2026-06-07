@@ -533,7 +533,7 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
         {isNewTheme && <GrainTexture opacity={0.06} />}
 
         {/* Full-screen header */}
-        <View style={[styles.header, themedStyles.header]}>
+        <View style={[styles.header, themedStyles.header, !isNewTheme && { backgroundColor: colors.background, shadowOpacity: 0, elevation: 0 }]}>
           <View style={styles.headerTop}>
             <View>
               <Text style={[styles.headerTitle, themedStyles.headerTitle]}>Chats</Text>
@@ -607,7 +607,9 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
                 </TouchableOpacity>
               </View>
 
-              <View style={[styles.newChatSearchContainer, { backgroundColor: colors.surfaceAlt }]}>
+              <View style={[styles.newChatSearchContainer, isNewTheme
+                ? { backgroundColor: colors.surfaceAlt }
+                : { backgroundColor: 'transparent', borderRadius: 0, borderBottomWidth: 1, borderBottomColor: colors.border }]}>
                 <Ionicons name="search" size={18} color={colors.textTertiary} style={{ marginRight: 8 }} />
                 <TextInput
                   style={[styles.newChatSearchInput, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}

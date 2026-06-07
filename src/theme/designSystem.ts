@@ -1,39 +1,60 @@
-// Modern Design System - Kalshi-inspired Light Mode
-// Clean, minimal, professional aesthetic
+// Editorial Light Mode Design System
+// Cream paper background, charcoal ink, hairline borders.
+// Accents (in order of prominence):
+//   - Carolina blue: somewhat-discreet primary accent (replaces forest green)
+//   - Gold: very-discreet tertiary, used sparingly
+//   - Red: semantic only — hot/urgent indicators and destructive actions
+// Modeled on the FeedScreen light-mode redesign.
+
+// Named editorial accents — import these where a screen needs the exact
+// FeedScreen palette (stripes, hot badges, "yours" marks, etc.)
+export const editorial = {
+  ink: '#1B1B18',
+  muted: '#8A8A85',
+  hairline: '#E5E1D8',
+  bg: '#FAF9F6',
+  surface: '#FFFFFF',
+  red: '#DC2626',
+  carolina: '#4B9CD3',
+  carolinaDeep: '#2E6A95',
+  carolinaTint: 'rgba(75, 156, 211, 0.10)',
+  gold: '#C49B00',
+  goldTint: 'rgba(196, 155, 0, 0.10)',
+};
 
 export const colors = {
-  // Base colors - raw parchment
+  // Base colors - cream paper
   white: '#FFFFFF',
-  background: '#FAF9F6',
+  background: editorial.bg,
   backgroundSecondary: '#F2F0EB',
 
-  // Text colors - high-contrast ink
-  textPrimary: '#1B1B18',
+  // Text colors - charcoal ink
+  textPrimary: editorial.ink,
   textSecondary: '#52524E',
-  textTertiary: '#8A8A85',
+  textTertiary: editorial.muted,
 
-  // Border colors - hemp/linen
-  border: '#D6D3CC',
-  borderLight: '#E8E6E0',
+  // Border colors - hairlines
+  border: editorial.hairline,
+  borderLight: '#EFECE5',
 
-  // Accent colors - forest green + sienna
-  primary: '#2D5016',
-  primaryHover: '#1E3A0E',
-  primaryLight: '#E4EDDE',
+  // Accent colors - Carolina blue primary, gold tertiary
+  primary: editorial.carolina,
+  primaryHover: editorial.carolinaDeep,
+  primaryLight: editorial.carolinaTint,
 
-  secondary: '#A0522D',
-  secondaryHover: '#7A3E22',
-  secondaryLight: '#F5EBE3',
+  secondary: editorial.gold,
+  secondaryHover: '#9A7A00',
+  secondaryLight: editorial.goldTint,
 
-  // Status colors - earthy
+  // Status colors
   success: '#2D6B2E',
   successLight: '#E0F0E0',
 
   warning: '#B8860B',
   warningLight: '#FDF3DC',
 
-  error: '#8B2500',
-  errorLight: '#F5E0DB',
+  error: editorial.red,
+  errorLight: 'rgba(220, 38, 38, 0.10)',
 
   // Disabled state
   disabled: '#C7C4BD',

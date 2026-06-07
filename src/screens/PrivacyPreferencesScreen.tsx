@@ -19,7 +19,7 @@ import {
   AllowlistValue,
   ALLOWLIST_OPTIONS,
 } from '../services/privacyService';
-import { colors as legacyColors, typography, spacing, borderRadius } from '../theme/designSystem';
+import { colors as legacyColors, typography, spacing, borderRadius, editorial } from '../theme/designSystem';
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
@@ -48,9 +48,9 @@ function AllowlistSection({ title, description, value, onChange, colors, accentC
   const isNoneSelected = value.includes('none');
 
   return (
-    <View style={[styles.section, { backgroundColor: colors.surface }]}>
-      <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{title}</Text>
-      {description && <Text style={[styles.sectionDescription, { color: colors.textSecondary }]}>{description}</Text>}
+    <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 0 : 1, marginHorizontal: isNewTheme ? 0 : spacing.base, borderRadius: isNewTheme ? 0 : 14 }]}>
+      <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? undefined : 'PlayfairDisplay_700Bold', letterSpacing: isNewTheme ? 0 : -0.3 }]}>{title}</Text>
+      {description && <Text style={[styles.sectionDescription, { color: colors.textSecondary, fontFamily: isNewTheme ? undefined : 'InterTight_600SemiBold' }]}>{description}</Text>}
       <View style={styles.checkboxGroup}>
         {ALLOWLIST_OPTIONS.map((option) => {
           const isChecked = value.includes(option.key);
@@ -61,7 +61,9 @@ function AllowlistSection({ title, description, value, onChange, colors, accentC
               key={option.key}
               style={[
                 styles.checkboxRow,
-                { backgroundColor: colors.backgroundSecondary },
+                isNewTheme
+                  ? { backgroundColor: colors.backgroundSecondary }
+                  : { backgroundColor: 'transparent', borderWidth: 1, borderColor: editorial.hairline },
                 isDisabled && styles.checkboxRowDisabled,
               ]}
               onPress={() => handleToggle(option.key)}
@@ -79,7 +81,7 @@ function AllowlistSection({ title, description, value, onChange, colors, accentC
               </View>
               <Text style={[
                 styles.checkboxLabel,
-                { color: colors.textPrimary },
+                { color: colors.textPrimary, fontFamily: isNewTheme ? undefined : 'InterTight_600SemiBold' },
                 isDisabled && { color: colors.textTertiary },
                 option.key === 'none' && { color: colors.error },
               ]}>
@@ -183,16 +185,16 @@ export default function PrivacyPreferencesScreen({ onBack }: PrivacyPreferencesS
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         {isNewTheme && <GrainTexture opacity={0.06} />}
-        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <View style={[styles.header, { backgroundColor: isNewTheme ? colors.surface : editorial.bg, borderBottomColor: colors.border, borderBottomWidth: isNewTheme ? 1 : 0 }]}>
           <TouchableOpacity onPress={onBack} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+            <Ionicons name="arrow-back" size={24} color={isNewTheme ? colors.textPrimary : editorial.ink} />
           </TouchableOpacity>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>Privacy Preferences</Text>
+          <Text style={[styles.title, { color: isNewTheme ? colors.textPrimary : editorial.ink, fontFamily: isNewTheme ? undefined : 'PlayfairDisplay_700Bold', letterSpacing: isNewTheme ? 0 : -0.3 }]}>Privacy Preferences</Text>
           <View style={styles.placeholder} />
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={accentColor} />
-          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading preferences...</Text>
+          <Text style={[styles.loadingText, { color: colors.textSecondary, fontFamily: isNewTheme ? undefined : 'InterTight_600SemiBold' }]}>Loading preferences...</Text>
         </View>
       </SafeAreaView>
     );
@@ -202,16 +204,16 @@ export default function PrivacyPreferencesScreen({ onBack }: PrivacyPreferencesS
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       {isNewTheme && <GrainTexture opacity={0.06} />}
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+      <View style={[styles.header, { backgroundColor: isNewTheme ? colors.surface : editorial.bg, borderBottomColor: colors.border, borderBottomWidth: isNewTheme ? 1 : 0 }]}>
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={isNewTheme ? colors.textPrimary : editorial.ink} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>Privacy Preferences</Text>
+        <Text style={[styles.title, { color: isNewTheme ? colors.textPrimary : editorial.ink, fontFamily: isNewTheme ? undefined : 'PlayfairDisplay_700Bold', letterSpacing: isNewTheme ? 0 : -0.3 }]}>Privacy Preferences</Text>
         <TouchableOpacity
           onPress={savePreferences}
           style={[
             styles.saveButton,
-            { backgroundColor: accentColor },
+            { backgroundColor: isNewTheme ? accentColor : editorial.ink },
             !hasChanges && { backgroundColor: colors.disabled }
           ]}
           disabled={!hasChanges || saving}
@@ -221,7 +223,7 @@ export default function PrivacyPreferencesScreen({ onBack }: PrivacyPreferencesS
           ) : (
             <Text style={[
               styles.saveButtonText,
-              { color: isNewTheme ? colors.background : colors.white },
+              { color: isNewTheme ? colors.background : colors.white, fontFamily: isNewTheme ? undefined : 'InterTight_600SemiBold' },
               !hasChanges && { color: colors.disabledText }
             ]}>
               Save
@@ -232,12 +234,12 @@ export default function PrivacyPreferencesScreen({ onBack }: PrivacyPreferencesS
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Introduction */}
-        <View style={[styles.introSection, { backgroundColor: colors.surface }]}>
-          <View style={[styles.introIconContainer, { backgroundColor: isNewTheme ? colors.successLight : '#d1fae5' }]}>
-            <Ionicons name="shield-checkmark" size={32} color={colors.success} />
+        <View style={[styles.introSection, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 0 : 1, marginHorizontal: isNewTheme ? 0 : spacing.base, borderRadius: isNewTheme ? 0 : 14 }]}>
+          <View style={[styles.introIconContainer, { backgroundColor: isNewTheme ? colors.successLight : editorial.carolinaTint }]}>
+            <Ionicons name="shield-checkmark" size={32} color={isNewTheme ? colors.success : editorial.carolinaDeep} />
           </View>
-          <Text style={[styles.introTitle, { color: colors.textPrimary }]}>Control Your Privacy</Text>
-          <Text style={[styles.introText, { color: colors.textSecondary }]}>
+          <Text style={[styles.introTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? undefined : 'PlayfairDisplay_700Bold', letterSpacing: isNewTheme ? 0 : -0.3 }]}>Control Your Privacy</Text>
+          <Text style={[styles.introText, { color: colors.textSecondary, fontFamily: isNewTheme ? undefined : 'InterTight_600SemiBold' }]}>
             Choose who can see different parts of your profile. Check the boxes for each audience you want to allow.
           </Text>
         </View>
@@ -309,16 +311,16 @@ export default function PrivacyPreferencesScreen({ onBack }: PrivacyPreferencesS
         />
 
         {/* Pod Roster Settings */}
-        <View style={[styles.section, { backgroundColor: colors.surface }]}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Pod Roster Privacy</Text>
-          <Text style={[styles.sectionDescription, { color: colors.textSecondary }]}>
+        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 0 : 1, marginHorizontal: isNewTheme ? 0 : spacing.base, borderRadius: isNewTheme ? 0 : 14 }]}>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? undefined : 'PlayfairDisplay_700Bold', letterSpacing: isNewTheme ? 0 : -0.3 }]}>Pod Roster Privacy</Text>
+          <Text style={[styles.sectionDescription, { color: colors.textSecondary, fontFamily: isNewTheme ? undefined : 'InterTight_600SemiBold' }]}>
             Control how you appear in pods you join.
           </Text>
 
           <View style={[styles.switchRow, { borderBottomColor: colors.border }]}>
             <View style={styles.switchInfo}>
-              <Text style={[styles.switchLabel, { color: colors.textPrimary }]}>Show me in public pod rosters</Text>
-              <Text style={[styles.switchDescription, { color: colors.textSecondary }]}>
+              <Text style={[styles.switchLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? undefined : 'InterTight_600SemiBold' }]}>Show me in public pod rosters</Text>
+              <Text style={[styles.switchDescription, { color: colors.textSecondary, fontFamily: isNewTheme ? undefined : 'InterTight_600SemiBold' }]}>
                 When enabled, you'll appear in the public member list of pods you join.
               </Text>
             </View>
@@ -333,8 +335,8 @@ export default function PrivacyPreferencesScreen({ onBack }: PrivacyPreferencesS
 
           <View style={[styles.switchRow, { borderBottomColor: colors.border }]}>
             <View style={styles.switchInfo}>
-              <Text style={[styles.switchLabel, { color: colors.textPrimary }]}>Allow profile access from roster</Text>
-              <Text style={[styles.switchDescription, { color: colors.textSecondary }]}>
+              <Text style={[styles.switchLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? undefined : 'InterTight_600SemiBold' }]}>Allow profile access from roster</Text>
+              <Text style={[styles.switchDescription, { color: colors.textSecondary, fontFamily: isNewTheme ? undefined : 'InterTight_600SemiBold' }]}>
                 When enabled, others can tap your card in a pod roster to view your profile.
               </Text>
             </View>
@@ -348,42 +350,42 @@ export default function PrivacyPreferencesScreen({ onBack }: PrivacyPreferencesS
             />
           </View>
           {!preferences?.pod_public_roster_listed && (
-            <Text style={[styles.switchNote, { color: colors.textTertiary }]}>
+            <Text style={[styles.switchNote, { color: colors.textTertiary, fontFamily: isNewTheme ? undefined : 'InterTight_600SemiBold' }]}>
               Note: Profile access setting only applies when you're visible in rosters.
             </Text>
           )}
         </View>
 
         {/* Help Section */}
-        <View style={[styles.helpSection, { backgroundColor: isNewTheme ? colors.successLight : '#f0fdf4', borderLeftColor: colors.success }]}>
-          <Text style={[styles.helpTitle, { color: isNewTheme ? colors.success : '#065f46' }]}>Understanding Audience Options</Text>
+        <View style={[styles.helpSection, { backgroundColor: isNewTheme ? colors.successLight : editorial.carolinaTint, borderLeftColor: isNewTheme ? colors.success : editorial.carolina, marginHorizontal: isNewTheme ? 0 : spacing.base, borderRadius: isNewTheme ? 0 : 14 }]}>
+          <Text style={[styles.helpTitle, { color: isNewTheme ? colors.success : editorial.carolinaDeep, fontFamily: isNewTheme ? undefined : 'PlayfairDisplay_700Bold', letterSpacing: isNewTheme ? 0 : -0.3 }]}>Understanding Audience Options</Text>
           <View style={styles.helpItem}>
-            <Text style={[styles.helpBullet, { color: colors.success }]}>*</Text>
-            <Text style={[styles.helpText, { color: colors.textPrimary }]}>
+            <Text style={[styles.helpBullet, { color: isNewTheme ? colors.success : editorial.carolina }]}>*</Text>
+            <Text style={[styles.helpText, { color: colors.textPrimary, fontFamily: isNewTheme ? undefined : 'InterTight_600SemiBold' }]}>
               <Text style={styles.helpBold}>Connections:</Text> Users you've connected with on the app.
             </Text>
           </View>
           <View style={styles.helpItem}>
-            <Text style={[styles.helpBullet, { color: colors.success }]}>*</Text>
-            <Text style={[styles.helpText, { color: colors.textPrimary }]}>
+            <Text style={[styles.helpBullet, { color: isNewTheme ? colors.success : editorial.carolina }]}>*</Text>
+            <Text style={[styles.helpText, { color: colors.textPrimary, fontFamily: isNewTheme ? undefined : 'InterTight_600SemiBold' }]}>
               <Text style={styles.helpBold}>Pod members:</Text> Users who share at least one pod with you.
             </Text>
           </View>
           <View style={styles.helpItem}>
-            <Text style={[styles.helpBullet, { color: colors.success }]}>*</Text>
-            <Text style={[styles.helpText, { color: colors.textPrimary }]}>
+            <Text style={[styles.helpBullet, { color: isNewTheme ? colors.success : editorial.carolina }]}>*</Text>
+            <Text style={[styles.helpText, { color: colors.textPrimary, fontFamily: isNewTheme ? undefined : 'InterTight_600SemiBold' }]}>
               <Text style={styles.helpBold}>Pod creator when applying:</Text> Creators of pods you've applied to (while your application is pending).
             </Text>
           </View>
           <View style={styles.helpItem}>
-            <Text style={[styles.helpBullet, { color: colors.success }]}>*</Text>
-            <Text style={[styles.helpText, { color: colors.textPrimary }]}>
+            <Text style={[styles.helpBullet, { color: isNewTheme ? colors.success : editorial.carolina }]}>*</Text>
+            <Text style={[styles.helpText, { color: colors.textPrimary, fontFamily: isNewTheme ? undefined : 'InterTight_600SemiBold' }]}>
               <Text style={styles.helpBold}>Everyone:</Text> Anyone, including users not logged in.
             </Text>
           </View>
           <View style={styles.helpItem}>
-            <Text style={[styles.helpBullet, { color: colors.success }]}>*</Text>
-            <Text style={[styles.helpText, { color: colors.textPrimary }]}>
+            <Text style={[styles.helpBullet, { color: isNewTheme ? colors.success : editorial.carolina }]}>*</Text>
+            <Text style={[styles.helpText, { color: colors.textPrimary, fontFamily: isNewTheme ? undefined : 'InterTight_600SemiBold' }]}>
               <Text style={styles.helpBold}>Visible to no one:</Text> Completely private (only you can see).
             </Text>
           </View>

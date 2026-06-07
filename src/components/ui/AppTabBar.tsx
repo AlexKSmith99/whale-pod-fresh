@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import PieTabBar, { PieTabKey } from './PieTabBar';
+import { editorial } from '../../theme/designSystem';
 
 interface AppTabBarProps {
   isNewTheme: boolean;
@@ -59,11 +60,11 @@ export default function AppTabBar({
       backgroundColor: themeColors.tabBarBackground,
       borderTopColor: themeColors.tabBarBorder,
     }]}>
-      <TouchableOpacity style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : '#f0f0f0' }]} onPress={() => onTabPress('Feed')}>
+      <TouchableOpacity style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : editorial.hairline }]} onPress={() => onTabPress('Feed')}>
         <Text style={[styles.tabIcon, { opacity: currentScreen === 'Feed' ? 1 : 0.4 }]}>🌊</Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : '#f0f0f0' }]}
+        style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : editorial.hairline }]}
         onPress={() => onTabPress('Messages')}
       >
         <View style={styles.tabContent}>
@@ -71,7 +72,7 @@ export default function AppTabBar({
           {(() => {
             const effectiveUnreadCount = Math.max(0, unreadMessageCount - locallyReadCount);
             return effectiveUnreadCount > 0 && currentScreen !== 'Messages' ? (
-              <View style={[styles.badge, { backgroundColor: isNewTheme ? themeColors.accentGreen : '#ef4444' }]}>
+              <View style={[styles.badge, { backgroundColor: isNewTheme ? themeColors.accentGreen : editorial.red }]}>
                 <Text style={[styles.badgeText, { color: isNewTheme ? themeColors.background : '#fff' }]}>{effectiveUnreadCount}</Text>
               </View>
             ) : null;
@@ -79,39 +80,39 @@ export default function AppTabBar({
         </View>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : '#f0f0f0' }]}
+        style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : editorial.hairline }]}
         onPress={() => onTabPress('Pods')}
       >
         <View style={styles.tabContent}>
           <Text style={[styles.tabIcon, { opacity: currentScreen === 'Pods' ? 1 : 0.4 }]}>🐳</Text>
           {badgeCounts.pods > 0 && (
-            <View style={[styles.badge, { backgroundColor: isNewTheme ? themeColors.accentGreen : '#ef4444' }]}>
+            <View style={[styles.badge, { backgroundColor: isNewTheme ? themeColors.accentGreen : editorial.red }]}>
               <Text style={[styles.badgeText, { color: isNewTheme ? themeColors.background : '#fff' }]}>{badgeCounts.pods}</Text>
             </View>
           )}
         </View>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : '#f0f0f0' }]}
+        style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : editorial.hairline }]}
         onPress={() => onTabPress('Calendar')}
       >
         <View style={styles.tabContent}>
           <Text style={[styles.tabIcon, { opacity: currentScreen === 'Calendar' ? 1 : 0.4 }]}>🌙</Text>
           {badgeCounts.calendar > 0 && (
-            <View style={[styles.badge, { backgroundColor: isNewTheme ? themeColors.accentGreen : '#ef4444' }]}>
+            <View style={[styles.badge, { backgroundColor: isNewTheme ? themeColors.accentGreen : editorial.red }]}>
               <Text style={[styles.badgeText, { color: isNewTheme ? themeColors.background : '#fff' }]}>{badgeCounts.calendar}</Text>
             </View>
           )}
         </View>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : '#f0f0f0' }]}
+        style={[styles.tab, { borderRightColor: isNewTheme ? themeColors.border : editorial.hairline }]}
         onPress={() => onTabPress('Notifications')}
       >
         <View style={styles.tabContent}>
           <Text style={[styles.tabIcon, { opacity: currentScreen === 'Notifications' ? 1 : 0.4 }]}>✦</Text>
           {badgeCounts.notifications > 0 && (
-            <View style={[styles.badge, { backgroundColor: isNewTheme ? themeColors.accentGreen : '#ef4444' }]}>
+            <View style={[styles.badge, { backgroundColor: isNewTheme ? themeColors.accentGreen : editorial.red }]}>
               <Text style={[styles.badgeText, { color: isNewTheme ? themeColors.background : '#fff' }]}>{badgeCounts.notifications}</Text>
             </View>
           )}
@@ -124,7 +125,7 @@ export default function AppTabBar({
         <View style={styles.tabContent}>
           <Text style={[styles.tabIcon, { opacity: currentScreen === 'Profile' ? 1 : 0.4 }]}>🪷</Text>
           {badgeCounts.connections > 0 && (
-            <View style={[styles.badge, { backgroundColor: isNewTheme ? themeColors.accentGreen : '#ef4444' }]}>
+            <View style={[styles.badge, { backgroundColor: isNewTheme ? themeColors.accentGreen : editorial.red }]}>
               <Text style={[styles.badgeText, { color: isNewTheme ? themeColors.background : '#fff' }]}>{badgeCounts.connections}</Text>
             </View>
           )}

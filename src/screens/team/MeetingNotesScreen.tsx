@@ -15,7 +15,7 @@ import { getMeetingNotes, createMeetingNote, updateMeetingNote, deleteMeetingNot
 import { useTheme } from '../../theme/ThemeContext';
 import { getThemedStyles } from '../../theme/themedStyles';
 import GrainTexture from '../../components/ui/GrainTexture';
-import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../../theme/designSystem';
+import { colors as legacyColors, typography, spacing, borderRadius, shadows, editorial } from '../../theme/designSystem';
 
 interface MeetingNotesScreenProps {
   pursuitId: string;
@@ -135,13 +135,22 @@ export default function MeetingNotesScreen({ pursuitId, onBack }: MeetingNotesSc
       <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       {isNewTheme && <GrainTexture opacity={0.06} />}
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+      <View style={[
+        styles.header,
+        isNewTheme
+          ? { backgroundColor: colors.surface, borderBottomColor: colors.border }
+          : { backgroundColor: editorial.bg, borderBottomWidth: 0 },
+      ]}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Text style={[styles.backButtonText, { color: primaryColor }]}>← Back</Text>
+          <Text style={[styles.backButtonText, { color: isNewTheme ? primaryColor : editorial.ink }]}>← Back</Text>
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Meeting Notes</Text>
-        <TouchableOpacity onPress={() => setShowAddModal(true)} style={[styles.addButton, { backgroundColor: primaryColor }]}>
-          <Text style={styles.addButtonText}>+ New Note</Text>
+        <Text style={[
+          styles.headerTitle,
+          { color: colors.textPrimary },
+          !isNewTheme && { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 24, letterSpacing: -0.4 },
+        ]}>Meeting Notes</Text>
+        <TouchableOpacity onPress={() => setShowAddModal(true)} style={[styles.addButton, { backgroundColor: isNewTheme ? primaryColor : editorial.ink }]}>
+          <Text style={[styles.addButtonText, !isNewTheme && { fontFamily: 'InterTight_600SemiBold' }]}>+ New Note</Text>
         </TouchableOpacity>
       </View>
 
@@ -150,22 +159,23 @@ export default function MeetingNotesScreen({ pursuitId, onBack }: MeetingNotesSc
         {notes.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyEmoji}>📝</Text>
-            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No meeting notes yet</Text>
-            <Text style={[styles.emptyHint, { color: colors.textTertiary }]}>Tap "+ New Note" to create your first meeting note</Text>
+            <Text style={[styles.emptyText, { color: colors.textSecondary }, !isNewTheme && { fontFamily: 'PlayfairDisplay_700Bold', color: editorial.ink, letterSpacing: -0.3 }]}>No meeting notes yet</Text>
+            <Text style={[styles.emptyHint, { color: colors.textTertiary }, !isNewTheme && { fontFamily: 'InterTight_600SemiBold', lineHeight: 20 }]}>Tap "+ New Note" to create your first meeting note</Text>
           </View>
         ) : (
           notes.map((note) => (
             <TouchableOpacity
               key={note.id}
-              style={[styles.noteCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              style={[styles.noteCard, { backgroundColor: colors.surface, borderColor: colors.border }, !isNewTheme && styles.editorialCard]}
               onPress={() => {
                 setSelectedNote(note);
                 setShowDetailModal(true);
               }}
             >
+              {!isNewTheme && <View style={styles.cardAccent} pointerEvents="none" />}
               <View style={styles.noteHeader}>
-                <Text style={[styles.noteTitle, { color: colors.textPrimary }]}>{note.title}</Text>
-                <Text style={[styles.noteDate, { color: colors.textSecondary }]}>{formatDate(note.meeting_date)}</Text>
+                <Text style={[styles.noteTitle, { color: colors.textPrimary }, !isNewTheme && { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3 }]}>{note.title}</Text>
+                <Text style={[styles.noteDate, { color: colors.textSecondary }, !isNewTheme && { fontFamily: 'InterTight_600SemiBold' }]}>{formatDate(note.meeting_date)}</Text>
               </View>
 
               {note.agenda && (
@@ -535,5 +545,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
+  },
+  // Editorial light-mode card chrome: white surface, hairline border, soft
+  // shadow, 3px Carolina-blue accent stripe down the left edge.
+  editorialCard: {
+    borderRadius: 14,
+    paddingLeft: 22,
+    borderColor: editorial.hairline,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
+    elevation: 3,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  cardAccent: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3,
+    backgroundColor: editorial.carolina,
   },
 });

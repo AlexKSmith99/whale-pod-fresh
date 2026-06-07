@@ -49,8 +49,10 @@ export default function PieButton({
   const fontForSize: Record<Size, number> = { lg: 16, md: 15, sm: 13 };
   const padForSize: Record<Size, number> = { lg: 24, md: 20, sm: 16 };
 
-  let bg: string = colors.accentGreen;
-  let fg: string = '#000000';
+  // Light mode (editorial): primary CTA is ink-filled with white text.
+  // Dark mode keeps the lime-fill / black-text "pie" look.
+  let bg: string = isNewTheme ? colors.accentGreen : colors.textPrimary;
+  let fg: string = isNewTheme ? '#000000' : '#FFFFFF';
   let borderColor: string | undefined;
   let borderWidth = 0;
 
@@ -97,7 +99,7 @@ export default function PieButton({
           {icon && iconPosition === 'left' && (
             <Ionicons name={icon} size={fontForSize[size] + 2} color={fg} style={{ marginRight: 8 }} />
           )}
-          <Text style={[styles.label, { color: fg, fontSize: fontForSize[size] }, textStyle]}>
+          <Text style={[styles.label, { color: fg, fontSize: fontForSize[size], fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, textStyle]}>
             {label}
           </Text>
           {icon && iconPosition === 'right' && (

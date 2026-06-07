@@ -5,7 +5,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
 import { notificationService } from '../services/notificationService';
-import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+import { colors as legacyColors, typography, spacing, borderRadius, shadows, editorial } from '../theme/designSystem';
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
@@ -29,8 +29,9 @@ export default function InterviewTimeSlotProposalScreen({ applicationId, pursuit
   const { theme, isNewTheme } = useTheme();
   const colors = theme.colors;
   const themedStyles = getThemedStyles(colors, isNewTheme);
-  // Interview uses purple accent color (#2D5016)
-  const interviewAccent = '#2D5016';
+  const light = !isNewTheme;
+  // Light mode uses Carolina blue as the discreet primary accent.
+  const interviewAccent = editorial.carolina;
   const accentColor = isNewTheme ? colors.accentGreen : interviewAccent;
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([
     { date: new Date(), startTime: new Date(), endTime: new Date() }
@@ -250,36 +251,58 @@ export default function InterviewTimeSlotProposalScreen({ applicationId, pursuit
       <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       {isNewTheme && <GrainTexture opacity={0.06} />}
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+      <View style={[
+        styles.header,
+        { backgroundColor: colors.surface, borderBottomColor: colors.border },
+        light && { backgroundColor: editorial.bg, borderBottomWidth: 0, shadowOpacity: 0, elevation: 0 },
+      ]}>
+        <TouchableOpacity onPress={onClose} style={styles.closeButton} activeOpacity={0.6}>
           <Ionicons name="close" size={28} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold' }]}>Propose Interview Times</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold' }, light && { letterSpacing: -0.5 }]}>Propose Interview Times</Text>
         <View style={{ width: 28 }} />
       </View>
 
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
-          <View style={[styles.introSection, { backgroundColor: isNewTheme ? colors.primaryLight : '#E4EDDE' }]}>
-            <Text style={[styles.pursuitTitle, { color: accentColor, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>{pursuitTitle}</Text>
-            <Text style={[styles.introText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
+          <View style={[
+            styles.introSection,
+            { backgroundColor: isNewTheme ? colors.primaryLight : '#E4EDDE' },
+            light && { backgroundColor: editorial.surface, borderWidth: 1, borderColor: editorial.hairline, borderRadius: 14, paddingLeft: 22, overflow: 'hidden', ...shadows.none },
+          ]}>
+            {light && <View style={styles.cardAccentLine} pointerEvents="none" />}
+            <Text style={[styles.pursuitTitle, { color: accentColor, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }, light && { color: editorial.ink, fontSize: 24, letterSpacing: -0.3 }]}>{pursuitTitle}</Text>
+            <Text style={[styles.introText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && { color: editorial.muted, lineHeight: 20 }]}>
               The creator wants to schedule an interview with you! They will review your times and pick the final interview slot.
             </Text>
           </View>
 
-          <View style={[styles.emphasisCallout, { backgroundColor: isNewTheme ? 'rgba(252, 211, 77, 0.12)' : '#FEF3C7', borderLeftColor: colors.warning }]}>
-            <Ionicons name="alert-circle" size={18} color={colors.warning} style={{ marginRight: 10, marginTop: 1 }} />
-            <Text style={[styles.emphasisText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
+          <View style={[
+            styles.emphasisCallout,
+            { backgroundColor: isNewTheme ? 'rgba(252, 211, 77, 0.12)' : '#FEF3C7', borderLeftColor: colors.warning },
+            light && { backgroundColor: editorial.carolinaTint, borderLeftColor: editorial.carolina },
+          ]}>
+            <Ionicons name="alert-circle" size={18} color={light ? editorial.carolinaDeep : colors.warning} style={{ marginRight: 10, marginTop: 1 }} />
+            <Text style={[styles.emphasisText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && { color: editorial.ink, lineHeight: 20 }]}>
               <Text style={{ fontWeight: '700' }}>Submit every time slot in the next 7 days that works for you.</Text> The more availability you share, the easier it is to lock in a time — and the faster you'll hear back.
             </Text>
           </View>
 
           {/* Time Slots */}
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'InterTight_600SemiBold' }]}>Your Available Times</Text>
+          <Text style={[
+            styles.sectionTitle,
+            { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'InterTight_600SemiBold' },
+            light && { color: editorial.muted, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.6 },
+          ]}>Your Available Times</Text>
           {timeSlots.map((slot, index) => (
-            <View key={index} style={[styles.timeSlotCard, { backgroundColor: colors.surface }]}>
+            <View key={index} style={[
+              styles.timeSlotCard,
+              { backgroundColor: colors.surface },
+              light && { borderRadius: 14, paddingLeft: 22, borderWidth: 1, borderColor: editorial.hairline, overflow: 'hidden', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.06, shadowRadius: 14, elevation: 3 },
+            ]}>
+              {light && <View style={styles.cardAccentLine} pointerEvents="none" />}
               <View style={styles.timeSlotHeader}>
-                <Text style={[styles.timeSlotLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Time Slot {index + 1}</Text>
+                <Text style={[styles.timeSlotLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 17, letterSpacing: -0.3 }]}>Time Slot {index + 1}</Text>
                 {timeSlots.length > 1 && (
                   <TouchableOpacity onPress={() => removeTimeSlot(index)}>
                     <Ionicons name="trash-outline" size={20} color={colors.error} />
@@ -288,9 +311,9 @@ export default function InterviewTimeSlotProposalScreen({ applicationId, pursuit
               </View>
 
               {/* Date Picker */}
-              <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Date</Text>
+              <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && styles.inputLabelLight]}>Date</Text>
               <TouchableOpacity
-                style={[styles.pickerButton, { backgroundColor: colors.backgroundSecondary, borderColor: colors.borderLight }]}
+                style={[styles.pickerButton, { backgroundColor: colors.backgroundSecondary, borderColor: colors.borderLight }, light && styles.pickerButtonLight]}
                 onPress={() => setShowDatePicker(showDatePicker === index ? null : index)}
               >
                 <Ionicons name="calendar-outline" size={20} color={accentColor} />
@@ -342,9 +365,9 @@ export default function InterviewTimeSlotProposalScreen({ applicationId, pursuit
               {/* Time Pickers Row */}
               <View style={styles.timeRow}>
                 <View style={styles.timeInput}>
-                  <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Start Time</Text>
+                  <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && styles.inputLabelLight]}>Start Time</Text>
                   <TouchableOpacity
-                    style={[styles.pickerButton, { backgroundColor: colors.backgroundSecondary, borderColor: colors.borderLight }]}
+                    style={[styles.pickerButton, { backgroundColor: colors.backgroundSecondary, borderColor: colors.borderLight }, light && styles.pickerButtonLight]}
                     onPress={() => setShowStartTimePicker(showStartTimePicker === index ? null : index)}
                   >
                     <Ionicons name="time-outline" size={20} color={accentColor} />
@@ -394,9 +417,9 @@ export default function InterviewTimeSlotProposalScreen({ applicationId, pursuit
                   )}
                 </View>
                 <View style={styles.timeInput}>
-                  <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>End Time</Text>
+                  <Text style={[styles.inputLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && styles.inputLabelLight]}>End Time</Text>
                   <TouchableOpacity
-                    style={[styles.pickerButton, { backgroundColor: colors.backgroundSecondary, borderColor: colors.borderLight }]}
+                    style={[styles.pickerButton, { backgroundColor: colors.backgroundSecondary, borderColor: colors.borderLight }, light && styles.pickerButtonLight]}
                     onPress={() => setShowEndTimePicker(showEndTimePicker === index ? null : index)}
                   >
                     <Ionicons name="time-outline" size={20} color={accentColor} />
@@ -449,18 +472,32 @@ export default function InterviewTimeSlotProposalScreen({ applicationId, pursuit
             </View>
           ))}
 
-          <TouchableOpacity style={[styles.addSlotButton, { backgroundColor: colors.backgroundSecondary, borderColor: accentColor }]} onPress={addTimeSlot}>
-            <Ionicons name="add-circle-outline" size={24} color={accentColor} />
-            <Text style={[styles.addSlotText, { color: accentColor, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Add Another Time Slot</Text>
+          <TouchableOpacity
+            style={[
+              styles.addSlotButton,
+              { backgroundColor: colors.backgroundSecondary, borderColor: accentColor },
+              light && { backgroundColor: 'transparent', borderColor: editorial.hairline, borderStyle: 'solid', borderRadius: 999 },
+            ]}
+            onPress={addTimeSlot}
+            activeOpacity={light ? 0.6 : 0.7}
+          >
+            <Ionicons name="add" size={20} color={light ? editorial.ink : accentColor} />
+            <Text style={[styles.addSlotText, { color: accentColor, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && { color: editorial.ink }]}>Add Another Time Slot</Text>
           </TouchableOpacity>
 
           {/* Submit Button */}
           <TouchableOpacity
-            style={[styles.submitButton, { backgroundColor: accentColor }, loading && styles.submitButtonDisabled]}
+            style={[
+              styles.submitButton,
+              { backgroundColor: accentColor },
+              light && { backgroundColor: editorial.ink, borderRadius: 999, ...shadows.none },
+              loading && styles.submitButtonDisabled,
+            ]}
             onPress={handleSubmit}
             disabled={loading}
+            activeOpacity={light ? 0.85 : 0.7}
           >
-            <Text style={[styles.submitButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
+            <Text style={[styles.submitButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && { color: '#FFFFFF', letterSpacing: 0.2 }]}>
               {loading ? 'Submitting...' : 'Submit Interview Times'}
             </Text>
           </TouchableOpacity>
@@ -525,7 +562,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     padding: spacing.base,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.lg,
     borderLeftWidth: 3,
     marginBottom: spacing.xl,
   },
@@ -547,6 +584,25 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.lg,
     marginBottom: spacing.base,
     ...shadows.base,
+  },
+  cardAccentLine: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3,
+    backgroundColor: editorial.carolina,
+  },
+  inputLabelLight: {
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    color: editorial.muted,
+  },
+  pickerButtonLight: {
+    backgroundColor: editorial.surface,
+    borderColor: editorial.hairline,
+    borderRadius: 14,
   },
   timeSlotHeader: {
     flexDirection: 'row',

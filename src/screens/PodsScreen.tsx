@@ -220,10 +220,15 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
     );
   }
 
+  // Editorial light mode: inactive filter pills are transparent with a hairline
+  // border + ink text; the active pill is filled Carolina with white text.
+  const inactiveTabStyle = isNewTheme
+    ? { backgroundColor: colors.surfaceAlt }
+    : { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.border };
   const renderFilterTabs = () => (
     <View style={[styles.filterTabs, themedStyles.surface, { borderBottomColor: colors.border }]}>
       <TouchableOpacity
-        style={[styles.filterTab, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f5f5f5' }, activeFilter === 'active' && { backgroundColor: isNewTheme ? 'rgba(200, 255, 107, 0.15)' : themedStyles.accentIconColor }]}
+        style={[styles.filterTab, inactiveTabStyle, activeFilter === 'active' && { backgroundColor: isNewTheme ? 'rgba(200, 255, 107, 0.15)' : themedStyles.accentIconColor, borderColor: isNewTheme ? undefined : themedStyles.accentIconColor }]}
         onPress={() => setActiveFilter('active')}
       >
         <Text style={[styles.filterTabText, themedStyles.bodyText, { color: colors.textSecondary }, activeFilter === 'active' && (isNewTheme ? { color: colors.accentGreen } : styles.filterTabTextActive)]}>
@@ -231,7 +236,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.filterTab, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f5f5f5' }, activeFilter === 'past' && { backgroundColor: isNewTheme ? 'rgba(200, 255, 107, 0.15)' : themedStyles.accentIconColor }]}
+        style={[styles.filterTab, inactiveTabStyle, activeFilter === 'past' && { backgroundColor: isNewTheme ? 'rgba(200, 255, 107, 0.15)' : themedStyles.accentIconColor, borderColor: isNewTheme ? undefined : themedStyles.accentIconColor }]}
         onPress={() => setActiveFilter('past')}
       >
         <Text style={[styles.filterTabText, themedStyles.bodyText, { color: colors.textSecondary }, activeFilter === 'past' && (isNewTheme ? { color: colors.accentGreen } : styles.filterTabTextActive)]}>
@@ -239,7 +244,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.filterTab, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f5f5f5' }, activeFilter === 'pending' && { backgroundColor: isNewTheme ? 'rgba(200, 255, 107, 0.15)' : themedStyles.accentIconColor }]}
+        style={[styles.filterTab, inactiveTabStyle, activeFilter === 'pending' && { backgroundColor: isNewTheme ? 'rgba(200, 255, 107, 0.15)' : themedStyles.accentIconColor, borderColor: isNewTheme ? undefined : themedStyles.accentIconColor }]}
         onPress={() => setActiveFilter('pending')}
       >
         <Text style={[styles.filterTabText, themedStyles.bodyText, { color: colors.textSecondary }, activeFilter === 'pending' && (isNewTheme ? { color: colors.accentGreen } : styles.filterTabTextActive)]}>
@@ -260,7 +265,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
         style={[
           styles.podCard,
           themedStyles.card,
-          { borderWidth: 0.5, borderColor: isNewTheme ? 'rgba(168, 230, 163, 0.25)' : '#f0f0f0', overflow: 'hidden' },
+          { borderWidth: isNewTheme ? 0.5 : 1, borderColor: isNewTheme ? 'rgba(168, 230, 163, 0.25)' : colors.border, overflow: 'hidden' },
           isPast && [styles.podCardPast, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#f9fafb' }],
         ]}
         onPress={() => !isPast && onOpenPodDetails(pod)}
@@ -268,7 +273,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
         disabled={isPast}
       >
         {!isPast && (
-          <View style={[styles.cardAccentLine, { backgroundColor: pod.status === 'active' ? colors.success : colors.warning }]} pointerEvents="none" />
+          <View style={[styles.cardAccentLine, { backgroundColor: isNewTheme ? (pod.status === 'active' ? colors.success : colors.warning) : '#4B9CD3' }]} pointerEvents="none" />
         )}
 
         {/* Engagement badge: flame (pre-kickoff hot) or jalapeños (post-kickoff activity) */}
@@ -286,9 +291,16 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
               <Text style={[styles.podTitle, themedStyles.cardTitle, isPast && { color: colors.textSecondary }]} numberOfLines={2}>{pod.title}</Text>
             </View>
             {pod.is_creator && !isPast && (
-              <View style={[styles.creatorBadge, themedStyles.tag, { backgroundColor: themedStyles.accentIconColor }]}>
-                <Text style={[styles.creatorBadgeText, themedStyles.tagText, { color: isNewTheme ? colors.background : '#fff' }]}>YOURS</Text>
-              </View>
+              isNewTheme ? (
+                <View style={[styles.creatorBadge, themedStyles.tag, { backgroundColor: themedStyles.accentIconColor }]}>
+                  <Text style={[styles.creatorBadgeText, themedStyles.tagText, { color: colors.background }]}>YOURS</Text>
+                </View>
+              ) : (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(196, 155, 0, 0.10)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(196, 155, 0, 0.30)' }}>
+                  <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: '#C49B00' }} />
+                  <Text style={{ fontSize: 10, color: '#C49B00', fontFamily: 'InterTight_600SemiBold', letterSpacing: 0.6, textTransform: 'uppercase' }}>Yours</Text>
+                </View>
+              )
             )}
             {isPast && (
               <View style={styles.removedBadge}>
@@ -297,17 +309,23 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
             )}
           </View>
           {!isPast && (
-            <View style={[
-              styles.statusBadge,
-              { backgroundColor: pod.status === 'active'
-                ? (isNewTheme ? 'rgba(134, 239, 172, 0.15)' : '#d1fae5')
-                : (isNewTheme ? 'rgba(252, 211, 77, 0.15)' : '#fef3c7')
-              }
-            ]}>
-              <Text style={[styles.statusText, { color: pod.status === 'active' ? colors.success : colors.warning }]}>
-                {pod.status === 'awaiting_kickoff' ? 'Awaiting Kickoff' : 'Active'}
+            isNewTheme ? (
+              <View style={[
+                styles.statusBadge,
+                { backgroundColor: pod.status === 'active'
+                  ? 'rgba(134, 239, 172, 0.15)'
+                  : 'rgba(252, 211, 77, 0.15)'
+                }
+              ]}>
+                <Text style={[styles.statusText, { color: pod.status === 'active' ? colors.success : colors.warning }]}>
+                  {pod.status === 'awaiting_kickoff' ? 'Awaiting Kickoff' : 'Active'}
+                </Text>
+              </View>
+            ) : (
+              <Text style={{ fontSize: 10, color: '#8A8A85', fontFamily: 'InterTight_600SemiBold', letterSpacing: 0.6, textTransform: 'uppercase', alignSelf: 'flex-start' }}>
+                {pod.status === 'awaiting_kickoff' ? 'Awaiting kickoff' : 'Active'}
               </Text>
-            </View>
+            )
           )}
         </View>
 
@@ -321,13 +339,13 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
           ((pod as any).pursuit_categories && (pod as any).pursuit_categories.length > 0)) && (
           <View style={styles.podTags}>
             {((pod as any).pursuit_types || []).slice(0, isNewTheme ? 2 : 3).map((type: string, i: number) => (
-              <View key={`t-${i}`} style={[styles.podTag, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#F2F0EB' }]}>
-                <Text style={[styles.podTagText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{type}</Text>
+              <View key={`t-${i}`} style={[styles.podTag, isNewTheme ? { backgroundColor: colors.surfaceAlt } : { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.border }]}>
+                <Text style={[styles.podTagText, { color: isNewTheme ? colors.textSecondary : '#1B1B18', fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: isNewTheme ? 'none' : 'lowercase' }]}>{type}</Text>
               </View>
             ))}
             {((pod as any).pursuit_categories || []).slice(0, 2).map((cat: string, i: number) => (
-              <View key={`c-${i}`} style={[styles.podTag, { backgroundColor: 'rgba(129, 140, 248, 0.15)', borderColor: 'rgba(129, 140, 248, 0.3)', borderWidth: 1 }]}>
-                <Text style={[styles.podTagText, { color: isNewTheme ? colors.primary : '#6366F1', fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{cat}</Text>
+              <View key={`c-${i}`} style={[styles.podTag, isNewTheme ? { backgroundColor: 'rgba(129, 140, 248, 0.15)', borderColor: 'rgba(129, 140, 248, 0.3)', borderWidth: 1 } : { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.border }]}>
+                <Text style={[styles.podTagText, { color: isNewTheme ? colors.primary : '#1B1B18', fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: isNewTheme ? 'none' : 'lowercase' }]}>{cat}</Text>
               </View>
             ))}
           </View>
@@ -472,10 +490,10 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
                 The creator wants to schedule an interview! Propose your available times.
               </Text>
               <TouchableOpacity
-                style={[styles.proposeTimesButton, themedStyles.buttonPrimary]}
+                style={[styles.proposeTimesButton, themedStyles.buttonPrimary, !isNewTheme && { backgroundColor: '#1B1B18' }]}
                 onPress={() => onOpenInterviewProposal?.(app.id, app.pursuit_id, app.pursuits?.title || 'Pod')}
               >
-                <Text style={[styles.proposeTimesButtonText, themedStyles.buttonPrimaryText]}>Propose Interview Times</Text>
+                <Text style={[styles.proposeTimesButtonText, themedStyles.buttonPrimaryText, !isNewTheme && { color: '#FFFFFF' }]}>Propose Interview Times</Text>
               </TouchableOpacity>
             </View>
           ))}

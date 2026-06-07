@@ -196,10 +196,12 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
     }
   };
 
-  // Dynamic accent color for purple elements
-  const accentPurple = isNewTheme ? colors.primary : '#2D5016';
-  const accentPurpleLight = isNewTheme ? colors.primaryLight : '#f5f3ff';
-  const accentPurpleBorder = isNewTheme ? colors.primary : '#ddd6fe';
+  // Editorial light mode: Carolina blue is the discreet primary accent.
+  const accentPurple = isNewTheme ? colors.primary : '#2E6A95';
+  const accentPurpleLight = isNewTheme ? colors.primaryLight : 'rgba(75, 156, 211, 0.10)';
+  const accentPurpleBorder = isNewTheme ? colors.primary : 'rgba(75, 156, 211, 0.30)';
+  // Link/accent color for light mode (replaces the old sky-blue #0ea5e9).
+  const linkColor = isNewTheme ? colors.accentGreen : '#2E6A95';
 
   // Show user profile screen
   if (showUserProfile && selectedUserId) {
@@ -230,7 +232,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
 
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Text style={[styles.backText, { color: isNewTheme ? colors.accentGreen : '#0ea5e9' }]}>← Back</Text>
+          <Text style={[styles.backText, { color: linkColor, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>← Back</Text>
         </TouchableOpacity>
         <Text style={[styles.title, { color: isNewTheme ? colors.accentGreen : colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold' }]}>Applications</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{pendingApps.length} pending</Text>
@@ -253,7 +255,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
                 <>
                   <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Pending ({pendingApps.length})</Text>
                   {pendingApps.map((app) => (
-                    <View key={app.id} style={[styles.appCard, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }]}>
+                    <View key={app.id} style={[styles.appCard, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }]}>
                       <TouchableOpacity
                         style={styles.appHeader}
                         onPress={() => app.applicant_id && handleViewProfile(app.applicant_id)}
@@ -261,7 +263,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
                         {app.applicant?.profile_picture ? (
                           <Image source={{ uri: app.applicant.profile_picture }} style={styles.avatarImage} />
                         ) : (
-                          <View style={[styles.avatar, { backgroundColor: isNewTheme ? colors.accentGreen : '#0ea5e9' }]}>
+                          <View style={[styles.avatar, { backgroundColor: isNewTheme ? colors.accentGreen : '#4B9CD3' }]}>
                             <Text style={[styles.avatarText, { color: isNewTheme ? colors.background : '#fff' }]}>
                               {app.applicant?.name?.charAt(0).toUpperCase() || '👤'}
                             </Text>
@@ -273,7 +275,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
                             Applied {new Date(app.created_at).toLocaleDateString()}
                           </Text>
                           {app.status === 'interview_pending' && (
-                            <View style={[styles.interviewStatusBadge, { backgroundColor: isNewTheme ? colors.primaryLight : '#E4EDDE' }]}>
+                            <View style={[styles.interviewStatusBadge, { backgroundColor: isNewTheme ? colors.primaryLight : 'rgba(75, 156, 211, 0.10)' }]}>
                               <Text style={[styles.interviewStatusText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>⏳ Awaiting time proposals</Text>
                             </View>
                           )}
@@ -287,7 +289,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
                               <Text style={[styles.interviewStatusText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>✓ Interview scheduled</Text>
                             </View>
                           )}
-                          <Text style={[styles.viewProfileLink, { color: isNewTheme ? colors.accentGreen : '#0ea5e9', fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>View profile →</Text>
+                          <Text style={[styles.viewProfileLink, { color: linkColor, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>View profile →</Text>
                         </View>
                       </TouchableOpacity>
 
@@ -295,8 +297,8 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
                         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
                           <Text style={{ fontSize: 13, color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', marginRight: 6, alignSelf: 'center' }}>Targeting:</Text>
                           {app.targeted_roles.map((role: string) => (
-                            <View key={role} style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, backgroundColor: isNewTheme ? colors.surfaceAlt : '#E4EDDE' }}>
-                              <Text style={{ fontSize: 12, fontWeight: '600', color: isNewTheme ? colors.accentGreen : '#2D5016', fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }}>{role}</Text>
+                            <View key={role} style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, backgroundColor: isNewTheme ? colors.surfaceAlt : 'rgba(75, 156, 211, 0.10)' }}>
+                              <Text style={{ fontSize: 12, fontWeight: '600', color: linkColor, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }}>{role}</Text>
                             </View>
                           ))}
                         </View>
@@ -317,7 +319,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
                           style={[styles.resumeAttachment, { backgroundColor: accentPurpleLight, borderColor: accentPurpleBorder }]}
                           onPress={() => openResume(app.resume_url)}
                         >
-                          <View style={[styles.resumeIconContainer, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#E4EDDE' }]}>
+                          <View style={[styles.resumeIconContainer, { backgroundColor: isNewTheme ? colors.surfaceAlt : 'rgba(75, 156, 211, 0.10)' }]}>
                             <Ionicons name="document-text" size={20} color={accentPurple} />
                           </View>
                           <View style={styles.resumeInfo}>
@@ -384,7 +386,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
                 <>
                   <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Reviewed ({reviewedApps.length})</Text>
                   {reviewedApps.map((app) => (
-                    <View key={app.id} style={[styles.appCard, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }]}>
+                    <View key={app.id} style={[styles.appCard, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }]}>
                       <TouchableOpacity
                         style={styles.appHeader}
                         onPress={() => app.applicant_id && handleViewProfile(app.applicant_id)}
@@ -411,21 +413,21 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
                               {app.status === 'accepted' ? '✓ Accepted' : '✕ Declined'}
                             </Text>
                           </View>
-                          <Text style={[styles.viewProfileLink, { color: isNewTheme ? colors.accentGreen : '#0ea5e9', fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>View profile →</Text>
+                          <Text style={[styles.viewProfileLink, { color: linkColor, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>View profile →</Text>
                         </View>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={[styles.expandButton, { borderTopColor: colors.border }]}
                         onPress={() => setExpandedReviewedId(expandedReviewedId === app.id ? null : app.id)}
                       >
-                        <Text style={[styles.expandIcon, { color: isNewTheme ? colors.accentGreen : '#0ea5e9', fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
+                        <Text style={[styles.expandIcon, { color: linkColor, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
                           {expandedReviewedId === app.id ? '▲ Hide answers' : '▼ Show answers'}
                         </Text>
                       </TouchableOpacity>
 
                       {expandedReviewedId === app.id && (
                         <View style={styles.answersSection}>
-                          <Text style={[styles.viewAnswersLabel, { color: isNewTheme ? colors.accentGreen : '#0ea5e9', borderTopColor: colors.border, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Application Answers</Text>
+                          <Text style={[styles.viewAnswersLabel, { color: linkColor, borderTopColor: colors.border, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Application Answers</Text>
                           {app.answers.map((answer: any, index: number) => (
                             <View key={index} style={styles.answerBlock}>
                               <Text style={[styles.answerQuestion, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{answer.question}</Text>
@@ -438,7 +440,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
                               style={[styles.resumeAttachment, { backgroundColor: accentPurpleLight, borderColor: accentPurpleBorder }]}
                               onPress={() => openResume(app.resume_url)}
                             >
-                              <View style={[styles.resumeIconContainer, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#E4EDDE' }]}>
+                              <View style={[styles.resumeIconContainer, { backgroundColor: isNewTheme ? colors.surfaceAlt : 'rgba(75, 156, 211, 0.10)' }]}>
                                 <Ionicons name="document-text" size={20} color={accentPurple} />
                               </View>
                               <View style={styles.resumeInfo}>

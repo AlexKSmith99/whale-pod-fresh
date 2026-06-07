@@ -51,7 +51,8 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
   const colors = theme.colors;
   const themedStyles = getThemedStyles(colors, isNewTheme);
 
-  const primaryColor = isNewTheme ? colors.accentGreen : '#2D5016';
+  // Editorial light mode: Carolina blue is the discreet primary accent.
+  const primaryColor = isNewTheme ? colors.accentGreen : '#4B9CD3';
 
   const [title, setTitle] = useState(pursuit.title || '');
   const [description, setDescription] = useState(pursuit.description || '');
@@ -264,7 +265,7 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
           <Ionicons name="close" size={28} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Edit Pod</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold' }]}>Edit Pod</Text>
         <View style={{ width: 28 }} />
       </View>
 
@@ -313,7 +314,7 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
               </View>
             ) : (
               <TouchableOpacity
-                style={[styles.addPictureButton, { backgroundColor: isNewTheme ? colors.secondaryLight : '#f5f3ff', borderColor: primaryColor }]}
+                style={[styles.addPictureButton, { backgroundColor: isNewTheme ? colors.secondaryLight : 'rgba(75, 156, 211, 0.10)', borderColor: primaryColor }]}
                 onPress={pickImage}
                 disabled={uploadingImage}
               >
@@ -421,7 +422,7 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
 
         {/* Save Button */}
         <TouchableOpacity
-          style={[styles.saveButton, { backgroundColor: primaryColor }, saving && styles.saveButtonDisabled]}
+          style={[styles.saveButton, { backgroundColor: isNewTheme ? colors.accentGreen : '#1B1B18' }, saving && styles.saveButtonDisabled]}
           onPress={handleSave}
           disabled={saving}
         >

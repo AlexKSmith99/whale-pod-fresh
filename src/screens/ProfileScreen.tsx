@@ -8,7 +8,7 @@ import { privacyService } from '../services/privacyService';
 import EditProfileScreen from './EditProfileScreen';
 import PrivacyPreferencesScreen from './PrivacyPreferencesScreen';
 import PodMemberCollage from '../components/PodMemberCollage';
-import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+import { colors as legacyColors, typography, spacing, borderRadius, shadows, editorial } from '../theme/designSystem';
 import PieButton from '../components/ui/PieButton';
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
@@ -202,13 +202,13 @@ const handleRejectConnection = async (connectionId: string) => {
       {isNewTheme && <GrainTexture opacity={0.06} />}
 
       {/* Modern Header - matches FeedScreen */}
-      <View style={[styles.header, themedStyles.surface]}>
+      <View style={[styles.header, themedStyles.surface, !isNewTheme && { backgroundColor: editorial.bg, borderWidth: 0, shadowOpacity: 0, elevation: 0 }]}>
         <View style={styles.headerTop}>
           <View>
-            <Text style={[styles.headerTitle, themedStyles.headerTitle]}>Profile</Text>
+            <Text style={[styles.headerTitle, themedStyles.headerTitle, !isNewTheme && { color: editorial.ink, fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.5 }]}>Profile</Text>
           </View>
           <TouchableOpacity onPress={() => setShowMenu(true)} style={styles.menuButton}>
-            <Ionicons name="settings-outline" size={24} color={themedStyles.accentIconColor} />
+            <Ionicons name="settings-outline" size={24} color={isNewTheme ? themedStyles.accentIconColor : editorial.ink} />
           </TouchableOpacity>
         </View>
       </View>
@@ -229,7 +229,7 @@ const handleRejectConnection = async (connectionId: string) => {
         >
           <View style={[styles.menuContainer, themedStyles.surface]}>
             <View style={[styles.menuHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.menuTitle, themedStyles.cardTitle, isNewTheme && { color: colors.accentGreen }]}>Settings</Text>
+              <Text style={[styles.menuTitle, themedStyles.cardTitle, isNewTheme ? { color: colors.accentGreen } : { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3, color: editorial.ink }]}>Settings</Text>
               <TouchableOpacity onPress={() => setShowMenu(false)}>
                 <Ionicons name="close" size={24} color={themedStyles.accentIconColor} />
               </TouchableOpacity>
@@ -281,7 +281,7 @@ const handleRejectConnection = async (connectionId: string) => {
               <Switch
                 value={isNewTheme}
                 onValueChange={toggleTheme}
-                trackColor={{ false: '#d1d5db', true: isNewTheme ? colors.accentGreen : colors.secondary }}
+                trackColor={{ false: '#d1d5db', true: isNewTheme ? colors.accentGreen : editorial.carolina }}
                 thumbColor={isNewTheme ? colors.white : '#f4f3f4'}
               />
             </View>
@@ -330,7 +330,7 @@ const handleRejectConnection = async (connectionId: string) => {
               {pics.length > 1 && (
                 <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 8 }}>
                   {pics.map((_: string, i: number) => (
-                    <View key={i} style={{ width: activePhotoIdx === i ? 18 : 6, height: 6, borderRadius: 3, backgroundColor: activePhotoIdx === i ? '#2D5016' : '#D6D3CC' }} />
+                    <View key={i} style={{ width: activePhotoIdx === i ? 18 : 6, height: 6, borderRadius: 3, backgroundColor: activePhotoIdx === i ? (isNewTheme ? '#2D5016' : editorial.carolina) : (isNewTheme ? '#D6D3CC' : editorial.hairline) }} />
                   ))}
                 </View>
               )}
@@ -339,17 +339,17 @@ const handleRejectConnection = async (connectionId: string) => {
         })()}
 
         <View style={{ alignItems: 'center', marginBottom: 16 }}>
-          <Text style={[styles.name, themedStyles.textPrimary, { fontSize: typography.fontSize.xl, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>{profile?.name || 'No name set'}</Text>
+          <Text style={[styles.name, themedStyles.textPrimary, { fontSize: typography.fontSize.xl, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold', letterSpacing: isNewTheme ? 0 : -0.5 }]}>{profile?.name || 'No name set'}</Text>
         </View>
 {/* Modern Pill Tabs */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={[styles.tabsScrollView, themedStyles.surface]}
+          style={[styles.tabsScrollView, themedStyles.surface, !isNewTheme && { backgroundColor: 'transparent' }]}
           contentContainerStyle={styles.tabsContainer}
         >
           <TouchableOpacity
-            style={[styles.tabPill, themedStyles.surfaceAlt, activeTab === 'info' && [styles.tabPillActive, { backgroundColor: isNewTheme ? colors.accentGreen : colors.primary, borderColor: isNewTheme ? colors.accentGreen : colors.primary }]]}
+            style={[styles.tabPill, themedStyles.surfaceAlt, !isNewTheme && { backgroundColor: 'transparent', borderWidth: 1, borderColor: editorial.hairline }, activeTab === 'info' && [styles.tabPillActive, { backgroundColor: isNewTheme ? colors.accentGreen : colors.primary, borderColor: isNewTheme ? colors.accentGreen : colors.primary }]]}
             onPress={() => setActiveTab('info')}
           >
             <Ionicons
@@ -362,7 +362,7 @@ const handleRejectConnection = async (connectionId: string) => {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.tabPill, themedStyles.surfaceAlt, activeTab === 'connections' && [styles.tabPillActive, { backgroundColor: isNewTheme ? colors.accentGreen : colors.primary, borderColor: isNewTheme ? colors.accentGreen : colors.primary }]]}
+            style={[styles.tabPill, themedStyles.surfaceAlt, !isNewTheme && { backgroundColor: 'transparent', borderWidth: 1, borderColor: editorial.hairline }, activeTab === 'connections' && [styles.tabPillActive, { backgroundColor: isNewTheme ? colors.accentGreen : colors.primary, borderColor: isNewTheme ? colors.accentGreen : colors.primary }]]}
             onPress={() => setActiveTab('connections')}
           >
             <Ionicons
@@ -375,7 +375,7 @@ const handleRejectConnection = async (connectionId: string) => {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.tabPill, themedStyles.surfaceAlt, activeTab === 'pods' && [styles.tabPillActive, { backgroundColor: isNewTheme ? colors.accentGreen : colors.primary, borderColor: isNewTheme ? colors.accentGreen : colors.primary }]]}
+            style={[styles.tabPill, themedStyles.surfaceAlt, !isNewTheme && { backgroundColor: 'transparent', borderWidth: 1, borderColor: editorial.hairline }, activeTab === 'pods' && [styles.tabPillActive, { backgroundColor: isNewTheme ? colors.accentGreen : colors.primary, borderColor: isNewTheme ? colors.accentGreen : colors.primary }]]}
             onPress={() => setActiveTab('pods')}
           >
             <Ionicons
@@ -410,7 +410,7 @@ const handleRejectConnection = async (connectionId: string) => {
 
         {(profile?.hometown || profile?.college || profile?.work) && (
           <View style={[styles.section, themedStyles.card]}>
-            <Text style={[styles.sectionTitle, themedStyles.cardTitle, isNewTheme && { color: colors.accentGreen }]}>Location</Text>
+            <Text style={[styles.sectionTitle, themedStyles.cardTitle, isNewTheme ? { color: colors.accentGreen } : { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3, color: editorial.ink }]}>Location</Text>
             {profile?.hometown && (
               <View style={styles.infoRow}>
                 <Text style={[styles.infoLabel, themedStyles.labelText]}>Hometown:</Text>
@@ -434,14 +434,14 @@ const handleRejectConnection = async (connectionId: string) => {
 
         {profile?.bio && (
           <View style={[styles.section, themedStyles.card]}>
-            <Text style={[styles.sectionTitle, themedStyles.cardTitle, isNewTheme && { color: colors.accentGreen }]}>Bio</Text>
+            <Text style={[styles.sectionTitle, themedStyles.cardTitle, isNewTheme ? { color: colors.accentGreen } : { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3, color: editorial.ink }]}>Bio</Text>
             <Text style={[styles.bioText, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{profile.bio}</Text>
           </View>
         )}
 
         {(profile?.instagram || profile?.linkedin || profile?.facebook || profile?.github || profile?.portfolio_website) && (
           <View style={[styles.section, themedStyles.card]}>
-            <Text style={[styles.sectionTitle, themedStyles.cardTitle, isNewTheme && { color: colors.accentGreen }]}>Social Links</Text>
+            <Text style={[styles.sectionTitle, themedStyles.cardTitle, isNewTheme ? { color: colors.accentGreen } : { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3, color: editorial.ink }]}>Social Links</Text>
             {profile?.instagram && (
               <TouchableOpacity style={[styles.linkRow, { borderBottomColor: colors.border }]} onPress={() => handleOpenLink(profile.instagram)}>
                 <Ionicons name="logo-instagram" size={20} color={themedStyles.accentIconColor} style={styles.linkIconNew} />
@@ -488,7 +488,7 @@ const handleRejectConnection = async (connectionId: string) => {
 
         {/* Legal — Terms / Privacy / Support */}
         <View style={[styles.section, themedStyles.card, { marginTop: 12 }]}>
-          <Text style={[styles.sectionTitle, themedStyles.cardTitle, isNewTheme && { color: colors.accentGreen }]}>Legal</Text>
+          <Text style={[styles.sectionTitle, themedStyles.cardTitle, isNewTheme ? { color: colors.accentGreen } : { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3, color: editorial.ink }]}>Legal</Text>
           <TouchableOpacity
             style={[styles.legalRow, { borderBottomColor: colors.border }]}
             onPress={() => navigation?.navigate?.('Legal', { doc: 'terms' })}
@@ -541,8 +541,8 @@ const handleRejectConnection = async (connectionId: string) => {
             keyboardShouldPersistTaps="handled"
           >
             {/* Search Bar */}
-            <View style={[styles.connectionSearchContainer, themedStyles.searchContainer]}>
-              <Ionicons name="search" size={18} color={themedStyles.accentIconColor} style={styles.connectionSearchIcon} />
+            <View style={[styles.connectionSearchContainer, themedStyles.searchContainer, !isNewTheme && { backgroundColor: 'transparent', borderRadius: 0, borderBottomWidth: 1, borderBottomColor: editorial.hairline }]}>
+              <Ionicons name="search" size={18} color={isNewTheme ? themedStyles.accentIconColor : editorial.muted} style={styles.connectionSearchIcon} />
               <TextInput
                 style={[styles.connectionSearchInput, themedStyles.inputText, { fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
                 placeholder="Search connections..."
@@ -561,7 +561,7 @@ const handleRejectConnection = async (connectionId: string) => {
 
             {pendingRequests.length > 0 && !connectionSearchQuery && (
               <View style={[styles.section, themedStyles.card]}>
-                <Text style={[styles.sectionTitle, themedStyles.cardTitle, isNewTheme && { color: colors.accentGreen }]}>Pending Requests ({pendingRequests.length})</Text>
+                <Text style={[styles.sectionTitle, themedStyles.cardTitle, isNewTheme ? { color: colors.accentGreen } : { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3, color: editorial.ink }]}>Pending Requests ({pendingRequests.length})</Text>
                 {pendingRequests.map((request: any) => (
                   <View key={request.id} style={[styles.connectionCard, { borderBottomColor: colors.border }]}>
                     {request.profile?.profile_picture ? (
@@ -578,7 +578,7 @@ const handleRejectConnection = async (connectionId: string) => {
                     </View>
                     <View style={styles.requestActions}>
                       <TouchableOpacity
-                        style={[styles.acceptButton, { backgroundColor: colors.success }]}
+                        style={[styles.acceptButton, { backgroundColor: isNewTheme ? colors.success : editorial.ink }]}
                         onPress={() => handleAcceptConnection(request.id)}
                       >
                         <Text style={styles.acceptButtonText}>✓</Text>
@@ -597,8 +597,8 @@ const handleRejectConnection = async (connectionId: string) => {
 
             {connections.length === 0 && pendingRequests.length === 0 ? (
               <View style={styles.emptyReviews}>
-                <Ionicons name="people-outline" size={64} color={themedStyles.accentIconColor} style={{ marginBottom: 16 }} />
-                <Text style={[styles.emptyReviewsText, themedStyles.emptyText]}>No connections yet</Text>
+                <Ionicons name="people-outline" size={64} color={isNewTheme ? themedStyles.accentIconColor : editorial.muted} style={{ marginBottom: 16 }} />
+                <Text style={[styles.emptyReviewsText, themedStyles.emptyText, !isNewTheme && { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3 }]}>No connections yet</Text>
                 <Text style={[styles.emptyReviewsHint, themedStyles.emptySubtext]}>
                   Connect with teammates to build your network
                 </Text>
@@ -643,7 +643,7 @@ const handleRejectConnection = async (connectionId: string) => {
                   return nameParts.some((part: string) => part.startsWith(query));
                 }).length === 0 && (
                   <View style={styles.emptyReviews}>
-                    <Text style={[styles.emptyReviewsText, themedStyles.emptyText]}>No matches found</Text>
+                    <Text style={[styles.emptyReviewsText, themedStyles.emptyText, !isNewTheme && { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3 }]}>No matches found</Text>
                     <Text style={[styles.emptyReviewsHint, themedStyles.emptySubtext]}>Try a different search term</Text>
                   </View>
                 )}
@@ -663,8 +663,8 @@ const handleRejectConnection = async (connectionId: string) => {
               </View>
             ) : userPods.length === 0 ? (
               <View style={styles.emptyReviews}>
-                <Ionicons name="rocket-outline" size={64} color={themedStyles.accentIconColor} style={{ marginBottom: 16 }} />
-                <Text style={[styles.emptyReviewsText, themedStyles.emptyText]}>No pods yet</Text>
+                <Ionicons name="rocket-outline" size={64} color={isNewTheme ? themedStyles.accentIconColor : editorial.muted} style={{ marginBottom: 16 }} />
+                <Text style={[styles.emptyReviewsText, themedStyles.emptyText, !isNewTheme && { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3 }]}>No pods yet</Text>
                 <Text style={[styles.emptyReviewsHint, themedStyles.emptySubtext]}>
                   Join or create a pod to get started
                 </Text>
@@ -674,7 +674,7 @@ const handleRejectConnection = async (connectionId: string) => {
                 {/* Current Pods */}
                 {userPods.filter(p => !p.status || ['awaiting_kickoff', 'collecting_proposals', 'active'].includes(p.status) || ['active', 'accepted'].includes(p.membership_status)).length > 0 && (
                   <View style={[styles.section, themedStyles.card]}>
-                    <Text style={[styles.sectionTitle, themedStyles.cardTitle, isNewTheme && { color: colors.accentGreen }]}>Current Pods</Text>
+                    <Text style={[styles.sectionTitle, themedStyles.cardTitle, isNewTheme ? { color: colors.accentGreen } : { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3, color: editorial.ink }]}>Current Pods</Text>
                     {userPods
                       .filter(p => !p.status || ['awaiting_kickoff', 'collecting_proposals', 'active'].includes(p.status) || ['active', 'accepted'].includes(p.membership_status))
                       .map((pod) => (
@@ -689,12 +689,12 @@ const handleRejectConnection = async (connectionId: string) => {
                             <PodMemberCollage members={pod.members || []} size={50} borderRadius={10} />
                           )}
                           <View style={styles.podCardInfo}>
-                            <Text style={[styles.podCardTitle, themedStyles.listItemTitle]}>{pod.title}</Text>
+                            <Text style={[styles.podCardTitle, themedStyles.listItemTitle, !isNewTheme && { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3 }]}>{pod.title}</Text>
                             <View style={styles.podCardMeta}>
                               {pod.isCreator && (
-                                <View style={[styles.podCreatorBadge, themedStyles.tag]}>
-                                  <Ionicons name="star" size={10} color={themedStyles.accentIconColor} />
-                                  <Text style={[styles.podCreatorBadgeText, themedStyles.tagText]}>Creator</Text>
+                                <View style={[styles.podCreatorBadge, themedStyles.tag, !isNewTheme && { backgroundColor: editorial.goldTint, borderWidth: 1, borderColor: editorial.goldTint }]}>
+                                  <Ionicons name="star" size={10} color={isNewTheme ? themedStyles.accentIconColor : editorial.gold} />
+                                  <Text style={[styles.podCreatorBadgeText, themedStyles.tagText, !isNewTheme && { color: editorial.gold }]}>Creator</Text>
                                 </View>
                               )}
                               <Text style={[styles.podCardMembers, themedStyles.listItemSubtitle]}>
@@ -711,7 +711,7 @@ const handleRejectConnection = async (connectionId: string) => {
                 {/* Past Pods */}
                 {userPods.filter(p => ['completed', 'archived'].includes(p.status) || ['left', 'removed'].includes(p.membership_status)).length > 0 && (
                   <View style={[styles.section, themedStyles.card]}>
-                    <Text style={[styles.sectionTitle, themedStyles.cardTitle, isNewTheme && { color: colors.accentGreen }]}>Past Pods</Text>
+                    <Text style={[styles.sectionTitle, themedStyles.cardTitle, isNewTheme ? { color: colors.accentGreen } : { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3, color: editorial.ink }]}>Past Pods</Text>
                     {userPods
                       .filter(p => ['completed', 'archived'].includes(p.status) || ['left', 'removed'].includes(p.membership_status))
                       .map((pod) => (

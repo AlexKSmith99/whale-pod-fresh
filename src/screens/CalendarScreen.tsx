@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
-import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+import { colors as legacyColors, typography, spacing, borderRadius, shadows, editorial } from '../theme/designSystem';
 
 interface Props {
   onCreateMeeting?: () => void;
@@ -168,32 +168,51 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
 
   const datesList = generateDatesList();
 
+  // Editorial light-mode accent (Carolina blue is the discreet primary accent).
+  const accentColor = isNewTheme ? colors.accentGreen : editorial.carolina;
+
   // Dynamic styles based on theme
   const dynamicStyles = {
     container: themedStyles.container,
     header: {
       ...themedStyles.header,
+      // Light: flat cream header — no shadow, no bottom border.
+      backgroundColor: isNewTheme ? colors.surface : editorial.bg,
       flexDirection: 'row' as const,
       justifyContent: 'space-between' as const,
       alignItems: 'center' as const,
     },
-    headerTitle: themedStyles.headerTitle,
+    headerTitle: {
+      ...themedStyles.headerTitle,
+      // Light: Playfair display, charcoal ink, tight tracking.
+      ...(isNewTheme ? {} : {
+        fontSize: 34,
+        color: editorial.ink,
+        fontFamily: 'PlayfairDisplay_700Bold',
+        letterSpacing: -0.8,
+      }),
+    },
     dateSection: {
       borderBottomWidth: 1,
-      borderBottomColor: colors.border,
+      borderBottomColor: isNewTheme ? colors.border : editorial.hairline,
     },
     dayName: {
       ...themedStyles.textAccent,
-      fontSize: typography.fontSize.xs,
+      fontSize: isNewTheme ? typography.fontSize.xs : 10,
       fontWeight: typography.fontWeight.semibold as '600',
-      color: colors.textSecondary,
+      color: isNewTheme ? colors.textSecondary : editorial.muted,
       marginBottom: spacing.xs,
+      ...(isNewTheme ? {} : {
+        fontFamily: 'InterTight_600SemiBold',
+        textTransform: 'uppercase' as const,
+        letterSpacing: 0.6,
+      }),
     },
     dayNumber: {
       fontSize: typography.fontSize['2xl'],
       fontWeight: typography.fontWeight.medium as '500',
-      color: colors.textPrimary,
-      fontFamily: themedStyles.bodyText.fontFamily,
+      color: isNewTheme ? colors.textPrimary : editorial.ink,
+      fontFamily: isNewTheme ? themedStyles.bodyText.fontFamily : 'PlayfairDisplay_700Bold',
     },
     meetingItem: {
       ...themedStyles.card,
@@ -201,21 +220,36 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
       overflow: 'hidden' as const,
       marginBottom: spacing.sm,
       padding: 0,
+      // Light: white surface, hairline border, soft editorial shadow.
+      backgroundColor: isNewTheme ? colors.surface : editorial.surface,
+      borderRadius: isNewTheme ? borderRadius.lg : 14,
+      borderWidth: 1,
+      borderColor: isNewTheme ? colors.border : editorial.hairline,
       shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.1,
-      shadowRadius: 10,
-      elevation: 4,
+      shadowOffset: { width: 0, height: isNewTheme ? 4 : 6 },
+      shadowOpacity: isNewTheme ? 0.1 : 0.06,
+      shadowRadius: isNewTheme ? 10 : 14,
+      elevation: isNewTheme ? 4 : 3,
     },
     meetingTitle: {
       ...themedStyles.cardTitle,
       flex: 1,
-      fontSize: typography.fontSize.base,
+      fontSize: isNewTheme ? typography.fontSize.base : 17,
       marginRight: spacing.sm,
+      ...(isNewTheme ? {} : {
+        color: editorial.ink,
+        fontFamily: 'PlayfairDisplay_700Bold',
+        letterSpacing: -0.3,
+      }),
     },
     meetingTimeText: {
       ...themedStyles.cardSmallText,
       fontWeight: typography.fontWeight.medium as '500',
+      ...(isNewTheme ? {} : {
+        color: editorial.muted,
+        fontFamily: 'InterTight_600SemiBold',
+        letterSpacing: 0.2,
+      }),
     },
   };
 
@@ -230,8 +264,13 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
         <TouchableOpacity
           style={styles.createButton}
           onPress={onCreateMeeting}
+          activeOpacity={isNewTheme ? 0.7 : 0.6}
         >
-          <Ionicons name="add-circle" size={32} color={themedStyles.accentIconColor} />
+          <Ionicons
+            name={isNewTheme ? 'add-circle' : 'add'}
+            size={isNewTheme ? 32 : 26}
+            color={isNewTheme ? themedStyles.accentIconColor : editorial.ink}
+          />
         </TouchableOpacity>
       </View>
 
@@ -288,7 +327,10 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
                           hour: 'numeric',
                           minute: '2-digit'
                         });
-                        const accentColor = meeting.meeting_type === 'in_person' ? '#10b981' : meeting.meeting_type === 'hybrid' ? '#f59e0b' : (isNewTheme ? colors.accentGreen : legacyColors.primary);
+                        const accentColor = isNewTheme
+                          ? (meeting.meeting_type === 'in_person' ? '#10b981' : meeting.meeting_type === 'hybrid' ? '#f59e0b' : colors.accentGreen)
+                          // Light: discreet Carolina stripe for all meeting types (editorial restraint).
+                          : editorial.carolina;
 
                         return (
                           <TouchableOpacity
@@ -297,7 +339,7 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
                             onPress={() => onOpenMeeting && onOpenMeeting(meeting)}
                             activeOpacity={0.7}
                           >
-                            <View style={[styles.meetingColorBar, { backgroundColor: accentColor }]} />
+                            <View style={[styles.meetingColorBar, { width: isNewTheme ? 4 : 3, backgroundColor: accentColor }]} />
                             <View style={styles.meetingContent}>
                               <View style={styles.meetingTopRow}>
                                 <Ionicons
@@ -318,8 +360,19 @@ export default function CalendarScreen({ onCreateMeeting, onOpenMeeting }: Props
                                   />
                                 )}
                                 {meeting.is_kickoff && (
-                                  <View style={[styles.kickoffBadge, { backgroundColor: colors.warning }]}>
-                                    <Text style={[styles.kickoffBadgeText, { color: isNewTheme ? colors.background : legacyColors.white }]}>KICKOFF</Text>
+                                  <View style={[
+                                    styles.kickoffBadge,
+                                    isNewTheme
+                                      ? { backgroundColor: colors.warning }
+                                      // Light: gold-tinted pill, hairline-gold border, 10px uppercase gold text.
+                                      : { backgroundColor: editorial.goldTint, borderWidth: 1, borderColor: 'rgba(196, 155, 0, 0.30)' },
+                                  ]}>
+                                    <Text style={[
+                                      styles.kickoffBadgeText,
+                                      isNewTheme
+                                        ? { color: colors.background }
+                                        : { color: editorial.gold, fontFamily: 'InterTight_600SemiBold', letterSpacing: 0.6, fontSize: 10 },
+                                    ]}>KICKOFF</Text>
                                   </View>
                                 )}
                               </View>

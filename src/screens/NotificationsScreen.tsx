@@ -7,6 +7,7 @@ import { supabase } from '../config/supabase';
 import { useTheme } from '../theme/ThemeContext';
 import GrainTexture from '../components/ui/GrainTexture';
 import { getThemedStyles } from '../theme/themedStyles';
+import { editorial } from '../theme/designSystem';
 
 const { height: SCREEN_H } = Dimensions.get('window');
 // Each notification card takes up 1/7 of available space (below header + filter)
@@ -285,6 +286,27 @@ export default function NotificationsScreen({ navigation }: any) {
     }
   };
 
+  // A small, expressive emoji per notification type — adds a little life
+  // alongside the category icon without overwhelming the row.
+  const getNotificationEmoji = (type: string) => {
+    switch (type) {
+      case 'message': case 'new_message': case 'pod_chat': case 'pod_chat_message': return '💬';
+      case 'connection_request': case 'connection_accepted': return '🤝';
+      case 'application_received': return '📨';
+      case 'application_accepted': return '🎉';
+      case 'application_rejected': return '🙏';
+      case 'min_team_size_reached': return '🐳';
+      case 'team_board_update': return '📋';
+      case 'kickoff_activated': case 'time_proposal': case 'all_proposals_submitted': return '⏰';
+      case 'kickoff_scheduled': case 'kickoff_scheduled_creator': case 'kickoff_scheduled_team': return '🚀';
+      case 'meeting': case 'new_meeting': case 'meeting_invitation': return '📅';
+      case 'interview_scheduling_requested': case 'interview_times_submitted': case 'interview_scheduled': return '🎤';
+      case 'member_removed': case 'member_left': return '👋';
+      case 'role_edit_requested': case 'role_edit_approved': return '✏️';
+      default: return '🔔';
+    }
+  };
+
   const formatTimestamp = (timestamp: string) => {
     const diff = Date.now() - new Date(timestamp).getTime();
     const mins = Math.floor(diff / 60000);
@@ -312,14 +334,14 @@ export default function NotificationsScreen({ navigation }: any) {
           <Ionicons
             name={getNotificationIcon(item.type) as any}
             size={20}
-            color={isUnread ? colors.accentGreen : colors.textTertiary}
+            color={isUnread ? colors.accentGreen : (isNewTheme ? 'rgba(200, 255, 107, 0.55)' : colors.textTertiary)}
           />
         </View>
 
         {/* Content */}
         <View style={styles.content}>
           <Text style={[styles.title, isUnread && styles.titleUnread]} numberOfLines={1}>
-            {item.title}
+            {item.title} {getNotificationEmoji(item.type)}
           </Text>
           <Text style={styles.body} numberOfLines={2}>
             {item.body}
@@ -345,6 +367,8 @@ export default function NotificationsScreen({ navigation }: any) {
     );
   }
 
+  const unreadCount = filteredNotifications.filter((n: any) => !n.read).length;
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} />
@@ -353,6 +377,11 @@ export default function NotificationsScreen({ navigation }: any) {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Notifications</Text>
+        {unreadCount > 0 && (
+          <View style={styles.unreadPill}>
+            <Text style={styles.unreadPillText}>{unreadCount} new ✨</Text>
+          </View>
+        )}
       </View>
 
       {/* Pod filter dropdown */}
@@ -414,8 +443,8 @@ export default function NotificationsScreen({ navigation }: any) {
       {/* Notification list */}
       {filteredNotifications.length === 0 ? (
         <View style={styles.empty}>
-          <Ionicons name="notifications-off-outline" size={48} color={colors.textTertiary} />
-          <Text style={[styles.body, { marginTop: 12 }]}>No notifications</Text>
+          <Ionicons name="notifications-outline" size={48} color={colors.accentGreen} />
+          <Text style={[styles.body, { marginTop: 12 }]}>You're all caught up 🌱</Text>
         </View>
       ) : (
         <FlatList
@@ -423,7 +452,7 @@ export default function NotificationsScreen({ navigation }: any) {
           renderItem={renderNotification}
           keyExtractor={item => item.id}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#2D5016" />
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={isNewTheme ? colors.accentGreen : editorial.carolina} />
           }
           contentContainerStyle={styles.list}
         />
@@ -433,8 +462,8 @@ export default function NotificationsScreen({ navigation }: any) {
 }
 
 function makeStyles(colors: any, isNewTheme: boolean) {
-  const cardUnreadBg = isNewTheme ? 'rgba(200, 255, 107, 0.06)' : '#F2F7F0';
-  const dropdownItemActiveBg = isNewTheme ? 'rgba(200, 255, 107, 0.10)' : '#F2F7F0';
+  const cardUnreadBg = isNewTheme ? 'rgba(200, 255, 107, 0.06)' : editorial.carolinaTint;
+  const dropdownItemActiveBg = isNewTheme ? 'rgba(200, 255, 107, 0.10)' : editorial.carolinaTint;
   const subtleBg = isNewTheme ? 'rgba(255,255,255,0.06)' : '#F2F0EB';
 
   return StyleSheet.create({
@@ -446,12 +475,27 @@ function makeStyles(colors: any, isNewTheme: boolean) {
     paddingTop: 60,
     paddingBottom: 12,
     paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
     color: colors.textPrimary,
     fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold',
+  },
+  unreadPill: {
+    backgroundColor: colors.accentGreen,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  unreadPillText: {
+    color: isNewTheme ? '#000000' : '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+    fontFamily: isNewTheme ? 'Sora_700Bold' : 'InterTight_600SemiBold',
   },
 
   // Filter
@@ -589,7 +633,7 @@ function makeStyles(colors: any, isNewTheme: boolean) {
     marginRight: 12,
   },
   iconCircleUnread: {
-    backgroundColor: isNewTheme ? 'rgba(200, 255, 107, 0.18)' : '#E4EDDE',
+    backgroundColor: isNewTheme ? 'rgba(200, 255, 107, 0.18)' : 'rgba(75, 156, 211, 0.18)',
   },
 
   // Content

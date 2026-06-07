@@ -1,5 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Image, Text, StyleSheet } from 'react-native';
+import { useTheme } from '../theme/ThemeContext';
+import { editorial } from '../theme/designSystem';
 
 interface Member {
   id?: string;
@@ -55,12 +57,18 @@ const OVERFLOW_LAYOUT: [number, number, number][] = [
 ];
 
 export default function PodMemberCollage({ members, size, borderRadius, style }: PodMemberCollageProps) {
+  const { theme, isNewTheme } = useTheme();
+  const colors = theme.colors;
+  // Background for the "holder" bubble behind the member avatars: dark theme tone
+  // in the new (dark) theme, warm hairline in the editorial light theme.
+  const holderBg = isNewTheme ? colors.surfaceAlt : editorial.hairline;
+
   const count = members.length;
   const radius = borderRadius ?? size / 2;
 
   if (count === 0) {
     return (
-      <View style={[styles.container, { width: size, height: size, borderRadius: radius, backgroundColor: '#f3f4f6' }, style]}>
+      <View style={[styles.container, { width: size, height: size, borderRadius: radius, backgroundColor: holderBg }, style]}>
         <Text style={[styles.initial, { fontSize: size * 0.4, color: '#9ca3af' }]}>?</Text>
       </View>
     );
@@ -92,7 +100,7 @@ export default function PodMemberCollage({ members, size, borderRadius, style }:
     : FLOAT_LAYOUTS[Math.min(count, 4)];
 
   return (
-    <View style={[styles.container, styles.pool, { width: size, height: size, borderRadius: radius }, style]}>
+    <View style={[styles.container, styles.pool, { width: size, height: size, borderRadius: radius, backgroundColor: holderBg }, style]}>
       {displayMembers.map((member, i) => {
         const [cx, cy, scale] = layout[i];
         const bubbleSize = size * scale;

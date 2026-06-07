@@ -7,7 +7,7 @@ import { meetingService } from '../services/meetingService';
 import { agoraService } from '../services/agoraService';
 import { notificationService } from '../services/notificationService';
 import { supabase } from '../config/supabase';
-import { colors as legacyColors, typography, spacing, borderRadius } from '../theme/designSystem';
+import { colors as legacyColors, typography, spacing, borderRadius, editorial } from '../theme/designSystem';
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
@@ -16,6 +16,33 @@ interface Props {
   onClose: () => void;
   onMeetingCreated?: () => void;
 }
+
+// Editorial light-mode label treatment — 10px uppercase muted section labels.
+const lightLabel = {
+  color: editorial.muted,
+  fontFamily: 'InterTight_600SemiBold' as const,
+  fontSize: 10,
+  textTransform: 'uppercase' as const,
+  letterSpacing: 0.6,
+};
+// Single-line underline input (transparent bg, hairline bottom rule, radius 0).
+const lightInput = {
+  backgroundColor: 'transparent' as const,
+  borderWidth: 0,
+  borderBottomWidth: 1,
+  borderColor: editorial.hairline,
+  borderBottomColor: editorial.hairline,
+  borderRadius: 0,
+  paddingHorizontal: 0,
+  color: editorial.ink,
+};
+// Textarea / picker surface (white card, hairline border, radius 14, no shadow).
+const lightSurfaceInput = {
+  backgroundColor: editorial.surface,
+  borderWidth: 1,
+  borderColor: editorial.hairline,
+  borderRadius: 14,
+};
 
 export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props) {
   const { user } = useAuth();
@@ -324,20 +351,31 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
       <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       {isNewTheme && <GrainTexture opacity={0.06} />}
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-          <Ionicons name="close" size={28} color={colors.textPrimary} />
+      <View style={[
+        styles.header,
+        isNewTheme
+          ? { backgroundColor: colors.surface, borderBottomColor: colors.border }
+          // Light: flat cream header, no bottom rule.
+          : { backgroundColor: editorial.bg, borderBottomWidth: 0 },
+      ]}>
+        <TouchableOpacity onPress={onClose} style={styles.closeButton} activeOpacity={isNewTheme ? 0.7 : 0.6}>
+          <Ionicons name="close" size={28} color={isNewTheme ? colors.textPrimary : editorial.ink} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>Create Meeting</Text>
+        <Text style={[
+          styles.headerTitle,
+          isNewTheme
+            ? { color: colors.textPrimary, fontFamily: 'Sora_600SemiBold' }
+            : { color: editorial.ink, fontFamily: 'PlayfairDisplay_700Bold', fontSize: 22, letterSpacing: -0.4 },
+        ]}>Create Meeting</Text>
         <View style={{ width: 28 }} />
       </View>
 
       <ScrollView style={styles.scrollView}>
         <View style={styles.form}>
           {/* Pod Selection - First field */}
-          <Text style={[styles.label, { marginTop: 0, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Pod *</Text>
+          <Text style={[styles.label, { marginTop: 0, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && lightLabel]}>Pod *</Text>
           <TouchableOpacity
-            style={[styles.input, styles.pickerButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            style={[styles.input, styles.pickerButton, { backgroundColor: colors.surface, borderColor: colors.border }, !isNewTheme && lightSurfaceInput]}
             onPress={() => setShowPursuitModal(true)}
           >
             <Text style={[selectedPursuit ? styles.pickerTextSelected : styles.pickerText, { color: selectedPursuit ? colors.textPrimary : colors.textTertiary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
@@ -347,9 +385,9 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
           </TouchableOpacity>
 
           {/* Title */}
-          <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Meeting Title *</Text>
+          <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && lightLabel]}>Meeting Title *</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && lightInput]}
             placeholder="e.g., Weekly Standup"
             placeholderTextColor={colors.textTertiary}
             value={title}
@@ -359,9 +397,9 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
           {/* Participants - shown after Pod is selected */}
           {selectedPursuit && (
             <>
-              <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Participants * ({selectedParticipants.length} selected)</Text>
+              <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && lightLabel]}>Participants * ({selectedParticipants.length} selected)</Text>
               <TouchableOpacity
-                style={[styles.input, styles.pickerButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                style={[styles.input, styles.pickerButton, { backgroundColor: colors.surface, borderColor: colors.border }, !isNewTheme && lightSurfaceInput]}
                 onPress={() => setShowParticipantsModal(true)}
               >
                 <View style={styles.selectedParticipantsPreview}>
@@ -404,9 +442,9 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
           )}
 
           {/* Description */}
-          <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Description (optional)</Text>
+          <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && lightLabel]}>Description (optional)</Text>
           <TextInput
-            style={[styles.input, styles.textArea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
+            style={[styles.input, styles.textArea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && lightSurfaceInput]}
             placeholder="Add meeting details..."
             placeholderTextColor={colors.textTertiary}
             value={description}
@@ -416,12 +454,12 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
           />
 
           {/* Meeting Type */}
-          <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Meeting Type *</Text>
+          <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && lightLabel]}>Meeting Type *</Text>
           <View style={styles.chipContainer}>
             {(['in_person', 'video', 'hybrid'] as const).map((type) => (
               <TouchableOpacity
                 key={type}
-                style={[styles.chip, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }, meetingType === type && { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary, borderColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]}
+                style={[styles.chip, { backgroundColor: colors.surfaceAlt, borderColor: colors.border }, !isNewTheme && { backgroundColor: 'transparent', borderColor: editorial.hairline }, meetingType === type && { backgroundColor: isNewTheme ? colors.accentGreen : editorial.carolina, borderColor: isNewTheme ? colors.accentGreen : editorial.carolina }]}
                 onPress={() => setMeetingType(type)}
               >
                 <Text style={[styles.chipText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, meetingType === type && { color: isNewTheme ? colors.background : legacyColors.white }]}>
@@ -434,9 +472,9 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
           {/* Location (for in-person) */}
           {(meetingType === 'in_person' || meetingType === 'hybrid') && (
             <>
-              <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Location *</Text>
+              <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && lightLabel]}>Location *</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
+                style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && lightInput]}
                 placeholder="e.g., Conference Room A"
                 placeholderTextColor={colors.textTertiary}
                 value={location}
@@ -446,9 +484,9 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
           )}
 
           {/* Date */}
-          <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Date *</Text>
+          <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && lightLabel]}>Date *</Text>
           <TouchableOpacity
-            style={[styles.input, styles.pickerButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            style={[styles.input, styles.pickerButton, { backgroundColor: colors.surface, borderColor: colors.border }, !isNewTheme && lightSurfaceInput]}
             onPress={() => setShowDatePicker(!showDatePicker)}
           >
             <Ionicons name="calendar" size={20} color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
@@ -478,7 +516,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
                     }}
                   />
                   <TouchableOpacity
-                    style={[styles.doneButton, { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]}
+                    style={[styles.doneButton, { backgroundColor: isNewTheme ? colors.accentGreen : editorial.ink }]}
                     onPress={() => setShowDatePicker(false)}
                   >
                     <Text style={[styles.doneButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Done</Text>
@@ -501,9 +539,9 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
           )}
 
           {/* Time */}
-          <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Time *</Text>
+          <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && lightLabel]}>Time *</Text>
           <TouchableOpacity
-            style={[styles.input, styles.pickerButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            style={[styles.input, styles.pickerButton, { backgroundColor: colors.surface, borderColor: colors.border }, !isNewTheme && lightSurfaceInput]}
             onPress={() => setShowTimePicker(!showTimePicker)}
           >
             <Ionicons name="time" size={20} color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
@@ -532,7 +570,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
                     }}
                   />
                   <TouchableOpacity
-                    style={[styles.doneButton, { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]}
+                    style={[styles.doneButton, { backgroundColor: isNewTheme ? colors.accentGreen : editorial.ink }]}
                     onPress={() => setShowTimePicker(false)}
                   >
                     <Text style={[styles.doneButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Done</Text>
@@ -555,9 +593,9 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
           )}
 
           {/* Duration */}
-          <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Duration (minutes)</Text>
+          <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && lightLabel]}>Duration (minutes)</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && lightInput]}
             placeholder="60"
             placeholderTextColor={colors.textTertiary}
             value={duration}
@@ -568,7 +606,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
           {/* Recording */}
           {(meetingType === 'video' || meetingType === 'hybrid') && (
             <View style={styles.switchRow}>
-              <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Enable Recording</Text>
+              <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && lightLabel]}>Enable Recording</Text>
               <Switch
                 value={recordingEnabled}
                 onValueChange={setRecordingEnabled}
@@ -581,9 +619,9 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
           {/* Repeat — only surface for pod creator / scheduler */}
           {canMakeRecurring && (
             <>
-              <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Repeat</Text>
+              <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && lightLabel]}>Repeat</Text>
               <TouchableOpacity
-                style={[styles.input, styles.pickerButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                style={[styles.input, styles.pickerButton, { backgroundColor: colors.surface, borderColor: colors.border }, !isNewTheme && lightSurfaceInput]}
                 onPress={() => setShowCadenceModal(true)}
               >
                 <Text style={[styles.pickerText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
@@ -594,7 +632,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
 
               {cadence !== 'none' && (
                 <>
-                  <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Ends</Text>
+                  <Text style={[styles.label, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && lightLabel]}>Ends</Text>
                   <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
                     {(['never', 'on_date'] as const).map(opt => (
                       <TouchableOpacity
@@ -624,7 +662,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
                   {endsOption === 'on_date' && (
                     <>
                       <TouchableOpacity
-                        style={[styles.input, styles.pickerButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                        style={[styles.input, styles.pickerButton, { backgroundColor: colors.surface, borderColor: colors.border }, !isNewTheme && lightSurfaceInput]}
                         onPress={() => setShowEndDatePicker(true)}
                       >
                         <Text style={[styles.pickerText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
@@ -658,7 +696,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
 
           {/* Create Button */}
           <TouchableOpacity
-            style={[styles.createButton, { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary }, loading && styles.createButtonDisabled]}
+            style={[styles.createButton, { backgroundColor: isNewTheme ? colors.accentGreen : editorial.ink }, !isNewTheme && { borderRadius: 999 }, loading && styles.createButtonDisabled]}
             onPress={handleCreate}
             disabled={loading}
           >

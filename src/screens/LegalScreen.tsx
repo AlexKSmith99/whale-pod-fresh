@@ -19,10 +19,15 @@ const docMap: Record<LegalDoc, { title: string; body: string }> = {
 
 // Tiny markdown-ish renderer. Splits by lines and styles based on the leading marker.
 // Supports: # / ## / ### headings, > callouts, - bullets, blank-line paragraph breaks.
-function renderBody(body: string, colors: any) {
+function renderBody(body: string, colors: any, isNewTheme: boolean) {
   const lines = body.split('\n');
   const blocks: React.ReactElement[] = [];
   let key = 0;
+
+  // Editorial document typography for light mode: Playfair section headings,
+  // Inter body/captions. Dark mode keeps its system rendering unchanged.
+  const headingFont = isNewTheme ? undefined : 'PlayfairDisplay_700Bold';
+  const bodyFont = isNewTheme ? undefined : 'InterTight_600SemiBold';
 
   for (const raw of lines) {
     const line = raw.replace(/\s+$/, '');
@@ -30,19 +35,19 @@ function renderBody(body: string, colors: any) {
       blocks.push(<View key={key++} style={{ height: 10 }} />);
     } else if (line.startsWith('### ')) {
       blocks.push(
-        <Text key={key++} style={[styles.h3, { color: colors.textPrimary }]}>
+        <Text key={key++} style={[styles.h3, { color: colors.textPrimary, fontFamily: bodyFont }]}>
           {line.slice(4)}
         </Text>
       );
     } else if (line.startsWith('## ')) {
       blocks.push(
-        <Text key={key++} style={[styles.h2, { color: colors.textPrimary }]}>
+        <Text key={key++} style={[styles.h2, { color: colors.textPrimary, fontFamily: headingFont }]}>
           {line.slice(3)}
         </Text>
       );
     } else if (line.startsWith('# ')) {
       blocks.push(
-        <Text key={key++} style={[styles.h1, { color: colors.textPrimary }]}>
+        <Text key={key++} style={[styles.h1, { color: colors.textPrimary, fontFamily: headingFont }]}>
           {line.slice(2)}
         </Text>
       );
@@ -53,9 +58,10 @@ function renderBody(body: string, colors: any) {
           style={[
             styles.callout,
             { backgroundColor: colors.surfaceAlt, borderLeftColor: colors.accentGreen },
+            !isNewTheme && { borderWidth: 1, borderColor: colors.border, borderRadius: 0 },
           ]}
         >
-          <Text style={[styles.calloutText, { color: colors.textPrimary }]}>
+          <Text style={[styles.calloutText, { color: colors.textPrimary, fontFamily: bodyFont }]}>
             {line.slice(2)}
           </Text>
         </View>
@@ -64,14 +70,14 @@ function renderBody(body: string, colors: any) {
       blocks.push(
         <View key={key++} style={styles.bulletRow}>
           <Text style={[styles.bulletDot, { color: colors.accentGreen }]}>•</Text>
-          <Text style={[styles.body, { color: colors.textPrimary, flex: 1 }]}>
+          <Text style={[styles.body, { color: colors.textPrimary, flex: 1, fontFamily: bodyFont }]}>
             {line.slice(2)}
           </Text>
         </View>
       );
     } else {
       blocks.push(
-        <Text key={key++} style={[styles.body, { color: colors.textPrimary }]}>
+        <Text key={key++} style={[styles.body, { color: colors.textPrimary, fontFamily: bodyFont }]}>
           {line}
         </Text>
       );
@@ -98,7 +104,7 @@ export default function LegalScreen({ doc, onBack }: Props) {
         <View style={{ width: 26 }} />
       </View>
       <ScrollView contentContainerStyle={styles.scroll}>
-        {renderBody(body, colors)}
+        {renderBody(body, colors, isNewTheme)}
         <View style={{ height: 40 }} />
       </ScrollView>
     </View>

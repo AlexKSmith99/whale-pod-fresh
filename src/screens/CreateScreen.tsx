@@ -38,23 +38,24 @@ const capWords = (s: string, max: number): string => {
 // Design tokens — Light defaults; the in-component `C` derived below overrides
 // these when dark theme is active so this screen flips palette + Pie aesthetics.
 const C_LIGHT = {
-  bg: '#FFFFFF',
+  bg: '#FAF9F6',
   surface: '#FFFFFF',
   surfaceAlt: '#F7F6F2',
   ink: '#1B1B18',
   muted: '#8A8A85',
   placeholder: '#A8A89E',
-  accent: '#2D5016',
-  accentDeep: '#1A3308',
-  accentText: '#2D5016',
-  accentLine: '#2D5016',
-  accentTint: '#E4EDDE',
+  // Editorial: Carolina blue is the discreet primary accent
+  accent: '#4B9CD3',
+  accentDeep: '#2E6A95',
+  accentText: '#2E6A95',
+  accentLine: '#4B9CD3',
+  accentTint: 'rgba(75, 156, 211, 0.10)',
   tintRed: '#FCE8E6',
   tintBlue: '#E6EEFC',
   tintYellow: '#FEF3C7',
   border: '#E5E1D8',
   white: '#FFFFFF',
-  gradientTop: '#FFFFFF',
+  gradientTop: '#FAF9F6',
 };
 
 const C_DARK = {
@@ -1326,7 +1327,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
 
             {applicationQuestions.map((question, index) => (
               <View key={index} style={styles.questionInputRow}>
-                <View style={styles.questionNumber}>
+                <View style={[styles.questionNumber, !isNewTheme && { backgroundColor: C.accentTint }]}>
                   <Text style={styles.questionNumberText}>{index + 1}</Text>
                 </View>
                 <TextInput
@@ -1357,11 +1358,11 @@ export default function CreateScreen({ onClose }: Props = {}) {
 
             {applicationQuestions.length < 10 && (
               <TouchableOpacity
-                style={styles.addQuestionBtn}
+                style={[styles.addQuestionBtn, !isNewTheme && { backgroundColor: C.ink }]}
                 onPress={() => setApplicationQuestions([...applicationQuestions, ''])}
               >
-                <Ionicons name="add-circle-outline" size={20} color="#000000" />
-                <Text style={styles.addQuestionText}>Add Question</Text>
+                <Ionicons name="add-circle-outline" size={20} color={isNewTheme ? '#000000' : '#FFFFFF'} />
+                <Text style={[styles.addQuestionText, !isNewTheme && { color: '#FFFFFF' }]}>Add Question</Text>
               </TouchableOpacity>
             )}
 
@@ -1393,7 +1394,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
         <TouchableOpacity onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
           <Ionicons name="close" size={26} color={C.ink} />
         </TouchableOpacity>
-        <Text style={styles.mainTitle}>Create a Pod</Text>
+        <Text style={[styles.mainTitle, !isNewTheme && { color: C.ink }]}>Create a Pod</Text>
         <View style={{ width: 26 }} />
       </View>
 
@@ -1443,7 +1444,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
                 keyExtractor={(item) => item.abbr}
                 renderItem={({ item }) => (
                   <TouchableOpacity
-                    style={[styles.stateItem, locationState === item.abbr && styles.stateItemSelected]}
+                    style={[styles.stateItem, locationState === item.abbr && styles.stateItemSelected, locationState === item.abbr && !isNewTheme && { backgroundColor: C.accentTint }]}
                     onPress={() => selectState(item.abbr)}
                   >
                     <Text style={[styles.stateText, locationState === item.abbr && styles.stateTextSelected]}>

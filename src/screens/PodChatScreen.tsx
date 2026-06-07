@@ -20,7 +20,7 @@ import { messageLikeService } from '../services/messageLikeService';
 import { notificationService } from '../services/notificationService';
 import { HapticManager } from '../services/hapticManager';
 import { supabase } from '../config/supabase';
-import { colors as legacyColors } from '../theme/designSystem';
+import { colors as legacyColors, editorial } from '../theme/designSystem';
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
@@ -362,7 +362,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
                   <TouchableOpacity
                     activeOpacity={0.8}
                     onPress={() => handleMessageTap(item.id)}
-                    style={[styles.messageBubble, styles.myMessageBubble, { backgroundColor: isNewTheme ? colors.accentGreen : '#2D5016' }]}
+                    style={[styles.messageBubble, styles.myMessageBubble, { backgroundColor: isNewTheme ? colors.accentGreen : editorial.carolina }]}
                   >
                     <Text style={[styles.messageText, styles.myMessageText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{item.content}</Text>
                   </TouchableOpacity>
@@ -408,7 +408,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
                       styles.theirMessageBubble,
                       isNewTheme
                         ? { backgroundColor: '#1F1F1F', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.12)' }
-                        : { backgroundColor: '#F2F0EB', borderColor: colors.border },
+                        : { backgroundColor: editorial.surface, borderWidth: 1, borderColor: editorial.hairline },
                     ]}
                   >
                     <Text style={[styles.messageText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{item.content}</Text>
@@ -440,13 +440,13 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
       <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       {isNewTheme && <GrainTexture opacity={0.06} />}
       {/* Header */}
-      <View style={{ backgroundColor: colors.surface, paddingTop: 50, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }}>
+      <View style={{ backgroundColor: isNewTheme ? colors.surface : colors.background, paddingTop: 50, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 12 }}>
           <TouchableOpacity onPress={onBack} style={{ padding: 4 }}>
             <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
           <View style={{ flex: 1, alignItems: 'center' }}>
-            <Text style={{ fontSize: 17, fontWeight: '700', color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'InterTight_600SemiBold' }} numberOfLines={1}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold', letterSpacing: isNewTheme ? 0 : -0.3 }} numberOfLines={1}>
               {chatName}
             </Text>
             <Text style={{ fontSize: 12, color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', marginTop: 2 }}>
@@ -471,7 +471,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
                 style={{ flex: 1, paddingVertical: 12, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: active ? colors.accentGreen : 'transparent' }}
                 onPress={() => setActiveView(tab.key)}
               >
-                <Text style={{ fontSize: 14, fontWeight: active ? '700' : '500', color: active ? colors.accentGreen : colors.textTertiary, fontFamily: active ? 'Sora_700Bold' : 'Sora_500Medium' }}>
+                <Text style={{ fontSize: 14, fontWeight: active ? '700' : '500', color: active ? colors.accentGreen : colors.textTertiary, fontFamily: isNewTheme ? (active ? 'Sora_700Bold' : 'Sora_500Medium') : 'InterTight_600SemiBold', letterSpacing: isNewTheme ? 0 : 0.3 }}>
                   {tab.label}
                 </Text>
               </TouchableOpacity>
@@ -508,7 +508,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
           </View>
           <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
             <TextInput
-              style={[styles.input, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.background, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
+              style={[styles.input, { borderWidth: isNewTheme ? 0 : 1, borderColor: colors.border, color: colors.textPrimary, backgroundColor: isNewTheme ? colors.background : editorial.surface, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
               placeholder="Type a message..."
               placeholderTextColor={colors.textTertiary}
               value={newMessage}
@@ -517,7 +517,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
               spellCheck={true}
               autoCorrect={true}
             />
-            <TouchableOpacity style={[styles.sendButton, { backgroundColor: isNewTheme ? colors.accentGreen : '#2D5016' }]} onPress={handleSend}>
+            <TouchableOpacity style={[styles.sendButton, { backgroundColor: isNewTheme ? colors.accentGreen : editorial.carolina }]} onPress={handleSend}>
               <Ionicons name="send" size={24} color={isNewTheme ? colors.background : '#fff'} />
             </TouchableOpacity>
           </View>
@@ -574,7 +574,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
                   {item.profile_picture ? (
                     <Image source={{ uri: item.profile_picture }} style={styles.memberAvatar} />
                   ) : (
-                    <View style={[styles.memberAvatar, { backgroundColor: isNewTheme ? colors.accentGreen : '#10b981' }]}>
+                    <View style={[styles.memberAvatar, { backgroundColor: isNewTheme ? colors.accentGreen : editorial.carolina }]}>
                       <Text style={[styles.memberAvatarText, { color: isNewTheme ? colors.background : '#fff' }]}>
                         {item.name?.charAt(0).toUpperCase() || '?'}
                       </Text>
@@ -583,7 +583,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
                   <View style={styles.memberInfo}>
                     <Text style={[styles.memberName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>{item.name || 'Team Member'}</Text>
                     {item.isCreator && (
-                      <View style={[styles.creatorBadge, { backgroundColor: isNewTheme ? colors.accentGreen : '#2D5016' }]}>
+                      <View style={[styles.creatorBadge, { backgroundColor: isNewTheme ? colors.accentGreen : editorial.carolina }]}>
                         <Text style={[styles.creatorBadgeText, { color: isNewTheme ? colors.background : '#fff' }]}>Creator</Text>
                       </View>
                     )}
@@ -621,7 +621,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
                 <Text style={[styles.cancelButtonText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.saveButton, { backgroundColor: isNewTheme ? colors.accentGreen : '#2D5016' }]}
+                style={[styles.saveButton, { backgroundColor: isNewTheme ? colors.accentGreen : editorial.carolina }]}
                 onPress={handleRename}
               >
                 <Text style={[styles.saveButtonText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Save</Text>

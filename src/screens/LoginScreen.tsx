@@ -26,18 +26,22 @@ import {
   Sora_400Regular,
   Sora_600SemiBold,
 } from '@expo-google-fonts/sora';
+import { editorial } from '../theme/designSystem';
 
 const { height } = Dimensions.get('window');
 
+// Editorial light-mode palette (matches FeedScreen ground truth).
 const C = {
-  bg: '#FAF9F6',
-  text: '#1B1B18',
+  bg: editorial.bg,
+  text: editorial.ink,
   textSecondary: '#52524E',
-  textMuted: '#8A8A85',
-  accent: '#2D5016',
-  inputBg: '#F2F0EB',
-  border: '#D6D3CC',
-  accentLight: '#E4EDDE',
+  textMuted: editorial.muted,
+  accent: editorial.ink,           // ink-filled primary CTAs
+  link: editorial.carolinaDeep,    // discreet Carolina links
+  carolina: editorial.carolina,    // active/focus accent
+  border: editorial.hairline,      // hairline underlines/dividers
+  surface: editorial.surface,
+  carolinaTint: editorial.carolinaTint,
 };
 
 const whaleLogo = require('../../assets/whale-logo.png');
@@ -217,7 +221,7 @@ export default function LoginScreen() {
   if (!fontsLoaded) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator color={C.accent} />
+        <ActivityIndicator color={C.carolina} />
       </View>
     );
   }
@@ -231,7 +235,8 @@ export default function LoginScreen() {
           <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <Animated.View style={[styles.logoSection, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
               <Image source={whaleLogo} style={styles.logo} resizeMode="contain" />
-              <Text style={styles.appName}>Whale Pod</Text>
+              <Text style={styles.appName}>whale pod</Text>
+              <View style={styles.wordmarkUnderline} />
             </Animated.View>
 
             <Animated.View style={[styles.formSection, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
@@ -418,48 +423,57 @@ const styles = StyleSheet.create({
   logo: { width: 130, height: 78 },
   appName: {
     fontFamily: 'PlayfairDisplay_700Bold',
-    fontSize: 32,
+    fontSize: 36,
     color: C.text,
     marginTop: 14,
-    letterSpacing: -0.3,
+    letterSpacing: -0.8,
+  },
+  wordmarkUnderline: {
+    height: 2,
+    width: 56,
+    backgroundColor: C.carolina,
+    marginTop: 8,
   },
   formSection: { marginBottom: 8 },
 
   phoneSectionTitle: {
-    fontFamily: 'InterTight_600SemiBold',
-    fontSize: 24,
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 26,
     color: C.text,
     marginBottom: 8,
     textAlign: 'center',
+    letterSpacing: -0.3,
   },
   phoneSectionSub: {
     fontFamily: 'InterTight_600SemiBold',
     fontSize: 14,
-    color: C.textSecondary,
+    lineHeight: 20,
+    color: C.textMuted,
     textAlign: 'center',
     marginBottom: 24,
   },
-  phoneDisplayRow: { flexDirection: 'row', marginBottom: 20, gap: 10 },
+  phoneDisplayRow: { flexDirection: 'row', marginBottom: 20, gap: 12, alignItems: 'flex-end' },
+  // Underline-style prefix (paper-flat, no filled box)
   phonePrefixBox: {
-    backgroundColor: C.inputBg,
-    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    height: 52,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+    height: 44,
   },
   phonePrefixText: {
     fontFamily: 'InterTight_600SemiBold',
-    fontSize: 16,
+    fontSize: 17,
     color: C.textSecondary,
   },
+  // Single-line underline input — transparent, hairline bottom border, no radius
   phoneInputBox: {
     flex: 1,
-    backgroundColor: C.inputBg,
-    borderRadius: 12,
     justifyContent: 'center',
-    paddingHorizontal: 16,
-    height: 52,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+    height: 44,
   },
   phoneTextInput: {
     fontFamily: 'InterTight_600SemiBold',
@@ -468,17 +482,18 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
 
+  // Ink-filled primary CTA pill — white text, paper-flat (no shadow)
   accentButton: {
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: C.accent,
-    borderRadius: 12,
+    borderRadius: 9999,
     paddingVertical: 16,
   },
   accentButtonText: {
     fontFamily: 'InterTight_600SemiBold',
     fontSize: 15,
-    color: '#fff',
+    color: C.surface,
   },
   buttonDisabled: { opacity: 0.45 },
 
@@ -486,7 +501,7 @@ const styles = StyleSheet.create({
   backButtonText: {
     fontFamily: 'InterTight_600SemiBold',
     fontSize: 15,
-    color: C.accent,
+    color: C.link,
   },
 
   codeRow: {
@@ -494,21 +509,21 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 24,
   },
+  // Underline OTP box — transparent bg, hairline bottom rule, no radius
   codeBox: {
     width: 48,
     height: 56,
-    borderRadius: 12,
-    backgroundColor: C.inputBg,
+    backgroundColor: 'transparent',
     fontFamily: 'InterTight_600SemiBold',
-    fontSize: 22,
+    fontSize: 24,
     color: C.text,
     textAlign: 'center',
-    borderWidth: 1,
-    borderColor: 'transparent',
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
   },
   codeBoxFilled: {
-    borderColor: C.accent,
-    backgroundColor: C.accentLight,
+    borderBottomColor: C.carolina,
+    borderBottomWidth: 2,
   },
 
   resendRow: {
@@ -520,12 +535,12 @@ const styles = StyleSheet.create({
   resendText: {
     fontFamily: 'InterTight_600SemiBold',
     fontSize: 14,
-    color: C.textSecondary,
+    color: C.textMuted,
   },
   resendLink: {
     fontFamily: 'InterTight_600SemiBold',
     fontSize: 14,
-    color: C.accent,
+    color: C.link,
   },
   resendCooldown: {
     fontFamily: 'InterTight_600SemiBold',

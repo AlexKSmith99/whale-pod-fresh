@@ -170,47 +170,48 @@ export const shadows = {
 } as const;
 
 // ============================================
-// OLD THEME (Light Mode - Rustic, Rugged, Edgy + Professional)
+// OLD THEME (Light Mode - Editorial: cream paper, charcoal ink, hairlines,
+// Carolina-blue primary accent, gold tertiary, red semantic only)
 // ============================================
 const oldColors: ThemeColors = {
-  // Base backgrounds - raw parchment
+  // Base backgrounds - cream paper
   background: '#FAF9F6',
   backgroundSecondary: '#F2F0EB',
   surface: '#FFFFFF',
-  surfaceAlt: '#EDEBE5',
+  surfaceAlt: '#F2F0EB',
 
-  // Text colors - high-contrast ink (textSecondary darkened for bolder body copy)
-  textPrimary: '#0E0E0C',
-  textSecondary: '#2A2A26',
-  textTertiary: '#6B6B66',
+  // Text colors - charcoal ink with muted secondary copy
+  textPrimary: '#1B1B18',
+  textSecondary: '#52524E',
+  textTertiary: '#8A8A85',
   textInverse: '#FFFFFF',
 
-  // Borders - raw hemp/linen
-  border: '#D6D3CC',
-  borderLight: '#E8E6E0',
-  borderActive: '#2D5016',
+  // Borders - hairlines
+  border: '#E5E1D8',
+  borderLight: '#EFECE5',
+  borderActive: '#4B9CD3',
 
-  // Primary accent (forest green)
-  primary: '#2D5016',
-  primaryHover: '#1E3A0E',
-  primaryLight: '#E4EDDE',
+  // Primary accent (Carolina blue)
+  primary: '#4B9CD3',
+  primaryHover: '#2E6A95',
+  primaryLight: 'rgba(75, 156, 211, 0.10)',
 
-  // Secondary accent (sienna/burnt orange)
-  secondary: '#A0522D',
-  secondaryHover: '#7A3E22',
-  secondaryLight: '#F5EBE3',
+  // Secondary accent (gold — very discreet tertiary)
+  secondary: '#C49B00',
+  secondaryHover: '#9A7A00',
+  secondaryLight: 'rgba(196, 155, 0, 0.10)',
 
-  // Accent greens
-  accentGreen: '#2D5016',
-  accentGreenMuted: '#5C7A4A',
+  // Accents — Carolina blue in light mode (token name is legacy)
+  accentGreen: '#4B9CD3',
+  accentGreenMuted: '#2E6A95',
 
-  // Status colors - earthy
+  // Status colors
   success: '#2D6B2E',
   successLight: '#E0F0E0',
   warning: '#B8860B',
   warningLight: '#FDF3DC',
-  error: '#8B2500',
-  errorLight: '#F5E0DB',
+  error: '#DC2626',
+  errorLight: 'rgba(220, 38, 38, 0.10)',
 
   // Other
   white: '#FFFFFF',
@@ -221,9 +222,9 @@ const oldColors: ThemeColors = {
 
   // Tab bar
   tabBarBackground: '#FFFFFF',
-  tabBarBorder: '#D6D3CC',
-  tabIconInactive: '#8A8A85',
-  tabIconActive: '#2D5016',
+  tabBarBorder: '#E5E1D8',
+  tabIconInactive: '#9A9A95',
+  tabIconActive: '#4B9CD3',
 };
 
 // ============================================

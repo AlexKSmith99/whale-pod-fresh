@@ -226,8 +226,8 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
       alignItems: 'center' as const,
       padding: spacing.base,
       paddingTop: 50,
-      backgroundColor: colors.surface,
-      borderBottomWidth: 1,
+      backgroundColor: isNewTheme ? colors.surface : colors.background,
+      borderBottomWidth: isNewTheme ? 1 : StyleSheet.hairlineWidth,
       borderBottomColor: colors.border,
     },
     headerAvatar: {
@@ -247,7 +247,8 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
       fontSize: typography.fontSize.lg,
       fontWeight: typography.fontWeight.semibold as '600',
       color: colors.textPrimary,
-      fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold',
+      fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold',
+      letterSpacing: isNewTheme ? 0 : -0.3,
     },
     messagesList: {
       padding: spacing.sm,
@@ -541,7 +542,7 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
       <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       {isNewTheme && <GrainTexture opacity={0.06} />}
       <View style={dynamicStyles.header}>
-        <TouchableOpacity onPress={handleMenuPress} style={[styles.backButton, showMenuButton && { backgroundColor: isNewTheme ? 'rgba(168, 230, 163, 0.15)' : 'rgba(0,0,0,0.05)', borderRadius: 20, padding: 6 }]}>
+        <TouchableOpacity activeOpacity={0.6} onPress={handleMenuPress} style={[styles.backButton, showMenuButton && isNewTheme && { backgroundColor: 'rgba(168, 230, 163, 0.15)', borderRadius: 20, padding: 6 }]}>
           <Ionicons name={showMenuButton ? "ellipsis-vertical" : "arrow-back"} size={showMenuButton ? 22 : 24} color={showMenuButton ? (isNewTheme ? colors.accentGreen : colors.textPrimary) : colors.textPrimary} />
         </TouchableOpacity>
         <TouchableOpacity

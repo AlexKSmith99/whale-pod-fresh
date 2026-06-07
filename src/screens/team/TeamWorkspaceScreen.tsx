@@ -41,42 +41,75 @@ import WebRichTextEditor from '../../components/WebRichTextEditor';
 import { useTheme } from '../../theme/ThemeContext';
 import { getThemedStyles } from '../../theme/themedStyles';
 import GrainTexture from '../../components/ui/GrainTexture';
-import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../../theme/designSystem';
+import { colors as legacyColors, typography, spacing, borderRadius, shadows, editorial } from '../../theme/designSystem';
 
-// Aligned with light mode design system — parchment, forest green, sienna
+// ===== Editorial light-mode theme =====
+// Cream paper, charcoal ink, hairline borders. Carolina blue is the discreet
+// primary accent (replaces the old forest green); red is semantic-only.
+// This object is returned as the active `theme` for light mode (see
+// getLocalTheme), so every inline `theme.*` reference picks up the editorial
+// palette in light mode while dark mode keeps `darkPieTheme`.
 const softTheme = {
-  // Backgrounds — warm parchment palette
-  bg: '#FAF9F6',              // Raw parchment (matches designSystem)
-  bgCard: '#FFFFFF',          // Pure white cards
-  bgElevated: '#F2F0EB',     // Warm gray (backgroundSecondary)
-  bgHover: '#E8E6E0',        // borderLight tone
-  bgDocument: '#FFFFFF',      // Pure white for documents
-  bgGradientStart: '#F2F0EB',
-  bgGradientMid: '#FAF9F6',
-  bgGradientEnd: '#FAF9F6',
+  // Backgrounds — cream paper
+  bg: editorial.bg,           // Raw parchment / cream
+  bgCard: editorial.surface,  // Pure white cards
+  bgElevated: editorial.surface, // White surfaces (textareas, tiles)
+  bgHover: '#F2F0EB',
+  bgDocument: editorial.surface,
+  bgGradientStart: editorial.bg,
+  bgGradientMid: editorial.bg,
+  bgGradientEnd: editorial.bg,
 
-  // Accent — forest green (matches legacyColors.primary)
-  accent: '#2D5016',          // Forest green
-  accentLight: '#E4EDDE',     // primaryLight
-  accentDim: 'rgba(45, 80, 22, 0.08)',
-  accentSoft: '#4A7A2E',      // Medium forest green
+  // Accent — Carolina blue (discreet primary)
+  accent: editorial.carolina,
+  accentLight: editorial.carolinaTint,
+  accentDim: 'rgba(75, 156, 211, 0.08)',
+  accentSoft: editorial.carolinaDeep,
 
-  // Secondary — sienna / burnt orange
-  secondary: '#A0522D',       // Sienna
-  secondaryLight: '#F5EBE3',  // secondaryLight
+  // Secondary — gold, used sparingly
+  secondary: editorial.gold,
+  secondaryLight: editorial.goldTint,
 
-  // Text — high-contrast ink
-  text: '#1B1B18',            // Near black (textPrimary)
-  textSecondary: '#52524E',   // Dark gray (textSecondary)
-  textMuted: '#8A8A85',       // Medium gray (textTertiary)
+  // Text — charcoal ink
+  text: editorial.ink,
+  textSecondary: '#52524E',
+  textMuted: editorial.muted,
 
-  // Borders & Dividers — hemp / linen
-  border: '#D6D3CC',          // Natural border
-  divider: '#E8E6E0',         // Soft divider (borderLight)
+  // Borders & Dividers — hairlines
+  border: editorial.hairline,
+  divider: editorial.hairline,
 
   // Status
-  success: '#2D6B2E',         // Green
-  error: '#8B2500',           // Deep red
+  success: '#2D6B2E',
+  error: editorial.red,        // Semantic destructive / error red
+  highlight: 'rgba(75, 156, 211, 0.18)',
+  highlightActive: 'rgba(75, 156, 211, 0.30)',
+};
+
+// Preserved ORIGINAL rustic palette — baked into the static StyleSheet below.
+// The StyleSheet renders in BOTH light and dark mode (dark mode overrides most
+// surfaces inline via `theme.*`), so these literals must stay frozen to keep
+// dark mode pixel-identical. Light-mode look is driven by inline `theme.*`
+// (= editorial softTheme) overrides at the call sites.
+const styleSheetColors = {
+  bg: '#FAF9F6',
+  bgCard: '#FFFFFF',
+  bgElevated: '#F2F0EB',
+  bgHover: '#E8E6E0',
+  bgDocument: '#FFFFFF',
+  accent: '#2D5016',
+  accentLight: '#E4EDDE',
+  accentDim: 'rgba(45, 80, 22, 0.08)',
+  accentSoft: '#4A7A2E',
+  secondary: '#A0522D',
+  secondaryLight: '#F5EBE3',
+  text: '#1B1B18',
+  textSecondary: '#52524E',
+  textMuted: '#8A8A85',
+  border: '#D6D3CC',
+  divider: '#E8E6E0',
+  success: '#2D6B2E',
+  error: '#8B2500',
   highlight: 'rgba(45, 80, 22, 0.20)',
   highlightActive: 'rgba(45, 80, 22, 0.35)',
 };
@@ -109,7 +142,7 @@ const darkPieTheme = {
 };
 
 // Keep for backwards compatibility
-const localDarkTheme = softTheme;
+const localDarkTheme = styleSheetColors;
 
 // Helper function to get local theme colors based on app theme.
 function getLocalTheme(isNewTheme: boolean, colors: any) {
@@ -139,6 +172,12 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
   const appColors = appTheme.colors;
   const themedStyles = getThemedStyles(appColors, isNewTheme);
   const theme = getLocalTheme(isNewTheme, appColors);
+
+  // Editorial textarea chrome (light mode): white surface, 1px hairline border,
+  // radius 14, no shadow. Dark mode keeps its borderless elevated surface.
+  const editorialTextarea = isNewTheme
+    ? { borderWidth: 0, backgroundColor: theme.bgElevated, color: theme.text }
+    : { backgroundColor: editorial.surface, color: theme.text, borderWidth: 1, borderColor: editorial.hairline, borderRadius: 14 };
 
   const { user } = useAuth();
   const [pods, setPods] = useState<any[]>([]);
@@ -1398,9 +1437,9 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
       <View style={{ flex: 1, backgroundColor: theme.bgDocument }}>
         {/* Minimal header bar */}
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 }}>
-          <Text style={{ fontSize: 18, fontWeight: '600', color: theme.text, fontFamily: 'Sora_600SemiBold' }}>Pod Doc</Text>
+          <Text style={isNewTheme ? { fontSize: 18, fontWeight: '600', color: theme.text, fontFamily: 'Sora_600SemiBold' } : { fontSize: 24, color: theme.text, fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.4 }}>Pod Doc</Text>
           <TouchableOpacity
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: theme.bgElevated }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: theme.bgElevated, ...(isNewTheme ? {} : { borderWidth: 1, borderColor: editorial.hairline }) }}
             onPress={() => setIsInEditMode(true)}
           >
             <Ionicons name="create-outline" size={16} color={theme.textSecondary} />
@@ -1497,10 +1536,10 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
     return (
       <View style={{ flex: 1, backgroundColor: theme.bgDocument }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 }}>
-          <Text style={{ fontSize: 18, fontWeight: '600', color: theme.text, fontFamily: 'Sora_600SemiBold' }}>Pod Guide</Text>
+          <Text style={isNewTheme ? { fontSize: 18, fontWeight: '600', color: theme.text, fontFamily: 'Sora_600SemiBold' } : { fontSize: 24, color: theme.text, fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.4 }}>Pod Guide</Text>
           {canEdit ? (
             <TouchableOpacity
-              style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, backgroundColor: theme.accent }}
+              style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, backgroundColor: isNewTheme ? theme.accent : editorial.ink }}
               onPress={handleSavePodDoc}
               disabled={docSaving}
             >
@@ -1512,7 +1551,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: theme.bgElevated }}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: theme.bgElevated, ...(isNewTheme ? {} : { borderWidth: 1, borderColor: editorial.hairline }) }}
               onPress={() => handleRequestEditAccess('guide')}
               disabled={requestingAccess === 'guide'}
             >
@@ -1531,7 +1570,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
         <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}>
           <Text style={{ fontSize: 13, fontWeight: '600', color: theme.textMuted, marginBottom: 8, marginTop: 8, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.5, textTransform: 'uppercase' }}>Mission</Text>
           <TextInput
-            style={[styles.podDocInput, { borderWidth: 0, backgroundColor: theme.bgElevated, color: theme.text }]}
+            style={[styles.podDocInput, editorialTextarea]}
             value={docMission}
             onChangeText={setDocMission}
             placeholder="What is this pod about?"
@@ -1543,7 +1582,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
 
           <Text style={{ fontSize: 13, fontWeight: '600', color: theme.textMuted, marginBottom: 8, marginTop: 24, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.5, textTransform: 'uppercase' }}>Vision</Text>
           <TextInput
-            style={[styles.podDocInput, { borderWidth: 0, backgroundColor: theme.bgElevated, color: theme.text }]}
+            style={[styles.podDocInput, editorialTextarea]}
             value={docNorthstar}
             onChangeText={setDocNorthstar}
             placeholder="What does success look like?"
@@ -1555,7 +1594,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
 
           <Text style={{ fontSize: 13, fontWeight: '600', color: theme.textMuted, marginBottom: 8, marginTop: 24, fontFamily: 'Sora_600SemiBold', letterSpacing: 0.5, textTransform: 'uppercase' }}>References</Text>
           <TextInput
-            style={[styles.podDocInput, { minHeight: 200, borderWidth: 0, backgroundColor: theme.bgElevated, color: theme.text }]}
+            style={[styles.podDocInput, { minHeight: 200 }, editorialTextarea]}
             value={docReference}
             onChangeText={setDocReference}
             placeholder="Links, resources, notes..."
@@ -1574,17 +1613,17 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
     return (
       <View style={{ flex: 1, backgroundColor: theme.bgDocument }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 }}>
-          <Text style={{ fontSize: 18, fontWeight: '600', color: theme.text, fontFamily: 'Sora_600SemiBold' }}>Pod Rules</Text>
+          <Text style={isNewTheme ? { fontSize: 18, fontWeight: '600', color: theme.text, fontFamily: 'Sora_600SemiBold' } : { fontSize: 24, color: theme.text, fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.4 }}>Pod Rules</Text>
           {canEdit ? (
             <View style={{ flexDirection: 'row', gap: 8 }}>
               <TouchableOpacity
-                style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: theme.bgElevated }}
+                style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: theme.bgElevated, ...(isNewTheme ? {} : { borderWidth: 1, borderColor: editorial.hairline }) }}
                 onPress={handleUseRulesTemplate}
               >
                 <Text style={{ fontSize: 14, color: theme.textSecondary, fontFamily: 'Sora_600SemiBold' }}>Template</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, backgroundColor: theme.accent }}
+                style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, backgroundColor: isNewTheme ? theme.accent : editorial.ink }}
                 onPress={handleSavePodRules}
                 disabled={rulesSaving}
               >
@@ -1597,7 +1636,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
             </View>
           ) : (
             <TouchableOpacity
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: theme.bgElevated }}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: theme.bgElevated, ...(isNewTheme ? {} : { borderWidth: 1, borderColor: editorial.hairline }) }}
               onPress={() => handleRequestEditAccess('rules')}
               disabled={requestingAccess === 'rules'}
             >
@@ -1615,7 +1654,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
 
         <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 20, paddingBottom: 100 }}>
           <TextInput
-            style={[styles.podDocInput, { minHeight: SCREEN_HEIGHT - 280, borderWidth: 0, backgroundColor: theme.bgElevated, color: theme.text }]}
+            style={[styles.podDocInput, { minHeight: SCREEN_HEIGHT - 280 }, editorialTextarea]}
             value={rulesContent}
             onChangeText={setRulesContent}
             placeholder="Guidelines and expectations for this pod..."
@@ -1634,10 +1673,10 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
     return (
       <View style={{ flex: 1, backgroundColor: theme.bgDocument }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 }}>
-          <Text style={{ fontSize: 18, fontWeight: '600', color: theme.text, fontFamily: 'Sora_600SemiBold' }}>Pod Roles</Text>
+          <Text style={isNewTheme ? { fontSize: 18, fontWeight: '600', color: theme.text, fontFamily: 'Sora_600SemiBold' } : { fontSize: 24, color: theme.text, fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.4 }}>Pod Roles</Text>
           {!canEdit && (
             <TouchableOpacity
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: theme.bgElevated }}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: theme.bgElevated, ...(isNewTheme ? {} : { borderWidth: 1, borderColor: editorial.hairline }) }}
               onPress={() => handleRequestEditAccess('roles')}
               disabled={requestingAccess === 'roles'}
             >
@@ -1693,7 +1732,9 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
                 key={member.id}
                 activeOpacity={canEdit ? 0.7 : 1}
                 onPress={() => canEdit ? openRoleEditor(member) : handleViewProfile(member.id)}
-                style={{ backgroundColor: theme.bgElevated, borderRadius: 12, padding: 16, marginBottom: 10 }}
+                style={isNewTheme
+                  ? { backgroundColor: theme.bgElevated, borderRadius: 12, padding: 16, marginBottom: 10 }
+                  : { backgroundColor: editorial.surface, borderRadius: 14, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: editorial.hairline }}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: 12 }}>
@@ -1709,8 +1750,12 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
                       {memberRoles.length > 0 ? (
                         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
                           {memberRoles.map(roleTitle => (
-                            <View key={roleTitle} style={{ backgroundColor: theme.bgDocument, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 }}>
-                              <Text style={{ fontSize: 12, color: theme.textSecondary, fontFamily: 'Sora_600SemiBold' }}>{roleTitle}</Text>
+                            <View key={roleTitle} style={isNewTheme
+                              ? { backgroundColor: theme.bgDocument, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 }
+                              : { backgroundColor: 'transparent', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, borderWidth: 1, borderColor: editorial.hairline }}>
+                              <Text style={isNewTheme
+                                ? { fontSize: 12, color: theme.textSecondary, fontFamily: 'Sora_600SemiBold' }
+                                : { fontSize: 11, color: editorial.ink, fontFamily: 'InterTight_600SemiBold', letterSpacing: 0.3 }}>{roleTitle}</Text>
                             </View>
                           ))}
                         </View>
@@ -1720,8 +1765,10 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
                     </View>
                   </View>
                   {canEdit && (
-                    <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: theme.bgDocument, justifyContent: 'center', alignItems: 'center' }}>
-                      <Ionicons name="pencil-outline" size={14} color={theme.textSecondary} />
+                    <View style={isNewTheme
+                      ? { width: 28, height: 28, borderRadius: 14, backgroundColor: theme.bgDocument, justifyContent: 'center', alignItems: 'center' }
+                      : { width: 28, height: 28, borderRadius: 14, backgroundColor: 'transparent', borderWidth: 1, borderColor: editorial.hairline, justifyContent: 'center', alignItems: 'center' }}>
+                      <Ionicons name="pencil-outline" size={14} color={isNewTheme ? theme.textSecondary : editorial.ink} />
                     </View>
                   )}
                 </View>
@@ -1737,10 +1784,10 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
     return (
       <View style={{ flex: 1, backgroundColor: theme.bgDocument }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 }}>
-          <Text style={{ fontSize: 18, fontWeight: '600', color: theme.text, fontFamily: 'Sora_600SemiBold' }}>Media</Text>
+          <Text style={isNewTheme ? { fontSize: 18, fontWeight: '600', color: theme.text, fontFamily: 'Sora_600SemiBold' } : { fontSize: 24, color: theme.text, fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.4 }}>Media</Text>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <TouchableOpacity
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: theme.bgElevated }}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: theme.bgElevated, ...(isNewTheme ? {} : { borderWidth: 1, borderColor: editorial.hairline }) }}
               onPress={() => pickMedia(false)}
               disabled={uploadingMedia}
             >
@@ -1754,7 +1801,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
               )}
             </TouchableOpacity>
             <TouchableOpacity
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: theme.bgElevated }}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: theme.bgElevated, ...(isNewTheme ? {} : { borderWidth: 1, borderColor: editorial.hairline }) }}
               onPress={() => pickMedia(true)}
               disabled={uploadingMedia}
             >
@@ -1838,8 +1885,8 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
     <View style={[styles.container, { backgroundColor: theme.bg }]}>
       <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={theme.bg} />
       {isNewTheme && <GrainTexture opacity={0.06} />}
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: theme.bgCard }]}>
+      {/* Header — flat cream paper in light mode (no border / no shadow) */}
+      <View style={[styles.header, isNewTheme ? { backgroundColor: theme.bgCard } : { backgroundColor: editorial.bg, borderBottomWidth: 0 }]}>
         <TouchableOpacity onPress={onBack} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={24} color={theme.text} />
         </TouchableOpacity>
@@ -1931,7 +1978,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
             <>
               {/* Segmented Tabs - Hidden when in edit mode on agenda tab */}
               {!(isInEditMode && activeSubTab === 'agenda') && (
-                <View style={[styles.tabBar, { backgroundColor: theme.bgElevated, borderWidth: isNewTheme ? 1 : 0, borderColor: theme.border }]}>
+                <View style={[styles.tabBar, { backgroundColor: isNewTheme ? theme.bgElevated : editorial.bg, borderWidth: 1, borderColor: theme.border }]}>
                   {(['agenda', 'doc', 'rules', 'roles', 'media'] as SubTab[]).map((tab) => {
                     // Avant-garde icon representations for each tab
                     const getTabIcon = () => {
@@ -1950,8 +1997,8 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
                         key={tab}
                         style={[
                           styles.tab,
-                          isActive && styles.tabActive,
-                          isActive && { backgroundColor: isNewTheme ? theme.accent : '#FFFFFF' },
+                          isActive && isNewTheme && styles.tabActive,
+                          isActive && { backgroundColor: isNewTheme ? theme.accent : editorial.carolinaTint },
                         ]}
                         onPress={() => setActiveSubTab(tab)}
                         activeOpacity={0.7}
@@ -1959,7 +2006,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
                         <Ionicons
                           name={getTabIcon() as any}
                           size={24}
-                          color={isActive ? (isNewTheme ? '#000000' : theme.text) : theme.textMuted}
+                          color={isActive ? (isNewTheme ? '#000000' : editorial.carolinaDeep) : theme.textMuted}
                         />
                       </TouchableOpacity>
                     );
@@ -2018,8 +2065,8 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
                         <View style={{
                           width: 22, height: 22, borderRadius: 6,
                           borderWidth: 2,
-                          borderColor: selected ? '#2D5016' : '#D6D3CC',
-                          backgroundColor: selected ? '#2D5016' : '#FFFFFF',
+                          borderColor: selected ? (isNewTheme ? '#2D5016' : editorial.carolina) : (isNewTheme ? '#D6D3CC' : editorial.hairline),
+                          backgroundColor: selected ? (isNewTheme ? '#2D5016' : editorial.carolina) : '#FFFFFF',
                           alignItems: 'center', justifyContent: 'center', marginRight: 12,
                         }}>
                           {selected && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
@@ -2049,7 +2096,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
               <TouchableOpacity
                 onPress={saveRoleEditor}
                 disabled={savingRoles}
-                style={{ flex: 1, backgroundColor: '#2D5016', borderRadius: 10, paddingVertical: 12, alignItems: 'center', opacity: savingRoles ? 0.6 : 1 }}
+                style={{ flex: 1, backgroundColor: isNewTheme ? '#2D5016' : editorial.ink, borderRadius: 10, paddingVertical: 12, alignItems: 'center', opacity: savingRoles ? 0.6 : 1 }}
               >
                 {savingRoles ? (
                   <ActivityIndicator color="#FFFFFF" />
@@ -2197,13 +2244,13 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: softTheme.bg,
+    backgroundColor: styleSheetColors.bg,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: softTheme.bg,
+    backgroundColor: styleSheetColors.bg,
   },
 
   // Header - bold, defined
@@ -2213,9 +2260,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: Platform.OS === 'ios' ? 54 : 16,
     paddingBottom: 12,
-    backgroundColor: softTheme.bgCard,
+    backgroundColor: styleSheetColors.bgCard,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: softTheme.divider,
+    borderBottomColor: styleSheetColors.divider,
   },
   backBtn: {
     width: 44,
@@ -2230,7 +2277,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: softTheme.text,
+    color: styleSheetColors.text,
     letterSpacing: 0.3,
     fontFamily: 'PlayfairDisplay_700Bold',
   },
@@ -2243,7 +2290,7 @@ const styles = StyleSheet.create({
   podName: {
     fontSize: 15,
     fontWeight: '500',
-    color: softTheme.textSecondary,
+    color: styleSheetColors.textSecondary,
     maxWidth: 220,
     fontFamily: 'Sora_600SemiBold',
   },
@@ -2253,7 +2300,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     marginRight: 6,
     borderWidth: 1,
-    borderColor: softTheme.border,
+    borderColor: styleSheetColors.border,
   },
   menuBtn: {
     width: 44,
@@ -2266,7 +2313,7 @@ const styles = StyleSheet.create({
   mainArea: {
     flex: 1,
     position: 'relative',
-    backgroundColor: softTheme.bg,
+    backgroundColor: styleSheetColors.bg,
   },
 
   // Sidebar - bold, defined
@@ -2281,17 +2328,17 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: SIDEBAR_WIDTH,
-    backgroundColor: softTheme.bgCard,
+    backgroundColor: styleSheetColors.bgCard,
     zIndex: 20,
     paddingTop: 20,
     paddingHorizontal: 16,
     borderRightWidth: 1,
-    borderRightColor: softTheme.border,
+    borderRightColor: styleSheetColors.border,
   },
   sidebarTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: softTheme.text,
+    color: styleSheetColors.text,
     letterSpacing: 2.5,
     textTransform: 'uppercase',
     marginBottom: 18,
@@ -2366,7 +2413,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 12,
     marginBottom: 10,
-    backgroundColor: softTheme.bgElevated,
+    backgroundColor: styleSheetColors.bgElevated,
     borderRadius: 12,
     padding: 4,
   },
@@ -2425,21 +2472,21 @@ const styles = StyleSheet.create({
   },
   savingText: {
     fontSize: 13,
-    color: softTheme.textSecondary,
+    color: styleSheetColors.textSecondary,
     fontFamily: 'Lora_400Regular',
   },
   modeBadge: {
-    backgroundColor: softTheme.accentLight,
+    backgroundColor: styleSheetColors.accentLight,
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: softTheme.accent,
+    borderColor: styleSheetColors.accent,
   },
   modeBadgeText: {
     fontSize: 12,
     fontWeight: '700',
-    color: softTheme.accent,
+    color: styleSheetColors.accent,
     fontFamily: 'Sora_700Bold',
     letterSpacing: 1.5,
   },
@@ -2449,18 +2496,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 16,
-    backgroundColor: softTheme.bgCard,
+    backgroundColor: styleSheetColors.bgCard,
   },
   documentScroll: {
     flex: 1,
   },
   documentPage: {
-    backgroundColor: softTheme.bgDocument,
+    backgroundColor: styleSheetColors.bgDocument,
     borderRadius: 12,
     padding: 20,
     minHeight: SCREEN_HEIGHT - 280,
     borderWidth: 1,
-    borderColor: softTheme.border,
+    borderColor: styleSheetColors.border,
   },
   documentTouchable: {
     flex: 1,
@@ -2468,20 +2515,20 @@ const styles = StyleSheet.create({
   },
   documentText: {
     fontSize: 17,
-    color: softTheme.text,
+    color: styleSheetColors.text,
     lineHeight: 26,
     fontFamily: 'Lora_400Regular',
   },
   documentPlaceholder: {
     fontSize: 17,
-    color: softTheme.textMuted,
+    color: styleSheetColors.textMuted,
     lineHeight: 26,
     fontStyle: 'italic',
     fontFamily: 'Lora_400Regular',
   },
   documentInput: {
     fontSize: 17,
-    color: softTheme.text,
+    color: styleSheetColors.text,
     lineHeight: 26,
     minHeight: 120,
     textAlignVertical: 'top',
@@ -2489,11 +2536,11 @@ const styles = StyleSheet.create({
   },
   fullDocumentEdit: {
     minHeight: 350,
-    backgroundColor: softTheme.bgElevated,
+    backgroundColor: styleSheetColors.bgElevated,
     borderRadius: 10,
     padding: 16,
     borderWidth: 1,
-    borderColor: softTheme.accent,
+    borderColor: styleSheetColors.accent,
   },
   editModeActions: {
     flexDirection: 'row',
@@ -2506,9 +2553,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 8,
-    backgroundColor: softTheme.bgElevated,
+    backgroundColor: styleSheetColors.bgElevated,
     borderWidth: 1,
-    borderColor: softTheme.divider,
+    borderColor: styleSheetColors.divider,
   },
   editModeCancelText: {
     fontSize: 15,
@@ -3171,7 +3218,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   saveDocButton: {
-    backgroundColor: softTheme.accent,
+    backgroundColor: styleSheetColors.accent,
     paddingHorizontal: 18,
     paddingVertical: 12,
     borderRadius: 8,
@@ -3186,15 +3233,15 @@ const styles = StyleSheet.create({
     fontFamily: 'InterTight_600SemiBold',
   },
   templateButton: {
-    backgroundColor: softTheme.bgElevated,
+    backgroundColor: styleSheetColors.bgElevated,
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: softTheme.border,
+    borderColor: styleSheetColors.border,
   },
   templateButtonText: {
-    color: softTheme.text,
+    color: styleSheetColors.text,
     fontWeight: '600',
     fontSize: 14,
     fontFamily: 'InterTight_600SemiBold',
@@ -3202,36 +3249,36 @@ const styles = StyleSheet.create({
   podDocSection: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: softTheme.divider,
+    borderBottomColor: styleSheetColors.divider,
   },
   podDocSectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: softTheme.text,
+    color: styleSheetColors.text,
     marginBottom: 6,
     fontFamily: 'Sora_700Bold',
     letterSpacing: 0.5,
   },
   podDocSectionHint: {
     fontSize: 14,
-    color: softTheme.textSecondary,
+    color: styleSheetColors.textSecondary,
     marginBottom: 12,
     fontFamily: 'Lora_400Regular',
   },
   podDocInput: {
-    backgroundColor: softTheme.bgElevated,
+    backgroundColor: styleSheetColors.bgElevated,
     borderRadius: 10,
     padding: 16,
     fontSize: 16,
-    color: softTheme.text,
+    color: styleSheetColors.text,
     minHeight: 120,
     borderWidth: 1,
-    borderColor: softTheme.border,
+    borderColor: styleSheetColors.border,
     fontFamily: 'Lora_400Regular',
   },
   rulesHint: {
     fontSize: 15,
-    color: softTheme.textSecondary,
+    color: styleSheetColors.textSecondary,
     padding: 16,
     paddingBottom: 10,
     fontFamily: 'Lora_400Regular',
@@ -3244,18 +3291,18 @@ const styles = StyleSheet.create({
   meetingsSectionLabel: {
     fontSize: 14,
     fontWeight: '700',
-    color: softTheme.accent,
+    color: styleSheetColors.accent,
     letterSpacing: 2.5,
     fontFamily: 'Sora_700Bold',
     textTransform: 'uppercase',
   },
   meetingHeaderBlock: {
-    backgroundColor: softTheme.bgElevated,
+    backgroundColor: styleSheetColors.bgElevated,
     borderRadius: 10,
     padding: 16,
     marginBottom: 10,
     borderLeftWidth: 4,
-    borderLeftColor: softTheme.accent,
+    borderLeftColor: styleSheetColors.accent,
   },
   pastMeetingHeaderBlock: {
     opacity: 0.7,
@@ -3266,28 +3313,28 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 4,
-    backgroundColor: softTheme.accent,
+    backgroundColor: styleSheetColors.accent,
     borderTopLeftRadius: 10,
     borderBottomLeftRadius: 10,
   },
   pastMeetingHeaderBar: {
-    backgroundColor: softTheme.textMuted,
+    backgroundColor: styleSheetColors.textMuted,
   },
   meetingHeaderTitle: {
     fontSize: 17,
     fontWeight: '600',
-    color: softTheme.text,
+    color: styleSheetColors.text,
     marginBottom: 4,
     fontFamily: 'InterTight_600SemiBold',
   },
   meetingHeaderDate: {
     fontSize: 14,
-    color: softTheme.textSecondary,
+    color: styleSheetColors.textSecondary,
     fontFamily: 'Lora_400Regular',
   },
   meetingHeaderStatus: {
     fontSize: 12,
-    color: softTheme.textMuted,
+    color: styleSheetColors.textMuted,
     marginTop: 4,
     fontFamily: 'Lora_400Regular',
   },
@@ -3296,19 +3343,19 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: softTheme.border,
+    borderTopColor: styleSheetColors.border,
   },
   notesAreaLabel: {
     fontSize: 14,
     fontWeight: '700',
-    color: softTheme.text,
+    color: styleSheetColors.text,
     letterSpacing: 2.5,
     fontFamily: 'Sora_700Bold',
     textTransform: 'uppercase',
   },
   emptyDocumentText: {
     fontSize: 16,
-    color: softTheme.textMuted,
+    color: styleSheetColors.textMuted,
     fontStyle: 'italic',
     lineHeight: 24,
     fontFamily: 'Lora_400Regular',

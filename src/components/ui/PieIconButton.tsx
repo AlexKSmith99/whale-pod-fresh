@@ -26,6 +26,10 @@ export default function PieIconButton({
   const { theme, isNewTheme } = useTheme();
   const colors = theme.colors;
 
+  // On the Carolina-blue accent fill (light mode) the icon is white;
+  // dark mode keeps black-on-lime.
+  const fgOnAccent = isNewTheme ? '#000000' : '#FFFFFF';
+
   let bg = colors.surfaceAlt;
   let fg = colors.textPrimary;
   if (variant === 'glass') {
@@ -33,11 +37,11 @@ export default function PieIconButton({
     fg = isNewTheme ? '#FFFFFF' : colors.textPrimary;
   } else if (variant === 'lime') {
     bg = colors.accentGreen;
-    fg = '#000000';
+    fg = fgOnAccent;
   }
   if (active) {
     bg = colors.accentGreen;
-    fg = '#000000';
+    fg = fgOnAccent;
   }
   if (iconColor) fg = iconColor;
 

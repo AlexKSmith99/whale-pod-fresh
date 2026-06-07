@@ -12,24 +12,27 @@ import { supabase } from '../config/supabase';
 import { PURSUIT_TYPES } from '../constants/pursuitTypes';
 import { US_CITIES } from '../constants/usCities';
 import { LinearGradient } from 'expo-linear-gradient';
+import { editorial } from '../theme/designSystem';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const TOTAL_STEPS = 12;
 
-// Design tokens
+// Editorial design tokens — cream paper, charcoal ink, hairlines, Carolina accent.
 const C = {
-  bg: '#F6FAF8',
-  ink: '#1B1B18',
-  muted: '#8A8A85',
-  accent: '#2D5016',
-  accentLine: '#A8D4B8',
-  border: '#CCD6D0',
-  white: '#FFFFFF',
-  gradientTop: '#DCE8E0',
+  bg: editorial.bg,                 // cream paper
+  ink: editorial.ink,
+  muted: editorial.muted,
+  accent: editorial.carolina,       // discreet Carolina primary accent
+  accentDeep: editorial.carolinaDeep,
+  accentTint: editorial.carolinaTint,
+  accentLine: editorial.carolina,   // 2px Carolina accent bar
+  border: editorial.hairline,
+  white: editorial.surface,
+  gradientTop: '#F2F0EB',           // subtle warm paper wash at top
 };
 
 const F = {
-  header: 'InterTight_600SemiBold',
+  header: 'PlayfairDisplay_700Bold',
   body: 'InterTight_600SemiBold',
   bodyMedium: 'InterTight_600SemiBold',
 };
@@ -1118,8 +1121,9 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontFamily: F.header,
-    fontSize: 22,
+    fontSize: 24,
     color: C.ink,
+    letterSpacing: -0.5,
   },
   progressDots: {
     flexDirection: 'row',
@@ -1132,12 +1136,12 @@ const styles = StyleSheet.create({
     backgroundColor: C.border,
   },
   dotActive: {
-    backgroundColor: C.ink,
+    backgroundColor: C.accent,
     width: 20,
     borderRadius: 4,
   },
   dotCompleted: {
-    backgroundColor: C.ink,
+    backgroundColor: C.accentDeep,
   },
   accentLine: {
     height: 2,
@@ -1277,13 +1281,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 28,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: C.border,
-    backgroundColor: C.white,
+    backgroundColor: 'transparent',
   },
   genderPillActive: {
-    borderColor: C.ink,
-    backgroundColor: C.ink,
+    borderColor: C.accent,
+    backgroundColor: C.accent,
   },
   genderPillText: {
     fontFamily: F.body,
@@ -1358,7 +1362,7 @@ const styles = StyleSheet.create({
   phoneErrorText: {
     fontFamily: F.body,
     fontSize: 14,
-    color: '#B0413E',
+    color: editorial.red,
     marginTop: 12,
   },
   otpPromptText: {
@@ -1427,13 +1431,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: C.border,
-    backgroundColor: C.white,
+    backgroundColor: 'transparent',
   },
   interestPillActive: {
-    borderColor: C.ink,
-    backgroundColor: C.ink,
+    borderColor: C.accent,
+    backgroundColor: C.accent,
   },
   interestPillText: {
     fontFamily: F.body,
@@ -1464,7 +1468,7 @@ const styles = StyleSheet.create({
   },
   prefCardActive: {
     borderColor: C.accent,
-    backgroundColor: '#F0F5EC',
+    backgroundColor: C.accentTint,
   },
   prefCardLabel: {
     fontFamily: F.bodyMedium,
@@ -1492,7 +1496,7 @@ const styles = StyleSheet.create({
   },
   sizeCardActive: {
     borderColor: C.accent,
-    backgroundColor: '#F0F5EC',
+    backgroundColor: C.accentTint,
   },
   sizeLabel: {
     fontFamily: F.body,

@@ -181,10 +181,10 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
     }
   };
 
-  // Dynamic accent color for purple elements
-  const accentPurple = isNewTheme ? colors.primary : '#2D5016';
-  const accentPurpleLight = isNewTheme ? colors.primaryLight : '#E4EDDE';
-  const accentPurpleBorder = isNewTheme ? colors.primary : '#ddd6fe';
+  // Editorial light mode: Carolina blue is the discreet primary accent.
+  const accentPurple = isNewTheme ? colors.primary : '#2E6A95';
+  const accentPurpleLight = isNewTheme ? colors.primaryLight : 'rgba(75, 156, 211, 0.10)';
+  const accentPurpleBorder = isNewTheme ? colors.primary : 'rgba(75, 156, 211, 0.30)';
 
   return (
     <GradientBackground style={styles.container}>
@@ -208,22 +208,22 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
         automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
       >
         <View style={styles.content}>
-          <View style={[styles.pursuitCard, { backgroundColor: isNewTheme ? colors.surface : '#FFFFFF', borderLeftColor: isNewTheme ? colors.accentGreen : '#2D5016', borderColor: colors.border, borderWidth: isNewTheme ? StyleSheet.hairlineWidth : 0 }]}>
+          <View style={[styles.pursuitCard, { backgroundColor: isNewTheme ? colors.surface : '#FFFFFF', borderLeftColor: isNewTheme ? colors.accentGreen : '#4B9CD3', borderColor: colors.border, borderWidth: isNewTheme ? StyleSheet.hairlineWidth : 1 }]}>
             <Text style={[styles.pursuitTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold' }]}>{pursuit.title}</Text>
-            <Text style={[styles.pursuitDescription, { color: colors.textSecondary, fontFamily: 'Sora_600SemiBold' }]} numberOfLines={2}>
+            <Text style={[styles.pursuitDescription, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]} numberOfLines={2}>
               {pursuit.description}
             </Text>
           </View>
 
           {podRoles.length > 0 && (
             <View style={styles.questionsSection}>
-              <Text style={[styles.sectionTitle, { color: isNewTheme ? colors.accentGreen : '#2D5016', fontFamily: 'Sora_700Bold' }]}>Targeting a specific role?</Text>
+              <Text style={[styles.sectionTitle, { color: isNewTheme ? colors.accentGreen : '#2E6A95', fontFamily: isNewTheme ? 'Sora_700Bold' : 'InterTight_600SemiBold' }]}>Targeting a specific role?</Text>
               <View style={styles.roleChipsRow}>
                 <TouchableOpacity
                   style={[
                     styles.roleChip,
-                    targetedRoles.length === 0 && { backgroundColor: isNewTheme ? colors.accentGreen : '#2D5016', borderColor: isNewTheme ? colors.accentGreen : '#2D5016' },
-                    { borderColor: colors.border },
+                    targetedRoles.length === 0 && { backgroundColor: isNewTheme ? colors.accentGreen : '#4B9CD3', borderColor: isNewTheme ? colors.accentGreen : '#4B9CD3' },
+                    { borderColor: isNewTheme ? colors.border : (targetedRoles.length === 0 ? '#4B9CD3' : colors.border) },
                   ]}
                   onPress={() => setTargetedRoles([])}
                 >
@@ -239,8 +239,8 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
                       key={role}
                       style={[
                         styles.roleChip,
-                        selected && { backgroundColor: isNewTheme ? colors.accentGreen : '#2D5016', borderColor: isNewTheme ? colors.accentGreen : '#2D5016' },
-                        { borderColor: colors.border },
+                        selected && { backgroundColor: isNewTheme ? colors.accentGreen : '#4B9CD3', borderColor: isNewTheme ? colors.accentGreen : '#4B9CD3' },
+                        { borderColor: isNewTheme ? colors.border : (selected ? '#4B9CD3' : colors.border) },
                       ]}
                       onPress={() => {
                         setTargetedRoles(
@@ -262,14 +262,14 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
           )}
 
           <View style={styles.questionsSection}>
-            <Text style={[styles.sectionTitle, { color: isNewTheme ? colors.accentGreen : '#2D5016', fontFamily: 'Sora_700Bold' }]}>Application Questions</Text>
+            <Text style={[styles.sectionTitle, { color: isNewTheme ? colors.accentGreen : '#2E6A95', fontFamily: isNewTheme ? 'Sora_700Bold' : 'InterTight_600SemiBold' }]}>Application Questions</Text>
 
             {questions.map((question: string, index: number) => (
               <View
                 key={index}
                 style={[styles.questionBlock, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }]}
               >
-                <Text style={[styles.questionNumber, { color: isNewTheme ? colors.accentGreen : '#2D5016', fontFamily: 'Sora_700Bold' }]}>QUESTION {index + 1}</Text>
+                <Text style={[styles.questionNumber, { color: isNewTheme ? colors.accentGreen : '#2E6A95', fontFamily: isNewTheme ? 'Sora_700Bold' : 'InterTight_600SemiBold' }]}>QUESTION {index + 1}</Text>
                 <Text style={[styles.questionText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{question}</Text>
                 <TextInput
                   style={[styles.answerInput, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#FAF9F6', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
@@ -368,16 +368,16 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
           )}
 
           {pursuit.requires_interview && (
-            <View style={[styles.infoBox, { backgroundColor: isNewTheme ? 'rgba(200, 255, 107, 0.08)' : '#E4EDDE', borderLeftColor: isNewTheme ? colors.accentGreen : '#2D5016' }]}>
-              <Ionicons name="mic-outline" size={18} color={isNewTheme ? colors.accentGreen : '#2D5016'} style={{ marginRight: 12 }} />
-              <Text style={[styles.infoText, { color: isNewTheme ? colors.textSecondary : '#2D5016', fontFamily: 'Sora_600SemiBold' }]}>
+            <View style={[styles.infoBox, { backgroundColor: isNewTheme ? 'rgba(200, 255, 107, 0.08)' : 'rgba(75, 156, 211, 0.10)', borderLeftColor: isNewTheme ? colors.accentGreen : '#4B9CD3' }]}>
+              <Ionicons name="mic-outline" size={18} color={isNewTheme ? colors.accentGreen : '#2E6A95'} style={{ marginRight: 12 }} />
+              <Text style={[styles.infoText, { color: isNewTheme ? colors.textSecondary : '#52524E', fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
                 This pod requires an interview. The creator may reach out to schedule one.
               </Text>
             </View>
           )}
 
           <TouchableOpacity
-            style={[styles.submitButton, { backgroundColor: isNewTheme ? colors.accentGreen : '#2D5016', shadowColor: isNewTheme ? colors.accentGreen : '#2D5016' }, loading && styles.submitButtonDisabled]}
+            style={[styles.submitButton, { backgroundColor: isNewTheme ? colors.accentGreen : '#1B1B18', shadowColor: isNewTheme ? colors.accentGreen : '#1B1B18' }, loading && styles.submitButtonDisabled]}
             onPress={handleSubmit}
             disabled={loading}
             activeOpacity={0.85}
@@ -386,7 +386,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
               <ActivityIndicator color={isNewTheme ? colors.background : '#fff'} />
             ) : (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Text style={[styles.submitButtonText, { color: isNewTheme ? colors.background : '#fff', fontFamily: 'Sora_700Bold' }]}>
+                <Text style={[styles.submitButtonText, { color: isNewTheme ? colors.background : '#fff', fontFamily: isNewTheme ? 'Sora_700Bold' : 'InterTight_600SemiBold' }]}>
                   Submit Application
                 </Text>
                 <Ionicons name="arrow-forward" size={18} color={isNewTheme ? colors.background : '#fff'} />

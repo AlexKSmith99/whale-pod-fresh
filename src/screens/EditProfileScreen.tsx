@@ -20,7 +20,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
 import GradientBackground from '../components/ui/GradientBackground';
-import { colors as legacyColors } from '../theme/designSystem';
+import { colors as legacyColors, editorial } from '../theme/designSystem';
 
 interface EditProfileScreenProps {
   onBack: () => void;
@@ -241,19 +241,19 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
     <GradientBackground style={styles.container}>
       <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       {isNewTheme && <GrainTexture opacity={0.06} />}
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+      <View style={[styles.header, { backgroundColor: isNewTheme ? colors.surface : editorial.bg, borderBottomColor: colors.border, borderBottomWidth: isNewTheme ? 1 : 0 }]}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Text style={[styles.backButtonText, { color: isNewTheme ? colors.accentGreen : legacyColors.primary }]}>← Back</Text>
+          <Text style={[styles.backButtonText, { color: isNewTheme ? colors.accentGreen : editorial.carolinaDeep }]}>← Back</Text>
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>Edit Profile</Text>
+        <Text style={[styles.headerTitle, { color: isNewTheme ? colors.textPrimary : editorial.ink, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold', letterSpacing: isNewTheme ? 0 : -0.3 }]}>Edit Profile</Text>
         <TouchableOpacity onPress={handleSave} style={styles.saveButton} disabled={saving}>
-          <Text style={[styles.saveButtonText, { color: isNewTheme ? colors.accentGreen : legacyColors.primary }]}>{saving ? 'Saving...' : 'Save'}</Text>
+          <Text style={[styles.saveButtonText, { color: isNewTheme ? colors.accentGreen : editorial.carolinaDeep }]}>{saving ? 'Saving...' : 'Save'}</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.scrollView}>
         <View style={styles.content}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Photos</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold', letterSpacing: isNewTheme ? 0 : -0.3 }]}>Photos</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
             {profilePictures.map((pic, i) => (
               <View key={i} style={{ width: (Dimensions.get('window').width - 56) / 3, aspectRatio: 0.85, borderRadius: 10, overflow: 'hidden', backgroundColor: isNewTheme ? colors.surfaceAlt : '#F2F0EB' }}>
@@ -265,8 +265,8 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
                   <Ionicons name="close" size={12} color="#fff" />
                 </TouchableOpacity>
                 {i === 0 && (
-                  <View style={{ position: 'absolute', bottom: 4, left: 4, backgroundColor: colors.accentGreen, paddingHorizontal: 5, paddingVertical: 2, borderRadius: 4 }}>
-                    <Text style={{ fontSize: 9, color: isNewTheme ? '#000' : '#fff', fontWeight: '600' }}>main</Text>
+                  <View style={{ position: 'absolute', bottom: 4, left: 4, backgroundColor: isNewTheme ? colors.accentGreen : editorial.carolina, paddingHorizontal: 5, paddingVertical: 2, borderRadius: 4 }}>
+                    <Text style={{ fontSize: 9, color: isNewTheme ? '#000' : '#fff', fontWeight: '600', fontFamily: isNewTheme ? undefined : 'InterTight_600SemiBold' }}>main</Text>
                   </View>
                 )}
               </View>
@@ -296,7 +296,7 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
 
           <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Name *</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
+            style={[styles.input, { backgroundColor: isNewTheme ? colors.surface : 'transparent', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
             placeholder="e.g., John Smith"
             placeholderTextColor={colors.textTertiary}
             value={name}
@@ -305,7 +305,7 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
 
           <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Age</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
+            style={[styles.input, { backgroundColor: isNewTheme ? colors.surface : 'transparent', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
             placeholder="e.g., 25"
             placeholderTextColor={colors.textTertiary}
             value={age}
@@ -315,18 +315,18 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
 
           <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Gender</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
+            style={[styles.input, { backgroundColor: isNewTheme ? colors.surface : 'transparent', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
             placeholder="e.g., Male, Female, Non-binary"
             placeholderTextColor={colors.textTertiary}
             value={gender}
             onChangeText={setGender}
           />
 
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Location</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold', letterSpacing: isNewTheme ? 0 : -0.3 }]}>Location</Text>
 
           <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Hometown</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
+            style={[styles.input, { backgroundColor: isNewTheme ? colors.surface : 'transparent', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
             placeholder="e.g., San Francisco, CA"
             placeholderTextColor={colors.textTertiary}
             value={hometown}
@@ -335,7 +335,7 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
 
           <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>College</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
+            style={[styles.input, { backgroundColor: isNewTheme ? colors.surface : 'transparent', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
             placeholder="e.g., NYU, UCLA"
             placeholderTextColor={colors.textTertiary}
             value={college}
@@ -344,7 +344,7 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
 
           <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Work</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
+            style={[styles.input, { backgroundColor: isNewTheme ? colors.surface : 'transparent', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
             placeholder="e.g., Software Engineer at Google"
             placeholderTextColor={colors.textTertiary}
             value={work}
@@ -362,11 +362,11 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
             numberOfLines={4}
           />
 
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Social Links</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold', letterSpacing: isNewTheme ? 0 : -0.3 }]}>Social Links</Text>
 
           <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Instagram</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
+            style={[styles.input, { backgroundColor: isNewTheme ? colors.surface : 'transparent', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
             placeholder="@username or full URL"
             placeholderTextColor={colors.textTertiary}
             value={instagram}
@@ -376,7 +376,7 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
 
           <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>LinkedIn</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
+            style={[styles.input, { backgroundColor: isNewTheme ? colors.surface : 'transparent', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
             placeholder="linkedin.com/in/username"
             placeholderTextColor={colors.textTertiary}
             value={linkedin}
@@ -386,7 +386,7 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
 
           <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Facebook</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
+            style={[styles.input, { backgroundColor: isNewTheme ? colors.surface : 'transparent', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
             placeholder="facebook.com/username"
             placeholderTextColor={colors.textTertiary}
             value={facebook}
@@ -396,7 +396,7 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
 
           <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>GitHub</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
+            style={[styles.input, { backgroundColor: isNewTheme ? colors.surface : 'transparent', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
             placeholder="github.com/username"
             placeholderTextColor={colors.textTertiary}
             value={github}
@@ -406,7 +406,7 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
 
           <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Portfolio Website</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
+            style={[styles.input, { backgroundColor: isNewTheme ? colors.surface : 'transparent', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
             placeholder="https://yourwebsite.com"
             placeholderTextColor={colors.textTertiary}
             value={portfolio}
@@ -420,7 +420,7 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
 }
 
 function makeStyles(colors: any, isNewTheme: boolean) {
-  const accent = isNewTheme ? colors.accentGreen : accent;
+  const accent = isNewTheme ? colors.accentGreen : editorial.carolina;
   const surfaceCard = colors.surface;
   const subtleBg = isNewTheme ? 'rgba(255,255,255,0.06)' : '#f5f5f5';
   return StyleSheet.create({
@@ -446,16 +446,38 @@ function makeStyles(colors: any, isNewTheme: boolean) {
   content: { padding: 20, paddingBottom: 100 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: colors.textPrimary, marginTop: 20, marginBottom: 16 },
   label: { fontSize: 14, fontWeight: '600', color: colors.textSecondary, marginBottom: 8 },
-  input: { 
-    borderWidth: 1, 
-    borderColor: colors.border, 
-    borderRadius: 8, 
-    padding: 12, 
-    fontSize: 16, 
-    marginBottom: 16, 
-    backgroundColor: surfaceCard 
+  input: isNewTheme ? {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 16,
+    backgroundColor: surfaceCard
+  } : {
+    // Editorial single-line input: underline style, paper-flat
+    borderWidth: 0,
+    borderBottomWidth: 1,
+    borderColor: editorial.hairline,
+    borderRadius: 0,
+    paddingHorizontal: 0,
+    paddingVertical: 10,
+    fontSize: 16,
+    marginBottom: 16,
+    backgroundColor: 'transparent',
   },
-  textArea: { height: 100, textAlignVertical: 'top' },
+  textArea: isNewTheme ? { height: 100, textAlignVertical: 'top' } : {
+    // Editorial textarea: white surface card, 1px hairline, radius 14
+    height: 100,
+    textAlignVertical: 'top',
+    borderWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: editorial.hairline,
+    borderRadius: 14,
+    backgroundColor: editorial.surface,
+    paddingHorizontal: 14,
+    paddingTop: 12,
+  },
   previewImage: { 
     width: 120, 
     height: 120, 

@@ -5,6 +5,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated, ViewStyle } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
+import { editorial } from '../../theme/designSystem';
 
 interface SkeletonProps {
   width?: number | string;
@@ -44,7 +45,7 @@ export function Skeleton({ width = '100%', height = 20, borderRadius = 4, style 
           width,
           height,
           borderRadius,
-          backgroundColor: isNewTheme ? colors.surfaceAlt : '#e5e7eb',
+          backgroundColor: isNewTheme ? colors.surfaceAlt : editorial.hairline,
           opacity,
         },
         style,
@@ -90,8 +91,8 @@ export function SkeletonFeedCard() {
 
   return (
     <View style={[styles.feedCard, {
-      backgroundColor: isNewTheme ? colors.surface : '#fff',
-      borderColor: isNewTheme ? colors.border : '#e5e7eb',
+      backgroundColor: isNewTheme ? colors.surface : editorial.surface,
+      borderColor: isNewTheme ? colors.border : editorial.hairline,
     }]}>
       <View style={styles.feedCardHeader}>
         <Skeleton width={36} height={36} borderRadius={18} />
