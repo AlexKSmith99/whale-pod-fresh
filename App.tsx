@@ -3,6 +3,7 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from '@expo-google-fonts/nothing-you-could-do';
 import { QueryClientProvider } from '@tanstack/react-query';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { ThemeProvider } from './src/theme/ThemeContext';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { appFonts } from './src/constants/fonts';
@@ -48,16 +49,18 @@ export default function App() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <AuthProvider>
-          <AppContent />
-          <ThemeTransitionWrapper />
-          <AppAlertHost />
-          <CelebrationHost />
-          <StatusBar style="auto" />
-        </AuthProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <KeyboardProvider>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <AuthProvider>
+            <AppContent />
+            <ThemeTransitionWrapper />
+            <AppAlertHost />
+            <CelebrationHost />
+            <StatusBar style="auto" />
+          </AuthProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </KeyboardProvider>
   );
 }
