@@ -767,9 +767,12 @@ export default function CreateScreen({ onClose }: Props = {}) {
         {renderStepHeader(0)}
         <KeyboardAwareScreen
           mode="replace-scrollview"
+          enabled={Platform.OS === 'android'}
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+          bottomOffset={90}
           style={{ flex: 1 }}
           contentContainerStyle={{ paddingBottom: 20 }}
-        >
+          >
           {/* Cover Photo */}
           {renderFieldLabel('Cover Photo')}
           <PodCoverImagePicker
@@ -866,9 +869,12 @@ export default function CreateScreen({ onClose }: Props = {}) {
         {renderStepHeader(1)}
         <KeyboardAwareScreen
           mode="replace-scrollview"
+          enabled={Platform.OS === 'android'}
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+          bottomOffset={90}
           style={{ flex: 1 }}
           contentContainerStyle={{ paddingBottom: 20 }}
-        >
+          >
           {/* Team Size Range */}
           {renderFieldLabel('Team Size')}
           <View style={styles.row}>
@@ -1064,9 +1070,12 @@ export default function CreateScreen({ onClose }: Props = {}) {
         {renderStepHeader(2)}
         <KeyboardAwareScreen
           mode="replace-scrollview"
+          enabled={Platform.OS === 'android'}
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+          bottomOffset={90}
           style={{ flex: 1 }}
           contentContainerStyle={{ paddingBottom: 40 }}
-        >
+          >
           {/* Meeting Cadence */}
           {renderFieldLabel('Cadence', true)}
           <TextInput

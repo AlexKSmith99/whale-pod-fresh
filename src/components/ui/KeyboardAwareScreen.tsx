@@ -71,6 +71,14 @@ export interface KeyboardAwareScreenProps extends ScrollViewProps {
   mode?: 'scroll' | 'replace-scrollview' | 'pinned';
   /** Gap between the focused input's bottom edge and the keyboard. */
   bottomOffset?: number;
+  /**
+   * Whether keyboard-controller's auto-scroll is active for this instance
+   * (default true). Set false on screens where the wrapper is nested inside
+   * another ScrollView (e.g. a horizontal pager) and you instead rely on
+   * iOS `automaticallyAdjustKeyboardInsets` — keyboard-controller's
+   * parentScrollViewTarget check no-ops in that nesting.
+   */
+  enabled?: boolean;
   /** Optional THEME token (never a hardcoded hex). Default: transparent. */
   backgroundColor?: string;
   /** Outer container style (in addition to flex:1 + backgroundColor). */
