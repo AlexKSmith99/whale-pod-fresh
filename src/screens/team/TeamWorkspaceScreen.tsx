@@ -190,6 +190,12 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
     ? { fontSize: 12, color: 'rgba(255,255,255,0.45)', fontFamily: 'Sora_600SemiBold', letterSpacing: 1, textTransform: 'uppercase' as const }
     : { fontSize: 11, color: editorial.muted, fontFamily: 'InterTight_600SemiBold', letterSpacing: 0.6, textTransform: 'uppercase' as const };
 
+  // Pod Doc / Pod Guide section headers — brand lime in dark for emphasis,
+  // Carolina-deep in light. (Other tabs keep the muted sectionLabel.)
+  const docSectionLabel = isNewTheme
+    ? { fontSize: 12, color: '#C8FF6B', fontFamily: 'Sora_600SemiBold', letterSpacing: 1, textTransform: 'uppercase' as const }
+    : { fontSize: 11, color: editorial.carolinaDeep, fontFamily: 'InterTight_600SemiBold', letterSpacing: 0.6, textTransform: 'uppercase' as const };
+
   const { user } = useAuth();
   const [pods, setPods] = useState<any[]>([]);
   const [selectedPodId, setSelectedPodId] = useState<string | null>(null);
@@ -1458,7 +1464,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
     // Document HTML palette — dark (Pie) vs light (editorial). The WebView is
     // otherwise an opaque white sheet, which is why dark mode looked "lite".
     const doc = isNewTheme
-      ? { bg: '#0F0F0F', text: '#FFFFFF', heading: '#FFFFFF', link: '#C8FF6B', quoteBar: 'rgba(255,255,255,0.18)', quoteText: 'rgba(255,255,255,0.62)', codeBg: '#1F1F1F', hr: 'rgba(255,255,255,0.10)' }
+      ? { bg: '#0F0F0F', text: '#FFFFFF', heading: '#C8FF6B', link: '#C8FF6B', quoteBar: 'rgba(200,255,107,0.35)', quoteText: 'rgba(255,255,255,0.62)', codeBg: '#1F1F1F', hr: 'rgba(255,255,255,0.10)' }
       : { bg: '#FFFFFF', text: '#1B1B18', heading: '#1B1B18', link: '#4B9CD3', quoteBar: '#D6D3CC', quoteText: '#52524E', codeBg: '#F2F0EB', hr: '#E8E6E0' };
 
     return (
@@ -1598,7 +1604,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
         </View>
 
         <KeyboardAwareScreen mode="replace-scrollview" style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}>
-          <Text style={[sectionLabel, { marginBottom: 8, marginTop: 8 }]}>Mission</Text>
+          <Text style={[docSectionLabel, { marginBottom: 8, marginTop: 8 }]}>Mission</Text>
           <TextInput
             style={[styles.podDocInput, editorialTextarea]}
             value={docMission}
@@ -1610,7 +1616,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
             editable={canEdit}
           />
 
-          <Text style={[sectionLabel, { marginBottom: 8, marginTop: 24 }]}>Vision</Text>
+          <Text style={[docSectionLabel, { marginBottom: 8, marginTop: 24 }]}>Vision</Text>
           <TextInput
             style={[styles.podDocInput, editorialTextarea]}
             value={docNorthstar}
@@ -1622,7 +1628,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
             editable={canEdit}
           />
 
-          <Text style={[sectionLabel, { marginBottom: 8, marginTop: 24 }]}>References</Text>
+          <Text style={[docSectionLabel, { marginBottom: 8, marginTop: 24 }]}>References</Text>
           <TextInput
             style={[styles.podDocInput, { minHeight: 200 }, editorialTextarea]}
             value={docReference}
