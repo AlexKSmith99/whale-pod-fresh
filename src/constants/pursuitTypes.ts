@@ -21,6 +21,7 @@ export const POD_TYPES = [
   'Problem Solving',
   'Relax',
   'Side Hustle',
+  'Skill',
   'Socialize',
   'Start-Ups',
   'Support',
