@@ -17,6 +17,8 @@ interface AuthContextType {
   verifyEmail: (email: string, code: string) => Promise<void>;
   clearPendingVerification: () => void;
   resetPassword: (email: string) => Promise<void>;
+  verifyRecoveryCode: (email: string, code: string) => Promise<void>;
+  updatePassword: (newPassword: string) => Promise<void>;
   sendPhoneVerificationCode: (phone: string) => Promise<void>;
   verifyPhoneCode: (phone: string, code: string) => Promise<boolean>;
   clearPhoneVerification: () => void;
@@ -113,9 +115,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const resetPassword = async (email: string) => {
+    // Supabase only sends the email if an account exists, and returns
+    // success either way (prevents leaking which emails are registered).
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: undefined, // For mobile, we handle this differently
+      redirectTo: 'whalepod://reset-password',
     });
+    if (error) throw error;
+  };
+
+  // Verify the 6-digit code from the reset email; on success the user gets a
+  // recovery session so the new password can be set.
+  const verifyRecoveryCode = async (email: string, code: string) => {
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token: code,
+      type: 'recovery',
+    });
+    if (error) throw error;
+  };
+
+  const updatePassword = async (newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) throw error;
   };
 
@@ -249,6 +269,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       verifyEmail,
       clearPendingVerification,
       resetPassword,
+      verifyRecoveryCode,
+      updatePassword,
       sendPhoneVerificationCode,
       verifyPhoneCode,
       clearPhoneVerification,

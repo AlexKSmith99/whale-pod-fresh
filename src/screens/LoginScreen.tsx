@@ -65,6 +65,12 @@ export default function LoginScreen() {
   const phoneInputRefs = useRef<(TextInput | null)[]>([]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  // Forgot-password flow
+  const [forgotStep, setForgotStep] = useState<null | 'email' | 'reset'>(null);
+  const [resetCode, setResetCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
   const [isSignup, setIsSignup] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
 
@@ -224,6 +230,50 @@ export default function LoginScreen() {
     }
   };
 
+  // ── Forgot password ──────────────────────────────────────────────────
+  // Supabase only emails accounts that actually exist (and reports success
+  // either way, so the form can't be used to probe registered emails).
+  const handleSendReset = async () => {
+    if (!email.trim()) {
+      AppAlert.alert('Missing Email', 'Enter your email address first.');
+      return;
+    }
+    setForgotLoading(true);
+    try {
+      await auth.resetPassword(email.trim());
+      setForgotStep('reset');
+    } catch (error: any) {
+      AppAlert.alert('Error', error.message);
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (resetCode.trim().length !== 6) {
+      AppAlert.alert('Invalid Code', 'Enter the 6-digit code from the reset email.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      AppAlert.alert('Weak Password', 'Your new password needs at least 6 characters.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      AppAlert.alert("Passwords Don't Match", 'Make sure both password fields match.');
+      return;
+    }
+    setForgotLoading(true);
+    try {
+      await auth.verifyRecoveryCode(email.trim(), resetCode.trim());
+      await auth.updatePassword(newPassword);
+      AppAlert.alert('Password Updated!', "You're signed in with your new password.");
+    } catch (error: any) {
+      AppAlert.alert('Reset Failed', error.message || 'Invalid or expired code. Try sending a new reset email.');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
   const goBackToPhoneEntry = () => {
     setAwaitingPhoneCode(false);
     setPhoneCode(['', '', '', '', '', '']);
@@ -252,7 +302,111 @@ export default function LoginScreen() {
             </Animated.View>
 
             <Animated.View style={[styles.formSection, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-              {mode === 'email' ? (
+              {mode === 'email' && forgotStep === 'email' ? (
+                <>
+                  <Text style={styles.phoneSectionTitle}>Reset your password</Text>
+                  <Text style={styles.phoneSectionSub}>
+                    Enter your email and we'll send a reset code — if an account exists for it.
+                  </Text>
+
+                  <View style={[styles.phoneInputBox, focusedField === 'forgotEmail' && styles.phoneInputBoxFocused, { marginBottom: 20 }]}>
+                    <TextInput
+                      style={styles.phoneTextInput}
+                      placeholder="Email"
+                      placeholderTextColor={C.textMuted}
+                      value={email}
+                      onChangeText={setEmail}
+                      autoCapitalize="none"
+                      keyboardType="email-address"
+                      autoFocus
+                      returnKeyType="send"
+                      onSubmitEditing={handleSendReset}
+                      onFocus={() => setFocusedField('forgotEmail')}
+                      onBlur={() => setFocusedField(null)}
+                    />
+                  </View>
+
+                  <TouchableOpacity
+                    style={[styles.accentButton, forgotLoading && styles.buttonDisabled]}
+                    onPress={handleSendReset}
+                    disabled={forgotLoading}
+                    activeOpacity={0.85}
+                  >
+                    {forgotLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.accentButtonText}>Send Reset Email</Text>}
+                  </TouchableOpacity>
+
+                  <TouchableOpacity onPress={() => setForgotStep(null)} style={{ marginTop: 20, alignItems: 'center' }} activeOpacity={0.6}>
+                    <Text style={styles.resendLink}>Back to sign in</Text>
+                  </TouchableOpacity>
+                </>
+              ) : mode === 'email' && forgotStep === 'reset' ? (
+                <>
+                  <Text style={styles.phoneSectionTitle}>Check your email</Text>
+                  <Text style={styles.phoneSectionSub}>
+                    If an account exists for {email.trim()}, we sent a 6-digit reset code. Enter it below with your new password.
+                  </Text>
+
+                  <View style={[styles.phoneInputBox, focusedField === 'resetCode' && styles.phoneInputBoxFocused, { marginBottom: 12 }]}>
+                    <TextInput
+                      style={styles.phoneTextInput}
+                      placeholder="6-digit code"
+                      placeholderTextColor={C.textMuted}
+                      value={resetCode}
+                      onChangeText={(v) => setResetCode(v.replace(/\D/g, '').slice(0, 6))}
+                      keyboardType="number-pad"
+                      maxLength={6}
+                      autoFocus
+                      onFocus={() => setFocusedField('resetCode')}
+                      onBlur={() => setFocusedField(null)}
+                    />
+                  </View>
+
+                  <View style={[styles.phoneInputBox, focusedField === 'newPassword' && styles.phoneInputBoxFocused, { marginBottom: 12 }]}>
+                    <TextInput
+                      style={styles.phoneTextInput}
+                      placeholder="New password"
+                      placeholderTextColor={C.textMuted}
+                      value={newPassword}
+                      onChangeText={setNewPassword}
+                      secureTextEntry
+                      onFocus={() => setFocusedField('newPassword')}
+                      onBlur={() => setFocusedField(null)}
+                    />
+                  </View>
+
+                  <View style={[styles.phoneInputBox, focusedField === 'confirmPassword' && styles.phoneInputBoxFocused, { marginBottom: 20 }]}>
+                    <TextInput
+                      style={styles.phoneTextInput}
+                      placeholder="Confirm new password"
+                      placeholderTextColor={C.textMuted}
+                      value={confirmPassword}
+                      onChangeText={setConfirmPassword}
+                      secureTextEntry
+                      returnKeyType="done"
+                      onSubmitEditing={handleResetPassword}
+                      onFocus={() => setFocusedField('confirmPassword')}
+                      onBlur={() => setFocusedField(null)}
+                    />
+                  </View>
+
+                  <TouchableOpacity
+                    style={[styles.accentButton, forgotLoading && styles.buttonDisabled]}
+                    onPress={handleResetPassword}
+                    disabled={forgotLoading}
+                    activeOpacity={0.85}
+                  >
+                    {forgotLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.accentButtonText}>Update Password</Text>}
+                  </TouchableOpacity>
+
+                  <TouchableOpacity onPress={handleSendReset} style={{ marginTop: 16, alignItems: 'center' }} activeOpacity={0.6} disabled={forgotLoading}>
+                    <Text style={styles.resendText}>Didn't get it? <Text style={styles.resendLink}>Resend email</Text></Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity onPress={() => setForgotStep(null)} style={{ marginTop: 16, alignItems: 'center' }} activeOpacity={0.6}>
+                    <Text style={styles.resendLink}>Back to sign in</Text>
+                  </TouchableOpacity>
+                </>
+              ) : mode === 'email' ? (
                 <>
                   <Text style={styles.phoneSectionTitle}>{isSignup ? 'Create an account' : 'Sign in with email'}</Text>
                   <Text style={styles.phoneSectionSub}>
@@ -288,6 +442,17 @@ export default function LoginScreen() {
                       onBlur={() => setFocusedField(null)}
                     />
                   </View>
+
+                  {!isSignup && (
+                    <TouchableOpacity
+                      onPress={() => { setForgotStep('email'); setResetCode(''); setNewPassword(''); setConfirmPassword(''); }}
+                      style={{ alignSelf: 'flex-end', marginTop: -8, marginBottom: 16 }}
+                      activeOpacity={0.6}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Text style={styles.resendLink}>Forgot password?</Text>
+                    </TouchableOpacity>
+                  )}
 
                   <TouchableOpacity
                     style={[styles.accentButton, emailLoading && styles.buttonDisabled]}
