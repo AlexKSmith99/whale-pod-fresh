@@ -216,6 +216,25 @@ export default function CreateScreen({ onClose }: Props = {}) {
   const styles = React.useMemo(() => makeStyles(themePalette), [isNewTheme]);
   const scrollViewRef = useRef<ScrollView>(null);
 
+  // Per-page vertical scrolls + focus helper: when any input is focused,
+  // scroll it fully above the keyboard (automaticallyAdjustKeyboardInsets
+  // provides the inset room; this does the actual scroll-into-view).
+  const page1ScrollRef = useRef<ScrollView>(null);
+  const page2ScrollRef = useRef<ScrollView>(null);
+  const page3ScrollRef = useRef<ScrollView>(null);
+  const makeFocusScroller = (ref: React.RefObject<ScrollView | null>) =>
+    (e: { nativeEvent: { target: number } }) => {
+      const node = e.nativeEvent.target;
+      // Small delay so the keyboard frame is registered before measuring
+      setTimeout(() => {
+        const responder: any = ref.current?.getScrollResponder?.();
+        responder?.scrollResponderScrollNativeHandleToKeyboard?.(node, 120, true);
+      }, 60);
+    };
+  const focusPage1 = makeFocusScroller(page1ScrollRef);
+  const focusPage2 = makeFocusScroller(page2ScrollRef);
+  const focusPage3 = makeFocusScroller(page3ScrollRef);
+
   const [currentPage, setCurrentPage] = useState(0);
 
   // Basic Info
@@ -765,6 +784,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
       <View style={styles.pageInner}>
         {renderStepHeader(0)}
         <ScrollView
+          ref={page1ScrollRef}
           style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -786,6 +806,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
             style={styles.underlineInput}
             placeholder="e.g., Learn Java Programming Together"
             placeholderTextColor={C.placeholder}
+            onFocus={focusPage1}
             value={title}
             onChangeText={setTitle}
           />
@@ -797,6 +818,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
             style={styles.textAreaInput}
             placeholder="Describe your pod, who you're looking for, and what you're pursuing. Be specific!"
             placeholderTextColor={C.placeholder}
+            onFocus={focusPage1}
             value={description}
             onChangeText={(text) => setDescription(capWords(text, 150))}
             multiline
@@ -866,6 +888,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
       <View style={styles.pageInner}>
         {renderStepHeader(1)}
         <ScrollView
+          ref={page2ScrollRef}
           style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -881,6 +904,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
                 style={styles.underlineInput}
                 placeholder="2"
                 placeholderTextColor={C.placeholder}
+                onFocus={focusPage2}
                 value={teamSizeMin}
                 onChangeText={setTeamSizeMin}
                 keyboardType="numeric"
@@ -892,6 +916,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
                 style={styles.underlineInput}
                 placeholder="8"
                 placeholderTextColor={C.placeholder}
+                onFocus={focusPage2}
                 value={teamSizeMax}
                 onChangeText={setTeamSizeMax}
                 keyboardType="numeric"
@@ -932,6 +957,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
                   style={styles.underlineInput}
                   placeholder="Search city (e.g., Austin)"
                   placeholderTextColor={C.placeholder}
+                  onFocus={focusPage2}
                   value={citySearchQuery}
                   onChangeText={handleCitySearch}
                   autoCapitalize="words"
@@ -978,6 +1004,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
                       style={styles.underlineInput}
                       placeholder={`e.g., ${availableNeighborhoods[0] || 'Downtown'}`}
                       placeholderTextColor={C.placeholder}
+                      onFocus={focusPage2}
                       value={neighborhoodSearch}
                       onChangeText={handleNeighborhoodSearch}
                       autoCapitalize="words"
@@ -1009,6 +1036,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
                     style={styles.underlineInput}
                     placeholder="e.g., 123 Main St"
                     placeholderTextColor={C.placeholder}
+                    onFocus={focusPage2}
                     value={address}
                     onChangeText={setAddress}
                     onBlur={geocodeAddress}
@@ -1050,6 +1078,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
             style={styles.underlineInput}
             placeholder="Add a note about your decision system (optional)"
             placeholderTextColor={C.placeholder}
+            onFocus={focusPage2}
             value={decisionNote}
             onChangeText={setDecisionNote}
           />
@@ -1066,6 +1095,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
       <View style={styles.pageInner}>
         {renderStepHeader(2)}
         <ScrollView
+          ref={page3ScrollRef}
           style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -1078,6 +1108,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
             style={styles.underlineInput}
             placeholder="e.g., Weekly on Mondays at 7pm"
             placeholderTextColor={C.placeholder}
+            onFocus={focusPage3}
             value={meetingCadence}
             onChangeText={setMeetingCadence}
           />
@@ -1085,6 +1116,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
             style={styles.underlineInput}
             placeholder="Add a note (optional)"
             placeholderTextColor={C.placeholder}
+            onFocus={focusPage3}
             value={meetingNote}
             onChangeText={setMeetingNote}
           />
@@ -1100,6 +1132,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
             style={styles.underlineInput}
             placeholder="Set expectations for attendance (optional)"
             placeholderTextColor={C.placeholder}
+            onFocus={focusPage3}
             value={attendanceNote}
             onChangeText={setAttendanceNote}
           />
@@ -1111,6 +1144,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
             style={styles.underlineInput}
             placeholder="e.g., Developer"
             placeholderTextColor={C.placeholder}
+            onFocus={focusPage3}
             value={roleInput}
             onChangeText={setRoleInput}
             onSubmitEditing={() => {
@@ -1171,6 +1205,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
             style={styles.underlineInput}
             placeholder="e.g., 5+ years, Beginner, Intermediate"
             placeholderTextColor={C.placeholder}
+            onFocus={focusPage3}
             value={experienceLevel}
             onChangeText={setExperienceLevel}
           />
@@ -1181,6 +1216,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
             style={styles.underlineInput}
             placeholder="e.g., 3 months, 1 year, ongoing"
             placeholderTextColor={C.placeholder}
+            onFocus={focusPage3}
             value={projectedDuration}
             onChangeText={setProjectedDuration}
           />
@@ -1191,6 +1227,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
             style={styles.underlineInput}
             placeholder="e.g., 18+, 21+ for cocktails, Students only"
             placeholderTextColor={C.placeholder}
+            onFocus={focusPage3}
             value={ageRestriction}
             onChangeText={setAgeRestriction}
           />
@@ -1327,6 +1364,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
                   style={styles.questionInput}
                   placeholder={index === 0 ? "e.g., What relevant experience do you have?" : "Enter your question..."}
                   placeholderTextColor={C.placeholder}
+                  onFocus={focusPage3}
                   value={question}
                   onChangeText={(text) => {
                     const newQuestions = [...applicationQuestions];
