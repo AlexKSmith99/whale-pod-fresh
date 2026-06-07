@@ -576,6 +576,24 @@ export default function UserProfileScreen({ route, navigation }: any) {
             </View>
           )}
 
+          {/* Lifestyle — only shown if the user filled in at least one field */}
+          {(profile?.alcohol || profile?.drugs || profile?.workout_level || profile?.hobbies) && (
+            <View style={[styles.section, { backgroundColor: colors.surface }, isNewTheme ? styles.sectionNew : styles.sectionEditorial]}>
+              <Text style={[styles.sectionTitle, isNewTheme ? styles.sectionTitleNew : { color: colors.textPrimary, fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3 }]}>Lifestyle</Text>
+              {([
+                { label: 'Alcohol', value: profile?.alcohol },
+                { label: 'Drugs', value: profile?.drugs },
+                { label: 'Workout', value: profile?.workout_level },
+                { label: 'Hobbies', value: profile?.hobbies },
+              ] as { label: string; value?: string }[]).filter(r => r.value).map(r => (
+                <View key={r.label} style={styles.infoRow}>
+                  <Text style={[styles.infoLabel, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{r.label}</Text>
+                  <Text style={[styles.infoValue, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{r.value}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
           {renderSocialLinks()}
         </>
       )}

@@ -47,6 +47,11 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
   const [college, setCollege] = useState('');
   const [work, setWork] = useState('');
   const [bio, setBio] = useState('');
+  // Optional lifestyle fields
+  const [alcohol, setAlcohol] = useState('');
+  const [drugs, setDrugs] = useState('');
+  const [workoutLevel, setWorkoutLevel] = useState('');
+  const [hobbies, setHobbies] = useState('');
   const [instagram, setInstagram] = useState('');
   const [linkedin, setLinkedin] = useState('');
   const [facebook, setFacebook] = useState('');
@@ -79,6 +84,10 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
         setCollege(data.college || '');
         setWork(data.work || '');
         setBio(data.bio || '');
+        setAlcohol(data.alcohol || '');
+        setDrugs(data.drugs || '');
+        setWorkoutLevel(data.workout_level || '');
+        setHobbies(data.hobbies || '');
         setInstagram(data.instagram || '');
         setLinkedin(data.linkedin || '');
         setFacebook(data.facebook || '');
@@ -207,6 +216,10 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
           college: college || null,
           work: work || null,
           bio: bio || null,
+          alcohol: alcohol || null,
+          drugs: drugs || null,
+          workout_level: workoutLevel || null,
+          hobbies: hobbies || null,
           instagram: instagram || null,
           linkedin: linkedin || null,
           facebook: facebook || null,
@@ -361,6 +374,47 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
             onChangeText={setBio}
             multiline
             numberOfLines={4}
+          />
+
+          <Text style={[styles.sectionTitle, !isNewTheme && { color: colors.textPrimary, fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3 }]}>Lifestyle</Text>
+          <Text style={[styles.label, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', marginTop: 0 }]}>All optional — share only what you want.</Text>
+
+          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Alcohol</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: isNewTheme ? colors.surface : 'transparent', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
+            placeholder="e.g., Never, Socially, Regularly"
+            placeholderTextColor={colors.textTertiary}
+            value={alcohol}
+            onChangeText={setAlcohol}
+          />
+
+          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Drugs</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: isNewTheme ? colors.surface : 'transparent', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
+            placeholder="e.g., Never, Sometimes, 420-friendly"
+            placeholderTextColor={colors.textTertiary}
+            value={drugs}
+            onChangeText={setDrugs}
+          />
+
+          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Workout activity level</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: isNewTheme ? colors.surface : 'transparent', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
+            placeholder="e.g., Sedentary, Active, Gym rat"
+            placeholderTextColor={colors.textTertiary}
+            value={workoutLevel}
+            onChangeText={setWorkoutLevel}
+          />
+
+          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Favorite hobbies</Text>
+          <TextInput
+            style={[styles.input, styles.textArea, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
+            placeholder="e.g., Hiking, cooking, guitar, climbing"
+            placeholderTextColor={colors.textTertiary}
+            value={hobbies}
+            onChangeText={setHobbies}
+            multiline
+            numberOfLines={3}
           />
 
           <Text style={[styles.sectionTitle, !isNewTheme && { color: colors.textPrimary, fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3 }]}>Social Links</Text>
