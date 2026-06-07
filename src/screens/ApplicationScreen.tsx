@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Platform, StatusBar } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,6 +10,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
 import GradientBackground from '../components/ui/GradientBackground';
+import KeyboardAwareScreen from '../components/ui/KeyboardAwareScreen';
 import { AppAlert } from '../components/ui/AppAlert';
 
 interface Props {
@@ -24,20 +25,10 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
   const colors = theme.colors;
   const themedStyles = getThemedStyles(colors, isNewTheme);
 
-  const scrollViewRef = useRef<ScrollView>(null);
   const [answers, setAnswers] = useState<{ [key: number]: string }>({});
   const [targetedRoles, setTargetedRoles] = useState<string[]>([]);
   const podRoles: string[] = Array.isArray(pursuit.roles) ? pursuit.roles : [];
 
-  const scrollToQuestion = (index: number) => {
-    // Simple scroll based on estimated question position
-    // Each question block is approximately 180px tall
-    const estimatedY = 200 + (index * 180);
-    scrollViewRef.current?.scrollTo({
-      y: Math.max(0, estimatedY - 100),
-      animated: true,
-    });
-  };
   const [loading, setLoading] = useState(false);
   const [resumeFile, setResumeFile] = useState<{
     uri: string;
@@ -199,14 +190,13 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
         <Text style={[styles.title, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold' }]}>Apply to Pod</Text>
       </View>
 
-      <ScrollView
-        ref={scrollViewRef}
+      <KeyboardAwareScreen
+        mode="replace-scrollview"
         style={styles.scrollView}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
         contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 }]}
         showsVerticalScrollIndicator={true}
-        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
       >
         <View style={styles.content}>
           <View style={[styles.pursuitCard, { backgroundColor: isNewTheme ? colors.surface : '#FFFFFF', borderLeftColor: isNewTheme ? colors.accentGreen : '#4B9CD3', borderColor: colors.border, borderWidth: isNewTheme ? StyleSheet.hairlineWidth : 1 }]}>
@@ -284,12 +274,6 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
                   numberOfLines={4}
                   spellCheck={true}
                   autoCorrect={true}
-                  onFocus={() => {
-                    // Scroll to make this specific question visible
-                    setTimeout(() => {
-                      scrollToQuestion(index);
-                    }, 100);
-                  }}
                 />
               </View>
             ))}
@@ -401,7 +385,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
             )}
           </TouchableOpacity>
         </View>
-      </ScrollView>
+      </KeyboardAwareScreen>
     </GradientBackground>
   );
 }

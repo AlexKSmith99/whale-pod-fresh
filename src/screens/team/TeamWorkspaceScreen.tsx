@@ -41,6 +41,7 @@ import WebRichTextEditor from '../../components/WebRichTextEditor';
 import { useTheme } from '../../theme/ThemeContext';
 import { getThemedStyles } from '../../theme/themedStyles';
 import GrainTexture from '../../components/ui/GrainTexture';
+import KeyboardAwareScreen from '../../components/ui/KeyboardAwareScreen';
 import { AppAlert } from '../../components/ui/AppAlert';
 import { colors as legacyColors, typography, spacing, borderRadius, shadows, editorial } from '../../theme/designSystem';
 
@@ -1587,7 +1588,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
           )}
         </View>
 
-        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}>
+        <KeyboardAwareScreen mode="replace-scrollview" style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}>
           <Text style={[sectionLabel, { marginBottom: 8, marginTop: 8 }]}>Mission</Text>
           <TextInput
             style={[styles.podDocInput, editorialTextarea]}
@@ -1623,7 +1624,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
             textAlignVertical="top"
             editable={canEdit}
           />
-        </ScrollView>
+        </KeyboardAwareScreen>
       </View>
     );
   };

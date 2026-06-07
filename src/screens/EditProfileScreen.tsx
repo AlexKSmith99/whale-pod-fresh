@@ -19,6 +19,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
 import GradientBackground from '../components/ui/GradientBackground';
+import KeyboardAwareScreen from '../components/ui/KeyboardAwareScreen';
 import { AppAlert } from '../components/ui/AppAlert';
 import { colors as legacyColors, editorial } from '../theme/designSystem';
 
@@ -251,7 +252,7 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.scrollView}>
+      <KeyboardAwareScreen mode="replace-scrollview" style={styles.scrollView}>
         <View style={styles.content}>
           <Text style={[styles.sectionTitle, !isNewTheme && { color: colors.textPrimary, fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3 }]}>Photos</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
@@ -414,7 +415,7 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
             autoCapitalize="none"
           />
         </View>
-      </ScrollView>
+      </KeyboardAwareScreen>
     </GradientBackground>
   );
 }

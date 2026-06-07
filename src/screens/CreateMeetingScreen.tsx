@@ -12,6 +12,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
 import { AppAlert } from '../components/ui/AppAlert';
+import KeyboardAwareScreen from '../components/ui/KeyboardAwareScreen';
 
 interface Props {
   onClose: () => void;
@@ -379,7 +380,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
         <View style={{ width: 28 }} />
       </View>
 
-      <ScrollView style={styles.scrollView}>
+      <KeyboardAwareScreen mode="replace-scrollview" style={styles.scrollView}>
         <View style={styles.form}>
           {/* Pod Selection - First field */}
           <Text style={[styles.label, (isNewTheme ? darkLabel : lightLabel), { marginTop: 0 }]}>Pod *</Text>
@@ -716,7 +717,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
             </Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
+      </KeyboardAwareScreen>
 
       {/* Pursuit Selection Modal */}
       <Modal

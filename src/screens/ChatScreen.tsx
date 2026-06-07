@@ -12,6 +12,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { KeyboardStickyView } from '../components/ui/KeyboardAwareScreen';
 import { useAuth } from '../contexts/AuthContext';
 import { messageService } from '../services/messageService';
 import { messageLikeService } from '../services/messageLikeService';
@@ -583,21 +584,24 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
         />
       </View>
 
-      <View style={dynamicStyles.inputContainer}>
-        <TextInput
-          style={dynamicStyles.input}
-          placeholder="Type a message..."
-          placeholderTextColor={colors.textTertiary}
-          value={newMessage}
-          onChangeText={setNewMessage}
-          multiline
-          spellCheck={true}
-          autoCorrect={true}
-        />
-        <TouchableOpacity style={dynamicStyles.sendButton} activeOpacity={0.85} onPress={handleSend}>
-          <Ionicons name="send" size={20} color={isNewTheme ? colors.background : legacyColors.white} />
-        </TouchableOpacity>
-      </View>
+      {/* Composer rides the keyboard's top edge (inverted list keeps layout) */}
+      <KeyboardStickyView>
+        <View style={dynamicStyles.inputContainer}>
+          <TextInput
+            style={dynamicStyles.input}
+            placeholder="Type a message..."
+            placeholderTextColor={colors.textTertiary}
+            value={newMessage}
+            onChangeText={setNewMessage}
+            multiline
+            spellCheck={true}
+            autoCorrect={true}
+          />
+          <TouchableOpacity style={dynamicStyles.sendButton} activeOpacity={0.85} onPress={handleSend}>
+            <Ionicons name="send" size={20} color={isNewTheme ? colors.background : legacyColors.white} />
+          </TouchableOpacity>
+        </View>
+      </KeyboardStickyView>
 
       {/* Options Menu Modal */}
       <Modal

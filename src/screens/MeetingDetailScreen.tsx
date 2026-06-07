@@ -10,6 +10,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
 import { AppAlert } from '../components/ui/AppAlert';
+import KeyboardAwareScreen from '../components/ui/KeyboardAwareScreen';
 
 // Editorial light-mode helpers.
 const lightLabel = {
@@ -463,7 +464,7 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.scrollView} keyboardShouldPersistTaps="handled">
+        <KeyboardAwareScreen mode="replace-scrollview" style={styles.scrollView} keyboardShouldPersistTaps="handled">
           <View style={styles.editForm}>
             <Text style={[styles.editLabel, (isNewTheme ? darkLabel : lightLabel)]}>Title *</Text>
             <TextInput
@@ -587,7 +588,7 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
               </>
             )}
           </View>
-        </ScrollView>
+        </KeyboardAwareScreen>
       </View>
     );
   }

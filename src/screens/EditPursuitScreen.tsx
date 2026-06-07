@@ -19,6 +19,7 @@ import { pursuitService } from '../services/pursuitService';
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
+import KeyboardAwareScreen from '../components/ui/KeyboardAwareScreen';
 import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
 
 const countWords = (s: string): number =>
@@ -272,7 +273,7 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
         <View style={{ width: 28 }} />
       </View>
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+      <KeyboardAwareScreen mode="replace-scrollview" style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Title */}
         <View style={styles.section}>
           <Text style={[styles.label, { color: colors.textPrimary, fontFamily: bodyFont }]}>
@@ -447,7 +448,7 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
         </TouchableOpacity>
 
         <View style={{ height: 40 }} />
-      </ScrollView>
+      </KeyboardAwareScreen>
     </View>
   );
 }

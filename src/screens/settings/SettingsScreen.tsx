@@ -16,8 +16,6 @@ import {
   Switch,
   Modal,
   TextInput,
-  KeyboardAvoidingView,
-  Platform,
   Linking,
   StatusBar,
 } from 'react-native';
@@ -26,6 +24,7 @@ import Constants from 'expo-constants';
 import { useTheme } from '../../theme/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { AppAlert } from '../../components/ui/AppAlert';
+import KeyboardAwareScreen from '../../components/ui/KeyboardAwareScreen';
 import NotificationPrefsScreen from './NotificationPrefsScreen';
 import ShareWhalePodScreen from './ShareWhalePodScreen';
 import AboutScreen from './AboutScreen';
@@ -140,7 +139,7 @@ export default function SettingsScreen({ onBack, onAccountDetails, onVisibility,
 
       {/* ── share an idea or bug — bottom sheet ───────────────────────── */}
       <Modal visible={showFeedback} transparent animationType="slide" onRequestClose={() => setShowFeedback(false)}>
-        <KeyboardAvoidingView style={styles.sheetWrap} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <KeyboardAwareScreen mode="pinned" style={styles.sheetWrap}>
           <TouchableOpacity style={{ flex: 1 }} onPress={() => setShowFeedback(false)} activeOpacity={1} />
           <View style={[styles.sheet, { backgroundColor: isNewTheme ? '#161616' : '#FFFFFF' }, !isNewTheme && { borderWidth: 1, borderColor: t.hairline }]}>
             <Text style={[styles.sheetTitle, { color: t.text, fontFamily: t.titleFont }, !isNewTheme && { letterSpacing: -0.5 }]}>share an idea or bug</Text>
@@ -180,7 +179,7 @@ export default function SettingsScreen({ onBack, onAccountDetails, onVisibility,
               </TouchableOpacity>
             </View>
           </View>
-        </KeyboardAvoidingView>
+        </KeyboardAwareScreen>
       </Modal>
 
       {/* ── delete account — bottom sheet ──────────────────────────────── */}

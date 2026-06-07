@@ -5,10 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  Keyboard,
-  TouchableWithoutFeedback,
   Animated,
   Dimensions,
   ActivityIndicator,
@@ -21,6 +17,7 @@ import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
 import { editorial } from '../theme/designSystem';
 import { AppAlert } from '../components/ui/AppAlert';
+import KeyboardAwareScreen from '../components/ui/KeyboardAwareScreen';
 
 const { height } = Dimensions.get('window');
 
@@ -190,12 +187,7 @@ export default function VerifyEmailScreen({ email, onVerify, onResendCode, onBac
         </>
       )}
 
-      <KeyboardAvoidingView
-        style={styles.keyboardView}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={styles.content}>
+      <KeyboardAwareScreen mode="scroll" style={styles.keyboardView} contentContainerStyle={styles.content}>
             {/* Back Button — plain outline glyph in light (no filled circle); dark unchanged */}
             <TouchableOpacity
               style={[
@@ -331,9 +323,7 @@ export default function VerifyEmailScreen({ email, onVerify, onResendCode, onBac
                 Check your spam folder if you don't see the email
               </Text>
             </Animated.View>
-          </View>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScreen>
     </View>
   );
 }
@@ -377,7 +367,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: spacing['2xl'],
     paddingTop: height * 0.06,
   },

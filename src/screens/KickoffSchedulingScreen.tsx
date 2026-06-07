@@ -14,6 +14,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
 import { AppAlert } from '../components/ui/AppAlert';
+import KeyboardAwareScreen from '../components/ui/KeyboardAwareScreen';
 
 interface Props {
   pursuitId: string;
@@ -369,7 +370,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
         <View style={{ width: 28 }} />
       </View>
 
-      <ScrollView style={styles.scrollView}>
+      <KeyboardAwareScreen mode="replace-scrollview" style={styles.scrollView}>
         <View style={styles.content}>
           <View style={[
             styles.introSection,
@@ -721,7 +722,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
             </>
           )}
         </View>
-      </ScrollView>
+      </KeyboardAwareScreen>
 
       {/* Success Modal with Pod Chat Message Option */}
       <Modal

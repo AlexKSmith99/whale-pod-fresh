@@ -13,6 +13,7 @@ import { PURSUIT_TYPES } from '../constants/pursuitTypes';
 import { US_CITIES } from '../constants/usCities';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppAlert } from '../components/ui/AppAlert';
+import KeyboardAwareScreen from '../components/ui/KeyboardAwareScreen';
 import { editorial } from '../theme/designSystem';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -492,7 +493,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
     <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
       <View style={styles.stepInner}>
         {renderStepHeader(0)}
-        <View style={styles.contentArea}>
+        <KeyboardAwareScreen mode="scroll" style={styles.contentArea} contentContainerStyle={{ paddingTop: 8 }}>
           <TextInput
             style={[styles.largeInput, focusedField === 'first' && styles.largeInputFocused]}
             placeholder="First name"
@@ -516,8 +517,8 @@ export default function OnboardingScreen({ onComplete }: Props) {
             onFocus={() => setFocusedField('last')}
             onBlur={() => setFocusedField(null)}
           />
-        </View>
-        <Text style={styles.helperText}>This is how you'll appear to your pod mates</Text>
+          <Text style={styles.helperText}>This is how you'll appear to your pod mates</Text>
+        </KeyboardAwareScreen>
         {renderBottomNav()}
       </View>
     </View>
@@ -624,7 +625,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
       <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
         <View style={styles.stepInner}>
           {renderStepHeader(2)}
-          <View style={styles.contentArea}>
+          <KeyboardAwareScreen mode="scroll" style={styles.contentArea} contentContainerStyle={{ paddingTop: 8 }}>
             <View style={styles.dateRow}>
               <TextInput
                 style={[styles.dateField, focusedField === 'bMonth' && styles.inputFocused]}
@@ -679,7 +680,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
                 }}
               />
             </View>
-          </View>
+          </KeyboardAwareScreen>
           <Text style={styles.helperText}>We only show your age on your profile.</Text>
           {renderBottomNav()}
         </View>
@@ -693,7 +694,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
       <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
         <View style={styles.stepInner}>
           {renderStepHeader(3)}
-          <View style={styles.contentArea}>
+          <KeyboardAwareScreen mode="scroll" style={styles.contentArea} contentContainerStyle={{ paddingTop: 8 }}>
             <View style={styles.genderPills}>
               {genderOptions.map(option => (
                 <TouchableOpacity
@@ -726,7 +727,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
                 onBlur={() => setFocusedField(null)}
               />
             )}
-          </View>
+          </KeyboardAwareScreen>
           <Text style={styles.helperText}>Used for personalizing your experience</Text>
           {renderBottomNav()}
         </View>
@@ -742,7 +743,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
     <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
       <View style={styles.stepInner}>
         {renderStepHeader(4)}
-        <View style={styles.contentArea}>
+        <KeyboardAwareScreen mode="scroll" style={styles.contentArea} contentContainerStyle={{ paddingTop: 8 }}>
           <TextInput
             style={[styles.largeInput, focusedField === 'hometown' && styles.largeInputFocused]}
             placeholder="City, State"
@@ -768,7 +769,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
               ))}
             </View>
           )}
-        </View>
+        </KeyboardAwareScreen>
         <Text style={styles.helperText}>Helps match you with local pods.</Text>
         {renderBottomNav()}
       </View>
@@ -779,7 +780,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
     <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
       <View style={styles.stepInner}>
         {renderStepHeader(5)}
-        <View style={styles.contentArea}>
+        <KeyboardAwareScreen mode="scroll" style={styles.contentArea} contentContainerStyle={{ paddingTop: 8 }}>
           <TextInput
             style={[styles.emailInput, focusedField === 'email' && styles.inputFocused]}
             placeholder="your@email.com"
@@ -793,7 +794,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
             onFocus={() => setFocusedField('email')}
             onBlur={() => setFocusedField(null)}
           />
-        </View>
+        </KeyboardAwareScreen>
         <Text style={styles.helperText}>For account recovery and pod updates.</Text>
         {renderBottomNav()}
       </View>
@@ -804,7 +805,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
     <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
       <View style={styles.stepInner}>
         {renderStepHeader(6)}
-        <View style={styles.contentArea}>
+        <KeyboardAwareScreen mode="scroll" style={styles.contentArea} contentContainerStyle={{ paddingTop: 8 }}>
           <View style={styles.socialRow}>
             <Text style={styles.socialLabel}>Instagram</Text>
             <TextInput
@@ -834,7 +835,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
               onBlur={() => setFocusedField(null)}
             />
           </View>
-        </View>
+        </KeyboardAwareScreen>
         <Text style={styles.helperText}>
           Socials are used to ensure every person on Whale Pod is real. This is required for verification, but will not be shown on your profile.
         </Text>
@@ -847,7 +848,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
     <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
       <View style={styles.stepInner}>
         {renderStepHeader(7)}
-        <View style={styles.contentArea}>
+        <KeyboardAwareScreen mode="scroll" style={styles.contentArea} contentContainerStyle={{ paddingTop: 8 }}>
           <View style={styles.aboutYouField}>
             <Text style={styles.aboutYouLabel}>Bio</Text>
             <TextInput
@@ -889,7 +890,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
               onBlur={() => setFocusedField(null)}
             />
           </View>
-        </View>
+        </KeyboardAwareScreen>
         <Text style={styles.helperText}>All optional — you can always add these later.</Text>
         {renderBottomNav()}
       </View>
@@ -1103,33 +1104,30 @@ export default function OnboardingScreen({ onComplete }: Props) {
         end={{ x: 0.5, y: 1 }}
       />
 
-      <KeyboardAvoidingView
+      {/* Horizontal pager. Per-step keyboard avoidance is handled by the
+          KeyboardAwareScreen wrapper inside each step's content area, so no
+          outer KeyboardAvoidingView is needed (it would double-handle). */}
+      <ScrollView
+        ref={scrollViewRef}
+        horizontal
+        pagingEnabled
+        scrollEnabled={false}
+        showsHorizontalScrollIndicator={false}
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
       >
-        <ScrollView
-          ref={scrollViewRef}
-          horizontal
-          pagingEnabled
-          scrollEnabled={false}
-          showsHorizontalScrollIndicator={false}
-          style={{ flex: 1 }}
-        >
-          {renderNameStep()}
-          {renderPhotoStep()}
-          {renderBirthdayStep()}
-          {renderGenderStep()}
-          {renderLocationStep()}
-          {renderEmailStep()}
-          {renderSocialsStep()}
-          {renderAboutYouStep()}
-          {renderInterestsStep()}
-          {renderPreferencesStep()}
-          {renderNotificationStep()}
-          {renderWelcomeStep()}
-        </ScrollView>
-      </KeyboardAvoidingView>
+        {renderNameStep()}
+        {renderPhotoStep()}
+        {renderBirthdayStep()}
+        {renderGenderStep()}
+        {renderLocationStep()}
+        {renderEmailStep()}
+        {renderSocialsStep()}
+        {renderAboutYouStep()}
+        {renderInterestsStep()}
+        {renderPreferencesStep()}
+        {renderNotificationStep()}
+        {renderWelcomeStep()}
+      </ScrollView>
     </View>
   );
 }

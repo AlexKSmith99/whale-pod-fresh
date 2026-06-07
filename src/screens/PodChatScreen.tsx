@@ -13,6 +13,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { KeyboardStickyView } from '../components/ui/KeyboardAwareScreen';
 import { useAuth } from '../contexts/AuthContext';
 import PodMemberCollage from '../components/PodMemberCollage';
 import { podChatService, PodChatMessage } from '../services/podChatService';
@@ -510,21 +511,24 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
               }
             />
           </View>
-          <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
-            <TextInput
-              style={[styles.input, { borderWidth: isNewTheme ? 0 : 1, borderColor: colors.border, color: colors.textPrimary, backgroundColor: isNewTheme ? colors.background : editorial.surface, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
-              placeholder="Type a message..."
-              placeholderTextColor={colors.textTertiary}
-              value={newMessage}
-              onChangeText={setNewMessage}
-              multiline
-              spellCheck={true}
-              autoCorrect={true}
-            />
-            <TouchableOpacity style={[styles.sendButton, { backgroundColor: isNewTheme ? colors.accentGreen : editorial.carolina }]} activeOpacity={0.85} onPress={handleSend}>
-              <Ionicons name="send" size={20} color={isNewTheme ? colors.background : '#fff'} />
-            </TouchableOpacity>
-          </View>
+          {/* Composer rides the keyboard's top edge (inverted list keeps layout) */}
+          <KeyboardStickyView>
+            <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+              <TextInput
+                style={[styles.input, { borderWidth: isNewTheme ? 0 : 1, borderColor: colors.border, color: colors.textPrimary, backgroundColor: isNewTheme ? colors.background : editorial.surface, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
+                placeholder="Type a message..."
+                placeholderTextColor={colors.textTertiary}
+                value={newMessage}
+                onChangeText={setNewMessage}
+                multiline
+                spellCheck={true}
+                autoCorrect={true}
+              />
+              <TouchableOpacity style={[styles.sendButton, { backgroundColor: isNewTheme ? colors.accentGreen : editorial.carolina }]} activeOpacity={0.85} onPress={handleSend}>
+                <Ionicons name="send" size={20} color={isNewTheme ? colors.background : '#fff'} />
+              </TouchableOpacity>
+            </View>
+          </KeyboardStickyView>
         </>
       )}
 

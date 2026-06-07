@@ -5,11 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  KeyboardAvoidingView,
-  ScrollView,
-  Platform,
-  Keyboard,
-  TouchableWithoutFeedback,
   Animated,
   Dimensions,
   StatusBar,
@@ -28,6 +23,7 @@ import {
 } from '@expo-google-fonts/sora';
 import { editorial } from '../theme/designSystem';
 import { AppAlert } from '../components/ui/AppAlert';
+import KeyboardAwareScreen from '../components/ui/KeyboardAwareScreen';
 
 const { height } = Dimensions.get('window');
 
@@ -292,9 +288,7 @@ export default function LoginScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={C.bg} />
 
-      <KeyboardAvoidingView style={styles.flex1} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <KeyboardAwareScreen mode="replace-scrollview" style={styles.flex1} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <Animated.View style={[styles.logoSection, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
               <Image source={whaleLogo} style={styles.logo} resizeMode="contain" />
               <Text style={styles.appName}>whale pod</Text>
@@ -594,9 +588,7 @@ export default function LoginScreen() {
                 By continuing, you agree to our Terms of Service{'\n'}and Privacy Policy
               </Text>
             </Animated.View>
-          </ScrollView>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScreen>
     </View>
   );
 }

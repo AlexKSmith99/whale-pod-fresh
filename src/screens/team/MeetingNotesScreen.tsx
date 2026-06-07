@@ -16,6 +16,7 @@ import { getMeetingNotes, createMeetingNote, updateMeetingNote, deleteMeetingNot
 import { useTheme } from '../../theme/ThemeContext';
 import { getThemedStyles } from '../../theme/themedStyles';
 import GrainTexture from '../../components/ui/GrainTexture';
+import KeyboardAwareScreen from '../../components/ui/KeyboardAwareScreen';
 import { colors as legacyColors, typography, spacing, borderRadius, shadows, editorial } from '../../theme/designSystem';
 
 interface MeetingNotesScreenProps {
@@ -198,7 +199,7 @@ export default function MeetingNotesScreen({ pursuitId, onBack }: MeetingNotesSc
 
       {/* Add Note Modal */}
       <Modal visible={showAddModal} animationType="slide" transparent>
-        <View style={styles.modalContainer}>
+        <KeyboardAwareScreen mode="pinned" style={styles.modalContainer}>
           <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <Text style={[styles.modalTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold' }, !isNewTheme && { letterSpacing: -0.3 }]}>New Meeting Note</Text>
 
@@ -263,7 +264,7 @@ export default function MeetingNotesScreen({ pursuitId, onBack }: MeetingNotesSc
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAwareScreen>
       </Modal>
 
       {/* Detail Modal */}
