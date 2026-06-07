@@ -1403,12 +1403,14 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
   const buildMeetingHeadersHtml = () => {
     const upcomingMeetings = podMeetings.filter(m => new Date(m.scheduled_time) >= new Date());
     const pastMeetings = podMeetings.filter(m => new Date(m.scheduled_time) < new Date()).slice(0, 5);
+    // Meeting section headers: bright neon lime in dark mode, muted gray in light.
+    const headerColor = isNewTheme ? '#C8FF6B' : '#8A8A85';
     let html = '';
     upcomingMeetings.forEach((m) => {
-      html += `<p style="margin:10px 0 2px; font-size:13px; color:#8A8A85; font-style:italic;">${m.title} — ${formatMeetingDateTime(m.scheduled_time)}</p>`;
+      html += `<p style="margin:10px 0 2px; font-size:13px; color:${headerColor}; font-style:italic;">${m.title} — ${formatMeetingDateTime(m.scheduled_time)}</p>`;
     });
     pastMeetings.forEach((m) => {
-      html += `<p style="margin:10px 0 2px; font-size:13px; color:#8A8A85; font-style:italic; opacity:0.55;">${m.title} — ${formatMeetingDateTime(m.scheduled_time)}</p>`;
+      html += `<p style="margin:10px 0 2px; font-size:13px; color:${headerColor}; font-style:italic; opacity:0.7;">${m.title} — ${formatMeetingDateTime(m.scheduled_time)}</p>`;
     });
     return html;
   };
