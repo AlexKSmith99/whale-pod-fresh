@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { meetingService } from '../services/meetingService';
 import { agoraService } from '../services/agoraService';
 import { notificationService } from '../services/notificationService';
+import { Celebration } from '../components/ui/CelebrationOverlay';
 import { supabase } from '../config/supabase';
 import { podChatService } from '../services/podChatService';
 import { colors as legacyColors, typography, spacing, borderRadius, shadows, editorial } from '../theme/designSystem';
@@ -271,6 +272,18 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
     );
   };
 
+  // Creator-side milestone celebration — fires once the success modal has
+  // dismissed (a JS overlay can't present above an open native Modal).
+  const fireKickoffCelebration = () => {
+    setTimeout(() => {
+      Celebration.show({
+        kicker: 'Kickoff Scheduled',
+        headline: "It's happening!!",
+        message: `"${pursuitTitle}" is officially in motion — big things ahead!`,
+      });
+    }, 450);
+  };
+
   const handleSendPodChatMessage = async () => {
     try {
       const message = `Hey guys I scheduled our kick-off meeting for ${scheduledDateTimeText}`;
@@ -284,6 +297,8 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
       setShowSuccessModal(false);
       onScheduled();
       onClose();
+    } finally {
+      fireKickoffCelebration();
     }
   };
 
@@ -291,6 +306,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
     setShowSuccessModal(false);
     onScheduled();
     onClose();
+    fireKickoffCelebration();
   };
 
   // Group time slots by date and time for calendar view

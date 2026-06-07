@@ -9,6 +9,7 @@ import { appFonts } from './src/constants/fonts';
 import { queryClient } from './src/config/queryClient';
 import ThemeTransitionWrapper from './src/components/ThemeTransitionWrapper';
 import { AppAlertHost } from './src/components/ui/AppAlert';
+import { CelebrationHost } from './src/components/ui/CelebrationOverlay';
 import AppContent from './src/AppContent';
 import './src/utils/enableTextSelection';
 
@@ -53,6 +54,7 @@ export default function App() {
           <AppContent />
           <ThemeTransitionWrapper />
           <AppAlertHost />
+          <CelebrationHost />
           <StatusBar style="auto" />
         </AuthProvider>
       </ThemeProvider>

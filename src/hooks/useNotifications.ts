@@ -3,8 +3,35 @@ import { supabase } from '../config/supabase';
 import { notificationService } from '../services/notificationService';
 import { messageService } from '../services/messageService';
 import { podChatService } from '../services/podChatService';
+import { Celebration, CelebrationConfig } from '../components/ui/CelebrationOverlay';
 
 type Setter = (value: any) => void;
+
+// Milestone notifications get the full-screen confetti celebration instead of
+// a toast. (The creator's own kickoff celebration fires from
+// KickoffSchedulingScreen directly, so 'kickoff_scheduled_creator' stays a toast.)
+function celebrationForNotification(n: any): CelebrationConfig | null {
+  const podName = /"([^"]+)"/.exec(n?.title || '')?.[1];
+  if (n?.type === 'application_accepted') {
+    return {
+      kicker: 'Pod Accepted',
+      headline: "You're in!!",
+      message: podName
+        ? `Welcome to "${podName}" — let's make it happen!`
+        : "Welcome to the pod — let's make it happen!",
+    };
+  }
+  if (n?.type === 'kickoff_scheduled_team') {
+    return {
+      kicker: 'Kickoff Scheduled',
+      headline: "It's official!!",
+      message: podName
+        ? `The "${podName}" kickoff is locked in. See you there!`
+        : 'Your pod kickoff is locked in. See you there!',
+    };
+  }
+  return null;
+}
 
 export function useNotifications(
   auth: any,
@@ -114,15 +141,20 @@ export function useNotifications(
         const mostRecent = unreadNotifications[0];
         console.log('🔔 Found unread notification on login:', mostRecent);
 
-        // Show toast for most recent unread notification
-        setCurrentToast({
-          title: mostRecent.title,
-          body: mostRecent.body,
-          type: mostRecent.type,
-          id: mostRecent.id,
-          notificationId: mostRecent.id,
-          data: mostRecent.data,
-        });
+        // Milestones celebrate full-screen; everything else gets a toast
+        const celebration = celebrationForNotification(mostRecent);
+        if (celebration) {
+          Celebration.show(celebration);
+        } else {
+          setCurrentToast({
+            title: mostRecent.title,
+            body: mostRecent.body,
+            type: mostRecent.type,
+            id: mostRecent.id,
+            notificationId: mostRecent.id,
+            data: mostRecent.data,
+          });
+        }
       } else {
         // No regular notifications, check for unread messages
         await checkForUnreadMessages();
@@ -194,15 +226,20 @@ export function useNotifications(
 
             // Don't show toast for message notifications (those only show badge)
             if (newNotification.type !== 'message' && newNotification.type !== 'new_message') {
-              // Show toast - include data for navigation
-              setCurrentToast({
-                title: newNotification.title,
-                body: newNotification.body,
-                type: newNotification.type,
-                id: newNotification.id,
-                notificationId: newNotification.id,
-                data: newNotification.data, // Include data for interview navigation
-              });
+              // Milestones celebrate full-screen; everything else gets a toast
+              const celebration = celebrationForNotification(newNotification);
+              if (celebration) {
+                Celebration.show(celebration);
+              } else {
+                setCurrentToast({
+                  title: newNotification.title,
+                  body: newNotification.body,
+                  type: newNotification.type,
+                  id: newNotification.id,
+                  notificationId: newNotification.id,
+                  data: newNotification.data, // Include data for interview navigation
+                });
+              }
             }
 
             // Refresh badge counts
