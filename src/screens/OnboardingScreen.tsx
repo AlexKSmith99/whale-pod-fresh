@@ -60,6 +60,13 @@ export default function OnboardingScreen({ onComplete }: Props) {
   const scrollViewRef = useRef<ScrollView>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
+  // Onboarding always renders in the light editorial style regardless of the
+  // saved theme — keep pop-up alerts matching it while mounted.
+  useEffect(() => {
+    AppAlert.setThemeOverride('light');
+    return () => AppAlert.setThemeOverride(null);
+  }, []);
+
   const [currentStep, setCurrentStep] = useState(0);
   // Tracks the focused underline input so it can take the Carolina focus rule.
   const [focusedField, setFocusedField] = useState<string | null>(null);

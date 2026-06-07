@@ -82,6 +82,13 @@ export default function LoginScreen() {
     ]).start();
   }, []);
 
+  // This screen always renders in the light editorial style regardless of the
+  // saved theme — keep pop-up alerts matching it while mounted.
+  useEffect(() => {
+    AppAlert.setThemeOverride('light');
+    return () => AppAlert.setThemeOverride(null);
+  }, []);
+
   useEffect(() => {
     if (phoneCooldown > 0) {
       const timer = setTimeout(() => setPhoneCooldown(phoneCooldown - 1), 1000);

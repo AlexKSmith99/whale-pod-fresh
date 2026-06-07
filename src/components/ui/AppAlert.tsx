@@ -51,7 +51,14 @@ interface AlertRequest {
 let showAlert: ((req: AlertRequest) => void) | null = null;
 const pendingQueue: AlertRequest[] = [];
 
+// Screens that always render one theme regardless of the saved theme mode
+// (login, onboarding) set this while mounted so alerts match what's on screen.
+let themeOverride: 'light' | 'dark' | null = null;
+
 export const AppAlert = {
+  setThemeOverride(mode: 'light' | 'dark' | null) {
+    themeOverride = mode;
+  },
   alert(
     title: string,
     message?: string,
@@ -126,7 +133,7 @@ export function AppAlertHost() {
 
   if (!current) return null;
 
-  const dark = isNewTheme;
+  const dark = themeOverride ? themeOverride === 'dark' : isNewTheme;
   const colors = theme.colors;
 
   const card = {
