@@ -728,14 +728,17 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
     );
   }
 
-  if (showUserProfile && onViewProfile && onSendMessage) {
+  // Render the inline profile whenever a member is tapped — regardless of
+  // which optional callbacks the parent passed, so team members are always
+  // tappable links (feed, pods, chats, notifications paths alike).
+  if (showUserProfile) {
     // Create navigation object to match UserProfileScreen expectations
     const navigation = {
       navigate: (screen: string, params?: any) => {
         if (screen === 'Chat' && params?.partnerId) {
           setShowUserProfile(false);
           setSelectedMemberId(null);
-          onSendMessage(params.partnerId, params.partnerEmail || 'User');
+          onSendMessage?.(params.partnerId, params.partnerEmail || 'User');
         }
       },
       goBack: () => {

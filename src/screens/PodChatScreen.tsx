@@ -534,7 +534,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
           pursuit={pursuitData}
           onBack={() => setActiveView('chat')}
           isOwner={pursuitData.creator_id === user?.id}
-          navigation={navigation}
+          onSendMessage={(userId, userEmail) => navigation?.navigate('Chat', { partnerId: userId, partnerEmail: userEmail })}
         />
       )}
 
