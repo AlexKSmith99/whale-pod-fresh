@@ -288,6 +288,40 @@ const handleRejectConnection = async (connectionId: string) => {
                 thumbColor={isNewTheme ? colors.white : '#f4f3f4'}
               />
             </View>
+
+            {/* About — legal pages live here, not on the profile */}
+            <Text
+              style={isNewTheme
+                ? { fontSize: 12, color: 'rgba(255,255,255,0.45)', fontFamily: 'Sora_600SemiBold', letterSpacing: 1, textTransform: 'uppercase', marginTop: 20, marginBottom: 6, marginLeft: 4 }
+                : { fontSize: 11, color: editorial.muted, fontFamily: 'InterTight_600SemiBold', letterSpacing: 0.6, textTransform: 'uppercase', marginTop: 20, marginBottom: 6, marginLeft: 4 }}
+            >
+              About
+            </Text>
+            {([
+              { doc: 'terms', label: 'Terms of Service', icon: 'document-text-outline' as const },
+              { doc: 'privacy', label: 'Privacy Policy', icon: 'shield-outline' as const },
+              { doc: 'support', label: 'Support', icon: 'help-circle-outline' as const },
+            ]).map(item => (
+              <TouchableOpacity
+                key={item.doc}
+                style={[styles.menuItem, themedStyles.listItem]}
+                activeOpacity={0.6}
+                onPress={() => {
+                  // Close the native modal first so the Legal screen isn't
+                  // rendered underneath it
+                  setShowMenu(false);
+                  setTimeout(() => navigation?.navigate?.('Legal', { doc: item.doc }), 250);
+                }}
+              >
+                <View style={[styles.menuItemIcon, themedStyles.iconContainer, !isNewTheme && { backgroundColor: 'transparent', borderWidth: 1, borderColor: editorial.hairline }]}>
+                  <Ionicons name={item.icon} size={22} color={isNewTheme ? colors.textPrimary : editorial.ink} />
+                </View>
+                <View style={styles.menuItemContent}>
+                  <Text style={[styles.menuItemText, themedStyles.listItemTitle]}>{item.label}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+              </TouchableOpacity>
+            ))}
           </View>
         </TouchableOpacity>
       </Modal>
@@ -499,32 +533,6 @@ const handleRejectConnection = async (connectionId: string) => {
             }]}>Please add your name to complete your profile</Text>
           </View>
         )}
-
-        {/* Legal — Terms / Privacy / Support */}
-        <View style={[styles.section, themedStyles.card, { marginTop: 12 }]}>
-          <Text style={isNewTheme ? styles.sectionTitleNew : [styles.sectionTitle, themedStyles.cardTitle, { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3, color: editorial.ink }]}>Legal</Text>
-          <TouchableOpacity
-            style={[styles.legalRow, { borderBottomColor: colors.border }]}
-            onPress={() => navigation?.navigate?.('Legal', { doc: 'terms' })} activeOpacity={0.6}
-          >
-            <Text style={[styles.legalRowText, themedStyles.bodyText]}>Terms of Service</Text>
-            <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.legalRow, { borderBottomColor: colors.border }]}
-            onPress={() => navigation?.navigate?.('Legal', { doc: 'privacy' })} activeOpacity={0.6}
-          >
-            <Text style={[styles.legalRowText, themedStyles.bodyText]}>Privacy Policy</Text>
-            <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.legalRow, { borderBottomWidth: 0 }]}
-            onPress={() => navigation?.navigate?.('Legal', { doc: 'support' })} activeOpacity={0.6}
-          >
-            <Text style={[styles.legalRowText, themedStyles.bodyText]}>Support</Text>
-            <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
-          </TouchableOpacity>
-        </View>
 
         {isNewTheme ? (
           <View style={{ marginTop: 16 }}>
@@ -974,17 +982,6 @@ const styles = StyleSheet.create({
     borderRadius: 1.5,
     opacity: 0.5,
   },
-  legalRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  legalRowText: {
-    fontSize: 15,
-  },
-
   // Modern Pill Tabs - matches FeedScreen filter buttons
   tabsScrollView: {
     backgroundColor: legacyColors.white,
