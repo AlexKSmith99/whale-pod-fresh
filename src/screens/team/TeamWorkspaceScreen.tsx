@@ -174,11 +174,14 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
   const themedStyles = getThemedStyles(appColors, isNewTheme);
   const theme = getLocalTheme(isNewTheme, appColors);
 
-  // Editorial textarea chrome (light mode): white surface, 1px hairline border,
-  // radius 14, no shadow. Dark mode keeps its borderless elevated surface.
+  // Textarea chrome per theme. The static podDocInput style still carries the
+  // legacy lite-era look (Lora serif, rustic border), so both branches fully
+  // override font + chrome here.
+  // Dark (Pie): #161616 surface, hairline white border, radius 16, Sora.
+  // Light (editorial): white surface, 1px hairline border, radius 14, InterTight.
   const editorialTextarea = isNewTheme
-    ? { borderWidth: 0, backgroundColor: theme.bgElevated, color: theme.text }
-    : { backgroundColor: editorial.surface, color: theme.text, borderWidth: 1, borderColor: editorial.hairline, borderRadius: 14 };
+    ? { backgroundColor: theme.bgCard, color: theme.text, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)', borderRadius: 16, fontFamily: 'Sora_600SemiBold', fontSize: 15, lineHeight: 22 }
+    : { backgroundColor: editorial.surface, color: theme.text, borderWidth: 1, borderColor: editorial.hairline, borderRadius: 14, fontFamily: 'InterTight_600SemiBold', fontSize: 15, lineHeight: 22 };
 
   // Unified de-shouted section label (Mission / Vision / References, etc.):
   // dark = 12px Sora ls 1 rgba(255,255,255,0.45); light = 11px InterTight ls 0.6 muted.
