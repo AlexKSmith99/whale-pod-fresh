@@ -1,0 +1,10 @@
+team,season,oc_name,prev_oc_name,implied_total,sos_qb,sos_rb,sos_wr,sos_te,sos_playoff_mult
+CHI,2025,Ben Johnson,Shane Waldron,24.0,1.04,1.02,1.06,1.03,1.05
+DET,2025,John Morton,Ben Johnson,27.5,1.00,0.98,1.01,1.00,0.97
+MIA,2025,Frank Smith,Frank Smith,23.5,1.02,1.05,1.03,1.01,1.02
+GB,2025,Adam Stenavich,Adam Stenavich,24.5,0.97,0.99,0.96,0.98,0.95
+IND,2025,Shane Steichen,Shane Steichen,22.5,1.01,1.03,1.00,1.02,1.04
+CIN,2025,Dan Pitcher,Dan Pitcher,26.0,1.03,1.00,1.05,1.02,1.06
+PHI,2025,Kevin Patullo,Kellen Moore,27.0,0.98,1.01,0.97,0.99,0.96
+SF,2025,Klay Kubiak,Kyle Shanahan,26.5,1.00,1.02,1.01,1.00,1.01
+League_Average,2025,League_Average,League_Average,23.0,1.00,1.00,1.00,1.00,1.00

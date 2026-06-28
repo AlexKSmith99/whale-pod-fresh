@@ -1,0 +1,5 @@
+pandas>=1.5
+numpy>=1.24
+pyyaml>=6.0
+scikit-learn>=1.2     # for future weight calibration / back-testing
+nfl_data_py>=0.3.2    # live nflverse data (anchors); offline sample works without network

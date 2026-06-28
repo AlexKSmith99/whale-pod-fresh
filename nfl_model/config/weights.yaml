@@ -1,0 +1,73 @@
+# =============================================================================
+# nfl_model — master weight configuration
+# -----------------------------------------------------------------------------
+# Every projection modifier has the form:   M = 1 + weight * signal
+#   - `signal` is a normalized quantity, roughly in [-1, 1]
+#   - `weight` (below) is the maximum fractional swing that factor can apply
+#
+# Example: weight_oc = 0.18 means a maximal coordinator upgrade can lift a
+# player's projection by up to ~18% (and a maximal downgrade cut it ~18%).
+#
+# These are deliberately interpretable. Tune them by back-testing against
+# realized fantasy points (see nflproj/calibrate.py — future work).
+# =============================================================================
+
+# --- Global modifier sensitivities (max fractional swing per factor) ---------
+weights:
+  oc: 0.18          # offensive coordinator / scheme change
+  roster: 0.25      # vacated / added opportunity from roster moves
+  qb: 0.22          # QB-profile fit for the player's position
+  schedule: 0.10    # strength of schedule (position-specific)
+  vegas: 0.15       # team implied scoring environment
+  age: 0.12         # age curve
+
+# --- Coordinator factor tuning ----------------------------------------------
+coordinator:
+  league_avg_score: 75      # OC score treated as "neutral"
+  transition_penalty: 0.03  # flat haircut for ANY scheme turnover (Year-1 noise)
+  # How strongly each position reacts to the OC's pass-lean tendency.
+  pass_lean_sensitivity:
+    QB: 0.6
+    RB: -0.4   # run-leaning OC helps RBs, pass-leaning slightly hurts
+    WR: 0.8
+    TE: 0.7
+
+# --- QB-environment factor tuning -------------------------------------------
+# How each position consumes the QB's profile. These sub-weights are blended
+# then scaled by weights.qb above.
+qb_environment:
+  # Sensitivity of each position to each QB trait (relative to league-avg QB).
+  WR:
+    pass_volume: 0.6     # more attempts -> more WR opportunity
+    downfield: 0.4       # higher aDOT -> more WR air yards / TDs
+    scramble_drain: -0.3 # QB rushing drains team pass volume
+  TE:
+    pass_volume: 0.5
+    downfield: 0.2
+    dumpoff: 0.3         # checkdown-happy QBs feed TEs underneath
+    scramble_drain: -0.2
+  RB:
+    dumpoff: 0.7         # pass-catching RBs live on checkdowns
+    pass_volume: 0.2
+    goalline_vulture: -0.6  # QB rushing TDs steal RB goal-line scores
+    scramble_drain: -0.1
+
+# --- Schedule factor tuning -------------------------------------------------
+schedule:
+  playoff_weeks: [15, 16, 17]
+  playoff_weight: 0.45   # share of the SoS signal driven by fantasy-playoff weeks
+
+# --- Age curve tuning (position-specific peak age & decline) -----------------
+age_curve:
+  QB: {peak: 29, span: 7}
+  RB: {peak: 25, span: 4}
+  WR: {peak: 27, span: 6}
+  TE: {peak: 27, span: 6}
+
+# --- Replacement-level baselines (for Value Over Replacement / VOR) ----------
+# Rank within position treated as "freely available". Tune to league size.
+replacement_rank:
+  QB: 14
+  RB: 30
+  WR: 36
+  TE: 14
