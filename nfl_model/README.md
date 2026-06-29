@@ -82,6 +82,12 @@ spots ahead of his ADP → VALUE).
   hog reads as low-variance and a rookie in a new scheme reads as boom/bust.
 - **Value vs ADP** ranks each player against the draft market and flags
   `VALUE` / `FADE`, since leagues are won on mispriced picks, not raw points.
+- **Availability** replaces the flat game count: `proj_games` is estimated from
+  position injury rates, age, and last year's missed games, and injury risk
+  widens the *floor* (not the ceiling), since injuries are downside.
+
+To run the full workflow for a season on your own machine (live data + offseason
+table updates + calibration + projection), see **[RUNBOOK.md](RUNBOOK.md)**.
 
 ## How each modifier works
 
@@ -185,7 +191,8 @@ nflproj/
   data_sources.py           knowledge tables + live nfl_data_py anchor builder
   modifiers.py              the six *_signal() + *_modifier() functions
   rookies.py                draft-capital anchor curves
-  engine.py                 anchor x modifiers -> board + floor/ceiling + VOR + value
+  availability.py           projected games from injury rate, age, durability
+  engine.py                 anchor x modifiers -> board + games + floor/ceiling + VOR + value
   backtest.py               ridge calibrator + evaluator + synthetic demo
   history.py                multi-season real-data back-test pipeline
   project.py                projection CLI
@@ -222,6 +229,7 @@ This is **v0.1** — a transparent skeleton, not a finished product:
 - **Uncertainty bands are heuristic** — sigma is built from position + situational
   risk; a future version should fit the band widths to historical residuals
   (e.g. quantile regression) rather than a hand-set coefficient of variation.
-- **Availability isn't modeled** — projections assume a fixed game count; an
-  injury/availability model would sharpen season totals and floors.
+- **Availability model is heuristic** — projected games come from position rates,
+  age, and last year's missed games; calibrating it against multi-year injury
+  data (and modeling week-to-week, not just season totals) would sharpen floors.
 ```

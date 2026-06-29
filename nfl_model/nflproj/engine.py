@@ -12,10 +12,9 @@ import math
 
 import pandas as pd
 
+from . import availability as av
 from . import modifiers as M
 from .config import load_config
-
-PROJECTED_GAMES = 16.0  # season-total assumption; availability modeling is future work
 
 
 def project(players: pd.DataFrame, team_ctx: pd.DataFrame, coord: pd.DataFrame,
@@ -34,6 +33,8 @@ def project(players: pd.DataFrame, team_ctx: pd.DataFrame, coord: pd.DataFrame,
 
         total = m_oc * m_roster * m_qb * m_sched * m_vegas * m_age
         proj_ppg = p["prior_ppg"] * total
+        proj_games = av.projected_games(p, cfg)
+        _, injury_risk = av.availability_rate(p, cfg)
         rows.append({
             "player": p["player"], "pos": p["pos"], "team": p["team"],
             "age": p["age"], "qb": p["qb_name"],
@@ -44,7 +45,9 @@ def project(players: pd.DataFrame, team_ctx: pd.DataFrame, coord: pd.DataFrame,
             "M_vegas": round(m_vegas, 3), "M_age": round(m_age, 3),
             "total_mult": round(total, 3),
             "proj_ppg": round(proj_ppg, 2),
-            "proj_season": round(proj_ppg * PROJECTED_GAMES, 1),
+            "proj_games": proj_games,
+            "injury_risk": injury_risk,
+            "proj_season": round(proj_ppg * proj_games, 1),
         })
 
     df = pd.DataFrame(rows)
@@ -59,12 +62,15 @@ def _add_distribution(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     """Lognormal floor/ceiling band per player."""
     u = cfg["uncertainty"]
     z = u["z"]
+    risk_to_sigma = cfg["availability"]["risk_to_sigma"]
     floors, ceils, sigmas = [], [], []
     for _, r in df.iterrows():
         cv = u["cv_base"].get(r["pos"], 0.30)
         change_risk = abs(r["M_oc"] - 1) + abs(r["M_roster"] - 1)
         sigma = cv + u["rookie_bump"] * r["is_rookie"] + u["change_sensitivity"] * change_risk
-        floors.append(round(r["proj_season"] * math.exp(-z * sigma), 1))
+        # Injury risk is downside-only: it widens the floor, not the ceiling.
+        sigma_down = sigma + risk_to_sigma * r["injury_risk"]
+        floors.append(round(r["proj_season"] * math.exp(-z * sigma_down), 1))
         ceils.append(round(r["proj_season"] * math.exp(z * sigma), 1))
         sigmas.append(round(sigma, 3))
     df["sigma"] = sigmas

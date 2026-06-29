@@ -78,6 +78,26 @@ uncertainty:
   change_sensitivity: 0.5  # how much scheme/roster change inflates variance
   z: 0.84                  # percentile band: 0.84 -> ~80th/20th (ceiling/floor)
 
+# --- Availability / durability model ----------------------------------------
+# Season total = proj_ppg * projected_games, where projected_games reflects
+# position injury rates, age, and recent durability (games played last year).
+availability:
+  full_season: 17
+  base_rate:            # baseline share of the season played, by position
+    QB: 0.93
+    RB: 0.84
+    WR: 0.90
+    TE: 0.90
+  age_threshold:        # age beyond which durability declines
+    QB: 35
+    RB: 28
+    WR: 30
+    TE: 30
+  age_slope: 0.02       # availability lost per year past the threshold
+  durability_weight: 0.5  # how much last year's missed games predicts risk
+  min_rate: 0.55          # floor on availability rate
+  risk_to_sigma: 0.4      # how much injury risk widens the floor/ceiling band
+
 # --- Rookie draft-capital anchors -------------------------------------------
 # Rookies have no prior-year NFL production, so their anchor PPG is derived from
 # draft slot via a position-specific decay curve:  anchor = floor + (peak-floor)*exp(-pick/scale)

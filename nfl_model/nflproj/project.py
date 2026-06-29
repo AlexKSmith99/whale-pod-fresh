@@ -53,8 +53,8 @@ def main() -> None:
 
     pd.set_option("display.width", 240, "display.max_columns", 40)
     show = ["overall_rank", "player", "pos", "team", "qb", "prior_ppg",
-            "M_oc", "M_roster", "M_qb", "proj_season", "floor", "ceiling",
-            "pos_rank", "adp", "value", "call"]
+            "M_oc", "M_roster", "M_qb", "proj_ppg", "proj_games", "proj_season",
+            "floor", "ceiling", "pos_rank", "adp", "value", "call"]
     show = [c for c in show if c in board.columns]
     print("\n=== PROJECTION BOARD (proj_season with floor/ceiling band) ===")
     print(board[show].to_string(index=False))
