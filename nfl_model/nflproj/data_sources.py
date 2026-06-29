@@ -40,6 +40,11 @@ def load_sample_players() -> pd.DataFrame:
     return pd.read_csv(os.path.join(DATA_DIR, "sample_players.csv"))
 
 
+def load_adp() -> pd.DataFrame:
+    path = os.path.join(DATA_DIR, "adp.csv")
+    return pd.read_csv(path) if os.path.exists(path) else pd.DataFrame(columns=["player", "adp"])
+
+
 # --- Live anchor builder (nfl_data_py) --------------------------------------
 def build_player_table_live(prior_season: int) -> pd.DataFrame:
     """Build the player anchor table from real nflverse data.

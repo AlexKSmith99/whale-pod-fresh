@@ -56,20 +56,32 @@ python -m nflproj.calibrate
 ```
 
 Output is a ranked board (written to `output/projections.csv`) with one column
-per modifier so every projection is fully auditable:
+per modifier so every projection is fully auditable, plus a floor/ceiling band
+and a value-vs-ADP call:
 
 ```
- player            pos team  qb                 prior_ppg M_oc  M_roster M_qb  M_sched M_vegas M_age proj_ppg vor
- Ja'Marr Chase     WR  CIN   Joe Burrow         24.2      1.000 1.000    1.053 1.091   1.098   1.00  30.52    336.5
- De'Von Achane     RB  MIA   Tua Tagovailoa     18.2      1.000 1.000    1.146 1.061   1.016   1.00  22.50    167.2
- Josh Jacobs       RB  GB    Malik Willis       17.9      1.000 1.000    0.850 0.953   1.049   0.94  14.30     36.1
- Jonathan Taylor   RB  IND   Anthony Richardson 15.3      1.000 1.000    0.780 1.058   0.984   0.97  12.04      0.0
+ player            pos team  qb              M_oc  M_roster M_qb  proj_season floor ceiling adp value call
+ De'Von Achane     RB  MIA   Tua Tagovailoa  1.000 1.000    1.146 359.9       284.5 455.3    10    3  VALUE
+ Josh Jacobs       RB  GB    Malik Willis    1.000 1.000    0.850 228.8       180.8 289.5    20   -1  fair
+ D'Andre Swift     RB  CHI   Caleb Williams  1.042 1.000    1.078 247.1       191.9 318.2    65   10  VALUE
+ Ashton Jeanty     RB  LV    Geno Smith      1.017 1.000    1.124 211.3       149.9 297.8    12   -5  FADE
 ```
 
 Note how the **QB-profile modifier** alone separates Achane (pass-catching back
 + checkdown-heavy Tua = **+14.6%**) from Jacobs (run-first, vulturing Willis =
-**−15%**) and Taylor (Richardson = **−22%**) — exactly the dynamic that
-opportunity-blind models miss.
+**−15%**) — exactly the dynamic that opportunity-blind models miss — while the
+**value** column turns the projection into a draft decision (Swift's rank sits 10
+spots ahead of his ADP → VALUE).
+
+### Beyond a point estimate
+- **Rookies** are projected from **draft capital** (`data/rookies.csv` +
+  `rookies.py`): an anchor PPG decays with draft slot per position, then flows
+  through the same modifiers. Backward-looking models drop rookies entirely.
+- **Floor / ceiling** come from a lognormal band whose width grows with position
+  volatility, rookie status, and scheme/roster change — so a stable target
+  hog reads as low-variance and a rookie in a new scheme reads as boom/bust.
+- **Value vs ADP** ranks each player against the draft market and flags
+  `VALUE` / `FADE`, since leagues are won on mispriced picks, not raw points.
 
 ## How each modifier works
 
@@ -165,17 +177,20 @@ data/
   team_context.csv          OC change, Vegas totals, SoS per position, all 32 teams
   roster_changes.csv        departures/arrivals with prior shares
   sample_players.csv        prior-year anchors + opportunity shares (runs offline)
+  rookies.csv               draft-capital rookie inputs (pick + projected shares)
+  adp.csv                   draft ADP for value-vs-market calls
   history/                  season-stamped tables for real-data calibration
 nflproj/
   config.py                 loads weights.yaml
   data_sources.py           knowledge tables + live nfl_data_py anchor builder
   modifiers.py              the six *_signal() + *_modifier() functions
-  engine.py                 anchor x modifiers -> ranked board + VOR
+  rookies.py                draft-capital anchor curves
+  engine.py                 anchor x modifiers -> board + floor/ceiling + VOR + value
   backtest.py               ridge calibrator + evaluator + synthetic demo
   history.py                multi-season real-data back-test pipeline
   project.py                projection CLI
   calibrate.py              calibration CLI (synthetic + --live)
-tests/                      engine, backtest, and history regression guards
+tests/                      engine, backtest, history, and feature regression guards
 ```
 
 ## Going live with real data
@@ -200,11 +215,13 @@ This is **v0.1** — a transparent skeleton, not a finished product:
   Coordinator effects are easy to overfit (~32 offenses/yr); ground the scores
   in measurable history (PROE, points/drive, fantasy points generated per
   position) rather than reputation.
-- **No rookie path yet** — players need a prior-year anchor; rookies need a
-  draft-capital / college-projection anchor.
+- **Rookie anchors are draft-capital curves, not yet calibrated** — fit the
+  curves on historical rookie outcomes and add a college-production component.
 - **`rz_share` from live data is approximated**; a true red-zone share needs
   play-by-play (available in `nfl_data_py.import_pbp_data`).
-- **Point estimates only** — a future version should output floor/ceiling
-  distributions and convert to value-vs-ADP, since busts/values are where leagues
-  are won.
+- **Uncertainty bands are heuristic** — sigma is built from position + situational
+  risk; a future version should fit the band widths to historical residuals
+  (e.g. quantile regression) rather than a hand-set coefficient of variation.
+- **Availability isn't modeled** — projections assume a fixed game count; an
+  injury/availability model would sharpen season totals and floors.
 ```

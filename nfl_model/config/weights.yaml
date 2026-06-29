@@ -64,6 +64,33 @@ age_curve:
   WR: {peak: 27, span: 6}
   TE: {peak: 27, span: 6}
 
+# --- Outcome uncertainty (floor / ceiling bands) ----------------------------
+# Projection is a point estimate; real outcomes are a distribution. We model it
+# as lognormal with sigma built from a position base + situational risk, then
+# report floor/ceiling at the z-percentile below.
+uncertainty:
+  cv_base:           # baseline coefficient of variation by position
+    QB: 0.18
+    RB: 0.28
+    WR: 0.30
+    TE: 0.34
+  rookie_bump: 0.12        # added sigma for rookies (no NFL track record)
+  change_sensitivity: 0.5  # how much scheme/roster change inflates variance
+  z: 0.84                  # percentile band: 0.84 -> ~80th/20th (ceiling/floor)
+
+# --- Rookie draft-capital anchors -------------------------------------------
+# Rookies have no prior-year NFL production, so their anchor PPG is derived from
+# draft slot via a position-specific decay curve:  anchor = floor + (peak-floor)*exp(-pick/scale)
+rookie_anchor:
+  QB: {peak: 16.0, floor: 5.0, scale: 35}
+  RB: {peak: 13.0, floor: 2.5, scale: 40}
+  WR: {peak: 11.0, floor: 2.0, scale: 55}
+  TE: {peak: 6.5,  floor: 1.5, scale: 45}
+
+# --- Value vs ADP ------------------------------------------------------------
+value_vs_adp:
+  edge_threshold: 2  # rank gap (model vs market) to flag VALUE / FADE
+
 # --- Replacement-level baselines (for Value Over Replacement / VOR) ----------
 # Rank within position treated as "freely available". Tune to league size.
 replacement_rank:
