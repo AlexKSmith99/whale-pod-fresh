@@ -1,12 +1,15 @@
 team,player_name,direction,pos,target_share,rush_share
-CHI,Keenan Allen,out,WR,0.20,0.00
-CHI,Colston Loveland,in,TE,0.10,0.00
-CHI,D'Andre Swift,stay,RB,0.09,0.55
-MIA,Cedrick Wilson,out,WR,0.08,0.00
-MIA,Odell Beckham,out,WR,0.05,0.00
-GB,Christian Watson,out,WR,0.14,0.00
-GB,Josh Jacobs,in,RB,0.10,0.62
-IND,Jonathan Taylor,stay,RB,0.07,0.60
-CIN,Tee Higgins,stay,WR,0.24,0.00
-PHI,Saquon Barkley,stay,RB,0.08,0.58
-DET,David Montgomery,stay,RB,0.06,0.42
+CHI,DJ Moore,out,WR,0.20,0.00
+CHI,Colston Loveland,stay,TE,0.12,0.00
+DET,David Montgomery,out,RB,0.06,0.42
+MIA,Tyreek Hill,out,WR,0.26,0.00
+MIA,Jaylen Waddle,out,WR,0.22,0.00
+MIA,Tutu Atwell,in,WR,0.12,0.00
+GB,Romeo Doubs,out,WR,0.12,0.00
+PHI,AJ Brown,out,WR,0.26,0.00
+PHI,DeVonta Smith,stay,WR,0.24,0.00
+IND,Michael Pittman,out,WR,0.24,0.00
+BUF,DJ Moore,in,WR,0.20,0.00
+DEN,Jaylen Waddle,in,WR,0.22,0.00
+PIT,Michael Pittman,in,WR,0.24,0.00
+NE,AJ Brown,in,WR,0.26,0.00

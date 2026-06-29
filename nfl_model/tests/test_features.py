@@ -36,20 +36,20 @@ def test_rookie_anchor_decreases_with_draft_pick():
 
 def test_rookies_are_projected_and_flagged():
     b = _board()
-    assert b.loc["Ashton Jeanty", "is_rookie"]
-    assert b.loc["Ashton Jeanty", "proj_season"] > 0
+    assert b.loc["Jeremiyah Love", "is_rookie"]
+    assert b.loc["Jeremiyah Love", "proj_season"] > 0
 
 
 def test_floor_below_projection_below_ceiling():
     b = _board()
-    for name in ("Ja'Marr Chase", "Ashton Jeanty"):
+    for name in ("Ja'Marr Chase", "Jeremiyah Love"):
         assert b.loc[name, "floor"] < b.loc[name, "proj_season"] < b.loc[name, "ceiling"]
 
 
 def test_rookie_has_wider_band_than_comparable_veteran():
     """Rookie uncertainty bump should widen sigma vs an established player."""
     b = _board()
-    assert b.loc["Ashton Jeanty", "sigma"] > b.loc["Jonathan Taylor", "sigma"]
+    assert b.loc["Jeremiyah Love", "sigma"] > b.loc["Jonathan Taylor", "sigma"]
 
 
 def test_value_call_flags_market_gaps():

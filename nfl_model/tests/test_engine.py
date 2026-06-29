@@ -1,5 +1,6 @@
 """Regression guards for the core modifier behaviors.
 
+References the canonical 2026 data set (data/*.csv).
 Run: python -m pytest nfl_model/tests  (or: python nfl_model/tests/test_engine.py)
 """
 from __future__ import annotations
@@ -26,12 +27,12 @@ def _board():
     ).set_index("player")
 
 
-def test_qb_profile_helps_passcatching_rb_more_than_runfirst_qb():
-    """Tua's checkdown profile should lift a pass-catching RB above a Willis RB."""
+def test_run_first_qb_suppresses_passcatching_rb():
+    """De'Von Achane with run-first Malik Willis should be QB-suppressed."""
     b = _board()
-    assert b.loc["De'Von Achane", "M_qb"] > 1.0      # Tua: checkdowns help
-    assert b.loc["Josh Jacobs", "M_qb"] < 1.0        # Willis: run-first hurts RB
-    assert b.loc["De'Von Achane", "M_qb"] > b.loc["Josh Jacobs", "M_qb"]
+    assert b.loc["De'Von Achane", "M_qb"] < 1.0
+    # ...and worse than a back paired with a pocket passer (Gibbs/Goff).
+    assert b.loc["De'Von Achane", "M_qb"] < b.loc["Jahmyr Gibbs", "M_qb"]
 
 
 def test_rushing_qb_vultures_goalline_back():
@@ -40,16 +41,17 @@ def test_rushing_qb_vultures_goalline_back():
     assert b.loc["Saquon Barkley", "M_qb"] < 0.95
 
 
-def test_new_elite_oc_boosts_skill_players():
-    """Ben Johnson arriving in CHI lifts the Bears; leaving DET hurts the Lions."""
+def test_oc_change_moves_modifier_continuity_is_neutral():
+    """No OC change -> 1.0; a change -> non-neutral modifier."""
     b = _board()
-    assert b.loc["DJ Moore", "M_oc"] > 1.0
-    assert b.loc["Amon-Ra St. Brown", "M_oc"] < 1.0
+    assert b.loc["Ja'Marr Chase", "M_oc"] == 1.0          # CIN: continuity
+    assert b.loc["Amon-Ra St. Brown", "M_oc"] != 1.0      # DET: Morton -> Petzing
 
 
 def test_vacated_targets_help_returning_receivers():
+    """DJ Moore's vacated Bears targets should lift Rome Odunze."""
     b = _board()
-    assert b.loc["Tyreek Hill", "M_roster"] > 1.0
+    assert b.loc["Rome Odunze", "M_roster"] > 1.0
 
 
 def test_high_vegas_total_boosts_offense():

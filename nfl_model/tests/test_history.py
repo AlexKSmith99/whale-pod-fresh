@@ -31,13 +31,17 @@ def test_predict_runs_on_historical_frame():
 
 
 def test_season_override_changes_oc_signal():
-    """2024 history table (Bears: Waldron) should differ from global 2025 (Ben Johnson)."""
+    """A season-stamped history table should override the global table.
+
+    DET in 2024 had OC continuity (Ben Johnson both years -> signal 0); the global
+    2026 table has a change (Morton -> Petzing -> non-zero). St. Brown's OC signal
+    must therefore differ between the two seasons.
+    """
     cfg = load_config()
     players = ds.load_sample_players()
     f2024 = history.signal_frame_for_season(players, 2024, cfg).set_index("player")
-    f2025 = history.signal_frame_for_season(players, 2025, cfg).set_index("player")
-    # DJ Moore's OC signal should be much stronger in 2025 (Ben Johnson arrives).
-    assert f2025.loc["DJ Moore", "oc"] > f2024.loc["DJ Moore", "oc"]
+    f2026 = history.signal_frame_for_season(players, 2026, cfg).set_index("player")
+    assert f2024.loc["Amon-Ra St. Brown", "oc"] != f2026.loc["Amon-Ra St. Brown", "oc"]
 
 
 if __name__ == "__main__":
