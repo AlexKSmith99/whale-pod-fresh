@@ -50,6 +50,9 @@ python -m nflproj.project
 
 # On a machine with network access, build anchors from real nflverse data:
 python -m nflproj.project --live 2024
+
+# Calibrate / back-test the weights (synthetic self-validation, runs offline):
+python -m nflproj.calibrate
 ```
 
 Output is a ranked board (written to `output/projections.csv`) with one column
@@ -104,6 +107,45 @@ Team implied point total vs league average.
 ### `M_age` — age curve (`modifiers.age_modifier`)
 Position-specific peak age & decline span (RBs cliff early, WRs peak later).
 
+## Calibrating the weights (turning guesses into fitted numbers)
+
+The weights start as expert priors. To make them empirical, `nflproj/backtest.py`
+exploits the model's multiplicative form:
+
+```
+proj = anchor * prod_i (1 + w_i * signal_i)
+=>  log(realized / anchor) ~= sum_i w_i * signal_i
+```
+
+So the optimal weights are just the coefficients of a no-intercept ridge
+regression of the log production ratio on the per-modifier signals. `modifiers.py`
+exposes each factor's raw `*_signal()` (separate from its weight) precisely so it
+can serve as a regression feature.
+
+`python -m nflproj.calibrate` runs a self-contained validation: it plants known
+weights, generates synthetic player-seasons, fits the weights back, and scores a
+held-out set. Typical output:
+
+```
+planted : oc=0.180  roster=0.250  qb=0.220  schedule=0.100  vegas=0.150  age=0.120
+fitted  : oc=0.173  roster=0.247  qb=0.219  schedule=0.110  vegas=0.154  age=0.115
+
+naive       MAE= 2.790  RMSE= 3.876  spearman=0.768   (last-year-points baseline)
+calibrated  MAE= 1.282  RMSE= 1.884  spearman=0.962   (fitted weights)
+oracle      MAE= 1.271  RMSE= 1.871  spearman=0.962   (planted weights)
+```
+
+The calibrator recovers the planted weights and nearly matches the oracle,
+confirming the machinery. `--write` saves the fitted set to
+`config/weights.calibrated.yaml`.
+
+**To calibrate on real data:** build historical per-season `(anchor, signals,
+realized)` frames — anchors and realized PPG from `nfl_data_py`, signals via
+`backtest.compute_signal_frame()` using *historical* knowledge tables (the OC /
+QB / roster context as it was that offseason) — then call
+`backtest.calibrate_weights()`. Assembling those historical tables is the main
+remaining data-collection task.
+
 ## Data layout
 
 ```
@@ -137,9 +179,10 @@ news live; update them each offseason.
 
 This is **v0.1** — a transparent skeleton, not a finished product:
 
-- **Weights are expert priors, not yet calibrated.** Next step:
-  back-test against realized fantasy points and fit the weights (ridge / grid
-  search) so they're empirical, not guessed. `scikit-learn` is already a dep.
+- **Calibration harness exists; real-data fit pending.** The ridge back-test
+  (`nflproj/calibrate.py`) is built and self-validated on synthetic data. The
+  remaining work is assembling *historical* knowledge tables so the weights can
+  be fit on real seasons rather than expert priors.
 - **OC & QB tables are partly subjective** and small-sample; coordinator effects
   are easy to overfit (only ~32 offenses/yr). Ground the scores in measurable
   history (PROE, points/drive, fantasy points generated per position).
