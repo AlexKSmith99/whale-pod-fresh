@@ -1,0 +1,9 @@
+team,season,oc_name,prev_oc_name,implied_total,sos_qb,sos_rb,sos_wr,sos_te,sos_playoff_mult
+DET,2024,Ben Johnson,Ben Johnson,28.0,1.00,0.99,1.01,1.00,0.98
+CHI,2024,Shane Waldron,Luke Getsy,21.0,1.02,1.01,1.03,1.01,1.03
+CIN,2024,Dan Pitcher,Brian Callahan,25.5,1.01,1.00,1.02,1.01,1.02
+MIA,2024,Mike McDaniel,Mike McDaniel,24.0,1.01,1.03,1.02,1.00,1.01
+GB,2024,Matt LaFleur,Matt LaFleur,24.0,0.98,0.99,0.97,0.99,0.96
+PHI,2024,Kellen Moore,Brian Johnson,26.5,0.99,1.01,0.98,0.99,0.97
+IND,2024,Shane Steichen,Shane Steichen,22.0,1.01,1.02,1.00,1.01,1.03
+League_Average,2024,League_Average,League_Average,22.8,1.00,1.00,1.00,1.00,1.00

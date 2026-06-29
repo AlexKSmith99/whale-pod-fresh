@@ -139,30 +139,43 @@ The calibrator recovers the planted weights and nearly matches the oracle,
 confirming the machinery. `--write` saves the fitted set to
 `config/weights.calibrated.yaml`.
 
-**To calibrate on real data:** build historical per-season `(anchor, signals,
-realized)` frames — anchors and realized PPG from `nfl_data_py`, signals via
-`backtest.compute_signal_frame()` using *historical* knowledge tables (the OC /
-QB / roster context as it was that offseason) — then call
-`backtest.calibrate_weights()`. Assembling those historical tables is the main
-remaining data-collection task.
+**To calibrate on real data**, `nflproj/history.py` wires it together. Drop
+season-stamped knowledge tables in `data/history/` (e.g. `team_context_2024.csv`)
+— they override the global tables for that season — then:
+
+```bash
+python -m nflproj.calibrate --live 2022,2023,2024        # fit on 2022-23, test 2024
+python -m nflproj.calibrate --live 2022,2023,2024 --write # save fitted weights
+```
+
+It pulls anchors (prior-year production + shares) and realized PPG from nflverse
+automatically; you only curate the historical signal tables. The signal-building
+core (`history.signal_frame_for_season`) is network-free and unit-tested, so the
+data plumbing and the modeling logic are validated separately. Completing the
+`data/history/` tables for all 32 teams across a few seasons is the main
+remaining data-collection task — see [data/history/README.md](data/history/README.md).
 
 ## Data layout
 
 ```
 config/weights.yaml         every tunable weight, in one place
 data/
-  coordinator_scores.csv    curated OC quality + scheme scores  (Ben Johnson = 95)
-  qb_profiles.csv           per-QB style metrics                (Tua vs Willis)
-  team_context.csv          OC change, Vegas totals, SoS per position
+  coordinator_scores.csv    OC quality + scheme scores, full league (Ben Johnson = 95)
+  qb_profiles.csv           per-QB style metrics, all 32 starters (Tua vs Willis)
+  team_context.csv          OC change, Vegas totals, SoS per position, all 32 teams
   roster_changes.csv        departures/arrivals with prior shares
   sample_players.csv        prior-year anchors + opportunity shares (runs offline)
+  history/                  season-stamped tables for real-data calibration
 nflproj/
   config.py                 loads weights.yaml
   data_sources.py           knowledge tables + live nfl_data_py anchor builder
-  modifiers.py              the six modifier functions
+  modifiers.py              the six *_signal() + *_modifier() functions
   engine.py                 anchor x modifiers -> ranked board + VOR
-  project.py                CLI entrypoint
-tests/test_engine.py        directional regression guards
+  backtest.py               ridge calibrator + evaluator + synthetic demo
+  history.py                multi-season real-data back-test pipeline
+  project.py                projection CLI
+  calibrate.py              calibration CLI (synthetic + --live)
+tests/                      engine, backtest, and history regression guards
 ```
 
 ## Going live with real data
@@ -179,13 +192,14 @@ news live; update them each offseason.
 
 This is **v0.1** — a transparent skeleton, not a finished product:
 
-- **Calibration harness exists; real-data fit pending.** The ridge back-test
-  (`nflproj/calibrate.py`) is built and self-validated on synthetic data. The
-  remaining work is assembling *historical* knowledge tables so the weights can
-  be fit on real seasons rather than expert priors.
-- **OC & QB tables are partly subjective** and small-sample; coordinator effects
-  are easy to overfit (only ~32 offenses/yr). Ground the scores in measurable
-  history (PROE, points/drive, fantasy points generated per position).
+- **Calibration is wired end-to-end; real-data fit needs historical tables.**
+  The ridge back-test and the multi-season `--live` pipeline are built and
+  tested. The remaining work is populating `data/history/` for all 32 teams
+  across a few seasons so the weights are fit on real history, not priors.
+- **OC & QB tables now cover the full league but are partly subjective.**
+  Coordinator effects are easy to overfit (~32 offenses/yr); ground the scores
+  in measurable history (PROE, points/drive, fantasy points generated per
+  position) rather than reputation.
 - **No rookie path yet** — players need a prior-year anchor; rookies need a
   draft-capital / college-projection anchor.
 - **`rz_share` from live data is approximated**; a true red-zone share needs

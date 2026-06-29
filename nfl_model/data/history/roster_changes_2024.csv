@@ -1,0 +1,6 @@
+team,player_name,direction,pos,target_share,rush_share
+CHI,Keenan Allen,in,WR,0.22,0.00
+CHI,DJ Moore,stay,WR,0.24,0.00
+PHI,Saquon Barkley,in,RB,0.08,0.58
+GB,Josh Jacobs,in,RB,0.10,0.60
+GB,Aaron Jones,out,RB,0.09,0.55
