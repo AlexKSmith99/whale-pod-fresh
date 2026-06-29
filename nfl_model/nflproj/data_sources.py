@@ -75,10 +75,12 @@ def build_player_table_live(prior_season: int) -> pd.DataFrame:
         fantasy_points_ppr=("fantasy_points_ppr", "sum"),
         games=("week", "nunique"),
         targets=("targets", "sum"),
+        receptions=("receptions", "sum"),
         carries=("carries", "sum"),
         air_yards=("receiving_air_yards", "sum"),
     ).reset_index()
     agg["prior_ppg"] = agg["fantasy_points_ppr"] / agg["games"].clip(lower=1)
+    agg["rec_pg"] = agg["receptions"] / agg["games"].clip(lower=1)
 
     # Team-level totals to convert raw counts into shares.
     team_tot = skill.groupby("recent_team").agg(
@@ -108,7 +110,7 @@ def build_player_table_live(prior_season: int) -> pd.DataFrame:
     out = agg.rename(columns={
         "player_display_name": "player", "position": "pos", "recent_team": "team",
     })[["player", "pos", "team", "age", "qb_name", "prior_ppg", "games",
-        "target_share", "rush_share", "rz_share", "air_yards_share"]]
+        "target_share", "rush_share", "rz_share", "air_yards_share", "rec_pg"]]
     return out[out["games"] >= 4].reset_index(drop=True)
 
 

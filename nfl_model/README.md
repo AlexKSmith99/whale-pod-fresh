@@ -53,7 +53,14 @@ python -m nflproj.project --live 2024
 
 # Calibrate / back-test the weights (synthetic self-validation, runs offline):
 python -m nflproj.calibrate
+
+# Scoring format: ppr (default), half, or standard:
+python -m nflproj.project --format half
 ```
+
+The board prints positional rankings (QB/RB/WR/TE) for the chosen format.
+Anchors are stored as full-PPR PPG and converted by removing the reception
+points a format doesn't award (`half` drops 0.5/reception, `standard` 1.0).
 
 Output is a ranked board (written to `output/projections.csv`) with one column
 per modifier so every projection is fully auditable, plus a floor/ceiling band

@@ -16,6 +16,7 @@ import pandas as pd
 
 from . import data_sources as ds
 from . import rookies as rk
+from . import scoring
 from .config import OUTPUT_DIR, load_config
 from .engine import project
 
@@ -24,6 +25,8 @@ def main() -> None:
     ap = argparse.ArgumentParser(description="NFL fantasy projection engine")
     ap.add_argument("--live", type=int, metavar="PRIOR_SEASON", default=None,
                     help="Build veteran anchors from real nflverse data for the given prior season")
+    ap.add_argument("--format", choices=scoring.FORMATS, default="ppr",
+                    help="scoring format: ppr (default), half, or standard")
     ap.add_argument("--no-rookies", action="store_true", help="exclude draft-capital rookie anchors")
     ap.add_argument("--out", default=os.path.join(OUTPUT_DIR, "projections.csv"))
     args = ap.parse_args()
@@ -38,6 +41,12 @@ def main() -> None:
             players = pd.concat([players, rookies], ignore_index=True)
             players["is_rookie"] = players["is_rookie"].fillna(False)
 
+    # Convert full-PPR anchors to the requested scoring format.
+    if args.format != "ppr":
+        rec = players["rec_pg"] if "rec_pg" in players.columns else 0.0
+        players["prior_ppg"] = [scoring.adjust_anchor(p, r, args.format)
+                                for p, r in zip(players["prior_ppg"], rec)]
+
     board = project(
         players=players,
         team_ctx=ds.load_team_context(),
@@ -48,17 +57,22 @@ def main() -> None:
         cfg=cfg,
     )
 
+    pd.set_option("display.width", 240, "display.max_columns", 40)
+    fmt = args.format.upper()
+    print(f"\n=== {fmt} POSITIONAL RANKINGS ===")
+    cols = ["pos_rank", "player", "team", "qb", "proj_ppg", "proj_games",
+            "proj_season", "floor", "ceiling", "adp", "value", "call"]
+    cols = [c for c in cols if c in board.columns]
+    for pos in ["QB", "RB", "WR", "TE"]:
+        sub = board[board["pos"] == pos].sort_values("pos_rank")
+        if sub.empty:
+            continue
+        print(f"\n--- {pos} ({fmt}) ---")
+        print(sub[cols].to_string(index=False))
+
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     board.to_csv(args.out, index=False)
-
-    pd.set_option("display.width", 240, "display.max_columns", 40)
-    show = ["overall_rank", "player", "pos", "team", "qb", "prior_ppg",
-            "M_oc", "M_roster", "M_qb", "proj_ppg", "proj_games", "proj_season",
-            "floor", "ceiling", "pos_rank", "adp", "value", "call"]
-    show = [c for c in show if c in board.columns]
-    print("\n=== PROJECTION BOARD (proj_season with floor/ceiling band) ===")
-    print(board[show].to_string(index=False))
-    print(f"\nWrote {len(board)} projections to {args.out}")
+    print(f"\nWrote {len(board)} projections ({fmt}) to {args.out}")
 
 
 if __name__ == "__main__":

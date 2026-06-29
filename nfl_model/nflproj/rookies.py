@@ -43,5 +43,5 @@ def load_rookies(cfg: dict) -> pd.DataFrame:
     if "age" not in r.columns:
         r["age"] = 22
     cols = ["player", "pos", "team", "age", "qb_name", "prior_ppg", "games",
-            "target_share", "rush_share", "rz_share", "air_yards_share", "is_rookie"]
+            "target_share", "rush_share", "rz_share", "air_yards_share", "rec_pg", "is_rookie"]
     return r[[c for c in cols if c in r.columns]]
