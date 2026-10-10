@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Image,
   Animated,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   StatusBar,
@@ -30,6 +29,7 @@ import { colors as legacyColors, typography, spacing, borderRadius, shadows } fr
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
+import WhaleLoader from '../components/ui/WhaleLoader';
 
 // Sidebar width is 90% of screen width for the drawer
 const SIDEBAR_WIDTH = Dimensions.get('window').width * 0.9;
@@ -515,7 +515,7 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
         <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         {isNewTheme && <GrainTexture opacity={0.06} />}
         <View style={styles.loadingContent}>
-          <ActivityIndicator size="large" color={themedStyles.refreshColor} />
+          <WhaleLoader size={56} />
           <Text style={[styles.loadingText, themedStyles.textSecondary]}>Loading conversations...</Text>
         </View>
       </View>
@@ -630,7 +630,7 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
 
               {connectionsLoading ? (
                 <View style={styles.newChatLoading}>
-                  <ActivityIndicator size="small" color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
+                  <WhaleLoader size={40} />
                   <Text style={[styles.newChatLoadingText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Loading connections...</Text>
                 </View>
               ) : filteredConnections.length === 0 ? (

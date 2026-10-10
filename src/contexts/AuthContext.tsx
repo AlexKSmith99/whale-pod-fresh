@@ -4,6 +4,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../config/supabase';
 import { notificationService } from '../services/notificationService';
 import * as WebBrowser from 'expo-web-browser';
+import { DEV_MOCK_USER, DEV_MOCK_USER_ID } from '../config/devFlags';
+
+// DEV-ONLY: a stand-in user used only when EXPO_PUBLIC_DEV_MOCK_USER is on AND
+// there is no real Supabase session, so the app shell renders without a login.
+// Never populated in a release build (DEV_MOCK_USER is __DEV__-gated). It carries
+// no real JWT, so RLS-scoped queries return empty — see config/devFlags.ts.
+const DEV_MOCK = DEV_MOCK_USER
+  ? { id: DEV_MOCK_USER_ID, email: 'dev@whalepod.local', app_metadata: {}, user_metadata: {} }
+  : null;
 
 interface AuthContextType {
   user: any;
@@ -29,7 +38,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<any>(DEV_MOCK);
   const [loading, setLoading] = useState(true);
   const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
   const [pendingPhoneVerification, setPendingPhoneVerification] = useState<string | null>(null);
@@ -37,7 +46,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     supabase.auth.getSession()
       .then(({ data: { session } }) => {
-        setUser(session?.user ?? null);
+        setUser(session?.user ?? DEV_MOCK);
         setLoading(false);
 
         // Register push token if user is logged in
@@ -50,12 +59,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .catch((err) => {
         // Without this catch, a network failure during getSession would leave loading=true forever
         console.warn('getSession failed; treating user as signed out:', err?.message || err);
-        setUser(null);
+        setUser(DEV_MOCK);
         setLoading(false);
       });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      setUser(session?.user ?? DEV_MOCK);
       
       // Register push token when user signs in
       if (_event === 'SIGNED_IN' && session?.user) {

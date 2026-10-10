@@ -35,11 +35,13 @@ interface Props {
   onAccountDetails: () => void;
   onVisibility: () => void;
   onOpenLegal: (doc: 'terms' | 'privacy' | 'support') => void;
+  isAdmin?: boolean;
+  onReviewApplications?: () => void;
 }
 
 type SubScreen = null | 'notifications' | 'share' | 'about';
 
-export default function SettingsScreen({ onBack, onAccountDetails, onVisibility, onOpenLegal }: Props) {
+export default function SettingsScreen({ onBack, onAccountDetails, onVisibility, onOpenLegal, isAdmin, onReviewApplications }: Props) {
   const { isNewTheme, toggleTheme } = useTheme();
   const { user, signOut } = useAuth();
   const t = settingsTheme(isNewTheme);
@@ -77,6 +79,9 @@ export default function SettingsScreen({ onBack, onAccountDetails, onVisibility,
     { key: 'share', icon: 'paper-plane-outline', label: 'share whale pod', onPress: () => setSubScreen('share') },
     { key: 'about', icon: 'information-circle-outline', label: 'about', onPress: () => setSubScreen('about') },
     { key: 'feedback', icon: 'chatbubble-ellipses-outline', label: 'share an idea or bug', onPress: () => setShowFeedback(true) },
+    ...(isAdmin && onReviewApplications
+      ? [{ key: 'admin', icon: 'shield-checkmark-outline' as keyof typeof Ionicons.glyphMap, label: 'review applications', sub: 'approve waitlisted members', onPress: onReviewApplications }]
+      : []),
   ];
 
   return (
@@ -194,7 +199,7 @@ export default function SettingsScreen({ onBack, onAccountDetails, onVisibility,
               </TouchableOpacity>
             </View>
             <Text style={[styles.sheetCopy, { color: t.textSecondary, fontFamily: t.bodyFont, textAlign: 'center', marginTop: 12 }]}>
-              please confirm you want to delete your account. this is a one-way trip — no coming back! 🚀 are you sure you want to go through with it?
+              please confirm you want to delete your account. this is a one-way trip — no coming back! are you sure you want to go through with it?
             </Text>
             <TouchableOpacity style={[styles.deletePill, { backgroundColor: t.accent }]} onPress={requestDeletion} activeOpacity={0.85}>
               <Ionicons name="trash-outline" size={20} color={isNewTheme ? '#000000' : '#FFFFFF'} />

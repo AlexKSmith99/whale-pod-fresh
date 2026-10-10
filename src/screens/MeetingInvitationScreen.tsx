@@ -16,6 +16,7 @@ import { colors as legacyColors, typography, spacing, borderRadius, editorial } 
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
+import WhaleLoader from '../components/ui/WhaleLoader';
 import { AppAlert } from '../components/ui/AppAlert';
 
 // Editorial light-mode card: white surface, hairline border, soft shadow.
@@ -189,7 +190,7 @@ export default function MeetingInvitationScreen({ meetingId, onBack, onResponded
       <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         {isNewTheme && <GrainTexture opacity={0.06} />}
-        <ActivityIndicator size="large" color={accentColor} />
+        <WhaleLoader size={56} />
       </View>
     );
   }

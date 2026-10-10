@@ -24,6 +24,7 @@ import {
 import { editorial } from '../theme/designSystem';
 import { AppAlert } from '../components/ui/AppAlert';
 import KeyboardAwareScreen from '../components/ui/KeyboardAwareScreen';
+import WhaleLoader from '../components/ui/WhaleLoader';
 
 const { height } = Dimensions.get('window');
 
@@ -43,7 +44,7 @@ const C = {
 
 const whaleLogo = require('../../assets/whale-logo.png');
 
-export default function LoginScreen() {
+export default function LoginScreen({ onBack }: { onBack?: () => void } = {}) {
   const auth = useAuth();
 
   const [fontsLoaded] = useFonts({
@@ -279,7 +280,7 @@ export default function LoginScreen() {
   if (!fontsLoaded) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator color={C.carolina} />
+        <WhaleLoader size={56} />
       </View>
     );
   }
@@ -287,6 +288,16 @@ export default function LoginScreen() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={C.bg} />
+      {onBack ? (
+        <TouchableOpacity
+          onPress={onBack}
+          style={{ position: 'absolute', top: 56, left: 20, zIndex: 10, padding: 8 }}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          activeOpacity={0.6}
+        >
+          <Text style={{ color: C.text, fontSize: 16, fontWeight: '600' }}>‹  Back</Text>
+        </TouchableOpacity>
+      ) : null}
 
       <KeyboardAwareScreen mode="replace-scrollview" style={styles.flex1} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <Animated.View style={[styles.logoSection, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>

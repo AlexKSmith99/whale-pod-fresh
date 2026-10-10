@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Image,
   Linking,
-  ActivityIndicator,
   TextInput,
   KeyboardAvoidingView,
   Platform,
@@ -26,6 +25,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
 import GradientBackground from '../components/ui/GradientBackground';
+import WhaleLoader from '../components/ui/WhaleLoader';
 import { AppAlert } from '../components/ui/AppAlert';
 
 interface PrivacyVisibility {
@@ -45,6 +45,7 @@ export default function UserProfileScreen({ route, navigation }: any) {
   const themedStyles = getThemedStyles(colors, isNewTheme);
   const [profile, setProfile] = useState<any>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [requestSent, setRequestSent] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'about' | 'pods' | 'connections'>('about');
   const [userPods, setUserPods] = useState<any[]>([]);
@@ -113,6 +114,14 @@ export default function UserProfileScreen({ route, navigation }: any) {
     if (user) {
       const connected = await connectionService.areConnected(user.id, userId);
       setIsConnected(connected);
+      if (!connected) {
+        try {
+          const sent = await connectionService.getSentRequests(user.id);
+          setRequestSent(sent.some((r: any) => r.user_id_2 === userId));
+        } catch (e) {
+          console.error('Error checking sent requests:', e);
+        }
+      }
     }
   };
 
@@ -143,13 +152,13 @@ export default function UserProfileScreen({ route, navigation }: any) {
   };
 
   const handleConnect = async () => {
+    if (!user || requestSent) return;
+    setRequestSent(true); // optimistic — button flips to "Request Sent"
     try {
-      if (user) {
-        await connectionService.sendConnectionRequest(user.id, userId);
-        AppAlert.alert('Success', 'Connection request sent!');
-      }
+      await connectionService.sendConnectionRequest(user.id, userId);
     } catch (error) {
       console.error('Error sending connection request:', error);
+      setRequestSent(false);
       AppAlert.alert('Error', 'Failed to send connection request');
     }
   };
@@ -184,7 +193,7 @@ export default function UserProfileScreen({ route, navigation }: any) {
       <GradientBackground style={styles.loadingContainer}>
         <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         {isNewTheme && <GrainTexture opacity={0.06} />}
-        <ActivityIndicator size="large" color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
+        <WhaleLoader size={56} />
         <Text style={[styles.loadingText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Loading profile...</Text>
       </GradientBackground>
     );
@@ -225,10 +234,17 @@ export default function UserProfileScreen({ route, navigation }: any) {
           </View>
 
           {!isConnected && user && (
-            <TouchableOpacity style={[styles.connectButtonLarge, { backgroundColor: isNewTheme ? colors.accentGreen : editorial.ink }]} onPress={handleConnect} activeOpacity={0.85}>
-              <Ionicons name="person-add" size={20} color={isNewTheme ? colors.background : legacyColors.white} />
-              <Text style={[styles.connectButtonLargeText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Send Connection Request</Text>
-            </TouchableOpacity>
+            requestSent ? (
+              <View style={[styles.connectButtonLarge, { backgroundColor: isNewTheme ? 'rgba(255,255,255,0.08)' : editorial.hairline }]}>
+                <Ionicons name="checkmark-circle" size={20} color={isNewTheme ? 'rgba(255,255,255,0.5)' : editorial.muted} />
+                <Text style={[styles.connectButtonLargeText, { color: isNewTheme ? 'rgba(255,255,255,0.5)' : editorial.muted, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Request Sent</Text>
+              </View>
+            ) : (
+              <TouchableOpacity style={[styles.connectButtonLarge, { backgroundColor: isNewTheme ? colors.accentGreen : editorial.ink }]} onPress={handleConnect} activeOpacity={0.85}>
+                <Ionicons name="person-add" size={20} color={isNewTheme ? colors.background : legacyColors.white} />
+                <Text style={[styles.connectButtonLargeText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Send Connection Request</Text>
+              </TouchableOpacity>
+            )
           )}
         </View>
       </ScrollView>
@@ -307,7 +323,7 @@ export default function UserProfileScreen({ route, navigation }: any) {
       <View style={styles.podsContainer}>
         {podsLoading ? (
           <View style={styles.podsLoading}>
-            <ActivityIndicator size="small" color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
+            <WhaleLoader size={40} />
             <Text style={[styles.podsLoadingText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Loading pods...</Text>
           </View>
         ) : userPods.length === 0 ? (
@@ -474,10 +490,17 @@ export default function UserProfileScreen({ route, navigation }: any) {
 
       <View style={styles.actionButtons}>
         {!isConnected && user && (
-          <TouchableOpacity style={[styles.connectButton, { backgroundColor: isNewTheme ? colors.accentGreen : editorial.ink }]} onPress={handleConnect} activeOpacity={0.85}>
-            <Ionicons name="person-add" size={20} color={isNewTheme ? colors.background : legacyColors.white} />
-            <Text style={[styles.connectButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Connect</Text>
-          </TouchableOpacity>
+          requestSent ? (
+            <View style={[styles.connectButton, { backgroundColor: isNewTheme ? 'rgba(255,255,255,0.08)' : editorial.hairline }]}>
+              <Ionicons name="checkmark-circle" size={20} color={isNewTheme ? 'rgba(255,255,255,0.5)' : editorial.muted} />
+              <Text style={[styles.connectButtonText, { color: isNewTheme ? 'rgba(255,255,255,0.5)' : editorial.muted, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Request Sent</Text>
+            </View>
+          ) : (
+            <TouchableOpacity style={[styles.connectButton, { backgroundColor: isNewTheme ? colors.accentGreen : editorial.ink }]} onPress={handleConnect} activeOpacity={0.85}>
+              <Ionicons name="person-add" size={20} color={isNewTheme ? colors.background : legacyColors.white} />
+              <Text style={[styles.connectButtonText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Connect</Text>
+            </TouchableOpacity>
+          )
         )}
         <TouchableOpacity style={[styles.messageButton, { backgroundColor: 'transparent', borderColor: isNewTheme ? colors.accentGreen : editorial.hairline }]} onPress={handleMessage} activeOpacity={0.85}>
           <Ionicons name="chatbubble" size={20} color={isNewTheme ? colors.accentGreen : editorial.ink} />
@@ -616,7 +639,7 @@ export default function UserProfileScreen({ route, navigation }: any) {
             </View>
           ) : connectionsLoading ? (
             <View style={styles.emptyState}>
-              <ActivityIndicator size="large" color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
+              <WhaleLoader size={40} />
               <Text style={[styles.emptyHint, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Loading network...</Text>
             </View>
           ) : userConnections.length === 0 ? (

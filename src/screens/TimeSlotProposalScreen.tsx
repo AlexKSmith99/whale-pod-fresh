@@ -30,8 +30,12 @@ export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClos
   const themedStyles = getThemedStyles(colors, isNewTheme);
   const light = !isNewTheme;
   const accentColor = isNewTheme ? colors.accentGreen : editorial.carolina;
+  // Members must submit at least 3 time slots for the kickoff meeting, so we
+  // start them off with 3 empty slots.
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([
-    { date: new Date(), startTime: new Date(), endTime: new Date() }
+    { date: new Date(), startTime: new Date(), endTime: new Date() },
+    { date: new Date(), startTime: new Date(), endTime: new Date() },
+    { date: new Date(), startTime: new Date(), endTime: new Date() },
   ]);
   const [loading, setLoading] = useState(false);
 
@@ -45,7 +49,7 @@ export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClos
   };
 
   const removeTimeSlot = (index: number) => {
-    if (timeSlots.length > 1) {
+    if (timeSlots.length > 3) {
       setTimeSlots(timeSlots.filter((_, i) => i !== index));
     }
   };
@@ -141,8 +145,8 @@ export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClos
       slot.date && slot.startTime && slot.endTime
     );
 
-    if (validSlots.length === 0) {
-      AppAlert.alert('Missing Information', 'Please add at least one time slot with date and time');
+    if (validSlots.length < 3) {
+      AppAlert.alert('More Time Slots Needed', 'Please submit at least 3 time slots for the kickoff meeting.');
       return;
     }
 
@@ -240,7 +244,7 @@ export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClos
           ]}>
             <Ionicons name="information-circle" size={18} color={light ? editorial.carolinaDeep : colors.accentGreen} style={{ marginRight: 10, marginTop: 1 }} />
             <Text style={[styles.emphasisText, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && { color: editorial.ink, lineHeight: 20 }]}>
-              <Text style={{ fontWeight: '700' }}>Submit every time slot in the next 7 days that works for you.</Text> The more overlap across your team, the faster the creator can lock in a kickoff that works for everyone.
+              <Text style={{ fontWeight: '700' }}>Submit at least 3 time slots in the next 7 days that work for you.</Text> The more overlap across your team, the faster the creator can lock in a kickoff that works for everyone.
             </Text>
           </View>
 
@@ -260,7 +264,7 @@ export default function TimeSlotProposalScreen({ pursuitId, pursuitTitle, onClos
               {light && <View style={styles.cardAccentLine} pointerEvents="none" />}
               <View style={styles.timeSlotHeader}>
                 <Text style={[styles.timeSlotLabel, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, light && { fontFamily: 'PlayfairDisplay_700Bold', fontSize: 17, letterSpacing: -0.3 }]}>Time Slot {index + 1}</Text>
-                {timeSlots.length > 1 && (
+                {timeSlots.length > 3 && (
                   <TouchableOpacity onPress={() => removeTimeSlot(index)}>
                     <Ionicons name="trash-outline" size={20} color={colors.error} />
                   </TouchableOpacity>
@@ -668,11 +672,10 @@ const styles = StyleSheet.create({
   },
   datePicker: {
     height: 150,
+    width: '100%',
   },
   timePicker: {
-    height: 100,
-    width: 120,
-    alignSelf: 'center',
-    transform: [{ scale: 0.85 }],
+    height: 150,
+    width: '100%',
   },
 });

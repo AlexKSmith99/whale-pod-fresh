@@ -22,6 +22,7 @@ import { colors as legacyColors, typography, spacing, borderRadius, editorial } 
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
+import WhaleLoader from '../components/ui/WhaleLoader';
 import { AppAlert } from '../components/ui/AppAlert';
 
 interface PrivacyPreferencesScreenProps {
@@ -193,7 +194,7 @@ export default function PrivacyPreferencesScreen({ onBack }: PrivacyPreferencesS
           <View style={styles.placeholder} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={accentColor} />
+          <WhaleLoader size={56} />
           <Text style={[styles.loadingText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Loading preferences...</Text>
         </View>
       </SafeAreaView>

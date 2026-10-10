@@ -19,6 +19,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
 import GradientBackground from '../components/ui/GradientBackground';
+import WhaleLoader from '../components/ui/WhaleLoader';
 import KeyboardAwareScreen from '../components/ui/KeyboardAwareScreen';
 import { AppAlert } from '../components/ui/AppAlert';
 import { colors as legacyColors, editorial } from '../theme/designSystem';
@@ -46,6 +47,7 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
   const [hometown, setHometown] = useState('');
   const [college, setCollege] = useState('');
   const [work, setWork] = useState('');
+  const [employer, setEmployer] = useState('');
   const [bio, setBio] = useState('');
   // Optional lifestyle fields
   const [alcohol, setAlcohol] = useState('');
@@ -83,6 +85,7 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
         setHometown(data.hometown || '');
         setCollege(data.college || '');
         setWork(data.work || '');
+        setEmployer(data.employer || '');
         setBio(data.bio || '');
         setAlcohol(data.alcohol || '');
         setDrugs(data.drugs || '');
@@ -204,31 +207,35 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
 
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          name: name.trim(),
-          profile_picture: profilePictures[0] || profilePicture || null,
-          profile_pictures: profilePictures,
-          age: age ? parseInt(age) : null,
-          gender: gender || null,
-          hometown: hometown || null,
-          college: college || null,
-          work: work || null,
-          bio: bio || null,
-          alcohol: alcohol || null,
-          drugs: drugs || null,
-          workout_level: workoutLevel || null,
-          hobbies: hobbies || null,
-          instagram: instagram || null,
-          linkedin: linkedin || null,
-          facebook: facebook || null,
-          github: github || null,
-          portfolio_website: portfolio || null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', user.id);
+      const updatePayload: Record<string, any> = {
+        name: name.trim(),
+        profile_picture: profilePictures[0] || profilePicture || null,
+        profile_pictures: profilePictures,
+        age: age ? parseInt(age) : null,
+        gender: gender || null,
+        hometown: hometown || null,
+        college: college || null,
+        work: work || null,
+        employer: employer || null,
+        bio: bio || null,
+        alcohol: alcohol || null,
+        drugs: drugs || null,
+        workout_level: workoutLevel || null,
+        hobbies: hobbies || null,
+        instagram: instagram || null,
+        linkedin: linkedin || null,
+        facebook: facebook || null,
+        github: github || null,
+        portfolio_website: portfolio || null,
+        updated_at: new Date().toISOString(),
+      };
 
+      let { error } = await supabase.from('profiles').update(updatePayload).eq('id', user.id);
+      // Gracefully handle the `employer` column not existing yet (migration 070 not applied).
+      if (error && error.message?.includes('employer')) {
+        delete updatePayload.employer;
+        ({ error } = await supabase.from('profiles').update(updatePayload).eq('id', user.id));
+      }
       if (error) throw error;
 
       AppAlert.alert('Success', 'Profile updated!', [
@@ -246,7 +253,7 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
       <GradientBackground style={styles.loadingContainer}>
         <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         {isNewTheme && <GrainTexture opacity={0.06} />}
-        <ActivityIndicator size="large" color={isNewTheme ? colors.accentGreen : legacyColors.primary} />
+        <WhaleLoader size={56} />
       </GradientBackground>
     );
   }
@@ -317,24 +324,30 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
             onChangeText={setName}
           />
 
-          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Age</Text>
-          <TextInput
-            style={[styles.input, { backgroundColor: isNewTheme ? colors.surface : 'transparent', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
-            placeholder="e.g., 25"
-            placeholderTextColor={colors.textTertiary}
-            value={age}
-            onChangeText={setAge}
-            keyboardType="numeric"
-          />
-
-          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Gender</Text>
-          <TextInput
-            style={[styles.input, { backgroundColor: isNewTheme ? colors.surface : 'transparent', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
-            placeholder="e.g., Male, Female, Non-binary"
-            placeholderTextColor={colors.textTertiary}
-            value={gender}
-            onChangeText={setGender}
-          />
+          {/* Age + Gender share one row to keep the section tight */}
+          <View style={styles.fieldRow}>
+            <View style={styles.fieldCol}>
+              <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Age</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: isNewTheme ? colors.surface : 'transparent', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
+                placeholder="e.g., 25"
+                placeholderTextColor={colors.textTertiary}
+                value={age}
+                onChangeText={setAge}
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={styles.fieldCol}>
+              <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Gender</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: isNewTheme ? colors.surface : 'transparent', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
+                placeholder="e.g., Female"
+                placeholderTextColor={colors.textTertiary}
+                value={gender}
+                onChangeText={setGender}
+              />
+            </View>
+          </View>
 
           <Text style={[styles.sectionTitle, !isNewTheme && { color: colors.textPrimary, fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3 }]}>Location</Text>
 
@@ -359,10 +372,19 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
           <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Work</Text>
           <TextInput
             style={[styles.input, { backgroundColor: isNewTheme ? colors.surface : 'transparent', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
-            placeholder="e.g., Software Engineer at Google"
+            placeholder="e.g., Software Engineer"
             placeholderTextColor={colors.textTertiary}
             value={work}
             onChangeText={setWork}
+          />
+
+          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Company <Text style={{ color: colors.textTertiary }}>(optional)</Text></Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: isNewTheme ? colors.surface : 'transparent', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
+            placeholder="e.g., Google, Acme Inc."
+            placeholderTextColor={colors.textTertiary}
+            value={employer}
+            onChangeText={setEmployer}
           />
 
           <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Bio</Text>
@@ -509,6 +531,8 @@ function makeStyles(colors: any, isNewTheme: boolean) {
     marginBottom: 14,
   } : { fontSize: 18, fontWeight: 'bold', color: colors.textPrimary, marginTop: 20, marginBottom: 16 },
   label: { fontSize: 14, fontWeight: '600', color: colors.textSecondary, marginBottom: 8 },
+  fieldRow: { flexDirection: 'row', gap: 12 },
+  fieldCol: { flex: 1 },
   input: isNewTheme ? {
     borderWidth: 1,
     borderColor: colors.border,

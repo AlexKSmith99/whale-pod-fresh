@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  ActivityIndicator,
   RefreshControl,
   StatusBar,
 } from 'react-native';
@@ -17,6 +16,7 @@ import { colors as legacyColors, typography, spacing, borderRadius, shadows, edi
 import { useTheme } from '../../theme/ThemeContext';
 import { getThemedStyles } from '../../theme/themedStyles';
 import GrainTexture from '../../components/ui/GrainTexture';
+import WhaleLoader from '../../components/ui/WhaleLoader';
 import { AppAlert } from '../../components/ui/AppAlert';
 
 export default function ConnectionsScreen({ navigation }: any) {
@@ -91,7 +91,7 @@ export default function ConnectionsScreen({ navigation }: any) {
       <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         {isNewTheme && <GrainTexture opacity={0.06} />}
-        <ActivityIndicator size="large" color={accentColor} />
+        <WhaleLoader size={56} />
       </View>
     );
   }

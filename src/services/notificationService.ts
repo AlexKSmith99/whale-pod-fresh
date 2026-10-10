@@ -282,7 +282,7 @@ export const notificationService = {
     const pronoun = applicantId ? await fetchPossessivePronoun(applicantId) : 'their';
     await this.sendPushNotification(
       [creatorId],
-      `${applicantName} wants in on "${pursuitName}" 👀`,
+      `${applicantName} wants in on "${pursuitName}"`,
       `peep ${pronoun} application in the pods tab`,
       {
         type: 'application_received',
@@ -304,7 +304,7 @@ export const notificationService = {
   ) {
     await this.sendPushNotification(
       [creatorId],
-      'team ready 🚀',
+      'team ready',
       `"${pursuitName}" hit ${currentSize}/${minSize}. time to lock it in.`,
       {
         type: 'min_team_size_reached',
@@ -346,7 +346,7 @@ export const notificationService = {
   ) {
     await this.sendPushNotification(
       [creatorId],
-      'everyone replied ⏰',
+      'everyone replied',
       `all ${proposalCount} pod members dropped their times for "${pursuitName}". pick a slot.`,
       {
         type: 'all_proposals_submitted',
@@ -431,7 +431,7 @@ export const notificationService = {
     const pronoun = await fetchPossessivePronoun(requesterId);
     await this.sendPushNotification(
       [recipientId],
-      `${requesterName} wants to connect 👋`,
+      `${requesterName} wants to connect`,
       `peep ${pronoun} profile and decide`,
       {
         type: 'connection_request',
@@ -451,7 +451,7 @@ export const notificationService = {
   ) {
     await this.sendPushNotification(
       [userId],
-      `${accepterName} accepted ✨`,
+      `${accepterName} accepted`,
       'you can chat now. slide in.',
       {
         type: 'connection_accepted',
@@ -472,7 +472,7 @@ export const notificationService = {
   ) {
     await this.sendPushNotification(
       [applicantId],
-      `you're in! "${pursuitName}" 🐋`,
+      `you're in! "${pursuitName}"`,
       `${creatorName} let you in. welcome to the pod.`,
       {
         type: 'application_accepted',
@@ -494,7 +494,7 @@ export const notificationService = {
     await this.sendPushNotification(
       [applicantId],
       `update on "${pursuitName}"`,
-      `${creatorName} passed this time. plenty more pods out there 💫`,
+      `${creatorName} passed this time. plenty more pods out there`,
       {
         type: 'application_rejected',
         pursuitId,
@@ -502,6 +502,28 @@ export const notificationService = {
       'application_rejected',
       pursuitId,
       'pursuit'
+    );
+  },
+
+  // Membership application approved (waitlist → member)
+  async notifyMembershipApproved(applicantId: string) {
+    await this.sendPushNotification(
+      [applicantId],
+      `you're in! welcome to whale pod`,
+      `your application was approved. tap to set up your profile.`,
+      { type: 'membership_approved' },
+      'membership_approved'
+    );
+  },
+
+  // Membership application rejected
+  async notifyMembershipRejected(applicantId: string) {
+    await this.sendPushNotification(
+      [applicantId],
+      `update on your application`,
+      `we're not able to offer you a spot right now.`,
+      { type: 'membership_rejected' },
+      'membership_rejected'
     );
   },
 
@@ -559,7 +581,7 @@ export const notificationService = {
   ) {
     await this.sendPushNotification(
       [creatorId],
-      'pod: secured 🐋',
+      'pod: secured',
       `"${pursuitName}" is live. now go round up your people.`,
       {
         type: 'pursuit_created',

@@ -41,6 +41,7 @@ import WebRichTextEditor from '../../components/WebRichTextEditor';
 import { useTheme } from '../../theme/ThemeContext';
 import { getThemedStyles } from '../../theme/themedStyles';
 import GrainTexture from '../../components/ui/GrainTexture';
+import WhaleLoader from '../../components/ui/WhaleLoader';
 import KeyboardAwareScreen from '../../components/ui/KeyboardAwareScreen';
 import { AppAlert } from '../../components/ui/AppAlert';
 import { colors as legacyColors, typography, spacing, borderRadius, shadows, editorial } from '../../theme/designSystem';
@@ -1454,7 +1455,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
     if (agendaDocumentLoading) {
       return (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.accent} />
+          <WhaleLoader size={40} />
         </View>
       );
     }
@@ -1929,7 +1930,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
       <View style={[styles.loadingContainer, { backgroundColor: theme.bg }]}>
         <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={theme.bg} />
         {isNewTheme && <GrainTexture opacity={0.06} />}
-        <ActivityIndicator size="large" color={theme.accent} />
+        <WhaleLoader size={56} />
       </View>
     );
   }

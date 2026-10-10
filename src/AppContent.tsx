@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { supabase } from './config/supabase';
+import { View } from 'react-native';
+import WhaleLoader from './components/ui/WhaleLoader';
 import { useAuth } from './contexts/AuthContext';
 import { LegalDoc } from './screens/LegalScreen';
 import IntroAnimation from './components/IntroAnimation';
 import LoginScreen from './screens/LoginScreen';
+import EntryGate from './screens/apply/EntryGate';
+import WaitingListScreen from './screens/apply/WaitingListScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import AppTabBar from './components/ui/AppTabBar';
 import { useOnboardingGate } from './hooks/useOnboardingGate';
@@ -11,8 +15,10 @@ import { useNotifications } from './hooks/useNotifications';
 import { useInterviewListeners } from './hooks/useInterviewListeners';
 import { useMessageBadges } from './hooks/useMessageBadges';
 import { useToastNavigation } from './hooks/useToastNavigation';
+import { useKickoffReminder } from './hooks/useKickoffReminder';
 import { useAppNavigation } from './navigation/useAppNavigation';
 import AppRouter from './navigation/AppRouter';
+import { DEV_BYPASS_GATE } from './config/devFlags';
 
 export default function AppContent() {
   const auth = useAuth();
@@ -76,13 +82,31 @@ export default function AppContent() {
   // Onboarding state
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
+  const [applicationStatus, setApplicationStatus] = useState<string | null>(null);
   const [introDone, setIntroDone] = useState(false);
 
   // Effects + data loading extracted to hooks (state stays in AppContent and is
   // passed down, so behavior is unchanged). Effect order preserved:
   // onboarding -> notifications -> interview x2 -> messages.
-  useOnboardingGate(auth, { setOnboardingCompleted, setCheckingOnboarding });
+  useOnboardingGate(auth, { setOnboardingCompleted, setCheckingOnboarding, setApplicationStatus });
+
+  // Re-read the gate fields (used when an approval arrives while the applicant
+  // is sitting on the Waiting List, so they advance without relaunching).
+  const recheckGate = useCallback(async () => {
+    if (!auth.user) return;
+    const { data } = await supabase
+      .from('profiles')
+      .select('application_status, onboarding_completed')
+      .eq('id', auth.user.id)
+      .maybeSingle();
+    if (data) {
+      setApplicationStatus(data.application_status ?? null);
+      setOnboardingCompleted(data.onboarding_completed ?? true);
+    }
+  }, [auth.user]);
   const { loadBadgeCounts, clearBadgeForTab } = useNotifications(auth, { setBadgeCounts, setCurrentToast });
+  // Nudge the leader on every app open if a pod is team-ready but not kicked off.
+  useKickoffReminder(auth, { setCurrentToast });
   const { fetchInterviewProposalData, fetchInterviewSchedulingData } = useInterviewListeners(auth, {
     setCurrentToast,
     setViewingInterviewProposal,
@@ -118,26 +142,36 @@ export default function AppContent() {
   if (auth.loading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#0ea5e9" />
+        <WhaleLoader size={64} />
       </View>
     );
   }
 
   if (!auth.user) {
-    return <LoginScreen />;
+    return <EntryGate />;
   }
 
   // Show loading while checking onboarding status
   if (checkingOnboarding) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: themeColors.background }}>
-        <ActivityIndicator size="large" color={isNewTheme ? themeColors.accentGreen : '#6366F1'} />
+        <WhaleLoader size={64} />
       </View>
     );
   }
 
+  // DEV-ONLY: skip the waitlist + onboarding gate (see config/devFlags.ts).
+  // __DEV__-gated, so this is dead code in a release build.
+  const bypassGate = DEV_BYPASS_GATE && !!auth.user;
+
+  // Applicants awaiting review stay on the waiting list until approved.
+  // (Existing/approved users have application_status 'approved' or null.)
+  if (applicationStatus === 'pending' && !bypassGate) {
+    return <WaitingListScreen onApproved={recheckGate} />;
+  }
+
   // Show onboarding if not completed
-  if (!onboardingCompleted) {
+  if (!onboardingCompleted && !bypassGate) {
     return (
       <OnboardingScreen
         onComplete={() => { setOnboardingCompleted(true); setCurrentScreen('Feed'); }}

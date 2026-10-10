@@ -80,7 +80,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
           onPress: async () => {
             try {
               await applicationService.acceptApplication(applicationId);
-              AppAlert.alert('✅ Accepted!', 'Application accepted');
+              AppAlert.alert('Accepted!', 'Application accepted');
               loadApplications();
             } catch (error: any) {
               AppAlert.alert('Error', error.message);

@@ -38,10 +38,12 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
   } | null>(null);
   const [uploadingResume, setUploadingResume] = useState(false);
 
-  // Use custom questions if provided, otherwise use default
-  const questions = pursuit.application_questions && pursuit.application_questions.length > 0
-    ? pursuit.application_questions
-    : ['Why are you a good team fit?', 'Where do you hope to see this go?'];
+  // Questions are exactly what the pod creator configured. If they turned off
+  // default questions and added no custom ones, applicants get NO questions.
+  const questions: string[] =
+    pursuit.application_questions && pursuit.application_questions.length > 0
+      ? pursuit.application_questions
+      : [];
 
   const pickDocument = async () => {
     try {
@@ -161,7 +163,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
       console.log('✅ Application created successfully!');
 
       AppAlert.alert(
-        'application: sent 🐋',
+        'application: sent',
         "you sent it. now we wait. the creator's gonna peep your answers and get back to you.",
         [{ text: 'bet', onPress: onSubmitted }]
       );
@@ -254,6 +256,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
             </View>
           )}
 
+          {questions.length > 0 && (
           <View style={styles.questionsSection}>
             <Text style={[styles.sectionTitle, { color: isNewTheme ? colors.accentGreen : '#2E6A95', fontFamily: isNewTheme ? 'Sora_700Bold' : 'InterTight_600SemiBold' }]}>Application Questions</Text>
 
@@ -278,6 +281,7 @@ export default function ApplicationScreen({ pursuit, onBack, onSubmitted }: Prop
               </View>
             ))}
           </View>
+          )}
 
           {/* Resume Upload Section */}
           {pursuit.requires_resume && (

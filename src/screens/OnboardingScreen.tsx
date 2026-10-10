@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
 import { PURSUIT_TYPES } from '../constants/pursuitTypes';
-import { US_CITIES } from '../constants/usCities';
+import { isNycArea, nycSuggestions } from '../constants/nycArea';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppAlert } from '../components/ui/AppAlert';
 import KeyboardAwareScreen from '../components/ui/KeyboardAwareScreen';
@@ -42,14 +42,15 @@ const F = {
 // Section groups for progress dots
 const SECTION_MAP: Record<number, number> = {
   0: 0, 1: 0,           // Set up your profile
-  2: 1, 3: 1, 4: 1,     // The Basics
-  5: 2, 6: 2, 7: 2,     // Your Details
-  8: 3,                  // Your interests
-  9: 4,                  // Preferences
-  10: 5,                 // Notifications
-  11: 6,                 // Welcome
+  2: 1, 3: 1,           // The Basics
+  4: 2, 5: 2, 6: 2,     // About you (email, socials, bio)
+  7: 3,                  // Your interests
+  8: 4,                  // Preferences
+  9: 5,                  // Notifications
+  10: 6,                 // Your Details (NYC location, work, employer, school)
+  11: 7,                 // Welcome
 };
-const NUM_SECTIONS = 7;
+const NUM_SECTIONS = 8;
 
 interface Props {
   onComplete: () => void;
@@ -98,6 +99,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
   const [bio, setBio] = useState('');
   const [college, setCollege] = useState('');
   const [work, setWork] = useState('');
+  const [employer, setEmployer] = useState('');
   const [instagram, setInstagram] = useState('');
   const [linkedin, setLinkedin] = useState('');
   const [interests, setInterests] = useState<string[]>([]);
@@ -112,13 +114,13 @@ export default function OnboardingScreen({ onComplete }: Props) {
       case 1: return profilePictures.length >= 3;
       case 2: return dateOfBirth !== null;
       case 3: return gender.length > 0;
-      case 4: return hometown.trim().length > 0;
-      case 5: return email.trim().length > 0 && email.includes('@') && email.includes('.');
-      case 6: return true; // Socials are optional
-      case 7: return true; // Bio/College/Work are optional
-      case 8: return interests.length >= 3;
-      case 9: return true; // Preferences have defaults
-      case 10: return true; // Notifications (optional)
+      case 4: return email.trim().length > 0 && email.includes('@') && email.includes('.');
+      case 5: return true; // Socials are optional
+      case 6: return true; // Bio is optional
+      case 7: return interests.length >= 3;
+      case 8: return true; // Preferences have defaults
+      case 9: return true; // Notifications (optional)
+      case 10: return isNycArea(hometown); // Your Details — location must be NYC/nearby; work/employer/school optional
       case 11: return true; // Welcome screen
       default: return false;
     }
@@ -227,6 +229,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
       // and let Supabase ignore unknown columns or handle gracefully
       if (instagram.trim()) updateData.instagram = instagram.trim();
       if (linkedin.trim()) updateData.linkedin = linkedin.trim();
+      if (employer.trim()) updateData.employer = employer.trim();
 
       const { error } = await supabase
         .from('profiles')
@@ -237,7 +240,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
       onComplete();
     } catch (error: any) {
       // If error is about instagram/linkedin columns not existing, retry without them
-      if (error.message?.includes('instagram') || error.message?.includes('linkedin')) {
+      if (error.message?.includes('instagram') || error.message?.includes('linkedin') || error.message?.includes('employer')) {
         try {
           const age = dateOfBirth ? calculateAge(dateOfBirth) : null;
           const finalGender = gender === 'Other' ? customGender : gender;
@@ -402,11 +405,12 @@ export default function OnboardingScreen({ onComplete }: Props) {
 
   const getSectionTitle = (step: number): string => {
     if (step <= 1) return 'Set up your profile';
-    if (step <= 4) return 'The Basics';
-    if (step <= 7) return 'Your Details';
-    if (step === 8) return 'Your interests';
-    if (step === 9) return 'Preferences';
-    if (step === 10) return 'Notifications';
+    if (step <= 3) return 'The Basics';
+    if (step <= 6) return 'About you';
+    if (step === 7) return 'Your interests';
+    if (step === 8) return 'Preferences';
+    if (step === 9) return 'Notifications';
+    if (step === 10) return 'Your Details';
     return 'Welcome';
   };
 
@@ -416,13 +420,13 @@ export default function OnboardingScreen({ onComplete }: Props) {
       case 1: return 'Your photo';
       case 2: return 'Your Birthday';
       case 3: return 'How do you identify?';
-      case 4: return 'Where are you based?';
-      case 5: return 'Your email';
-      case 6: return 'Drop your socials';
-      case 7: return 'A bit more about you';
-      case 8: return 'Pick at least 3';
-      case 9: return 'How do you like to work?';
-      case 10: return 'Stay connected';
+      case 4: return 'Your email';
+      case 5: return 'Drop your socials';
+      case 6: return 'A bit about you';
+      case 7: return 'Pick at least 3';
+      case 8: return 'How do you like to work?';
+      case 9: return 'Stay connected';
+      case 10: return '';
       case 11: return '';
       default: return '';
     }
@@ -735,51 +739,10 @@ export default function OnboardingScreen({ onComplete }: Props) {
     );
   };
 
-  const locationSuggestions = hometown.trim().length >= 2
-    ? US_CITIES.filter(c => c.toLowerCase().startsWith(hometown.toLowerCase())).slice(0, 5)
-    : [];
-
-  const renderLocationStep = () => (
-    <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
-      <View style={styles.stepInner}>
-        {renderStepHeader(4)}
-        <KeyboardAwareScreen mode="scroll" style={styles.contentArea} contentContainerStyle={{ paddingTop: 8 }}>
-          <TextInput
-            style={[styles.largeInput, focusedField === 'hometown' && styles.largeInputFocused]}
-            placeholder="City, State"
-            placeholderTextColor={C.border}
-            value={hometown}
-            onChangeText={setHometown}
-            returnKeyType="next"
-            onSubmitEditing={() => canProceed(4) && handleNext()}
-            onFocus={() => setFocusedField('hometown')}
-            onBlur={() => setFocusedField(null)}
-          />
-          {locationSuggestions.length > 0 && (
-            <View style={{ marginTop: 12 }}>
-              {locationSuggestions.map(city => (
-                <TouchableOpacity
-                  key={city}
-                  style={{ paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.border }}
-                  onPress={() => setHometown(city)}
-                  activeOpacity={0.6}
-                >
-                  <Text style={{ fontSize: 17, color: C.ink, fontFamily: F.body }}>{city}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-        </KeyboardAwareScreen>
-        <Text style={styles.helperText}>Helps match you with local pods.</Text>
-        {renderBottomNav()}
-      </View>
-    </View>
-  );
-
   const renderEmailStep = () => (
     <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
       <View style={styles.stepInner}>
-        {renderStepHeader(5)}
+        {renderStepHeader(4)}
         <KeyboardAwareScreen mode="scroll" style={styles.contentArea} contentContainerStyle={{ paddingTop: 8 }}>
           <TextInput
             style={[styles.emailInput, focusedField === 'email' && styles.inputFocused]}
@@ -804,7 +767,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
   const renderSocialsStep = () => (
     <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
       <View style={styles.stepInner}>
-        {renderStepHeader(6)}
+        {renderStepHeader(5)}
         <KeyboardAwareScreen mode="scroll" style={styles.contentArea} contentContainerStyle={{ paddingTop: 8 }}>
           <View style={styles.socialRow}>
             <Text style={styles.socialLabel}>Instagram</Text>
@@ -847,7 +810,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
   const renderAboutYouStep = () => (
     <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
       <View style={styles.stepInner}>
-        {renderStepHeader(7)}
+        {renderStepHeader(6)}
         <KeyboardAwareScreen mode="scroll" style={styles.contentArea} contentContainerStyle={{ paddingTop: 8 }}>
           <View style={styles.aboutYouField}>
             <Text style={styles.aboutYouLabel}>Bio</Text>
@@ -866,32 +829,8 @@ export default function OnboardingScreen({ onComplete }: Props) {
             />
             <Text style={styles.aboutYouCharCount}>{bio.length}/200</Text>
           </View>
-          <View style={styles.aboutYouField}>
-            <Text style={styles.aboutYouLabel}>College</Text>
-            <TextInput
-              style={[styles.aboutYouInput, focusedField === 'college' && styles.inputFocused]}
-              placeholder="Where did/do you go to school?"
-              placeholderTextColor={C.border}
-              value={college}
-              onChangeText={setCollege}
-              onFocus={() => setFocusedField('college')}
-              onBlur={() => setFocusedField(null)}
-            />
-          </View>
-          <View style={styles.aboutYouField}>
-            <Text style={styles.aboutYouLabel}>Work</Text>
-            <TextInput
-              style={[styles.aboutYouInput, focusedField === 'work' && styles.inputFocused]}
-              placeholder="What do you do?"
-              placeholderTextColor={C.border}
-              value={work}
-              onChangeText={setWork}
-              onFocus={() => setFocusedField('work')}
-              onBlur={() => setFocusedField(null)}
-            />
-          </View>
         </KeyboardAwareScreen>
-        <Text style={styles.helperText}>All optional — you can always add these later.</Text>
+        <Text style={styles.helperText}>Optional — you can always add this later.</Text>
         {renderBottomNav()}
       </View>
     </View>
@@ -900,7 +839,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
   const renderInterestsStep = () => (
     <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
       <View style={[styles.stepInner, { flex: 1 }]}>
-        {renderStepHeader(8)}
+        {renderStepHeader(7)}
         <Text style={[styles.interestCount, {
           color: interests.length >= 3 ? C.accent : C.muted,
         }]}>
@@ -954,7 +893,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
     return (
       <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
         <View style={[styles.stepInner, { flex: 1 }]}>
-          {renderStepHeader(9)}
+          {renderStepHeader(8)}
           <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
             <Text style={styles.prefSection}>Team Role</Text>
             {roles.map(role => (
@@ -1016,7 +955,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
     return (
       <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
         <View style={styles.stepInner}>
-          {renderStepHeader(10)}
+          {renderStepHeader(9)}
           <View style={styles.contentArea}>
             {notificationPermissionGranted ? (
               <Ionicons name="checkmark-circle" size={48} color={C.accent} style={{ marginBottom: 20 }} />
@@ -1056,6 +995,93 @@ export default function OnboardingScreen({ onComplete }: Props) {
       </View>
     );
   };
+
+  const detailSuggestions = nycSuggestions(hometown);
+  const showLocationError = hometown.trim().length > 0 && !isNycArea(hometown);
+
+  const renderYourDetailsStep = () => (
+    <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
+      <View style={styles.stepInner}>
+        {renderStepHeader(10)}
+        <KeyboardAwareScreen mode="scroll" style={styles.contentArea} contentContainerStyle={{ paddingTop: 8 }}>
+          {/* Where do you live — NYC gated */}
+          <View style={[styles.detailRow, focusedField === 'hometown' && styles.detailRowFocused]}>
+            <Ionicons name="location-outline" size={22} color={C.ink} style={styles.detailIcon} />
+            <TextInput
+              style={styles.detailInput}
+              placeholder="Where in NYC or nearby do you live?"
+              placeholderTextColor={C.muted}
+              value={hometown}
+              onChangeText={setHometown}
+              onFocus={() => setFocusedField('hometown')}
+              onBlur={() => setFocusedField(null)}
+            />
+          </View>
+          {showLocationError ? (
+            <Text style={styles.detailError}>You must be in NYC or nearby to join</Text>
+          ) : null}
+          {focusedField === 'hometown' && detailSuggestions.length > 0 && (
+            <View style={styles.detailSuggestions}>
+              {detailSuggestions.map(city => (
+                <TouchableOpacity
+                  key={city}
+                  style={styles.detailSuggestionRow}
+                  onPress={() => setHometown(city)}
+                  activeOpacity={0.6}
+                >
+                  <Text style={styles.detailSuggestionText}>{city}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+          {/* What do you do — role/occupation (work) */}
+          <View style={[styles.detailRow, focusedField === 'work' && styles.detailRowFocused]}>
+            <Ionicons name="briefcase-outline" size={22} color={C.ink} style={styles.detailIcon} />
+            <TextInput
+              style={styles.detailInput}
+              placeholder="What do you do?"
+              placeholderTextColor={C.muted}
+              value={work}
+              onChangeText={setWork}
+              onFocus={() => setFocusedField('work')}
+              onBlur={() => setFocusedField(null)}
+            />
+          </View>
+
+          {/* Where do you work — employer */}
+          <View style={[styles.detailRow, focusedField === 'employer' && styles.detailRowFocused]}>
+            <Ionicons name="business-outline" size={22} color={C.ink} style={styles.detailIcon} />
+            <TextInput
+              style={styles.detailInput}
+              placeholder="Where do you work?"
+              placeholderTextColor={C.muted}
+              value={employer}
+              onChangeText={setEmployer}
+              onFocus={() => setFocusedField('employer')}
+              onBlur={() => setFocusedField(null)}
+            />
+          </View>
+
+          {/* Where did/do you go — school */}
+          <View style={[styles.detailRow, focusedField === 'college' && styles.detailRowFocused]}>
+            <Ionicons name="school-outline" size={22} color={C.ink} style={styles.detailIcon} />
+            <TextInput
+              style={styles.detailInput}
+              placeholder="Where did/do you go?"
+              placeholderTextColor={C.muted}
+              value={college}
+              onChangeText={setCollege}
+              onFocus={() => setFocusedField('college')}
+              onBlur={() => setFocusedField(null)}
+            />
+          </View>
+        </KeyboardAwareScreen>
+        <Text style={styles.helperText}>Location is required — everything else is optional.</Text>
+        {renderBottomNav()}
+      </View>
+    </View>
+  );
 
   const renderWelcomeStep = () => (
     <View style={[styles.stepContainer, { width: SCREEN_WIDTH }]}>
@@ -1119,13 +1145,13 @@ export default function OnboardingScreen({ onComplete }: Props) {
         {renderPhotoStep()}
         {renderBirthdayStep()}
         {renderGenderStep()}
-        {renderLocationStep()}
         {renderEmailStep()}
         {renderSocialsStep()}
         {renderAboutYouStep()}
         {renderInterestsStep()}
         {renderPreferencesStep()}
         {renderNotificationStep()}
+        {renderYourDetailsStep()}
         {renderWelcomeStep()}
       </ScrollView>
     </View>
@@ -1232,6 +1258,48 @@ const styles = StyleSheet.create({
   largeInputFocused: {
     borderBottomWidth: 2,
     borderBottomColor: C.accent,
+  },
+
+  // "Your Details" step — icon + underline rows
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+    marginTop: 20,
+  },
+  detailRowFocused: {
+    borderBottomColor: C.accent,
+  },
+  detailIcon: {
+    marginRight: 16,
+  },
+  detailInput: {
+    flex: 1,
+    fontFamily: F.body,
+    fontSize: 18,
+    color: C.ink,
+    paddingVertical: 0,
+  },
+  detailError: {
+    fontFamily: F.body,
+    fontSize: 14,
+    color: editorial.red,
+    marginTop: 8,
+  },
+  detailSuggestions: {
+    marginTop: 4,
+  },
+  detailSuggestionRow: {
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: C.border,
+  },
+  detailSuggestionText: {
+    fontFamily: F.body,
+    fontSize: 16,
+    color: C.ink,
   },
 
   // Helper text

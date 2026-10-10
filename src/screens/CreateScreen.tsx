@@ -807,6 +807,15 @@ export default function CreateScreen({ onClose }: Props = {}) {
             placeholderTextColor={C.placeholder}
             value={description}
             onChangeText={(text) => setDescription(capWords(text, 150))}
+            onBlur={() => {
+              const len = description.length;
+              if (len > 0 && len < 50) {
+                AppAlert.alert(
+                  'Description Too Short',
+                  `Your description needs at least 50 characters to post — it's currently ${len}. Add a bit more detail.`
+                );
+              }
+            }}
             multiline
             numberOfLines={5}
             textAlignVertical="top"

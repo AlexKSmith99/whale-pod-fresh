@@ -157,9 +157,10 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
   },
   titleLetter: {
-    fontFamily: 'InterTight_600SemiBold',
+    // Matches the editorial feed header wordmark (FeedScreen headerTitle)
+    fontFamily: 'PlayfairDisplay_700Bold',
     fontSize: 44,
     color: '#1B1B18',
-    letterSpacing: -0.5,
+    letterSpacing: -0.8,
   },
 });

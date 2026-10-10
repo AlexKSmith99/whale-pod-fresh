@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, ActivityIndicator, StatusBar, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, StatusBar, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
@@ -9,6 +9,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
 import GradientBackground from '../components/ui/GradientBackground';
+import WhaleLoader from '../components/ui/WhaleLoader';
 import { HotFlameIcon, JalapenoIndicator, calculateEngagement, fetchEngagementData, EngagementState } from '../components/ui/PodEngagementIndicator';
 
 interface Pod {
@@ -215,7 +216,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
       <GradientBackground style={styles.loadingContainer}>
         <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         {isNewTheme && <GrainTexture opacity={0.06} />}
-        <ActivityIndicator size="large" color={themedStyles.accentIconColor} />
+        <WhaleLoader size={56} />
       </GradientBackground>
     );
   }
@@ -446,11 +447,11 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
         sortedPods.map((pod) => renderPodCard(pod))
       ) : (
         <View style={styles.emptyState}>
-          {isNewTheme ? (
-            <Ionicons name="grid-outline" size={64} color={colors.textTertiary} style={{ marginBottom: 20 }} />
-          ) : (
-            <Text style={styles.emptyEmoji}>🌊</Text>
-          )}
+          <Image
+            source={require('../../assets/whale-mark.png')}
+            style={{ width: 72, height: 72, marginBottom: 20, tintColor: colors.textTertiary }}
+            resizeMode="contain"
+          />
           <Text style={[styles.emptyText, themedStyles.emptyText]}>No active pods</Text>
           <Text style={[styles.emptyHint, themedStyles.emptySubtext]}>Create a pod or apply to join a team</Text>
         </View>

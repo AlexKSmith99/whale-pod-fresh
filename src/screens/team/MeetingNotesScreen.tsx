@@ -8,7 +8,6 @@ import {
   TextInput,
   Alert,
   Modal,
-  ActivityIndicator,
   StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +15,7 @@ import { getMeetingNotes, createMeetingNote, updateMeetingNote, deleteMeetingNot
 import { useTheme } from '../../theme/ThemeContext';
 import { getThemedStyles } from '../../theme/themedStyles';
 import GrainTexture from '../../components/ui/GrainTexture';
+import WhaleLoader from '../../components/ui/WhaleLoader';
 import KeyboardAwareScreen from '../../components/ui/KeyboardAwareScreen';
 import { colors as legacyColors, typography, spacing, borderRadius, shadows, editorial } from '../../theme/designSystem';
 
@@ -127,7 +127,7 @@ export default function MeetingNotesScreen({ pursuitId, onBack }: MeetingNotesSc
       <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         {isNewTheme && <GrainTexture opacity={0.06} />}
-        <ActivityIndicator size="large" color={primaryColor} />
+        <WhaleLoader size={56} />
       </View>
     );
   }

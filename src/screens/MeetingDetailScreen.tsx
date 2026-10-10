@@ -9,6 +9,7 @@ import { colors as legacyColors, typography, spacing, borderRadius, shadows, edi
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
+import WhaleLoader from '../components/ui/WhaleLoader';
 import { AppAlert } from '../components/ui/AppAlert';
 import KeyboardAwareScreen from '../components/ui/KeyboardAwareScreen';
 
@@ -715,7 +716,7 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
             </View>
 
             {loadingParticipants ? (
-              <ActivityIndicator size="small" color={accentColor} style={{ padding: 20 }} />
+              <WhaleLoader size={40} style={{ padding: 20 }} />
             ) : participants.length === 0 ? (
               <Text style={[styles.noParticipantsText, { color: colors.textSecondary }]}>No participants yet</Text>
             ) : (

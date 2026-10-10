@@ -1,6 +1,12 @@
 import React from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, LogBox } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+
+// Benign Supabase dev-only noise: when a persisted session's refresh token has
+// been invalidated (e.g. the same account is signed in on another device/sim,
+// which rotates the token), GoTrue logs this via console.error. It self-heals
+// (the client signs out and clears the token); suppress the red box in dev.
+LogBox.ignoreLogs(['Invalid Refresh Token', 'Refresh Token Not Found', 'AuthApiError']);
 import { useFonts } from '@expo-google-fonts/nothing-you-could-do';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
