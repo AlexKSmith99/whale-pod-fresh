@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, ActivityIndicator, TouchableOpacity, Text, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, TouchableOpacity, Text, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { supabase } from '../config/supabase';
 import { AppAlert } from '../components/ui/AppAlert';
 import NotificationToast from '../components/NotificationToast';
@@ -118,14 +118,11 @@ export default function AppRouter(props: any) {
       <EditPursuitScreen
         pursuit={editingPursuit}
         onClose={() => setEditingPursuit(null)}
-        onSaved={() => {
-          // Refresh pods screen
-          setCurrentScreen('Pods');
-        }}
-        onDeleted={() => {
-          // Go back to pods screen
-          setCurrentScreen('Pods');
-        }}
+        // Entering edit clears the pod-detail overlay (see the onEdit handlers),
+        // so closing drops the user back on whichever tab they came from —
+        // Feed, Pods or Profile. Don't force them to the Pods tab.
+        onSaved={() => {}}
+        onDeleted={() => {}}
       />
     );
   }
@@ -356,6 +353,9 @@ if (viewingPodDetail) {
       isOwner={viewingPodDetail.creator_id === auth.user?.id || viewingPodDetail.is_creator}
       onEdit={() => {
         setEditingPursuit(viewingPodDetail);
+        // Drop the detail overlay so closing the editor doesn't land back on
+        // a copy of the pod rendered from pre-edit data.
+        setViewingPodDetail(null);
       }}
       onDelete={async () => {
         AppAlert.alert(
@@ -448,10 +448,11 @@ if (teamBoardPursuitId) {
       />
 
       {currentScreen === 'Feed' && (
-        <FeedScreen 
-          onStartMessage={startMessage} 
+        <FeedScreen
+          onStartMessage={startMessage}
           onOpenTeamBoard={openTeamBoard}
           onOpenCreate={() => setShowCreate(true)}
+          onEditPursuit={(pursuit) => setEditingPursuit(pursuit)}
         />
       )}
       {currentScreen === 'Messages' && (

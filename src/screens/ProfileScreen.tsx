@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Linking, Image, Modal, TextInput, KeyboardAvoidingView, Platform, StatusBar, Switch, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, Image, Modal, TextInput, KeyboardAvoidingView, Platform, StatusBar, Switch, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
 import { connectionService } from '../services/connectionService';
 import { privacyService } from '../services/privacyService';
+import { savedPodService } from '../services/savedPodService';
 import EditProfileScreen from './EditProfileScreen';
 import PrivacyPreferencesScreen from './PrivacyPreferencesScreen';
 import SettingsScreen from './settings/SettingsScreen';
+import AdminReviewScreen from './admin/AdminReviewScreen';
 import PodMemberCollage from '../components/PodMemberCollage';
 import { colors as legacyColors, typography, spacing, borderRadius, shadows, editorial } from '../theme/designSystem';
 import PieButton from '../components/ui/PieButton';
+import WhaleLoader from '../components/ui/WhaleLoader';
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
@@ -31,8 +34,10 @@ const [connections, setConnections] = useState<any[]>([]);
 const [pendingRequests, setPendingRequests] = useState<any[]>([]);
 const [connectionSearchQuery, setConnectionSearchQuery] = useState('');
 const [showSettings, setShowSettings] = useState(false);
+const [showAdminReview, setShowAdminReview] = useState(false);
 const [showPrivacyPreferences, setShowPrivacyPreferences] = useState(false);
 const [userPods, setUserPods] = useState<any[]>([]);
+const [savedPods, setSavedPods] = useState<any[]>([]);
 const [activePhotoIdx, setActivePhotoIdx] = useState(0);
 const [podsLoading, setPodsLoading] = useState(false);
 
@@ -131,8 +136,17 @@ const loadUserPods = async () => {
   if (!user) return;
   setPodsLoading(true);
   try {
-    const pods = await privacyService.getUserPods(user.id);
+    // Saved pods are independent of membership, so fetch both together and
+    // let one failing surface the error without blanking the other.
+    const [pods, saved] = await Promise.all([
+      privacyService.getUserPods(user.id),
+      savedPodService.getSavedPods(user.id).catch(error => {
+        console.error('Error loading saved pods:', error);
+        return [];
+      }),
+    ]);
     setUserPods(pods);
+    setSavedPods(saved);
   } catch (error) {
     console.error('Error loading user pods:', error);
   } finally {
@@ -180,10 +194,16 @@ const handleRejectConnection = async (connectionId: string) => {
     );
   }
 
+  if (showAdminReview) {
+    return <AdminReviewScreen onBack={() => { setShowAdminReview(false); setShowSettings(true); }} />;
+  }
+
   if (showSettings) {
     return (
       <SettingsScreen
         onBack={() => setShowSettings(false)}
+        isAdmin={!!profile?.is_admin}
+        onReviewApplications={() => { setShowSettings(false); setShowAdminReview(true); }}
         onAccountDetails={() => {
           setShowSettings(false);
           setShowEdit(true);
@@ -214,7 +234,7 @@ const handleRejectConnection = async (connectionId: string) => {
   if (loading) {
     return (
       <View style={[styles.loadingContainer, themedStyles.container]}>
-        <ActivityIndicator size="large" color={themedStyles.accentIconColor} />
+        <WhaleLoader size={56} />
       </View>
     );
   }
@@ -343,68 +363,10 @@ const handleRejectConnection = async (connectionId: string) => {
 
 {activeTab === 'info' && (
           <>
-        {(profile?.age || profile?.gender) && (
-          <View style={[styles.section, themedStyles.card]}>
-            {profile?.age && (
-              <View style={styles.infoRow}>
-                <Text style={[styles.infoLabel, themedStyles.labelText]}>Age:</Text>
-                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{profile.age}</Text>
-              </View>
-            )}
-            {profile?.gender && (
-              <View style={styles.infoRow}>
-                <Text style={[styles.infoLabel, themedStyles.labelText]}>Gender:</Text>
-                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{profile.gender}</Text>
-              </View>
-            )}
-          </View>
-        )}
-
-        {(profile?.hometown || profile?.college || profile?.work) && (
-          <View style={[styles.section, themedStyles.card]}>
-            <Text style={isNewTheme ? styles.sectionTitleNew : [styles.sectionTitle, themedStyles.cardTitle, { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3, color: editorial.ink }]}>Location</Text>
-            {profile?.hometown && (
-              <View style={styles.infoRow}>
-                <Text style={[styles.infoLabel, themedStyles.labelText]}>Hometown:</Text>
-                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{profile.hometown}</Text>
-              </View>
-            )}
-            {profile?.college && (
-              <View style={styles.infoRow}>
-                <Text style={[styles.infoLabel, themedStyles.labelText]}>College:</Text>
-                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{profile.college}</Text>
-              </View>
-            )}
-            {profile?.work && (
-              <View style={styles.infoRow}>
-                <Text style={[styles.infoLabel, themedStyles.labelText]}>Work:</Text>
-                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{profile.work}</Text>
-              </View>
-            )}
-          </View>
-        )}
-
         {profile?.bio && (
           <View style={[styles.section, themedStyles.card]}>
             <Text style={isNewTheme ? styles.sectionTitleNew : [styles.sectionTitle, themedStyles.cardTitle, { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3, color: editorial.ink }]}>Bio</Text>
             <Text style={[styles.bioText, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{profile.bio}</Text>
-          </View>
-        )}
-
-        {(profile?.alcohol || profile?.drugs || profile?.workout_level || profile?.hobbies) && (
-          <View style={[styles.section, themedStyles.card]}>
-            <Text style={isNewTheme ? styles.sectionTitleNew : [styles.sectionTitle, themedStyles.cardTitle, { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3, color: editorial.ink }]}>Lifestyle</Text>
-            {([
-              { label: 'Alcohol', value: profile?.alcohol },
-              { label: 'Drugs', value: profile?.drugs },
-              { label: 'Workout', value: profile?.workout_level },
-              { label: 'Hobbies', value: profile?.hobbies },
-            ] as { label: string; value?: string }[]).filter(r => r.value).map(r => (
-              <View key={r.label} style={styles.infoRow}>
-                <Text style={[styles.infoLabel, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{r.label}</Text>
-                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{r.value}</Text>
-              </View>
-            ))}
           </View>
         )}
 
@@ -446,6 +408,43 @@ const handleRejectConnection = async (connectionId: string) => {
                 <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
               </TouchableOpacity>
             )}
+          </View>
+        )}
+
+        {(profile?.age || profile?.gender || profile?.hometown || profile?.college || profile?.work || profile?.employer) && (
+          <View style={[styles.section, themedStyles.card, styles.infoCard]}>
+            <View style={styles.infoGrid}>
+              {([
+                { label: 'Age', value: profile?.age ? String(profile.age) : undefined },
+                { label: 'Gender', value: profile?.gender },
+                { label: 'Hometown', value: profile?.hometown },
+                { label: 'College', value: profile?.college },
+                { label: 'Work', value: profile?.work },
+                { label: 'Company', value: profile?.employer },
+              ] as { label: string; value?: string }[]).filter(r => r.value).map(r => (
+                <View key={r.label} style={styles.infoCell}>
+                  <Text style={[styles.infoCellLabel, { color: isNewTheme ? 'rgba(255,255,255,0.45)' : editorial.muted, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{r.label.toUpperCase()}</Text>
+                  <Text style={[styles.infoCellValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{r.value}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {(profile?.alcohol || profile?.drugs || profile?.workout_level || profile?.hobbies) && (
+          <View style={[styles.section, themedStyles.card]}>
+            <Text style={isNewTheme ? styles.sectionTitleNew : [styles.sectionTitle, themedStyles.cardTitle, { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3, color: editorial.ink }]}>Lifestyle</Text>
+            {([
+              { label: 'Alcohol', value: profile?.alcohol },
+              { label: 'Drugs', value: profile?.drugs },
+              { label: 'Workout', value: profile?.workout_level },
+              { label: 'Hobbies', value: profile?.hobbies },
+            ] as { label: string; value?: string }[]).filter(r => r.value).map(r => (
+              <View key={r.label} style={styles.infoRow}>
+                <Text style={[styles.infoLabel, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{r.label}</Text>
+                <Text style={[styles.infoValue, themedStyles.bodyText, { fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{r.value}</Text>
+              </View>
+            ))}
           </View>
         )}
 
@@ -612,15 +611,15 @@ const handleRejectConnection = async (connectionId: string) => {
           <ScrollView style={styles.tabContent}>
             {podsLoading ? (
               <View style={styles.emptyReviews}>
-                <ActivityIndicator size="large" color={themedStyles.accentIconColor} />
+                <WhaleLoader size={40} />
                 <Text style={[styles.emptyReviewsHint, themedStyles.emptySubtext]}>Loading your pods...</Text>
               </View>
-            ) : userPods.length === 0 ? (
+            ) : userPods.length === 0 && savedPods.length === 0 ? (
               <View style={styles.emptyReviews}>
                 <Ionicons name="rocket-outline" size={64} color={colors.textTertiary} style={{ marginBottom: 16 }} />
                 <Text style={[styles.emptyReviewsText, themedStyles.emptyText, !isNewTheme && { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3 }]}>No pods yet</Text>
                 <Text style={[styles.emptyReviewsHint, themedStyles.emptySubtext]}>
-                  Join or create a pod to get started
+                  Join, create or save a pod to get started
                 </Text>
               </View>
             ) : (
@@ -700,6 +699,44 @@ const handleRejectConnection = async (connectionId: string) => {
                           <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
                         </TouchableOpacity>
                       ))}
+                  </View>
+                )}
+
+                {/* Saved Pods — bookmarked from the feed or a pod's detail
+                    header. Independent of membership, so a pod can appear
+                    here as well as under Current/Past. */}
+                {savedPods.length > 0 && (
+                  <View style={[styles.section, themedStyles.card]}>
+                    <Text style={isNewTheme ? styles.sectionTitleNew : [styles.sectionTitle, themedStyles.cardTitle, { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3, color: editorial.ink }]}>Saved Pods</Text>
+                    {savedPods.map((pod) => (
+                      <TouchableOpacity
+                        key={pod.id}
+                        style={[styles.podCard, themedStyles.surfaceAlt]}
+                        onPress={() => navigation.navigate('PursuitDetail', { pursuitId: pod.id })}
+                        activeOpacity={0.7}
+                      >
+                        {pod.default_picture ? (
+                          <Image source={{ uri: pod.default_picture }} style={styles.podCardImage} />
+                        ) : (
+                          <PodMemberCollage members={pod.members || []} size={50} borderRadius={10} />
+                        )}
+                        <View style={styles.podCardInfo}>
+                          <Text style={[styles.podCardTitle, themedStyles.listItemTitle, !isNewTheme && { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3 }]}>{pod.title}</Text>
+                          <View style={styles.podCardMeta}>
+                            {pod.isCreator && (
+                              <View style={[styles.podCreatorBadge, themedStyles.tag, !isNewTheme && { backgroundColor: editorial.goldTint, borderWidth: 1, borderColor: editorial.goldTint }]}>
+                                <Ionicons name="star" size={10} color={isNewTheme ? themedStyles.accentIconColor : editorial.gold} />
+                                <Text style={[styles.podCreatorBadgeText, themedStyles.tagText, !isNewTheme && { color: editorial.gold }]}>Creator</Text>
+                              </View>
+                            )}
+                            <Text style={[styles.podCardMembers, themedStyles.listItemSubtitle]}>
+                              {pod.current_members_count || 1} member{(pod.current_members_count || 1) !== 1 ? 's' : ''}
+                            </Text>
+                          </View>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
+                      </TouchableOpacity>
+                    ))}
                   </View>
                 )}
               </>
@@ -991,6 +1028,15 @@ const styles = StyleSheet.create({
   infoRow: { flexDirection: 'row', marginBottom: 10 },
   infoLabel: { fontSize: 16, fontWeight: '600', color: '#6b7280', width: 110 },
   infoValue: { fontSize: 16, color: '#1f2937', flex: 1, lineHeight: 22 },
+  // Combined identity box — two-column, no section label, tight
+  infoCard: { paddingTop: 16, paddingBottom: 16 },
+  // Facts pack left with a gap between them (no rigid half-width cells), so
+  // short values like Age/Gender sit side by side without a stretched empty
+  // half to the right; longer values wrap to the next line.
+  infoGrid: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 28, rowGap: 14 },
+  infoCell: { flexShrink: 1, maxWidth: '100%' },
+  infoCellLabel: { fontSize: 10, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 3 },
+  infoCellValue: { fontSize: 15, lineHeight: 20 },
   bioText: { fontSize: 14, color: '#4b5563', lineHeight: 20 },
   linkRow: {
     flexDirection: 'row',

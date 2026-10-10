@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image, Modal, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, StatusBar, Animated } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image, Modal, TextInput, KeyboardAvoidingView, Platform, StatusBar, Animated, Share } from 'react-native';
 import { useTypewriter } from '../hooks/useTypewriter';
 import { useStaggerFadeIn } from '../hooks/useStaggerFadeIn';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,18 +10,22 @@ import { notificationService } from '../services/notificationService';
 import { privacyService } from '../services/privacyService';
 import { supabase } from '../config/supabase';
 import PieButton from '../components/ui/PieButton';
+import WhaleLoader from '../components/ui/WhaleLoader';
 import ApplicationScreen from './ApplicationScreen';
 import ApplicationsReviewScreen from './ApplicationsReviewScreen';
 import UserProfileScreen from './UserProfileScreen';
 import TimeSlotProposalScreen from './TimeSlotProposalScreen';
 import KickoffSchedulingScreen from './KickoffSchedulingScreen';
 import PodChatScreen from './PodChatScreen';
-import { colors as legacyColors, typography, spacing } from '../theme/designSystem';
+import { colors as legacyColors, typography, spacing, editorial } from '../theme/designSystem';
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
 import LocationMapView from '../components/ui/LocationMapView';
 import { AppAlert } from '../components/ui/AppAlert';
+import PodActionSheet, { PodAction } from '../components/ui/PodActionSheet';
+import { useSavedPods } from '../hooks/useSavedPods';
+import { SHARE_URL } from './settings/settingsShared';
 
 interface Props {
   pursuit: any;
@@ -104,6 +108,11 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
 
   // Pod Chat state
   const [showPodChat, setShowPodChat] = useState(false);
+
+  // Overflow ("⋯") menu + save/bookmark state
+  const [showActionSheet, setShowActionSheet] = useState(false);
+  const { isSaved, toggle: toggleSaved } = useSavedPods();
+  const podIsSaved = isSaved(pursuit.id);
 
   // Description typewriter — runs in both themes
   const { displayedText: typedDescription, isTyping: descriptionTyping, isComplete: typewriterDone } = useTypewriter({
@@ -523,7 +532,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
       if (countError) console.error('Count update error:', countError);
 
       setIsTeamMember(true);
-      AppAlert.alert("you're in! 🐋", `welcome to "${pursuit.title}". get in, loser — we're makin' plans.`);
+      AppAlert.alert("you're in!", `welcome to "${pursuit.title}". get in, loser — we're makin' plans.`);
     } catch (err: any) {
       console.error('Join open pod error:', err);
       AppAlert.alert('Error', err.message || 'Failed to join pod');
@@ -682,7 +691,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
       <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <StatusBar barStyle={isNewTheme ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         {isNewTheme && <GrainTexture opacity={0.06} />}
-        <ActivityIndicator size="large" color={isNewTheme ? colors.accentGreen : '#4B9CD3'} />
+        <WhaleLoader size={56} />
         <Text style={[styles.loadingText, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Loading...</Text>
       </View>
     );
@@ -801,6 +810,88 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
     );
   }
 
+  // Text-only share: the app registers the `whalepod` scheme but has no
+  // associated domains and no inbound URL handling, so there is no link that
+  // can actually open this pod yet.
+  const handleSharePod = async () => {
+    try {
+      await Share.share({
+        message: `check out "${pursuit.title}" on whale pod 🐋 ${SHARE_URL}`,
+      });
+    } catch (error) {
+      console.error('Error sharing pod:', error);
+    }
+  };
+
+  // The overflow menu. Team Board and Save live in the header cluster instead,
+  // and the state-driven CTAs (join / propose times / kickoff) stay inline.
+  const podActions: PodAction[] = [
+    { key: 'share', label: 'invite / share pod', icon: 'person-add-outline', onPress: handleSharePod, group: 0 },
+    ...((isOwner || isTeamMember)
+      ? [{ key: 'chat', label: 'pod chat', icon: 'chatbubble-outline' as const, onPress: () => setShowPodChat(true), group: 0 }]
+      : []),
+    ...(isOwner && onEdit
+      ? [{ key: 'edit', label: 'edit pod', icon: 'pencil-outline' as const, onPress: onEdit, group: 1 }]
+      : []),
+    ...(isOwner
+      ? [{ key: 'applications', label: 'review applications', icon: 'documents-outline' as const, onPress: () => setShowApplicationsReview(true), group: 1 }]
+      : []),
+    ...(isOwner
+      ? [{ key: 'delete', label: 'delete pod', icon: 'trash-outline' as const, onPress: () => setShowDeleteModal(true), destructive: true, group: 2 }]
+      : []),
+    ...(!isOwner && isTeamMember
+      ? [{ key: 'leave', label: 'leave pod', icon: 'exit-outline' as const, onPress: () => setShowLeavePodModal(true), destructive: true, group: 2 }]
+      : []),
+  ];
+
+  const canOpenTeamBoard = !!onOpenTeamBoard && (isOwner || isTeamMember);
+
+  // Header action cluster — dark renders glass chips over the hero image,
+  // light renders flat outline icons on the paper header.
+  const renderHeaderActions = (variant: 'hero' | 'flat') => {
+    const hero = variant === 'hero';
+    const iconColor = hero ? '#FFFFFF' : editorial.ink;
+    const iconSize = hero ? 20 : 22;
+
+    // Plain function, not a nested component — a component defined inside
+    // render would remount its subtree on every parent render.
+    const actionButton = (
+      key: string,
+      icon: keyof typeof Ionicons.glyphMap,
+      color: string,
+      onPress: () => void,
+      label: string
+    ) => (
+      <TouchableOpacity
+        key={key}
+        onPress={onPress}
+        style={hero ? styles.heroActionChip : styles.flatActionButton}
+        activeOpacity={hero ? 0.8 : 0.6}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+      >
+        <Ionicons name={icon} size={iconSize} color={color} />
+      </TouchableOpacity>
+    );
+
+    return (
+      <View style={hero ? styles.heroActionCluster : styles.flatActionCluster}>
+        {canOpenTeamBoard &&
+          actionButton('board', 'grid-outline', iconColor, () => onOpenTeamBoard!(pursuit.id), 'Open team board')}
+        {actionButton(
+          'save',
+          podIsSaved ? 'bookmark' : 'bookmark-outline',
+          // Saved is an ownership-ish mark: lime in Pie, gold in editorial.
+          podIsSaved ? (hero ? colors.accentGreen : editorial.gold) : iconColor,
+          () => toggleSaved(pursuit.id),
+          podIsSaved ? 'Unsave pod' : 'Save pod'
+        )}
+        {actionButton('more', 'ellipsis-horizontal', iconColor, () => setShowActionSheet(true), 'More pod actions')}
+      </View>
+    );
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
     <ScrollView style={{ flex: 1 }}>
@@ -825,13 +916,8 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
             <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
           </TouchableOpacity>
 
-          {/* Edit cover (owner only) — routes to Edit Pursuit screen via the existing edit button on the action bar */}
-          {isOwner && pursuit.cover_image_url && (
-            <View style={styles.heroEditChip}>
-              <Ionicons name="image-outline" size={16} color="#FFFFFF" />
-              <Text style={styles.heroEditChipText}>cover</Text>
-            </View>
-          )}
+          {/* Action cluster — team board / save / overflow */}
+          {renderHeaderActions('hero')}
 
           {/* Title overlay */}
           <View style={styles.heroTitleOverlay}>
@@ -842,14 +928,18 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
         </View>
       ) : (
         <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-          <TouchableOpacity onPress={onBack} style={styles.backButton}>
-            <Text style={[styles.backText, { color: colors.primary, fontFamily: isNewTheme ? 'Sora_500Medium' : 'InterTight_600SemiBold' }]}>← Back</Text>
-          </TouchableOpacity>
-          <View style={styles.headerTitleRow}>
+          <View style={styles.headerTopRow}>
+            <TouchableOpacity onPress={onBack} style={styles.backButton}>
+              <Text style={[styles.backText, { color: colors.primary, fontFamily: isNewTheme ? 'Sora_500Medium' : 'InterTight_600SemiBold' }]}>← Back</Text>
+            </TouchableOpacity>
+            {/* Action cluster — team board / save / overflow */}
+            {renderHeaderActions('flat')}
+          </View>
+          <View style={styles.headerTitleColumn}>
             <Text style={[styles.title, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold' }]}>{pursuit.title}</Text>
-            {pursuit.default_picture && (
+            {(pursuit.cover_image_url || pursuit.default_picture) && (
               <Image
-                source={{ uri: pursuit.default_picture }}
+                source={{ uri: pursuit.cover_image_url || pursuit.default_picture }}
                 style={styles.headerPodPicture}
               />
             )}
@@ -859,7 +949,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
 
       <View style={styles.content}>
         <View style={styles.creatorSection}>
-          <Text style={[styles.sectionTitle, isNewTheme && styles.pieSectionLabel, { color: isNewTheme ? 'rgba(255,255,255,0.45)' : colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0 }]}>Created By</Text>
+          <Text style={[styles.sectionTitle, isNewTheme && styles.pieSectionLabel, { color: isNewTheme ? 'rgba(255,255,255,0.45)' : colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0 }]}>Pod Leader</Text>
           <TouchableOpacity
             style={[styles.creatorCard, { backgroundColor: colors.surface, borderColor: isNewTheme ? 'rgba(255,255,255,0.08)' : colors.border, borderWidth: isNewTheme ? 1 : 0 }]}
             onPress={() => {
@@ -877,16 +967,37 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
               </View>
             )}
             <View style={styles.creatorInfo}>
-              <Text style={[styles.creatorName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>{creatorProfile?.name || 'Loading...'}</Text>
+              <View style={styles.creatorNameRow}>
+                <Text style={[styles.creatorName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>{creatorProfile?.name || 'Loading...'}</Text>
+                {/* Ownership mark — the one sanctioned use of gold in editorial. */}
+                {pursuit.creator_id === user?.id && (
+                  <View style={[
+                    styles.youBadge,
+                    isNewTheme
+                      ? { backgroundColor: 'rgba(200, 255, 107, 0.15)', borderColor: 'rgba(200, 255, 107, 0.25)' }
+                      : { backgroundColor: editorial.goldTint, borderColor: editorial.goldTint },
+                  ]}>
+                    <Text style={[
+                      styles.youBadgeText,
+                      {
+                        color: isNewTheme ? colors.accentGreen : editorial.gold,
+                        fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold',
+                      },
+                    ]}>
+                      (you)
+                    </Text>
+                  </View>
+                )}
+              </View>
             </View>
           </TouchableOpacity>
         </View>
 
         {/* Team Members Section */}
         {teamMembers.length > 0 && (
-          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: isNewTheme ? 'rgba(255,255,255,0.08)' : colors.border, borderWidth: isNewTheme ? 1 : 0 }]}>
-            <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, isNewTheme && styles.pieSectionLabel, { color: isNewTheme ? 'rgba(255,255,255,0.45)' : colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0 }]}>Pod Members</Text>
+          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: isNewTheme ? 'rgba(255,255,255,0.08)' : colors.border, borderWidth: isNewTheme ? 1 : 0, padding: 14, marginBottom: 12 }]}>
+            <View style={[styles.sectionHeader, { marginBottom: 6 }]}>
+              <Text style={[styles.sectionTitle, isNewTheme && styles.pieSectionLabel, { color: isNewTheme ? 'rgba(255,255,255,0.45)' : colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0, marginBottom: 0 }]}>Pod Members</Text>
               {isOwner && (
                 <TouchableOpacity
                   style={styles.editTeamIconButton}
@@ -1312,92 +1423,13 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
           </>
         )}
 
-        {isOwner && onOpenTeamBoard && (
-          isNewTheme ? (
-            <View style={{ paddingHorizontal: 4, paddingTop: 4, gap: 10 }}>
-              <PieButton label="team board" icon="grid-outline" iconPosition="left" onPress={() => onOpenTeamBoard(pursuit.id)} full />
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                <PieButton label="pod chat" icon="chatbubble-outline" iconPosition="left" variant="secondary" size="md" onPress={() => setShowPodChat(true)} style={{ flex: 1 }} />
-                <PieButton label="applications" icon="documents-outline" iconPosition="left" variant="secondary" size="md" onPress={() => setShowApplicationsReview(true)} style={{ flex: 1 }} />
-              </View>
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                {onEdit && (
-                  <PieButton label="edit" icon="pencil" iconPosition="left" variant="ghost" size="md" onPress={onEdit} style={{ flex: 1 }} />
-                )}
-                <PieButton label="delete" icon="trash-outline" iconPosition="left" variant="destructive" size="md" onPress={() => setShowDeleteModal(true)} style={{ flex: 1 }} />
-              </View>
-            </View>
-          ) : (
-            <View style={styles.ownerActions}>
-              {onEdit && (
-                <TouchableOpacity
-                  style={[styles.editButton, { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#1B1B18' }]}
-                  onPress={onEdit}
-                >
-                  <Text style={[styles.editButtonText, { color: '#1B1B18' }]}>✏️ Edit Pod</Text>
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity
-                style={[styles.teamBoardButton, { backgroundColor: '#1B1B18' }]}
-                onPress={() => onOpenTeamBoard(pursuit.id)}
-              >
-                <Text style={[styles.teamBoardButtonText, { color: legacyColors.white }]}>📋 Team Board</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.podChatButton, { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#1B1B18' }]}
-                onPress={() => setShowPodChat(true)}
-              >
-                <Text style={[styles.podChatButtonText, { color: '#1B1B18' }]}>💬 Pod Chat</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.reviewButton, { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#1B1B18' }]}
-                onPress={() => setShowApplicationsReview(true)}
-              >
-                <Text style={[styles.reviewButtonText, { color: '#1B1B18' }]}>📋 Review Applications</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.deleteButton, { backgroundColor: colors.error }]} onPress={() => setShowDeleteModal(true)}>
-                <Text style={[styles.deleteButtonText, { color: legacyColors.white }]}>🗑️ Delete Pod</Text>
-              </TouchableOpacity>
-            </View>
-          )
-        )}
+        {/* Team Board, Pod Chat, Edit, Review Applications, Delete and Leave
+            now live in the header cluster / overflow sheet. Only the
+            state-driven CTAs below stay inline. */}
 
-        {!isOwner && (
+        {!isOwner && !isTeamMember && (
           <>
-            {isTeamMember ? (
-              isNewTheme ? (
-                <View style={{ paddingHorizontal: 4, paddingTop: 4, gap: 10 }}>
-                  {onOpenTeamBoard && (
-                    <PieButton label="team board" icon="grid-outline" iconPosition="left" onPress={() => onOpenTeamBoard(pursuit.id)} full />
-                  )}
-                  <PieButton label="pod chat" icon="chatbubble-outline" iconPosition="left" variant="secondary" size="md" onPress={() => setShowPodChat(true)} full />
-                  <PieButton label="leave pod" icon="exit-outline" iconPosition="left" variant="destructive" size="md" onPress={() => setShowLeavePodModal(true)} full />
-                </View>
-              ) : (
-                <View style={styles.teamMemberActions}>
-                  {onOpenTeamBoard && (
-                    <TouchableOpacity
-                      style={[styles.teamBoardButtonMember, { backgroundColor: '#1B1B18', shadowColor: '#1B1B18' }]}
-                      onPress={() => onOpenTeamBoard(pursuit.id)}
-                    >
-                      <Text style={[styles.teamBoardButtonText, { color: legacyColors.white }]}>📋 Team Board</Text>
-                    </TouchableOpacity>
-                  )}
-                  <TouchableOpacity
-                    style={[styles.podChatButtonMember, { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#1B1B18', shadowColor: 'transparent', shadowOpacity: 0, elevation: 0 }]}
-                    onPress={() => setShowPodChat(true)}
-                  >
-                    <Text style={[styles.podChatButtonText, { color: '#1B1B18' }]}>💬 Pod Chat</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.leavePodButton, { backgroundColor: colors.error, shadowColor: colors.error }]}
-                    onPress={() => setShowLeavePodModal(true)}
-                  >
-                    <Text style={[styles.leavePodButtonText, { color: legacyColors.white }]}>🚪 Leave Pod</Text>
-                  </TouchableOpacity>
-                </View>
-              )
-            ) : hasApplied ? (
+            {hasApplied ? (
               <View style={[styles.appliedBadge, { backgroundColor: isNewTheme ? 'rgba(168, 230, 163, 0.15)' : '#d1fae5', borderColor: isNewTheme ? colors.accentGreen : legacyColors.success }]}>
                 <Text style={[styles.appliedText, { color: isNewTheme ? colors.accentGreen : legacyColors.success, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>✓ Application Submitted</Text>
               </View>
@@ -1865,6 +1897,12 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
         </View>
       </Modal>
     </ScrollView>
+
+      <PodActionSheet
+        visible={showActionSheet}
+        onClose={() => setShowActionSheet(false)}
+        actions={podActions}
+      />
     </View>
   );
 }
@@ -1890,13 +1928,31 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.55)',
     alignItems: 'center', justifyContent: 'center',
   },
-  heroEditChip: {
+  // ===== Header action cluster (team board / save / overflow) =====
+  // Dark: glass chips over the hero image, matching heroBackChip.
+  heroActionCluster: {
     position: 'absolute', top: 56, right: 16,
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    flexDirection: 'row', alignItems: 'center', gap: 8,
   },
-  heroEditChipText: { color: '#FFFFFF', fontSize: 12, fontWeight: '600' },
+  heroActionChip: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  // Light: plain outline icons, no filled circles — chrome stays paper-flat.
+  flatActionCluster: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+  },
+  flatActionButton: {
+    width: 36, height: 36,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
   heroTitleOverlay: {
     position: 'absolute', left: 18, right: 18, bottom: 18,
   },
@@ -1911,19 +1967,16 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: legacyColors.background },
   loadingText: { marginTop: 12, fontSize: 16, color: '#6b7280' },
   header: { backgroundColor: '#fff', padding: 20, paddingTop: 60, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  backButton: { marginBottom: 10 },
+  backButton: {},
   backText: { fontSize: 16, color: '#0ea5e9', fontWeight: '600' },
-  headerTitleRow: {
-    flexDirection: 'row',
+  headerTitleColumn: {
     alignItems: 'center',
-    justifyContent: 'space-between',
   },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#333', flex: 1 },
+  title: { fontSize: 24, fontWeight: 'bold', color: '#333', textAlign: 'center', marginBottom: 16 },
   headerPodPicture: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginLeft: 12,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
   },
   content: { padding: 20, paddingBottom: 100 },
   creatorSection: { marginBottom: 15 },
@@ -1956,7 +2009,13 @@ const styles = StyleSheet.create({
   },
   creatorAvatarText: { fontSize: 24, color: '#fff', fontWeight: 'bold' },
   creatorInfo: { flex: 1 },
+  creatorNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   creatorName: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 4 },
+  youBadge: {
+    paddingHorizontal: 8, paddingVertical: 3,
+    borderRadius: 999, borderWidth: 1, marginBottom: 4,
+  },
+  youBadgeText: { fontSize: 11, letterSpacing: 0.3 },
   viewProfileText: { fontSize: 14, color: '#0ea5e9', fontWeight: '600' },
   section: { backgroundColor: '#fff', borderRadius: 12, padding: 18, marginBottom: 15, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 2 },
   sectionTitle: { fontSize: 20, fontWeight: 'bold', color: '#333', marginBottom: 14 },
@@ -1996,17 +2055,6 @@ const styles = StyleSheet.create({
   categoryTagText: { color: '#0c4a6e' },
   subcategoryTag: { backgroundColor: '#ddd6fe' },
   subcategoryTagText: { color: '#5b21b6' },
-  ownerActions: { marginTop: 20, gap: 12 },
-  editButton: { backgroundColor: '#f59e0b', borderRadius: 8, padding: 16, alignItems: 'center' },
-  editButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  teamBoardButton: { backgroundColor: '#2D5016', borderRadius: 8, padding: 16, alignItems: 'center' },
-  teamBoardButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  podChatButton: { backgroundColor: '#2D5016', borderRadius: 8, padding: 16, alignItems: 'center' },
-  podChatButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  reviewButton: { backgroundColor: '#0ea5e9', borderRadius: 8, padding: 16, alignItems: 'center' },
-  reviewButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  deleteButton: { backgroundColor: '#ef4444', borderRadius: 8, padding: 16, alignItems: 'center' },
-  deleteButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   applyButton: { backgroundColor: '#10b981', borderRadius: 12, padding: 18, alignItems: 'center', marginTop: 20, shadowColor: '#10b981', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
   applyButtonText: { color: '#fff', fontSize: 17, fontWeight: 'bold' },
   appliedBadge: { backgroundColor: '#d1fae5', borderRadius: 12, padding: 18, alignItems: 'center', marginTop: 20, borderWidth: 2, borderColor: '#10b981' },
@@ -2033,8 +2081,8 @@ const styles = StyleSheet.create({
   podMembersRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 14,
-    marginTop: 10,
+    gap: 12,
+    marginTop: 4,
     paddingRight: 8,
   },
   podMemberItem: {
@@ -2396,49 +2444,6 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.5,
-  },
-  // Team member actions styles
-  teamMemberActions: {
-    marginTop: 20,
-    gap: 12,
-  },
-  teamBoardButtonMember: {
-    backgroundColor: '#2D5016',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    shadowColor: '#2D5016',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  podChatButtonMember: {
-    backgroundColor: '#2D5016',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    shadowColor: '#2D5016',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  leavePodButton: {
-    backgroundColor: '#ef4444',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    shadowColor: '#ef4444',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  leavePodButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   leavePodTitle: {
     fontSize: 16,

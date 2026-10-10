@@ -12,6 +12,7 @@ import GrainTexture from '../components/ui/GrainTexture';
 import GradientBackground from '../components/ui/GradientBackground';
 import { SkeletonFeedList } from '../components/ui/Skeleton';
 import PursuitDetailScreen from './PursuitDetailScreen';
+import { useSavedPods } from '../hooks/useSavedPods';
 import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
 import { useFonts, KleeOne_400Regular } from '@expo-google-fonts/klee-one';
 import {
@@ -52,9 +53,12 @@ interface Props {
   onOpenTeamBoard?: (pursuitId: string) => void;
   onOpenMeetingNotes?: (pursuitId: string) => void;
   onOpenCreate?: () => void;
+  // Without this the nested PursuitDetailScreen below gets no onEdit, and the
+  // creator's Edit action silently disappears on the feed path only.
+  onEditPursuit?: (pursuit: any) => void;
 }
 
-export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeetingNotes, onOpenCreate }: Props) {
+export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeetingNotes, onOpenCreate, onEditPursuit }: Props) {
   const { user } = useAuth();
   const { theme, toggleTheme, isNewTheme } = useTheme();
   const colors = theme.colors;
@@ -64,6 +68,8 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
   const [pursuits, setPursuits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPursuit, setSelectedPursuit] = useState<any>(null);
+  // One query hydrates every visible card's bookmark state.
+  const { isSaved, toggle: toggleSaved } = useSavedPods();
   const unfoldAnim = useRef(new Animated.Value(0)).current;
   const [searchQuery, setSearchQuery] = useState('');
   const [engagementMap, setEngagementMap] = useState<Record<string, EngagementState>>({});
@@ -278,6 +284,14 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
         }}
         onDelete={handleDelete}
         isOwner={selectedPursuit.creator_id === user?.id}
+        onEdit={onEditPursuit ? () => {
+          const target = selectedPursuit;
+          // Close the detail overlay first so returning from the editor shows
+          // the refreshed feed rather than pre-edit data.
+          setSelectedPursuit(null);
+          unfoldAnim.setValue(0);
+          onEditPursuit(target);
+        } : undefined}
         onViewProfile={(userId, userEmail) => {
           // Profile viewing is handled within PursuitDetailScreen now
         }}
@@ -442,9 +456,10 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
       Art:            { bg: '#F5E8F0', text: '#7A3E6A' },
       Business:       { bg: '#E8EDF5', text: '#3E4F7A' },
       'Career Development': { bg: '#EDF5E8', text: '#4A7234' },
+      'Content Creation': { bg: '#EDE8F5', text: '#4A3E7A' },
       Discussion:     { bg: '#F0E8F5', text: '#5B3A8B' },
       Education:      { bg: '#E8F0EA', text: '#2D5F3E' },
-      Explore:        { bg: '#E6F2F5', text: '#2B6B7A' },
+      Explore:        { bg: '#E8F5F0', text: '#2B7A5B' },
       Fitness:        { bg: '#FCF0E6', text: '#925B2B' },
       Friends:        { bg: '#FDF6EC', text: '#8B6914' },
       Fun:            { bg: '#FFF8E1', text: '#7A6514' },
@@ -460,6 +475,21 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
       'Start-Ups':    { bg: '#FCF0E6', text: '#925B2B' },
       Technology:     { bg: '#E8EDF5', text: '#3E4F7A' },
       Travel:         { bg: '#E6F2F5', text: '#2B6B7A' },
+      Wellness:       { bg: '#EAF5EE', text: '#2E6B4A' },
+      // Pod Types
+      Therapy:        { bg: '#E8F0EA', text: '#2D5F3E' },
+      Picnic:         { bg: '#FDF6EC', text: '#8B6914' },
+      Storytelling:   { bg: '#F0E8F5', text: '#5B3A8B' },
+      'Coffee Shops': { bg: '#FCF0E6', text: '#925B2B' },
+      // Pod Categories
+      Politics:       { bg: '#E8EDF5', text: '#3E4F7A' },
+      Media:          { bg: '#EDE8F5', text: '#4A3E7A' },
+      Camping:        { bg: '#E8F5ED', text: '#2D6B3E' },
+      Cooking:        { bg: '#FCF0E6', text: '#925B2B' },
+      Cars:           { bg: '#E6F2F5', text: '#2B6B7A' },
+      Motorsports:    { bg: '#E8EDF5', text: '#3E4F7A' },
+      'Global Affairs': { bg: '#E8F5F0', text: '#2B7A5B' },
+      Economics:      { bg: '#EDF5E8', text: '#4A7234' },
     };
     return TAG_MAP[tagName] || (isType
       ? { bg: '#E4EDDE', text: '#2D5016' }
@@ -544,9 +574,12 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
       // the left edge as a discreet accent.
       backgroundColor: isNewTheme ? colors.surface : LIGHT_SURFACE,
       borderRadius: isNewTheme ? borderRadius.lg : 14,
-      padding: isNewTheme ? spacing.lg : 20,
-      paddingLeft: isNewTheme ? spacing.lg : 22,
-      marginBottom: isNewTheme ? spacing.base : 14,
+      padding: isNewTheme ? spacing.lg : 22,
+      // Light: extra top/bottom padding makes the card ~10% taller without
+      // enlarging the text (horizontal padding stays 22, left 24 for the stripe).
+      paddingVertical: isNewTheme ? spacing.lg : 32,
+      paddingLeft: isNewTheme ? spacing.lg : 24,
+      marginBottom: isNewTheme ? spacing.base : 15,
       marginHorizontal: isNewTheme ? 0 : 0,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: isNewTheme ? 4 : 6 },
@@ -560,10 +593,10 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
     },
     cardTitle: {
       flex: 1,
-      fontSize: isNewTheme ? typography.fontSize.lg : 24,
+      fontSize: isNewTheme ? typography.fontSize.lg : 26,
       fontWeight: typography.fontWeight.bold as '700',
       color: isNewTheme ? colors.textPrimary : LIGHT_INK,
-      lineHeight: isNewTheme ? typography.fontSize.lg * typography.lineHeight.tight : 28,
+      lineHeight: isNewTheme ? typography.fontSize.lg * typography.lineHeight.tight : 30,
       fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold',
       letterSpacing: isNewTheme ? 0 : -0.3,
     },
@@ -571,8 +604,8 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
       fontSize: isNewTheme ? typography.fontSize.base : 14,
       color: isNewTheme ? colors.textSecondary : LIGHT_MUTED,
       lineHeight: isNewTheme ? typography.fontSize.base * typography.lineHeight.normal : 20,
-      marginBottom: isNewTheme ? spacing.md : 10,
-      marginTop: isNewTheme ? 0 : 6,
+      marginBottom: isNewTheme ? spacing.md : 11,
+      marginTop: isNewTheme ? 0 : 7,
       fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold',
     },
     filterButton: {
@@ -1156,11 +1189,25 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
                 }).start();
               };
 
-              // ===== NEW DARK-THEME CARD (Pie-style cover-image dominant) =====
-              if (isNewTheme) {
+              // ===== CARD (Pie-style cover-image dominant) — BOTH themes.
+              // Dark keeps its lime/Sora look; light adopts the same layout,
+              // cover treatment and size but in the editorial palette
+              // (cream/charcoal/Carolina/gold) with Playfair + InterTight.
+              {
                 const isMine = pursuit.creator_id === user?.id;
                 const memberRatio = `${pursuit.current_members_count ?? 0}/${pursuit.team_size_max ?? '?'}`;
                 const activeMembers = (pursuit.team_members || []).filter((m: any) => m.status === 'active' || m.status === 'accepted').slice(0, 3);
+                const titleFont = isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold';
+                const bodyFont = isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold';
+                const cardAccent = isNewTheme ? colors.accentGreen : CAROLINA;
+                const warnColor = isNewTheme ? colors.warning : '#B45309';
+                const statusAccent = pursuit.status === 'active' ? cardAccent : warnColor;
+                const yoursBg = isNewTheme ? colors.accentGreen : GOLD;
+                const typeTagBg = isNewTheme ? 'rgba(200, 255, 107, 0.10)' : 'rgba(75, 156, 211, 0.10)';
+                const typeTagBorder = isNewTheme ? 'rgba(200, 255, 107, 0.25)' : 'rgba(75, 156, 211, 0.25)';
+                const catTagBg = isNewTheme ? 'rgba(255, 255, 255, 0.06)' : '#F2F0EA';
+                const catTagBorder = isNewTheme ? 'rgba(255, 255, 255, 0.10)' : LIGHT_HAIRLINE;
+                const activeStatusBg = isNewTheme ? 'rgba(200, 255, 107, 0.15)' : 'rgba(75, 156, 211, 0.12)';
                 return [(
                   <PursuitCardWrapper
                     key={pursuit.id}
@@ -1176,31 +1223,46 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
                         <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.surfaceAlt }]}>
                           <View style={styles.pieCoverEmptyDots}>
                             {[0, 1, 2].map(i => (
-                              <View key={i} style={[styles.pieCoverEmptyDot, { backgroundColor: colors.accentGreen, opacity: 0.4 }]} />
+                              <View key={i} style={[styles.pieCoverEmptyDot, { backgroundColor: cardAccent, opacity: 0.4 }]} />
                             ))}
                           </View>
                         </View>
                       )}
-                      {/* Subtle bottom darkening for legibility */}
-                      <View style={styles.pieCoverGradient} pointerEvents="none" />
-
                       {/* YOURS badge top-left */}
                       {isMine && (
-                        <View style={[styles.pieYoursPill, { backgroundColor: colors.accentGreen }]}>
+                        <View style={[styles.pieYoursPill, { backgroundColor: yoursBg }]}>
                           <Text style={styles.pieYoursPillText}>YOURS</Text>
                         </View>
                       )}
 
+                      {/* Save / bookmark, cover top-right. The engagement
+                          indicator defaults to the same corner, so it gets
+                          shifted left to sit beside this rather than under it. */}
+                      <TouchableOpacity
+                        style={styles.pieSaveButton}
+                        onPress={() => toggleSaved(pursuit.id)}
+                        activeOpacity={0.8}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        accessibilityRole="button"
+                        accessibilityLabel={isSaved(pursuit.id) ? 'Unsave pod' : 'Save pod'}
+                      >
+                        <Ionicons
+                          name={isSaved(pursuit.id) ? 'bookmark' : 'bookmark-outline'}
+                          size={18}
+                          color={isSaved(pursuit.id) ? (isNewTheme ? colors.accentGreen : GOLD) : '#FFFFFF'}
+                        />
+                      </TouchableOpacity>
+
                       {/* Engagement indicator (absolute-positioned inside the cover) */}
                       {engagement.isHot ? (
-                        <HotFlameIcon enabled={true} size={22} />
+                        <HotFlameIcon enabled={true} size={22} style={styles.pieEngagementShift} />
                       ) : (
-                        <JalapenoIndicator count={engagement.spiceLevel} />
+                        <JalapenoIndicator count={engagement.spiceLevel} style={styles.pieEngagementShift} />
                       )}
 
                       {/* Title overlay bottom-left */}
                       <View style={styles.pieTitleOverlay}>
-                        <Text style={styles.pieTitleText} numberOfLines={2}>
+                        <Text style={[styles.pieTitleText, { fontFamily: titleFont }]} numberOfLines={2}>
                           {pursuit.title}
                         </Text>
                       </View>
@@ -1213,11 +1275,11 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
                         <View style={[
                           styles.pieStatusPill,
                           { backgroundColor: pursuit.status === 'active'
-                              ? 'rgba(200, 255, 107, 0.15)'
+                              ? activeStatusBg
                               : 'rgba(252, 211, 77, 0.15)' }
                         ]}>
-                          <View style={[styles.pieStatusDot, { backgroundColor: pursuit.status === 'active' ? colors.accentGreen : colors.warning }]} />
-                          <Text style={[styles.pieStatusText, { color: pursuit.status === 'active' ? colors.accentGreen : colors.warning }]}>
+                          <View style={[styles.pieStatusDot, { backgroundColor: statusAccent }]} />
+                          <Text style={[styles.pieStatusText, { color: statusAccent, fontFamily: bodyFont }]}>
                             {pursuit.status === 'awaiting_kickoff' ? 'awaiting kickoff' : 'active'}
                           </Text>
                         </View>
@@ -1230,13 +1292,13 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
                                 key={member.user_id}
                                 style={[
                                   styles.pieStackedAvatar,
-                                  { marginLeft: i === 0 ? 0 : -10, zIndex: 10 - i, borderColor: colors.surface }
+                                  { marginLeft: i === 0 ? 0 : -14, zIndex: 10 - i, borderColor: colors.surface }
                                 ]}
                               >
                                 {member.user?.profile_picture ? (
                                   <Image source={{ uri: member.user.profile_picture }} style={styles.pieStackedAvatarImage} />
                                 ) : (
-                                  <View style={[styles.pieStackedAvatarPlaceholder, { backgroundColor: colors.accentGreen }]}>
+                                  <View style={[styles.pieStackedAvatarPlaceholder, { backgroundColor: cardAccent }]}>
                                     <Text style={styles.pieStackedAvatarLetter}>
                                       {member.user?.name?.charAt(0).toUpperCase() || '?'}
                                     </Text>
@@ -1250,7 +1312,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
 
                       {/* Description */}
                       {pursuit.description ? (
-                        <Text style={[styles.pieDescription, { color: colors.textSecondary }]} numberOfLines={2}>
+                        <Text style={[styles.pieDescription, { color: colors.textSecondary, fontFamily: bodyFont }]} numberOfLines={2}>
                           {pursuit.description}
                         </Text>
                       ) : null}
@@ -1259,7 +1321,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
                       {pursuit.meeting_cadence ? (
                         <View style={styles.pieInfoRow}>
                           <Ionicons name="calendar-outline" size={15} color={colors.textTertiary} />
-                          <Text style={[styles.pieInfoText, { color: colors.textSecondary }]} numberOfLines={1}>
+                          <Text style={[styles.pieInfoText, { color: colors.textSecondary, fontFamily: bodyFont }]} numberOfLines={1}>
                             {pursuit.meeting_cadence}
                           </Text>
                         </View>
@@ -1267,7 +1329,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
                       {pursuit.location ? (
                         <View style={styles.pieInfoRow}>
                           <Ionicons name="location-outline" size={15} color={colors.textTertiary} />
-                          <Text style={[styles.pieInfoText, { color: colors.textSecondary }]} numberOfLines={1}>
+                          <Text style={[styles.pieInfoText, { color: colors.textSecondary, fontFamily: bodyFont }]} numberOfLines={1}>
                             {pursuit.neighborhood
                               ? `${pursuit.neighborhood}, ${pursuit.location.split(',')[0]}`
                               : pursuit.location}
@@ -1276,7 +1338,7 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
                       ) : null}
                       <View style={styles.pieInfoRow}>
                         <Ionicons name="people-outline" size={15} color={colors.textTertiary} />
-                        <Text style={[styles.pieInfoText, { color: colors.textSecondary }]} numberOfLines={1}>
+                        <Text style={[styles.pieInfoText, { color: colors.textSecondary, fontFamily: bodyFont }]} numberOfLines={1}>
                           {memberRatio} members
                         </Text>
                       </View>
@@ -1286,13 +1348,13 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
                         (pursuit.pursuit_categories && pursuit.pursuit_categories.length > 0)) && (
                         <View style={styles.pieTagsRow}>
                           {(pursuit.pursuit_types || []).slice(0, 2).map((t: string) => (
-                            <View key={`t-${t}`} style={[styles.pieTag, { backgroundColor: 'rgba(200, 255, 107, 0.10)', borderColor: 'rgba(200, 255, 107, 0.25)' }]}>
-                              <Text style={[styles.pieTagText, { color: colors.accentGreen }]}>{t.toLowerCase()}</Text>
+                            <View key={`t-${t}`} style={[styles.pieTag, { backgroundColor: typeTagBg, borderColor: typeTagBorder }]}>
+                              <Text style={[styles.pieTagText, { color: cardAccent, fontFamily: bodyFont }]}>{t.toLowerCase()}</Text>
                             </View>
                           ))}
                           {(pursuit.pursuit_categories || []).slice(0, 2).map((c: string) => (
-                            <View key={`c-${c}`} style={[styles.pieTag, { backgroundColor: 'rgba(255, 255, 255, 0.06)', borderColor: 'rgba(255, 255, 255, 0.10)' }]}>
-                              <Text style={[styles.pieTagText, { color: colors.textSecondary }]}>{c.toLowerCase()}</Text>
+                            <View key={`c-${c}`} style={[styles.pieTag, { backgroundColor: catTagBg, borderColor: catTagBorder }]}>
+                              <Text style={[styles.pieTagText, { color: colors.textSecondary, fontFamily: bodyFont }]}>{c.toLowerCase()}</Text>
                             </View>
                           ))}
                         </View>
@@ -1302,115 +1364,11 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
                 )];
               }
 
-              // ===== EDITORIAL LIGHT CARD =====
-              // Card chrome retained (white surface, hairline border, soft
-              // shadow). A 3px Carolina-blue stripe down the left edge is the
-              // discreet primary accent. Hot pods replace the stripe with red.
-              const isMineLight = pursuit.creator_id === user?.id;
-              const memberRatio = `${pursuit.current_members_count ?? 0}/${pursuit.team_size_max ?? '?'}`;
-              const locationStr = pursuit.location
-                ? (pursuit.neighborhood
-                    ? `${pursuit.neighborhood}, ${pursuit.location.split(',')[0]}`
-                    : pursuit.location)
-                : null;
-              const metaParts = [
-                `${memberRatio} members`,
-                locationStr,
-                pursuit.meeting_cadence,
-              ].filter(Boolean);
-              const lightStripeColor = engagement.isHot ? LIGHT_RED : CAROLINA;
-
-              const card = (
-              <PursuitCardWrapper
-                key={pursuit.id}
-                style={[dynamicStyles.card]}
-                isNewTheme={isNewTheme}
-                onPress={handleCardPress}
-              >
-                {/* Left 3px Carolina-blue accent stripe (red if hot) */}
-                <View style={[styles.cardAccentLine, { backgroundColor: lightStripeColor }]} pointerEvents="none" />
-
-                {/* Title row */}
-                <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-                  <Text style={dynamicStyles.cardTitle} numberOfLines={2}>
-                    {pursuit.title}
-                  </Text>
-                  {engagement.isHot && (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(220, 38, 38, 0.10)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, marginTop: 2 }}>
-                      <Ionicons name="flame" size={13} color={LIGHT_RED} />
-                      <Text style={{ fontSize: 10, color: LIGHT_RED, fontFamily: 'InterTight_600SemiBold', letterSpacing: 0.6, textTransform: 'uppercase' }}>
-                        Hot
-                      </Text>
-                    </View>
-                  )}
-                </View>
-
-                {/* Marker row: YOURS (gold) + awaiting kickoff (muted) */}
-                {(isMineLight || pursuit.status === 'awaiting_kickoff') && (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 }}>
-                    {isMineLight && (
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(196, 155, 0, 0.10)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(196, 155, 0, 0.30)' }}>
-                        <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: GOLD }} />
-                        <Text style={{ fontSize: 10, color: GOLD, fontFamily: 'InterTight_600SemiBold', letterSpacing: 0.6, textTransform: 'uppercase' }}>
-                          Yours
-                        </Text>
-                      </View>
-                    )}
-                    {pursuit.status === 'awaiting_kickoff' && (
-                      <Text style={{ fontSize: 10, color: LIGHT_MUTED, fontFamily: 'InterTight_600SemiBold', letterSpacing: 0.6, textTransform: 'uppercase' }}>
-                        Awaiting kickoff
-                      </Text>
-                    )}
-                  </View>
-                )}
-
-                {/* Description */}
-                {pursuit.description ? (
-                  <Text style={dynamicStyles.cardDescription} numberOfLines={2}>
-                    {pursuit.description}
-                  </Text>
-                ) : null}
-
-                {/* Meta row — middle-dot separated, with Carolina-blue divider above */}
-                {metaParts.length > 0 && (
-                  <View style={{ marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: LIGHT_HAIRLINE }}>
-                    <Text
-                      style={{
-                        fontSize: 12,
-                        color: LIGHT_MUTED,
-                        fontFamily: 'InterTight_600SemiBold',
-                        letterSpacing: 0.2,
-                      }}
-                      numberOfLines={1}
-                    >
-                      {metaParts.join('  ·  ')}
-                    </Text>
-                  </View>
-                )}
-              </PursuitCardWrapper>
-              );
-              return [card];
             })
           )}
         </View>
       </ScrollView>
 
-      {/* Floating "post a pod" CTA — sits directly above the tab bar.
-          Tab bar lives at bottom:16 with ~52px bar height, so its top edge is
-          at ~68 from screen bottom. We pin this button's bottom at 72 so it
-          sits 4px above the tab bar top. */}
-      {onOpenCreate && (
-        <View pointerEvents="box-none" style={[styles.postAPlanWrap, { bottom: 72 }]}>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={onOpenCreate}
-            style={[styles.postAPlanBtn, { backgroundColor: isNewTheme ? colors.accentGreen : LIGHT_INK }]}
-          >
-            <Ionicons name="add" size={22} color={isNewTheme ? '#000000' : '#FFFFFF'} />
-            <Text style={[styles.postAPlanText, { color: isNewTheme ? '#000000' : '#FFFFFF' }]}>post a pod</Text>
-          </TouchableOpacity>
-        </View>
-      )}
     </GradientBackground>
   );
 }
@@ -1452,36 +1410,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center', justifyContent: 'center',
   },
-  postAPlanWrap: {
-    position: 'absolute',
-    left: 0, right: 0, bottom: 76,
-    alignItems: 'center',
-    zIndex: 50,
-  },
-  postAPlanBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 22,
-    paddingVertical: 14,
-    borderRadius: 999,
-    shadowColor: '#000',
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
-  },
-  postAPlanText: { color: '#000000', fontSize: 15, fontFamily: 'Sora_600SemiBold', fontWeight: '600' },
   // ===== Pie-style dark-theme card =====
   pieCardOuter: {
-    borderRadius: 22,
+    borderRadius: 28,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
-    marginBottom: 18,
+    marginBottom: 24,
   },
   pieCoverWrap: {
     width: '100%',
-    aspectRatio: 16 / 11,
+    aspectRatio: 16 / 16.5,
     backgroundColor: '#000',
     position: 'relative',
   },
@@ -1502,86 +1440,98 @@ const styles = StyleSheet.create({
     width: 8, height: 8, borderRadius: 4,
   },
   pieYoursPill: {
-    position: 'absolute', top: 14, left: 14,
-    paddingHorizontal: 10, paddingVertical: 4,
+    position: 'absolute', top: 20, left: 20,
+    paddingHorizontal: 14, paddingVertical: 6,
     borderRadius: 999,
   },
   pieYoursPillText: {
-    color: '#000', fontSize: 10, fontWeight: '800', letterSpacing: 0.6,
+    color: '#000', fontSize: 14, fontWeight: '800', letterSpacing: 0.6,
   },
   pieEngagementWrap: {
     position: 'absolute', top: 0, right: 0,
   },
+  // Glass chip over the cover image — same treatment as the detail hero.
+  pieSaveButton: {
+    position: 'absolute', top: 12, right: 12,
+    width: 34, height: 34, borderRadius: 17,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center', justifyContent: 'center',
+    zIndex: 25,
+  },
+  // Clears the save button, which takes the cover's top-right corner.
+  pieEngagementShift: {
+    right: 56,
+  },
   pieTitleOverlay: {
-    position: 'absolute', left: 14, right: 14, bottom: 14,
+    position: 'absolute', left: 20, right: 20, bottom: 20,
   },
   pieTitleText: {
     color: '#FFFFFF',
     fontFamily: 'Sora_700Bold',
-    fontSize: 24,
-    lineHeight: 28,
+    fontSize: 34,
+    lineHeight: 40,
     letterSpacing: -0.3,
     textShadowColor: 'rgba(0,0,0,0.85)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 8,
   },
   pieBottomPanel: {
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 16,
+    paddingHorizontal: 22,
+    paddingTop: 20,
+    paddingBottom: 22,
   },
   pieStatusRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: 14,
   },
   pieStatusPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10, paddingVertical: 5,
+    paddingHorizontal: 14, paddingVertical: 7,
     borderRadius: 999,
-    gap: 6,
+    gap: 8,
   },
-  pieStatusDot: { width: 6, height: 6, borderRadius: 3 },
-  pieStatusText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.4 },
+  pieStatusDot: { width: 8, height: 8, borderRadius: 4 },
+  pieStatusText: { fontSize: 15, fontWeight: '700', letterSpacing: 0.4 },
   pieAvatarStack: { flexDirection: 'row', alignItems: 'center' },
   pieStackedAvatar: {
-    width: 26, height: 26, borderRadius: 13,
+    width: 36, height: 36, borderRadius: 18,
     borderWidth: 2, overflow: 'hidden',
   },
   pieStackedAvatarImage: { width: '100%', height: '100%' },
   pieStackedAvatarPlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  pieStackedAvatarLetter: { color: '#000', fontSize: 11, fontWeight: '700' },
+  pieStackedAvatarLetter: { color: '#000', fontSize: 15, fontWeight: '700' },
   pieDescription: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 19,
+    lineHeight: 27,
     fontFamily: 'Sora_600SemiBold',
-    marginBottom: 10,
+    marginBottom: 14,
   },
   pieInfoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 6,
+    gap: 11,
+    marginBottom: 9,
   },
   pieInfoText: {
-    fontSize: 13,
+    fontSize: 17,
     flex: 1,
     fontFamily: 'Sora_600SemiBold',
   },
   pieTagsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 10,
+    gap: 9,
+    marginTop: 14,
   },
   pieTag: {
-    paddingHorizontal: 10, paddingVertical: 4,
+    paddingHorizontal: 14, paddingVertical: 6,
     borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  pieTagText: { fontSize: 11, fontWeight: '600', letterSpacing: 0.3 },
+  pieTagText: { fontSize: 15, fontWeight: '600', letterSpacing: 0.3 },
   container: {
     flex: 1,
     backgroundColor: legacyColors.background,
@@ -1645,7 +1595,7 @@ const styles = StyleSheet.create({
   // Filter Styles
   filterContainer: {
     paddingHorizontal: spacing.lg,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
 
   filterContentContainer: {
@@ -1765,6 +1715,7 @@ const styles = StyleSheet.create({
 
   content: {
     padding: spacing.lg,
+    paddingTop: spacing.xs, // minimized gap between filter bar and first card
     paddingBottom: 120, // accommodates floating tab bar + post-a-plan affordance
   },
 
@@ -1931,13 +1882,13 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
 
-  // 3px-wide left accent line painted as an absolute child of the card
+  // Left accent line painted as an absolute child of the card
   cardAccentLine: {
     position: 'absolute',
     top: 0,
     bottom: 0,
     left: 0,
-    width: 3,
+    width: 5,
     borderTopLeftRadius: borderRadius.lg,
     borderBottomLeftRadius: borderRadius.lg,
   },
