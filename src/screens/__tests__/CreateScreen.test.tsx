@@ -15,9 +15,7 @@ jest.mock('../../services/pursuitService', () => ({
   },
 }));
 
-// Skipped until context providers + async loaders in CreateScreen are stubbed.
-// Remove `.skip` to re-enable the smoke test.
-describe.skip('<CreateScreen />', () => {
+describe('<CreateScreen />', () => {
   it('mounts without crashing', () => {
     render(
       <ThemeProvider>

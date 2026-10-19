@@ -637,7 +637,10 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
 }
 
 function makeStyles(colors: any, isNewTheme: boolean) {
-  const accent = isNewTheme ? colors.accentGreen : accent;
+  // Both palettes define accentGreen (dark: lime #C8FF6B, light: Carolina
+  // #4B9CD3), so no branch is needed. This previously read `accent` inside its
+  // own initializer, which threw a TDZ ReferenceError on every light-theme render.
+  const accent = colors.accentGreen;
   const surfaceCard = colors.surface;
   const inkOnAccent = isNewTheme ? '#000' : surfaceCard;
   return StyleSheet.create({

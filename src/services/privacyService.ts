@@ -39,6 +39,11 @@ const DEFAULT_PREFERENCES: Omit<PrivacyPreferences, 'user_id'> = {
   reviews_allowlist: ['everyone'],
   pods_tab_allowlist: ['everyone'],
   connections_allowlist: ['everyone'],
+  // Deliberately NOT ['everyone']: this mirrors the column default set in
+  // migration 054 (ARRAY['connections','pod_members']) and the fallback in
+  // PrivacyPreferencesScreen. Widening it here would silently make additional
+  // photos public for every user who has no preferences row yet.
+  additional_photos_allowlist: ['connections', 'pod_members'],
   pod_public_roster_listed: true,
   pod_public_roster_profile_clickable: true,
 };

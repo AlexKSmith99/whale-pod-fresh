@@ -16,7 +16,7 @@ import { useInterviewListeners } from './hooks/useInterviewListeners';
 import { useMessageBadges } from './hooks/useMessageBadges';
 import { useToastNavigation } from './hooks/useToastNavigation';
 import { useKickoffReminder } from './hooks/useKickoffReminder';
-import { useAppNavigation } from './navigation/useAppNavigation';
+import { createAppNavigation } from './navigation/createAppNavigation';
 import AppRouter from './navigation/AppRouter';
 import { DEV_BYPASS_GATE } from './config/devFlags';
 
@@ -179,9 +179,11 @@ export default function AppContent() {
     );
   }
 
-  // Navigation + routing extracted to useAppNavigation (contains no React hooks;
-  // viewingUserId is read by navigate(), so it is passed in explicitly).
-  const { navigation, onTabPress } = useAppNavigation(auth, viewingUserId, {
+  // Navigation + routing extracted to createAppNavigation. Deliberately not a
+  // hook (see that file's header) — it is called below the early returns above,
+  // which is only safe as long as it stays hook-free.
+  // viewingUserId is read by navigate(), so it is passed in explicitly.
+  const { navigation, onTabPress } = createAppNavigation(auth, viewingUserId, {
     setViewingUserId,
     setShowConnections,
     setChatOpenedFromUserId,

@@ -18,9 +18,7 @@ const wrap = (node: React.ReactElement) => (
   </ThemeProvider>
 );
 
-// Skipped until the auth + font providers are properly stubbed for the jest env.
-// Remove `.skip` to re-enable the smoke test.
-describe.skip('<LoginScreen />', () => {
+describe('<LoginScreen />', () => {
   it('renders the phone number entry surface on first load', () => {
     render(wrap(<LoginScreen />));
     // Adjust to whatever copy your UI shows (e.g. "Continue", "Send code", etc.)

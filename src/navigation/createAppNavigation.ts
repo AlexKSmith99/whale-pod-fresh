@@ -28,7 +28,16 @@ interface UseAppNavigationDeps {
   fetchInterviewSchedulingData: (...args: any[]) => any;
 }
 
-export function useAppNavigation(
+/**
+ * NOT a React hook — deliberately named `create…` rather than `use…`.
+ *
+ * AppContent calls this after several early returns (intro, auth, onboarding
+ * gates). That is only safe because this function calls no hooks. If you ever
+ * need `useCallback`/`useMemo`/`useRef` in here, you must first move the call
+ * site above every early return in AppContent, or the app will crash with
+ * "rendered fewer hooks than expected" on the logged-out and onboarding paths.
+ */
+export function createAppNavigation(
   auth: any,
   viewingUserId: any,
   {

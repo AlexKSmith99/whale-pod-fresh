@@ -346,7 +346,15 @@ export function ActiveGradientBorder({
         start={{ x: startX as unknown as number, y: 0 }}
         // @ts-ignore
         end={{ x: endX as unknown as number, y: 1 }}
-        colors={gradientColors ? [...gradientColors] : [...RAINBOW_COLORS]}
+        // LinearGradient requires a tuple of at least two colors; spreading a
+        // readonly string[] widens it to string[], which the tuple type rejects.
+        colors={
+          (gradientColors ? [...gradientColors] : [...RAINBOW_COLORS]) as unknown as readonly [
+            string,
+            string,
+            ...string[],
+          ]
+        }
         style={[StyleSheet.absoluteFill, { borderRadius }]}
       />
       <View

@@ -3,12 +3,14 @@
  * Shows content shapes instead of spinners for better perceived performance
  */
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated, ViewStyle } from 'react-native';
+import { View, StyleSheet, Animated, ViewStyle, DimensionValue } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { editorial } from '../../theme/designSystem';
 
 interface SkeletonProps {
-  width?: number | string;
+  // DimensionValue (not `number | string`) so percentage strings stay in the
+  // shape RN's style types accept — a bare `string` is not assignable.
+  width?: DimensionValue;
   height?: number;
   borderRadius?: number;
   style?: ViewStyle;

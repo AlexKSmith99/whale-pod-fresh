@@ -40,6 +40,22 @@ jest.mock('./src/config/supabase', () => {
       auth: {
         getUser: jest.fn(() => Promise.resolve({ data: { user: null }, error: null })),
         getSession: jest.fn(() => Promise.resolve({ data: { session: null }, error: null })),
+        // AuthProvider subscribes on mount and destructures
+        // `{ data: { subscription } }`, then calls subscription.unsubscribe()
+        // on cleanup — so the shape here has to match exactly.
+        onAuthStateChange: jest.fn(() => ({
+          data: { subscription: { unsubscribe: jest.fn() } },
+        })),
+        signUp: jest.fn(() => Promise.resolve({ data: { user: null }, error: null })),
+        signInWithPassword: jest.fn(() => Promise.resolve({ data: { user: null }, error: null })),
+        signInWithOtp: jest.fn(() => Promise.resolve({ data: {}, error: null })),
+        signInWithOAuth: jest.fn(() => Promise.resolve({ data: { url: null }, error: null })),
+        signInWithIdToken: jest.fn(() => Promise.resolve({ data: { user: null }, error: null })),
+        verifyOtp: jest.fn(() => Promise.resolve({ data: {}, error: null })),
+        resetPasswordForEmail: jest.fn(() => Promise.resolve({ data: {}, error: null })),
+        updateUser: jest.fn(() => Promise.resolve({ data: { user: null }, error: null })),
+        setSession: jest.fn(() => Promise.resolve({ data: {}, error: null })),
+        signOut: jest.fn(() => Promise.resolve({ error: null })),
       },
       channel: jest.fn(() => ({
         on: jest.fn(function (this: any) { return this; }),
@@ -119,5 +135,29 @@ jest.mock('expo-notifications', () => ({
   setNotificationChannelAsync: jest.fn(),
   AndroidImportance: { MAX: 5 },
 }));
+
+// react-native-keyboard-controller — native module, unavailable in jest.
+// Without this the whole module throws "doesn't seem to be linked" at import
+// time, which takes down every suite that transitively reaches
+// KeyboardAwareScreen (LoginScreen, CreateScreen).
+// Views are stubbed with plain Views; the hooks return inert values.
+jest.mock('react-native-keyboard-controller', () => {
+  const { View } = require('react-native');
+  return {
+    __esModule: true,
+    KeyboardProvider: View,
+    KeyboardAvoidingView: View,
+    KeyboardAwareScrollView: View,
+    KeyboardStickyView: View,
+    KeyboardController: {
+      dismiss: jest.fn(),
+      setInputMode: jest.fn(),
+      setDefaultMode: jest.fn(),
+    },
+    useKeyboardHandler: jest.fn(),
+    useReanimatedKeyboardAnimation: jest.fn(() => ({ height: 0, progress: 0 })),
+    useKeyboardAnimation: jest.fn(() => ({ height: 0, progress: 0 })),
+  };
+});
 
 // (Intentionally no NativeAnimatedHelper mock — that path was removed in RN 0.81.)

@@ -27,6 +27,22 @@ export default function UsernameStep({ data, update, onNext, onBack, stepIndex, 
     const myReq = ++reqId.current;
     timer.current = setTimeout(async () => {
       try {
+        // This step runs BEFORE auth.signUp(), so the request is made as `anon`.
+        // Migration 079 revokes anon SELECT on `profiles` and exposes this RPC
+        // instead, which returns only a boolean.
+        const { data: available, error: rpcError } = await supabase.rpc(
+          'username_available',
+          { p_username: value }
+        );
+        if (myReq !== reqId.current) return;
+
+        if (!rpcError && typeof available === 'boolean') {
+          setStatus(available ? 'available' : 'taken');
+          return;
+        }
+
+        // Fallback for environments where 079 hasn't been applied yet, so the
+        // check keeps working regardless of migration/deploy ordering.
         const { data: row, error } = await supabase
           .from('profiles')
           .select('id')
