@@ -711,13 +711,16 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.semibold as any,
   },
+  // Both span the sheet so the date/time columns spread across it instead of
+  // sitting in a narrow block with dead space to the right. The time picker
+  // previously had a fixed width of 120 and was scaled to 0.85, which squeezed
+  // the hour/minute/AM-PM columns into a sliver. Matches TimeSlotProposalScreen.
   datePicker: {
     height: 150,
+    width: '100%',
   },
   timePicker: {
-    height: 100,
-    width: 120,
-    alignSelf: 'center',
-    transform: [{ scale: 0.85 }],
+    height: 150,
+    width: '100%',
   },
 });

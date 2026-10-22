@@ -29,6 +29,7 @@ export default function BirthdayStep({ data, update, onNext, onBack, stepIndex, 
         value={value}
         mode="date"
         display="spinner"
+        style={styles.pickerSpinner}
         themeVariant="dark"
         maximumDate={new Date()}
         onChange={(_, date) => {
@@ -43,5 +44,8 @@ export default function BirthdayStep({ data, update, onNext, onBack, stepIndex, 
 }
 
 const styles = StyleSheet.create({
+  // Span the step's content width so the date columns spread out rather than
+  // sitting in a narrow block with dead space beside them.
+  pickerSpinner: { width: '100%' },
   label: { color: APPLY.textSecondary, fontSize: 17, fontWeight: '600', marginBottom: 10 },
 });

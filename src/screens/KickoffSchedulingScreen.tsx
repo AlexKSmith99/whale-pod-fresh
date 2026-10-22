@@ -582,6 +582,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                         value={customDate}
                         mode="date"
                         display="spinner"
+                        style={styles.pickerSpinner}
                         minimumDate={new Date()}
                         onChange={(event, date) => {
                           if (date) setCustomDate(date);
@@ -620,6 +621,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                         value={customTime}
                         mode="time"
                         display="spinner"
+                        style={styles.pickerSpinner}
                         onChange={(event, time) => {
                           if (time) setCustomTime(time);
                         }}
@@ -788,6 +790,10 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
 }
 
 const styles = StyleSheet.create({
+  // Wheel pickers lay out at their own intrinsic width, which left dead space
+  // on the right of the full-width sheet. Span the container so the date/time
+  // columns spread across it.
+  pickerSpinner: { width: '100%' },
   container: {
     flex: 1,
     backgroundColor: legacyColors.background,

@@ -521,6 +521,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
                     value={scheduledDate}
                     mode="date"
                     display="spinner"
+                    style={styles.pickerSpinner}
                     minimumDate={new Date()}
                     onChange={(event, date) => {
                       if (date) setScheduledDate(date);
@@ -575,6 +576,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
                     value={scheduledTime}
                     mode="time"
                     display="spinner"
+                    style={styles.pickerSpinner}
                     minuteInterval={15}
                     onChange={(event, time) => {
                       if (time) setScheduledTime(time);
@@ -870,6 +872,10 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
 }
 
 const styles = StyleSheet.create({
+  // Wheel pickers lay out at their own intrinsic width, which left dead space
+  // on the right of the full-width sheet. Span the container so the date/time
+  // columns spread across it.
+  pickerSpinner: { width: '100%' },
   container: {
     flex: 1,
     backgroundColor: legacyColors.background,
