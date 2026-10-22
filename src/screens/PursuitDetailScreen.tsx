@@ -1302,6 +1302,17 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
         {nextMeeting && (
           <View style={[styles.section, styles.nextMeetingSection, { backgroundColor: isNewTheme ? colors.surfaceAlt : '#FFFFFF', borderColor: isNewTheme ? colors.accentGreen : '#4B9CD3', borderWidth: 1 }]}>
             <Text style={[styles.sectionTitle, isNewTheme && styles.pieSectionLabel, { color: isNewTheme ? 'rgba(255,255,255,0.45)' : colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: isNewTheme ? 'uppercase' : 'none', letterSpacing: isNewTheme ? 1 : 0 }]}>Next Meeting</Text>
+            {/* Summary form: the pod is set to 'pod_members' and the viewer is
+                not one. The server (get_pod_next_meeting, migration 080) never
+                sends the specifics, so there is nothing here to leak — we only
+                know that something is scheduled. */}
+            {nextMeeting.detailed === false ? (
+              <View style={styles.nextMeetingCard}>
+                <Text style={[styles.nextMeetingSummary, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
+                  Scheduled · visible to pod members
+                </Text>
+              </View>
+            ) : (
             <View style={styles.nextMeetingCard}>
               <Text style={[styles.nextMeetingTitle, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>{nextMeeting.title}</Text>
               <Text style={[styles.nextMeetingTime, { color: isNewTheme ? colors.accentGreen : '#2E6A95', fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
@@ -1327,10 +1338,15 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                   <Text style={[styles.kickoffBadgeText, { color: isNewTheme ? colors.background : legacyColors.white, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', letterSpacing: isNewTheme ? 0.5 : 0 }]}>🚀 KICKOFF MEETING</Text>
                 </View>
               )}
-              <Text style={[styles.teamBoardPrompt, { color: isNewTheme ? colors.accentGreen : '#2E6A95', fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
-                💡 Add your thoughts to the Team Board!
-              </Text>
+              {/* Team Board is members-only, so don't prompt outsiders who can
+                  see the schedule because the pod is set to 'everyone'. */}
+              {(isOwner || isTeamMember) && (
+                <Text style={[styles.teamBoardPrompt, { color: isNewTheme ? colors.accentGreen : '#2E6A95', fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
+                  💡 Add your thoughts to the Team Board!
+                </Text>
+              )}
             </View>
+            )}
           </View>
         )}
 
@@ -2063,6 +2079,7 @@ const styles = StyleSheet.create({
   nextMeetingCard: { paddingTop: 8 },
   nextMeetingTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 8 },
   nextMeetingTime: { fontSize: 15, color: '#0ea5e9', fontWeight: '600', marginBottom: 12 },
+  nextMeetingSummary: { fontSize: 14, lineHeight: 20 },
   nextMeetingDetails: { flexDirection: 'row', gap: 16, marginBottom: 12 },
   nextMeetingDetail: { fontSize: 14, color: '#666' },
   kickoffBadge: { backgroundColor: '#f59e0b', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, alignSelf: 'flex-start' },

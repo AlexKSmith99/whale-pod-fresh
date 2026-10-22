@@ -21,7 +21,7 @@ import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
 import WhaleLoader from '../components/ui/WhaleLoader';
 import KeyboardAwareScreen from '../components/ui/KeyboardAwareScreen';
-import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+import { colors as legacyColors, typography, spacing, borderRadius, shadows, editorial } from '../theme/designSystem';
 
 const countWords = (s: string): number =>
   s.trim() === '' ? 0 : s.trim().split(/\s+/).length;
@@ -67,9 +67,45 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
   const [location, setLocation] = useState(pursuit.location || '');
   const [defaultPicture, setDefaultPicture] = useState(pursuit.default_picture || '');
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(pursuit.cover_image_url || null);
+  // Who can see this pod's next meeting (migration 080).
+  //
+  // null means "not known yet". Callers reach this screen with differently
+  // shaped pursuit rows — PodsScreen selects an explicit column list that does
+  // not include this field — so defaulting to 'pod_members' on a partial row
+  // would silently downgrade a pod set to 'everyone' the next time it is saved.
+  // Instead we start unknown, load the real value below, and omit the field
+  // from the update until we have it.
+  const [nextMeetingVisibility, setNextMeetingVisibility] = useState<'everyone' | 'pod_members' | null>(
+    pursuit.next_meeting_visibility === 'everyone' || pursuit.next_meeting_visibility === 'pod_members'
+      ? pursuit.next_meeting_visibility
+      : null
+  );
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+
+  // Load next_meeting_visibility when the caller handed us a partial row.
+  // A missing column (migration 080 not yet applied) leaves it null, which
+  // keeps the field out of the update entirely rather than failing the save.
+  useEffect(() => {
+    if (nextMeetingVisibility !== null) return;
+    let cancelled = false;
+
+    (async () => {
+      const { data, error } = await supabase
+        .from('pursuits')
+        .select('next_meeting_visibility')
+        .eq('id', pursuit.id)
+        .maybeSingle();
+
+      if (cancelled || error || !data) return;
+      if (data.next_meeting_visibility === 'everyone' || data.next_meeting_visibility === 'pod_members') {
+        setNextMeetingVisibility(data.next_meeting_visibility);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [pursuit.id, nextMeetingVisibility]);
 
   const handleSave = async () => {
     // Validation
@@ -104,6 +140,9 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
           location,
           default_picture: defaultPicture || null,
           cover_image_url: coverImageUrl,
+          // Omitted while unknown, so a partial pursuit row can never clobber
+          // a pod that is set to 'everyone'.
+          ...(nextMeetingVisibility ? { next_meeting_visibility: nextMeetingVisibility } : {}),
           updated_at: new Date().toISOString(),
         })
         .eq('id', pursuit.id);
@@ -428,6 +467,52 @@ export default function EditPursuitScreen({ pursuit, onClose, onSaved, onDeleted
           />
         </View>
 
+        {/* Next meeting visibility (migration 080) */}
+        <View style={styles.section}>
+          <Text style={[styles.label, { color: colors.textPrimary, fontFamily: bodyFont }]}>Next Meeting Visibility</Text>
+          <Text style={[styles.hint, { color: colors.textSecondary, fontFamily: bodyFont }]}>
+            Who can see when this pod next meets. Pod members always see the full
+            details; everyone else sees only that a meeting is scheduled.
+          </Text>
+          <View style={styles.visibilityRow}>
+            {([
+              { value: 'pod_members' as const, label: 'Pod members only' },
+              { value: 'everyone' as const, label: 'Everyone' },
+            ]).map(option => {
+              const selected = nextMeetingVisibility === option.value;
+              return (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[
+                    styles.visibilityPill,
+                    selected
+                      ? { backgroundColor: isNewTheme ? colors.accentGreen : editorial.carolina, borderColor: isNewTheme ? colors.accentGreen : editorial.carolina }
+                      : { backgroundColor: 'transparent', borderColor: isNewTheme ? 'rgba(255,255,255,0.14)' : editorial.hairline },
+                  ]}
+                  onPress={() => setNextMeetingVisibility(option.value)}
+                  activeOpacity={0.8}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected }}
+                >
+                  <Text
+                    style={[
+                      styles.visibilityPillText,
+                      {
+                        fontFamily: bodyFont,
+                        color: selected
+                          ? (isNewTheme ? colors.background : '#FFFFFF')
+                          : colors.textPrimary,
+                      },
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
         {/* Save Button */}
         <TouchableOpacity
           style={[styles.saveButton, { backgroundColor: isNewTheme ? colors.accentGreen : '#1B1B18' }, saving && styles.saveButtonDisabled]}
@@ -509,6 +594,21 @@ const styles = StyleSheet.create({
   },
   required: {
     color: '#ef4444',
+  },
+  visibilityRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  visibilityPill: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 9999,
+    borderWidth: 1,
+  },
+  visibilityPillText: {
+    fontSize: 13,
+    letterSpacing: 0.2,
   },
   hint: {
     fontSize: 14,

@@ -80,20 +80,36 @@ export default function MeetingInvitationScreen({ meetingId, onBack, onResponded
 
   const loadMeetingDetails = async () => {
     try {
-      // Get meeting details
+      // Get meeting details.
+      // NOTE: do not try to embed `profiles` here. meetings.creator_id is a
+      // foreign key to auth.users, not public.profiles (005_meetings_system.sql),
+      // so PostgREST has no meetings->profiles relationship to traverse and the
+      // request fails with PGRST200 ("Perhaps you meant 'pursuits'"). The
+      // creator's profile is fetched separately below.
       const { data: meetingData, error: meetingError } = await supabase
         .from('meetings')
         .select(`
           *,
-          pursuit:pursuits(id, title),
-          creator:profiles!meetings_creator_id_fkey(id, name, email)
+          pursuit:pursuits(id, title)
         `)
         .eq('id', meetingId)
         .single();
 
       if (meetingError) throw meetingError;
 
-      setMeeting(meetingData);
+      // Fetch the creator's profile by id. Non-fatal: a missing profile should
+      // not block the user from seeing and responding to the invitation.
+      let creator = null;
+      if (meetingData?.creator_id) {
+        const { data: creatorData } = await supabase
+          .from('profiles')
+          .select('id, name, email')
+          .eq('id', meetingData.creator_id)
+          .maybeSingle();
+        creator = creatorData ?? null;
+      }
+
+      setMeeting({ ...meetingData, creator });
 
       // Get current user's participant status
       if (user) {

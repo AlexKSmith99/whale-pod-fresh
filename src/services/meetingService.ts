@@ -1,6 +1,32 @@
 import { supabase } from '../config/supabase';
 import { notificationService } from './notificationService';
 
+/**
+ * Participant rows for a meeting, always including the creator.
+ *
+ * getUserMeetings() builds a user's calendar by querying meeting_participants
+ * for their own user_id, so a creator with no row here never sees the meeting
+ * they just scheduled. CreateMeetingScreen only collects OTHER members, which
+ * is why this has to be enforced in the service rather than at the call site.
+ *
+ * The creator is 'accepted' rather than 'invited' — they scheduled it, so there
+ * is nothing for them to RSVP to. Both values are permitted by the status CHECK
+ * constraint in 005_meetings_system.sql.
+ */
+function buildParticipantRows(
+  meetingId: string,
+  creatorId: string,
+  participantIds: string[]
+) {
+  // Set() guards against the creator also appearing in the selected list.
+  const uniqueIds = Array.from(new Set([creatorId, ...participantIds]));
+  return uniqueIds.map(user_id => ({
+    meeting_id: meetingId,
+    user_id,
+    status: user_id === creatorId ? 'accepted' : 'invited',
+  }));
+}
+
 export const meetingService = {
   // Create a meeting
   async createMeeting(data: {
@@ -47,12 +73,13 @@ export const meetingService = {
 
     console.log('✅ Meeting created:', meeting.id);
 
-    // Add participants
-    const participants = data.participant_ids.map(user_id => ({
-      meeting_id: meeting.id,
-      user_id,
-      status: 'invited',
-    }));
+    // Add participants — always includes the creator, so the meeting shows on
+    // their own calendar immediately, before anyone accepts.
+    const participants = buildParticipantRows(
+      meeting.id,
+      data.creator_id,
+      data.participant_ids
+    );
 
     console.log(`📅 Adding ${participants.length} participants to meeting`);
 
@@ -122,23 +149,44 @@ export const meetingService = {
   },
 
   // Get next meeting for a pursuit
+  /**
+   * The pod's next scheduled meeting, filtered by the pod's
+   * `next_meeting_visibility` setting.
+   *
+   * Returns one of:
+   *   null                              - nothing upcoming, or caller sees nothing
+   *   { detailed: false }               - "a meeting is scheduled", no specifics
+   *   { detailed: true, ...fields }     - full details
+   *
+   * Goes through the get_pod_next_meeting RPC (migration 080) rather than
+   * querying `meetings` directly, because 078 restricts that table to pod
+   * members. The RPC runs as SECURITY DEFINER and decides what the caller is
+   * entitled to, so the rule lives in the database rather than in the UI.
+   */
   async getNextPursuitMeeting(pursuitId: string) {
-    const { data, error } = await supabase
+    const { data, error } = await supabase.rpc('get_pod_next_meeting', {
+      p_pursuit_id: pursuitId,
+    });
+
+    if (!error) {
+      return data ?? null;
+    }
+
+    // Fallback for environments where 080 hasn't been applied yet. Under 078
+    // this returns rows only for pod members, which matches the default
+    // 'pod_members' setting; non-members simply get nothing.
+    const { data: row, error: fallbackError } = await supabase
       .from('meetings')
-      .select(`
-        *,
-        participants:meeting_participants(*),
-        agenda_items:meeting_agenda_items(*)
-      `)
+      .select('id, title, scheduled_time, duration_minutes, meeting_type, is_kickoff')
       .eq('pursuit_id', pursuitId)
       .eq('status', 'scheduled')
       .gte('scheduled_time', new Date().toISOString())
       .order('scheduled_time', { ascending: true })
       .limit(1)
-      .single();
+      .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "no rows returned"
-    return data;
+    if (fallbackError) throw fallbackError;
+    return row ? { detailed: true, ...row } : null;
   },
 
   // Update meeting status
@@ -516,14 +564,12 @@ export const meetingService = {
       .select();
     if (meetingsError) throw meetingsError;
 
-    // 4. Add participant rows for every instance
-    if (meetings && data.participant_ids.length > 0) {
+    // 4. Add participant rows for every instance. No length check on
+    // participant_ids: the creator is always a participant, so there is always
+    // at least one row to write.
+    if (meetings) {
       const participantRows = meetings.flatMap((m: any) =>
-        data.participant_ids.map(uid => ({
-          meeting_id: m.id,
-          user_id: uid,
-          status: 'invited',
-        }))
+        buildParticipantRows(m.id, data.creator_id, data.participant_ids)
       );
       const { error: partError } = await supabase
         .from('meeting_participants')

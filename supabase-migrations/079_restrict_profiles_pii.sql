@@ -68,14 +68,25 @@ REVOKE SELECT ON public.profiles FROM anon;
 -- ============================================================
 -- 3. public_profiles — the safe projection for viewing OTHER users.
 --
--- Deliberately excludes: phone, date_of_birth, age, hometown, employer, gender,
--- alcohol, drugs, workout_level, selfie_url, is_admin, application_status,
--- applied_at, reviewed_at, onboarding_completed.
+-- Column list verified against the live schema on 2026-10-18 (an earlier draft
+-- referenced `avatar_url`, which does not exist on this table).
 --
--- `email` is also excluded. The app currently reads it for other users in
--- several places (e.g. `select('id, name, email, profile_picture')`), mostly to
--- pass an identifier into the messaging flow. Those call sites should move to
--- `id` — email is PII and should not be a display/identity token.
+-- Deliberately EXCLUDED as personal data:
+--   phone, date_of_birth, age, gender, hometown, building, employer,
+--   alcohol, drugs, workout_level, selfie_url, resume_url, email
+--
+-- Excluded as internal/account state, not profile content:
+--   is_admin, application_status, applied_at, reviewed_at,
+--   onboarding_completed, privacy_settings, updated_at
+--
+-- Socials (facebook, github, instagram, linkedin, portfolio_website) are also
+-- excluded: they are gated by `socials_allowlist` in privacyService, and
+-- publishing them in a blanket view would quietly defeat that setting.
+--
+-- `email` deserves a note. The app reads it for other users in several places
+-- (e.g. `select('id, name, email, profile_picture')`), mostly to pass an
+-- identifier into the messaging flow. Those call sites should move to `id`;
+-- email is personal data and should not double as a display/identity token.
 --
 -- security_invoker = on so the view respects the querying user's RLS rather
 -- than the view owner's. Requires Postgres 15+ (Supabase is well past this).
@@ -92,7 +103,6 @@ SELECT
   bio,
   profile_picture,
   profile_pictures,
-  avatar_url,
   college,
   work,
   interests,
@@ -102,6 +112,7 @@ SELECT
   pod_categories,
   team_role_preference,
   team_size_preference,
+  connections_count,
   created_at
 FROM public.profiles;
 

@@ -508,24 +508,42 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
         .select('user_id, profiles!user_id(id, name, email, profile_picture)')
         .eq('pursuit_id', selectedPodId);
 
+      // NOTE: do not embed `profiles` off pursuits.creator_id. That column is a
+      // foreign key to auth.users, not public.profiles (001_initial_schema.sql),
+      // so PostgREST has no relationship to traverse and the request fails with
+      // PGRST200. The error was not being checked here, so it failed silently:
+      // `pursuit` came back null, isCreator stayed false and the pod creator
+      // vanished from the member list. Fetch the creator separately instead.
       const { data: pursuit } = await supabase
         .from('pursuits')
-        .select('creator_id, profiles!creator_id(id, name, email, profile_picture)')
+        .select('creator_id')
         .eq('id', selectedPodId)
         .single();
 
+      let creatorProfile: any = null;
       if (pursuit?.creator_id) {
         setIsCreator(pursuit.creator_id === user.id);
+
+        const { data: creatorData } = await supabase
+          .from('profiles')
+          .select('id, name, email, profile_picture')
+          .eq('id', pursuit.creator_id)
+          .maybeSingle();
+        creatorProfile = creatorData ?? null;
       }
 
       const allMembers = [...(members?.map((m: any) => m.profiles) || [])];
-      if (pursuit?.profiles) {
-        allMembers.unshift(pursuit.profiles);
+      if (creatorProfile) {
+        allMembers.unshift(creatorProfile);
       }
 
-      const uniqueMembers = allMembers.filter((member, index, self) =>
-        index === self.findIndex((m) => m.id === member.id)
-      );
+      // filter(Boolean) first: a team_members row whose profile join came back
+      // null would otherwise throw on `m.id` during the dedupe below.
+      const uniqueMembers = allMembers
+        .filter(Boolean)
+        .filter((member, index, self) =>
+          index === self.findIndex((m) => m.id === member.id)
+        );
 
       setTeamMembers(uniqueMembers);
 

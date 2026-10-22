@@ -77,6 +77,12 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
   const [podMembers, setPodMembers] = useState<any[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(true);
 
+  // You are stored as a participant so the meeting shows on your own calendar
+  // (see buildParticipantRows in meetingService), but listing yourself under
+  // "Participants" reads wrong — this section is about who else is attending.
+  // Keep `participants` intact for membership checks; display this instead.
+  const otherParticipants = participants.filter(p => p.user_id !== user?.id);
+
   // Edit mode state
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(meeting.title || '');
@@ -702,7 +708,7 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
           <View style={[styles.participantsCard, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: isNewTheme ? 1 : 0 }, !isNewTheme && lightCard]}>
             <View style={styles.participantsHeader}>
               <Text style={[styles.participantsTitle, { color: colors.textPrimary }, { fontFamily: isNewTheme ? 'Sora_700Bold' : 'InterTight_600SemiBold' }]}>
-                Participants ({participants.length})
+                Participants ({otherParticipants.length})
               </Text>
               {isCreator && availableMembers.length > 0 && (
                 <TouchableOpacity
@@ -717,10 +723,10 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
 
             {loadingParticipants ? (
               <WhaleLoader size={40} style={{ padding: 20 }} />
-            ) : participants.length === 0 ? (
+            ) : otherParticipants.length === 0 ? (
               <Text style={[styles.noParticipantsText, { color: colors.textSecondary }]}>No participants yet</Text>
             ) : (
-              participants.map(renderParticipant)
+              otherParticipants.map(renderParticipant)
             )}
           </View>
 
