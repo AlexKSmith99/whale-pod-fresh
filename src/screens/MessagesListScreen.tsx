@@ -25,7 +25,7 @@ import { connectionService } from '../services/connectionService';
 import ChatScreen from './ChatScreen';
 import PodChatScreen from './PodChatScreen';
 import PodMemberCollage from '../components/PodMemberCollage';
-import { colors as legacyColors, typography, spacing, borderRadius, shadows } from '../theme/designSystem';
+import { colors as legacyColors, typography, spacing, borderRadius, shadows, editorial } from '../theme/designSystem';
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
@@ -466,6 +466,10 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
             styles.chatCard,
             themedStyles.listItem,
             { position: 'relative' },
+            // Carolina in editorial, lime tint in Pie — each theme keeps its own
+            // accent rather than letting blue leak into dark mode.
+            styles.podChatCard,
+            { borderColor: isNewTheme ? 'rgba(200, 255, 107, 0.25)' : editorial.carolina },
             isSelected && { backgroundColor: isNewTheme ? colors.surfaceAlt : legacyColors.primaryLight, borderLeftWidth: 3, borderLeftColor: themedStyles.accentIconColor }
           ]}
           onPress={() => selectChat(chat)}
@@ -958,6 +962,16 @@ const styles = StyleSheet.create({
     backgroundColor: legacyColors.white,
     borderBottomWidth: 1,
     borderBottomColor: legacyColors.borderLight,
+  },
+  // Pod chats read as bordered cards rather than flat rows, so they stand apart
+  // from 1:1 DMs in the same list. Drops the shared bottom hairline — with a
+  // full border and vertical gaps it would double up along the bottom edge.
+  podChatCard: {
+    borderWidth: 1,
+    borderRadius: 14,
+    borderBottomWidth: 1,
+    marginHorizontal: 12,
+    marginVertical: 5,
   },
   chatCardSelected: {
     backgroundColor: legacyColors.primaryLight,
