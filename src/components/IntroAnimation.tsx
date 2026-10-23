@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, Image, Animated, StyleSheet, Dimensions, Easing } from 'react-native';
+import { editorial } from '../theme/designSystem';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -140,7 +141,13 @@ export default function IntroAnimation({ onComplete }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAF9F6',
+    // White, not the usual cream page (editorial.bg #FAF9F6). whale-logo.png
+    // has an opaque near-white (#FEFEFE) background baked in rather than
+    // transparency, so on cream it read as a white box floating on a darker
+    // page. Matching the page to the asset makes the seam disappear.
+    // The proper fix is an alpha-channel logo, after which this should go back
+    // to editorial.bg.
+    backgroundColor: editorial.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -160,7 +167,7 @@ const styles = StyleSheet.create({
     // Matches the editorial feed header wordmark (FeedScreen headerTitle)
     fontFamily: 'PlayfairDisplay_700Bold',
     fontSize: 44,
-    color: '#1B1B18',
+    color: editorial.ink,
     letterSpacing: -0.8,
   },
 });
