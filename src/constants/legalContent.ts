@@ -415,7 +415,9 @@ Check that the phone number is entered with the correct country code. Verificati
 
 ### Need to delete your account
 
-Profile → Settings → Delete Account. Account deletion is immediate; some content (messages, pod content, applications, reviews) may persist with the recipients as described in our Privacy Policy.
+Profile → Settings → Delete Account. Deletion happens immediately and can't be undone. It removes your profile, photos, messages, applications, reviews and saved pods.
+
+Pods you lead are handed to the longest-standing member rather than deleted, so the other members don't lose their pod, its chat history or its meetings. A pod where you're the only member is deleted along with your account.
 
 ### Reporting a user, message, or pod
 

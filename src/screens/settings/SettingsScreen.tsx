@@ -18,11 +18,13 @@ import {
   TextInput,
   Linking,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { useTheme } from '../../theme/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../config/supabase';
 import { AppAlert } from '../../components/ui/AppAlert';
 import KeyboardAwareScreen from '../../components/ui/KeyboardAwareScreen';
 import NotificationPrefsScreen from './NotificationPrefsScreen';
@@ -49,6 +51,9 @@ export default function SettingsScreen({ onBack, onAccountDetails, onVisibility,
   const [subScreen, setSubScreen] = useState<SubScreen>(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const canDelete = deleteConfirmText.trim().toUpperCase() === 'DELETE' && !deleting;
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackEmail, setFeedbackEmail] = useState(user?.email || '');
 
@@ -66,10 +71,47 @@ export default function SettingsScreen({ onBack, onAccountDetails, onVisibility,
     setTimeout(() => AppAlert.alert('Sent!', "Thanks for helping shape the pod — we're listening and always building."), 600);
   };
 
-  const requestDeletion = () => {
-    setShowDelete(false);
-    const body = encodeURIComponent(`please delete my whale pod account.\n\naccount email: ${user?.email || 'unknown'}\nuser id: ${user?.id || 'unknown'}`);
-    Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('delete my account')}&body=${body}`).catch(() => {});
+  /**
+   * Deletes the account for real, in the app.
+   *
+   * This used to open a mailto to support. App Store guideline 5.1.1(v)
+   * requires in-app deletion for any app with account creation and explicitly
+   * rejects "email us" as a substitute — so the old flow made the app
+   * unsubmittable, and our own privacy policy already claimed this existed.
+   *
+   * Typing DELETE is deliberate friction. There is no undo, and the sheet it
+   * sits in is two taps from the settings list.
+   */
+  const confirmDeletion = async () => {
+    if (deleteConfirmText.trim().toUpperCase() !== 'DELETE' || deleting) return;
+    setDeleting(true);
+    try {
+      const { data, error } = await supabase.rpc('delete_own_account');
+      if (error) throw error;
+
+      // Signing out after the row is gone clears the local session; without
+      // this the app holds a token for a user that no longer exists and every
+      // subsequent query fails silently.
+      await signOut();
+
+      const reassigned = (data as any)?.pods_reassigned ?? 0;
+      setShowDelete(false);
+      if (reassigned > 0) {
+        AppAlert.alert(
+          'Account deleted',
+          `${reassigned === 1 ? 'One pod you led was' : `${reassigned} pods you led were`} handed to the longest-standing member so nobody lost their work.`
+        );
+      }
+    } catch (e: any) {
+      console.error('Account deletion failed:', e?.message);
+      AppAlert.alert(
+        'Could not delete your account',
+        e?.message || 'Something went wrong. Nothing was deleted — please try again.'
+      );
+    } finally {
+      setDeleting(false);
+      setDeleteConfirmText('');
+    }
   };
 
   const rows: { key: string; icon: keyof typeof Ionicons.glyphMap; label: string; sub?: string; onPress: () => void }[] = [
@@ -198,12 +240,55 @@ export default function SettingsScreen({ onBack, onAccountDetails, onVisibility,
                 <Ionicons name="close" size={20} color={t.text} />
               </TouchableOpacity>
             </View>
-            <Text style={[styles.sheetCopy, { color: t.textSecondary, fontFamily: t.bodyFont, textAlign: 'center', marginTop: 12 }]}>
-              please confirm you want to delete your account. this is a one-way trip — no coming back! are you sure you want to go through with it?
+            {/* Specific about what goes, because the old copy promised
+                "no coming back" without saying what that covered. */}
+            <Text style={[styles.sheetCopy, { color: t.textSecondary, fontFamily: t.bodyFont, marginTop: 12 }]}>
+              this deletes your profile, photos, messages, applications and saved pods. it can't be undone.
             </Text>
-            <TouchableOpacity style={[styles.deletePill, { backgroundColor: t.accent }]} onPress={requestDeletion} activeOpacity={0.85}>
-              <Ionicons name="trash-outline" size={20} color={isNewTheme ? '#000000' : '#FFFFFF'} />
-              <Text style={[styles.sheetPillText, { color: isNewTheme ? '#000000' : '#FFFFFF', fontFamily: t.bodyFont }]}>delete account</Text>
+            <Text style={[styles.sheetCopy, { color: t.textSecondary, fontFamily: t.bodyFont, marginTop: 10 }]}>
+              pods you lead are handed to the longest-standing member, so nobody else loses their work. pods where you're the only member are deleted with you.
+            </Text>
+
+            <TextInput
+              style={[
+                styles.deleteConfirmInput,
+                {
+                  borderColor: t.hairline,
+                  color: t.text,
+                  backgroundColor: isNewTheme ? '#0A0A0A' : '#FAF9F6',
+                  fontFamily: t.bodyFont,
+                },
+              ]}
+              value={deleteConfirmText}
+              onChangeText={setDeleteConfirmText}
+              placeholder="type DELETE to confirm"
+              placeholderTextColor={t.textSecondary}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              editable={!deleting}
+            />
+
+            <TouchableOpacity
+              style={[
+                styles.deletePill,
+                { backgroundColor: canDelete ? '#DC2626' : t.cardAlt },
+              ]}
+              onPress={confirmDeletion}
+              activeOpacity={0.85}
+              disabled={!canDelete}
+              accessibilityRole="button"
+              accessibilityLabel="Permanently delete my account"
+            >
+              {deleting ? (
+                <ActivityIndicator color={canDelete ? '#FFFFFF' : t.textSecondary} />
+              ) : (
+                <>
+                  <Ionicons name="trash-outline" size={20} color={canDelete ? '#FFFFFF' : t.textSecondary} />
+                  <Text style={[styles.sheetPillText, { color: canDelete ? '#FFFFFF' : t.textSecondary, fontFamily: t.bodyFont }]}>
+                    delete my account
+                  </Text>
+                </>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -295,6 +380,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sheetPillText: { fontSize: 16 },
+  deleteConfirmInput: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    height: 50,
+    fontSize: 15,
+    letterSpacing: 1,
+    marginTop: 18,
+  },
   deletePill: {
     flexDirection: 'row',
     alignItems: 'center',

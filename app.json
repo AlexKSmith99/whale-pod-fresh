@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "whale-pod-fresh",
+    "name": "Whale Pod",
     "slug": "whale-pod-fresh",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -11,22 +11,24 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#7FDBCA"
+      "backgroundColor": "#FAF9F6"
     },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.whalepod.fresh",
       "usesAppleSignIn": true,
       "infoPlist": {
-        "NSCameraUsageDescription": "Whale Pod needs access to your camera for video calls with your pod team.",
-        "NSMicrophoneUsageDescription": "Whale Pod needs access to your microphone for video calls with your pod team.",
+        "NSCameraUsageDescription": "Whale Pod uses your camera for pod video calls and to take a profile photo.",
+        "NSMicrophoneUsageDescription": "Whale Pod uses your microphone for pod video calls.",
+        "NSPhotoLibraryUsageDescription": "Whale Pod needs your photo library so you can choose profile photos and a cover image for pods you create.",
+        "NSPhotoLibraryAddUsageDescription": "Whale Pod saves photos to your library only when you ask it to.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#7FDBCA"
+        "backgroundColor": "#FAF9F6"
       },
       "package": "com.whalepod.fresh",
       "permissions": [
@@ -44,7 +46,13 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Whale Pod needs access to your camera for video calls with your pod team."
+          "cameraPermission": "Whale Pod uses your camera for pod video calls and to take a profile photo."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Whale Pod needs your photo library so you can choose profile photos and a cover image for pods you create."
         }
       ],
       "expo-font",
