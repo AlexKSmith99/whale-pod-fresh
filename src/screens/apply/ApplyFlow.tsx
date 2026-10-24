@@ -146,7 +146,8 @@ export default function ApplyFlow({ onExit }: Props) {
   const StepComponent = STEPS[index];
   return (
     <>
-      <StatusBar barStyle="light-content" />
+      {/* dark-content: the flow runs on the cream editorial page now, not black. */}
+      <StatusBar barStyle="dark-content" />
       <StepComponent
         data={data}
         update={update}

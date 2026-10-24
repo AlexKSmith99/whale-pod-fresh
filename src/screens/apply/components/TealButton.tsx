@@ -10,7 +10,15 @@ interface Props {
   style?: ViewStyle;
 }
 
-/** Full-width teal pill CTA. Disabled → dark grey fill + muted label (per reference). */
+/**
+ * Full-width primary CTA. Ink-filled pill with white text, disabled → flat
+ * neutral fill with a muted label.
+ *
+ * Ink rather than the accent: in the editorial palette Carolina is the discreet
+ * accent and is never used as a large filled button. The component name is
+ * legacy from the old teal design — kept so the dozen step files that import it
+ * don't need touching.
+ */
 export default function TealButton({ label, onPress, disabled, loading, style }: Props) {
   const isOff = disabled || loading;
   return (
@@ -32,13 +40,13 @@ export default function TealButton({ label, onPress, disabled, loading, style }:
 
 const styles = StyleSheet.create({
   btn: {
-    height: 60,
-    borderRadius: 30,
+    height: 58,
+    borderRadius: 9999,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
   },
-  btnOn: { backgroundColor: APPLY.teal },
+  btnOn: { backgroundColor: APPLY.text },
   btnOff: { backgroundColor: APPLY.disabledBg },
-  label: { fontSize: 18, fontWeight: '700' },
+  label: { fontSize: 17, fontFamily: 'InterTight_600SemiBold', letterSpacing: 0.2 },
 });

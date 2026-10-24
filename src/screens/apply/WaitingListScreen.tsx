@@ -121,15 +121,17 @@ const styles = StyleSheet.create({
     backgroundColor: APPLY.surface, alignItems: 'center', justifyContent: 'center', zIndex: 2,
   },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
+  // White card on cream with a hairline border, per the editorial card recipe —
+  // was a near-black tile, which no longer belongs on a light page.
   logoTile: {
-    width: 96, height: 96, borderRadius: 24, backgroundColor: '#0E0E10',
+    width: 96, height: 96, borderRadius: 24, backgroundColor: APPLY.surface,
     borderWidth: 1, borderColor: APPLY.border, alignItems: 'center', justifyContent: 'center', marginBottom: 24,
   },
-  logo: { width: 52, height: 52, tintColor: '#fff' },
-  title: { fontSize: 40, fontWeight: '800', color: APPLY.text, letterSpacing: -0.5, marginBottom: 16 },
+  logo: { width: 52, height: 52, tintColor: APPLY.text },
+  title: { fontSize: 38, fontFamily: 'PlayfairDisplay_700Bold', color: APPLY.text, letterSpacing: -0.6, marginBottom: 16 },
   shimmerWrap: { alignSelf: 'center', overflow: 'hidden' },
-  subtitle: { fontSize: 19, color: '#8A8A8E', textAlign: 'center', fontWeight: '500' },
-  note: { fontSize: 19, color: '#8A8A8E', textAlign: 'center', fontWeight: '500', marginTop: 22, lineHeight: 26 },
+  subtitle: { fontSize: 17, color: APPLY.textMuted, textAlign: 'center', fontFamily: 'InterTight_600SemiBold' },
+  note: { fontSize: 16, color: APPLY.textMuted, textAlign: 'center', fontFamily: 'InterTight_600SemiBold', marginTop: 22, lineHeight: 24 },
   handle: {
     alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 10,
     backgroundColor: APPLY.surface, borderRadius: 24, paddingVertical: 14, paddingHorizontal: 24, marginBottom: 12,

@@ -25,6 +25,6 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: APPLY.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
   title: { fontSize: 34, fontWeight: '800', color: APPLY.text, letterSpacing: -0.5, marginBottom: 20, textAlign: 'center' },
-  body: { fontSize: 18, color: '#8A8A8E', textAlign: 'center', lineHeight: 26, marginBottom: 16, fontWeight: '500' },
+  body: { fontSize: 18, color: APPLY.textMuted, textAlign: 'center', lineHeight: 26, marginBottom: 16, fontFamily: 'InterTight_600SemiBold' },
   footer: { paddingHorizontal: 20, paddingBottom: 20 },
 });

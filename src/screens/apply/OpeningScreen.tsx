@@ -17,7 +17,12 @@ export default function OpeningScreen({ onApply, onLogin, onOpenLegal }: Props) 
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.center}>
         <Image source={LOGO} style={styles.logo} resizeMode="contain" />
-        <Text style={styles.wordmark}>whale pod</Text>
+        {/* The editorial wordmark: lowercase Playfair over a 2px Carolina
+            underline bar, matching the feed header. */}
+        <View>
+          <Text style={styles.wordmark}>whale pod</Text>
+          <View style={styles.wordmarkRule} />
+        </View>
       </View>
 
       <View style={styles.footer}>
@@ -42,13 +47,27 @@ export default function OpeningScreen({ onApply, onLogin, onOpenLegal }: Props) 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: APPLY.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 14 },
-  logo: { width: 64, height: 64, tintColor: '#fff' },
-  wordmark: { fontSize: 52, fontWeight: '700', color: '#fff', letterSpacing: -1 },
+  // Ink, not white — the page is cream now.
+  logo: { width: 56, height: 56, tintColor: APPLY.text },
+  wordmark: { fontSize: 46, fontFamily: 'PlayfairDisplay_700Bold', color: APPLY.text, letterSpacing: -1 },
+  wordmarkRule: { height: 2, backgroundColor: APPLY.teal, marginTop: 4, borderRadius: 1 },
   footer: { paddingHorizontal: 20, paddingBottom: 16 },
-  primary: { height: 62, borderRadius: 31, backgroundColor: APPLY.teal, alignItems: 'center', justifyContent: 'center' },
-  primaryLabel: { color: '#fff', fontSize: 19, fontWeight: '700' },
-  secondary: { height: 62, borderRadius: 31, backgroundColor: APPLY.surface, alignItems: 'center', justifyContent: 'center', marginTop: 14 },
-  secondaryLabel: { color: APPLY.teal, fontSize: 19, fontWeight: '700' },
-  legal: { color: APPLY.textMuted, fontSize: 14, textAlign: 'center', marginTop: 22, lineHeight: 20, paddingHorizontal: 16 },
-  link: { color: APPLY.textSecondary, textDecorationLine: 'underline' },
+  // Primary CTA is an ink-filled pill with white text. Carolina is the discreet
+  // accent in this palette and is never used as a large filled button.
+  primary: { height: 58, borderRadius: 9999, backgroundColor: APPLY.text, alignItems: 'center', justifyContent: 'center' },
+  primaryLabel: { color: '#FFFFFF', fontSize: 17, fontFamily: 'InterTight_600SemiBold', letterSpacing: 0.2 },
+  // Secondary is transparent with a hairline border, not a filled surface.
+  secondary: {
+    height: 58,
+    borderRadius: 9999,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: APPLY.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+  },
+  secondaryLabel: { color: APPLY.text, fontSize: 17, fontFamily: 'InterTight_600SemiBold', letterSpacing: 0.2 },
+  legal: { color: APPLY.textMuted, fontSize: 13, textAlign: 'center', marginTop: 22, lineHeight: 19, paddingHorizontal: 16, fontFamily: 'InterTight_600SemiBold' },
+  link: { color: APPLY.tealPressed, textDecorationLine: 'underline' },
 });
