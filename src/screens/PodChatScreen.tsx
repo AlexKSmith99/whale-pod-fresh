@@ -27,6 +27,9 @@ import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
 import { AppAlert } from '../components/ui/AppAlert';
 import { displayName, initialOf } from '../utils/displayName';
+import RollCallCard from '../components/chat/RollCallCard';
+import CreateRollCallSheet from '../components/chat/CreateRollCallSheet';
+import { rollCallService, RollCall, RollCallAnswer } from '../services/rollCallService';
 import PursuitDetailScreen from './PursuitDetailScreen';
 import TeamWorkspaceScreen from './team/TeamWorkspaceScreen';
 
@@ -65,6 +68,11 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
   const [expandedMessageId, setExpandedMessageId] = useState<string | null>(null);
   const [likes, setLikes] = useState<Record<string, string[]>>({});
   const lastTapRef = useRef<Record<string, number>>({});
+  // Roll calls, keyed by id, loaded alongside the messages that reference them
+  // so the 3-second poll keeps the IN/OUT tallies current without its own timer.
+  const [rollCalls, setRollCalls] = useState<Record<string, RollCall>>({});
+  const [showRollCallSheet, setShowRollCallSheet] = useState(false);
+  const [busyRollCallId, setBusyRollCallId] = useState<string | null>(null);
 
   // Update chatName when props change (e.g., when switching to a different chat)
   useEffect(() => {
@@ -141,6 +149,14 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
         const messageIds = data.map((m: PodChatMessage) => m.id);
         const likesData = await messageLikeService.getLikesForMessages(messageIds, 'pod');
         setLikes(likesData);
+      }
+      // Roll calls referenced by this stream. Batched rather than one fetch per
+      // card, and refreshed on the same poll as the messages.
+      const rollCallIds = data
+        .filter((m: PodChatMessage) => m.kind === 'roll_call' && m.roll_call_id)
+        .map((m: PodChatMessage) => m.roll_call_id as string);
+      if (rollCallIds.length > 0 && user) {
+        setRollCalls(await rollCallService.getMany(rollCallIds, user.id));
       }
     } catch (error) {
       console.error('Error loading pod chat messages:', error);
@@ -303,7 +319,133 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
     }
   }, [handleToggleLike]);
 
+  // --- roll call handlers ---------------------------------------------------
+  const handleRollCallAnswer = async (rollCallId: string, answer: RollCallAnswer) => {
+    if (!user) return;
+    setBusyRollCallId(rollCallId);
+    // Optimistic: the poll is up to 3 seconds away and a tap that does nothing
+    // visible reads as broken.
+    setRollCalls(prev => {
+      const rc = prev[rollCallId];
+      if (!rc) return prev;
+      const others = rc.responders.filter(r => r.userId !== user.id);
+      const mine = {
+        userId: user.id,
+        name: myProfile?.name || 'You',
+        profilePicture: myProfile?.profile_picture ?? null,
+        answer,
+      };
+      const responders = [...others, mine];
+      return {
+        ...prev,
+        [rollCallId]: {
+          ...rc,
+          responders,
+          myAnswer: answer,
+          inCount: responders.filter(r => r.answer === 'in').length,
+          outCount: responders.filter(r => r.answer === 'out').length,
+          pendingCount: Math.max(0, rc.pendingCount - (rc.myAnswer ? 0 : 1)),
+        },
+      };
+    });
+
+    const ok = await rollCallService.respond(rollCallId, user.id, answer);
+    setBusyRollCallId(null);
+    // Reconcile either way — on failure this puts the card back.
+    await loadMessages();
+    if (!ok) AppAlert.alert('Could not save', 'Your answer did not go through. Try again.');
+  };
+
+  const handleCloseRollCall = (rollCallId: string) => {
+    AppAlert.alert(
+      'Close this roll call?',
+      'Nobody will be able to answer or change their answer.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Close it',
+          style: 'destructive',
+          onPress: async () => {
+            setBusyRollCallId(rollCallId);
+            await rollCallService.close(rollCallId);
+            setBusyRollCallId(null);
+            await loadMessages();
+          },
+        },
+      ]
+    );
+  };
+
+  const handlePromoteRollCall = (rollCallId: string) => {
+    const rc = rollCalls[rollCallId];
+    if (!rc || !user) return;
+    AppAlert.alert(
+      'Add to the calendar?',
+      `This creates a meeting at that time and marks the ${rc.inCount} who said they're in as attending.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Add it',
+          onPress: async () => {
+            setBusyRollCallId(rollCallId);
+            const meetingId = await rollCallService.promoteToMeeting(rollCallId, user.id, {
+              title: chatName,
+            });
+            setBusyRollCallId(null);
+            await loadMessages();
+            if (!meetingId) {
+              AppAlert.alert('Could not add it', 'The meeting was not created. Try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const renderRollCall = (item: PodChatMessage) => {
+    const rc = item.roll_call_id ? rollCalls[item.roll_call_id] : undefined;
+    if (!rc) {
+      // Still loading, or it was deleted. Fall back to the plain-text version
+      // stored on the message rather than showing a gap.
+      return (
+        <Text style={[styles.messageText, { color: colors.textTertiary, textAlign: 'center', marginVertical: 12, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
+          {item.content}
+        </Text>
+      );
+    }
+    return (
+      <RollCallCard
+        rollCall={rc}
+        currentUserId={user?.id || ''}
+        isPodCreator={pursuitData?.creator_id === user?.id}
+        busy={busyRollCallId === rc.id}
+        onAnswer={answer => handleRollCallAnswer(rc.id, answer)}
+        onClose={() => handleCloseRollCall(rc.id)}
+        onPromote={() => handlePromoteRollCall(rc.id)}
+        onOpenMeeting={meetingId => navigation?.navigate('MeetingInvitation', { meetingId })}
+      />
+    );
+  };
+
   const renderMessage = ({ item, index }: { item: PodChatMessage; index: number }) => {
+    // Roll calls belong to the group, not to whoever posted them, so they get a
+    // full-width card instead of a sender-aligned bubble.
+    if (item.kind === 'roll_call') {
+      const showSep = hasTimeGap(item.created_at, index > 0 ? messages[index - 1]?.created_at : null);
+      return (
+        <View>
+          {showSep && (
+            <View style={styles.timeSeparator}>
+              <Text style={[styles.timeSeparatorText, { color: colors.textTertiary, backgroundColor: colors.surfaceAlt, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
+                {formatTimeSeparator(item.created_at)}
+              </Text>
+            </View>
+          )}
+          {renderRollCall(item)}
+        </View>
+      );
+    }
+
     const isMyMessage = item.sender_id === user?.id;
     const sender = item.sender;
     const showTimeSeparator = hasTimeGap(item.created_at, index > 0 ? messages[index - 1]?.created_at : null);
@@ -514,6 +656,15 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
           {/* Composer rides the keyboard's top edge (inverted list keeps layout) */}
           <KeyboardStickyView>
             <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+              <TouchableOpacity
+                style={[styles.rollCallButton, { borderColor: colors.border }]}
+                activeOpacity={0.6}
+                onPress={() => setShowRollCallSheet(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Call a roll call"
+              >
+                <Ionicons name="hand-left-outline" size={19} color={isNewTheme ? colors.accentGreen : editorial.carolina} />
+              </TouchableOpacity>
               <TextInput
                 style={[styles.input, { borderWidth: isNewTheme ? 0 : 1, borderColor: colors.border, color: colors.textPrimary, backgroundColor: isNewTheme ? colors.background : editorial.surface, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
                 placeholder="Type a message..."
@@ -603,6 +754,17 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
           </View>
         </View>
       </Modal>
+
+      {/* Roll Call creation sheet */}
+      {user && (
+        <CreateRollCallSheet
+          visible={showRollCallSheet}
+          pursuitId={pursuitId}
+          currentUserId={user.id}
+          onClose={() => setShowRollCallSheet(false)}
+          onCreated={loadMessages}
+        />
+      )}
 
       {/* Rename Modal */}
       <Modal
@@ -892,6 +1054,17 @@ function makeStyles(colors: any, isNewTheme: boolean) {
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
     alignItems: 'flex-end',
+  },
+  // Roll call entry point, left of the text field. Outline icon button in both
+  // themes per the icon-button recipe — no filled circle.
+  rollCallButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
   },
   input: {
     flex: 1,

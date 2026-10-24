@@ -5,7 +5,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
 import { connectionService } from '../services/connectionService';
 import { privacyService } from '../services/privacyService';
-import { savedPodService } from '../services/savedPodService';
 import EditProfileScreen from './EditProfileScreen';
 import PrivacyPreferencesScreen from './PrivacyPreferencesScreen';
 import SettingsScreen from './settings/SettingsScreen';
@@ -38,7 +37,6 @@ const [showSettings, setShowSettings] = useState(false);
 const [showAdminReview, setShowAdminReview] = useState(false);
 const [showPrivacyPreferences, setShowPrivacyPreferences] = useState(false);
 const [userPods, setUserPods] = useState<any[]>([]);
-const [savedPods, setSavedPods] = useState<any[]>([]);
 const [activePhotoIdx, setActivePhotoIdx] = useState(0);
 const [podsLoading, setPodsLoading] = useState(false);
 
@@ -137,17 +135,10 @@ const loadUserPods = async () => {
   if (!user) return;
   setPodsLoading(true);
   try {
-    // Saved pods are independent of membership, so fetch both together and
-    // let one failing surface the error without blanking the other.
-    const [pods, saved] = await Promise.all([
-      privacyService.getUserPods(user.id),
-      savedPodService.getSavedPods(user.id).catch(error => {
-        console.error('Error loading saved pods:', error);
-        return [];
-      }),
-    ]);
-    setUserPods(pods);
-    setSavedPods(saved);
+    // Saved pods deliberately are NOT loaded here. A bookmark is something you
+    // are deciding whether to apply to, so it lives in the Pods tab next to
+    // your applications rather than in your public track record.
+    setUserPods(await privacyService.getUserPods(user.id));
   } catch (error) {
     console.error('Error loading user pods:', error);
   } finally {
@@ -619,12 +610,12 @@ const handleRejectConnection = async (connectionId: string) => {
                 <WhaleLoader size={40} />
                 <Text style={[styles.emptyReviewsHint, themedStyles.emptySubtext]}>Loading your pods...</Text>
               </View>
-            ) : userPods.length === 0 && savedPods.length === 0 ? (
+            ) : userPods.length === 0 ? (
               <View style={styles.emptyReviews}>
                 <Ionicons name="rocket-outline" size={64} color={colors.textTertiary} style={{ marginBottom: 16 }} />
                 <Text style={[styles.emptyReviewsText, themedStyles.emptyText, !isNewTheme && { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3 }]}>No pods yet</Text>
                 <Text style={[styles.emptyReviewsHint, themedStyles.emptySubtext]}>
-                  Join, create or save a pod to get started
+                  Join or create a pod to get started
                 </Text>
               </View>
             ) : (
@@ -707,43 +698,6 @@ const handleRejectConnection = async (connectionId: string) => {
                   </View>
                 )}
 
-                {/* Saved Pods — bookmarked from the feed or a pod's detail
-                    header. Independent of membership, so a pod can appear
-                    here as well as under Current/Past. */}
-                {savedPods.length > 0 && (
-                  <View style={[styles.section, themedStyles.card]}>
-                    <Text style={isNewTheme ? styles.sectionTitleNew : [styles.sectionTitle, themedStyles.cardTitle, { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3, color: editorial.ink }]}>Saved Pods</Text>
-                    {savedPods.map((pod) => (
-                      <TouchableOpacity
-                        key={pod.id}
-                        style={[styles.podCard, themedStyles.surfaceAlt]}
-                        onPress={() => navigation.navigate('PursuitDetail', { pursuitId: pod.id })}
-                        activeOpacity={0.7}
-                      >
-                        {pod.default_picture ? (
-                          <Image source={{ uri: pod.default_picture }} style={styles.podCardImage} />
-                        ) : (
-                          <PodMemberCollage members={pod.members || []} size={50} borderRadius={10} />
-                        )}
-                        <View style={styles.podCardInfo}>
-                          <Text style={[styles.podCardTitle, themedStyles.listItemTitle, !isNewTheme && { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3 }]}>{pod.title}</Text>
-                          <View style={styles.podCardMeta}>
-                            {pod.isCreator && (
-                              <View style={[styles.podCreatorBadge, themedStyles.tag, !isNewTheme && { backgroundColor: editorial.goldTint, borderWidth: 1, borderColor: editorial.goldTint }]}>
-                                <Ionicons name="star" size={10} color={isNewTheme ? themedStyles.accentIconColor : editorial.gold} />
-                                <Text style={[styles.podCreatorBadgeText, themedStyles.tagText, !isNewTheme && { color: editorial.gold }]}>Creator</Text>
-                              </View>
-                            )}
-                            <Text style={[styles.podCardMembers, themedStyles.listItemSubtitle]}>
-                              {pod.current_members_count || 1} member{(pod.current_members_count || 1) !== 1 ? 's' : ''}
-                            </Text>
-                          </View>
-                        </View>
-                        <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                )}
               </>
             )}
           </ScrollView>

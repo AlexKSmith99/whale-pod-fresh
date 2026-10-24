@@ -6,6 +6,13 @@ export interface PodChatMessage {
   sender_id: string;
   content: string;
   created_at: string;
+  /**
+   * 'roll_call' rows render as a card instead of a bubble (migration 086).
+   * `content` still holds a plain-text version — it's what push previews show
+   * and what an older build would fall back to.
+   */
+  kind?: 'text' | 'roll_call';
+  roll_call_id?: string | null;
   sender?: {
     name: string;
     profile_picture?: string;

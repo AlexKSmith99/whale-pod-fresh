@@ -11,6 +11,7 @@ import GrainTexture from '../components/ui/GrainTexture';
 import GradientBackground from '../components/ui/GradientBackground';
 import WhaleLoader from '../components/ui/WhaleLoader';
 import { HotFlameIcon, JalapenoIndicator, calculateEngagement, fetchEngagementData, EngagementState } from '../components/ui/PodEngagementIndicator';
+import { savedPodService } from '../services/savedPodService';
 
 interface Pod {
   id: string;
@@ -34,7 +35,10 @@ interface Application {
   pursuits: any;
 }
 
-type FilterType = 'active' | 'past' | 'pending';
+// 'saved' lives here rather than on the profile: a pod you bookmarked is
+// something you're deciding whether to apply to, so it belongs next to your
+// applications, not in your public track record.
+type FilterType = 'active' | 'past' | 'pending' | 'saved';
 
 interface PodsScreenProps {
   onOpenPodDetails: (pod: Pod) => void;
@@ -55,6 +59,8 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
   const [activeFilter, setActiveFilter] = useState<FilterType>('active');
   const [notificationCounts, setNotificationCounts] = useState<Map<string, number>>(new Map());
   const [engagementMap, setEngagementMap] = useState<Record<string, EngagementState>>({});
+  const [savedPods, setSavedPods] = useState<any[]>([]);
+  const [unsavingId, setUnsavingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -204,6 +210,14 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
       console.log('📍 Active pod IDs:', allActivePods.map(p => p.id));
       setNotificationCounts(counts);
 
+      // Saved pods are independent of membership — swallow their failure so a
+      // missing saved_pods table can't blank out the rest of the tab.
+      const saved = await savedPodService.getSavedPods(user.id).catch(err => {
+        console.error('Error loading saved pods:', err);
+        return [];
+      });
+      setSavedPods(saved);
+
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -226,36 +240,55 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
   const inactiveTabStyle = isNewTheme
     ? { backgroundColor: colors.surfaceAlt }
     : { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.border };
+  // Four pills no longer divide evenly on a 375pt screen, so the row scrolls
+  // horizontally and the pills size to their text — same pattern FeedScreen
+  // already uses for its filter row.
+  const FILTERS: { key: FilterType; label: string; count: number }[] = [
+    { key: 'active', label: 'Active', count: pods.length },
+    { key: 'past', label: 'Past', count: pastPods.length },
+    { key: 'pending', label: 'Pending', count: applications.length + interviewPendingApps.length },
+    { key: 'saved', label: 'Saved', count: savedPods.length },
+  ];
+
   const renderFilterTabs = () => (
-    <View style={[styles.filterTabs, themedStyles.surface, { borderBottomColor: colors.border }]}>
-      <TouchableOpacity
-        style={[styles.filterTab, inactiveTabStyle, activeFilter === 'active' && { backgroundColor: isNewTheme ? 'rgba(200, 255, 107, 0.15)' : themedStyles.accentIconColor, borderColor: isNewTheme ? undefined : themedStyles.accentIconColor }]}
-        onPress={() => setActiveFilter('active')}
-        activeOpacity={0.6}
-      >
-        <Text style={[styles.filterTabText, themedStyles.bodyText, { color: colors.textSecondary }, activeFilter === 'active' && (isNewTheme ? { color: colors.accentGreen } : styles.filterTabTextActive)]}>
-          Active ({pods.length})
-        </Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.filterTab, inactiveTabStyle, activeFilter === 'past' && { backgroundColor: isNewTheme ? 'rgba(200, 255, 107, 0.15)' : themedStyles.accentIconColor, borderColor: isNewTheme ? undefined : themedStyles.accentIconColor }]}
-        onPress={() => setActiveFilter('past')}
-        activeOpacity={0.6}
-      >
-        <Text style={[styles.filterTabText, themedStyles.bodyText, { color: colors.textSecondary }, activeFilter === 'past' && (isNewTheme ? { color: colors.accentGreen } : styles.filterTabTextActive)]}>
-          Past ({pastPods.length})
-        </Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.filterTab, inactiveTabStyle, activeFilter === 'pending' && { backgroundColor: isNewTheme ? 'rgba(200, 255, 107, 0.15)' : themedStyles.accentIconColor, borderColor: isNewTheme ? undefined : themedStyles.accentIconColor }]}
-        onPress={() => setActiveFilter('pending')}
-        activeOpacity={0.6}
-      >
-        <Text style={[styles.filterTabText, themedStyles.bodyText, { color: colors.textSecondary }, activeFilter === 'pending' && (isNewTheme ? { color: colors.accentGreen } : styles.filterTabTextActive)]}>
-          Pending ({applications.length + interviewPendingApps.length})
-        </Text>
-      </TouchableOpacity>
-    </View>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={[styles.filterTabs, themedStyles.surface, { borderBottomColor: colors.border }]}
+      contentContainerStyle={styles.filterTabsContent}
+    >
+      {FILTERS.map(({ key, label, count }) => {
+        const on = activeFilter === key;
+        return (
+          <TouchableOpacity
+            key={key}
+            style={[
+              styles.filterTab,
+              inactiveTabStyle,
+              on && {
+                backgroundColor: isNewTheme ? 'rgba(200, 255, 107, 0.15)' : themedStyles.accentIconColor,
+                borderColor: isNewTheme ? undefined : themedStyles.accentIconColor,
+              },
+            ]}
+            onPress={() => setActiveFilter(key)}
+            activeOpacity={0.6}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: on }}
+          >
+            <Text
+              style={[
+                styles.filterTabText,
+                themedStyles.bodyText,
+                { color: colors.textSecondary },
+                on && (isNewTheme ? { color: colors.accentGreen } : styles.filterTabTextActive),
+              ]}
+            >
+              {label} ({count})
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </ScrollView>
   );
 
   const renderPodCard = (pod: Pod, isPast: boolean = false) => {
@@ -477,6 +510,96 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
     </View>
   );
 
+  const handleUnsave = async (pursuitId: string) => {
+    if (!user) return;
+    setUnsavingId(pursuitId);
+    // Optimistic — the list is short and a bookmark tap should feel instant.
+    const previous = savedPods;
+    setSavedPods(prev => prev.filter(p => p.id !== pursuitId));
+    try {
+      await savedPodService.unsave(pursuitId, user.id);
+    } catch (error) {
+      console.error('Error unsaving pod:', error);
+      setSavedPods(previous);
+    } finally {
+      setUnsavingId(null);
+    }
+  };
+
+  /**
+   * Saved pods get their own card rather than reusing renderPodCard.
+   *
+   * You haven't joined these, so almost everything that card shows would be
+   * wrong: there are no unread counts, no engagement to report, and tapping it
+   * should take you somewhere you can decide to apply — not into a workspace
+   * you have no access to.
+   */
+  const renderSavedPodCard = (pod: any) => (
+    <TouchableOpacity
+      key={pod.id}
+      style={[
+        styles.podCard,
+        themedStyles.card,
+        { borderWidth: 1, borderColor: isNewTheme ? 'rgba(255,255,255,0.08)' : colors.border, overflow: 'hidden' },
+      ]}
+      onPress={() => onOpenPodDetails(pod)}
+      activeOpacity={0.7}
+    >
+      <View style={[styles.cardAccentLine, { backgroundColor: isNewTheme ? colors.accentGreen : '#4B9CD3' }]} pointerEvents="none" />
+
+      <View style={styles.podHeader}>
+        <View style={styles.podTitleRow}>
+          <View style={styles.titleWithDot}>
+            <Text style={[styles.podTitle, themedStyles.cardTitle]} numberOfLines={2}>{pod.title}</Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => handleUnsave(pod.id)}
+            disabled={unsavingId === pod.id}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            activeOpacity={0.6}
+            accessibilityRole="button"
+            accessibilityLabel={`Remove ${pod.title} from saved`}
+          >
+            <Ionicons
+              name="bookmark"
+              size={20}
+              color={unsavingId === pod.id ? colors.textTertiary : (isNewTheme ? colors.accentGreen : '#4B9CD3')}
+            />
+          </TouchableOpacity>
+        </View>
+
+        <Text style={[styles.savedMeta, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
+          {[
+            pod.status === 'awaiting_kickoff' ? 'Awaiting kickoff' : pod.status === 'active' ? 'Active' : pod.status,
+            typeof pod.current_members_count === 'number' ? `${pod.current_members_count} members` : null,
+            pod.isCreator ? 'yours' : null,
+          ].filter(Boolean).join('  ·  ')}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+
+  const renderSavedContent = () => (
+    <View style={styles.content}>
+      {savedPods.length > 0 ? (
+        <>
+          <Text style={[styles.sectionLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', textTransform: 'uppercase', letterSpacing: isNewTheme ? 1 : 0.5 }]}>
+            Saved for later
+          </Text>
+          {savedPods.map(renderSavedPodCard)}
+        </>
+      ) : (
+        <View style={styles.emptyState}>
+          <Ionicons name="bookmark-outline" size={64} color={colors.textTertiary} style={{ marginBottom: 20 }} />
+          <Text style={[styles.emptyText, themedStyles.emptyText]}>Nothing saved</Text>
+          <Text style={[styles.emptyHint, themedStyles.emptySubtext]}>
+            Tap the bookmark on any pod in the feed to keep it here while you decide
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+
   const renderPendingContent = () => (
     <View style={styles.content}>
       {/* Interview Requests - show first with action required */}
@@ -559,6 +682,7 @@ export default function PodsScreen({ onOpenPodDetails, onOpenTeamBoard, onOpenIn
         {activeFilter === 'active' && renderActiveContent()}
         {activeFilter === 'past' && renderPastContent()}
         {activeFilter === 'pending' && renderPendingContent()}
+        {activeFilter === 'saved' && renderSavedContent()}
       </ScrollView>
     </GradientBackground>
   );
@@ -571,18 +695,24 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: 'bold', color: '#2D5016' },
   subtitle: { fontSize: 16, color: '#666', marginTop: 5 },
   filterTabs: {
-    flexDirection: 'row',
-    paddingHorizontal: 15,
+    flexGrow: 0,
     paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
+  filterTabsContent: {
+    paddingHorizontal: 15,
+    gap: 8,
+  },
+  savedMeta: {
+    fontSize: 12,
+    marginTop: 4,
+  },
   filterTab: {
-    flex: 1,
     paddingVertical: 10,
+    paddingHorizontal: 16,
     alignItems: 'center',
     borderRadius: 20,
-    marginHorizontal: 4,
     backgroundColor: '#f5f5f5',
   },
   filterTabActive: {
