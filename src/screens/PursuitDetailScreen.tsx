@@ -57,6 +57,39 @@ const LEAVE_POD_REASONS = [
   "Other",
 ];
 
+/**
+ * Renders a member's proposed kickoff slots compactly.
+ *
+ * proposed_times is JSONB written by TimeSlotProposalScreen as
+ * [{ date: 'YYYY-MM-DD', start_time: 'HH:MM', end_time: 'HH:MM' }, ...].
+ * Shapes vary across older rows, so anything unparseable is skipped rather
+ * than crashing the pod detail screen.
+ */
+function formatProposedTimes(proposedTimes: any): string {
+  if (!Array.isArray(proposedTimes) || proposedTimes.length === 0) return 'no times given';
+
+  const to12h = (hhmm?: string) => {
+    if (!hhmm || typeof hhmm !== 'string') return null;
+    const [h, m] = hhmm.split(':').map(Number);
+    if (isNaN(h)) return null;
+    const period = h >= 12 ? 'pm' : 'am';
+    return `${h % 12 || 12}:${String(m || 0).padStart(2, '0')}${period}`;
+  };
+
+  const parts = proposedTimes
+    .map((slot: any) => {
+      if (!slot?.date) return null;
+      const d = new Date(`${slot.date}T00:00:00`);
+      if (isNaN(d.getTime())) return null;
+      const day = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      const start = to12h(slot.start_time);
+      return start ? `${day} ${start}` : day;
+    })
+    .filter(Boolean);
+
+  return parts.length ? parts.join('  ·  ') : 'no times given';
+}
+
 const REMOVE_MEMBER_REASONS = [
   "Member wasn't aligned with the mission",
   "Member was inactive or not contributing",
@@ -84,6 +117,9 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
   const [canActivateKickoff, setCanActivateKickoff] = useState(false);
   const [showTimeSlotProposal, setShowTimeSlotProposal] = useState(false);
   const [hasSubmittedProposal, setHasSubmittedProposal] = useState(false);
+  // Other accepted members' proposed kickoff slots. Only surfaced on pods that
+  // need 3+ people, where coordinating around everyone else actually matters.
+  const [otherProposals, setOtherProposals] = useState<any[]>([]);
   const [showKickoffScheduling, setShowKickoffScheduling] = useState(false);
   const [isTeamMember, setIsTeamMember] = useState(false);
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
@@ -248,9 +284,13 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
     if (!user || isOwner) return;
 
     try {
+      // getKickoffProposals already returns every proposal with the proposer's
+      // profile attached, and 078 scopes the table to pod members — so no extra
+      // query is needed to show what everyone else picked.
       const proposals = await meetingService.getKickoffProposals(pursuit.id);
       const userProposal = proposals?.find((p: any) => p.user_id === user.id);
       setHasSubmittedProposal(!!userProposal);
+      setOtherProposals((proposals || []).filter((p: any) => p.user_id !== user.id));
     } catch (error) {
       console.error('Error checking proposal status:', error);
     }
@@ -389,7 +429,10 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                     teamMemberIds,
                     pursuit.id,
                     pursuit.title,
-                    creatorName
+                    creatorName,
+                    // actor: the leader activating kickoff — shows their face
+                    // on the alert (migration 082)
+                    user?.id
                   );
                 }
               } catch (notifError) {
@@ -1436,6 +1479,60 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
                 </TouchableOpacity>
               )
             )}
+
+            {/* What everyone else proposed. Shown whether or not you've sent
+                yours, so you can coordinate rather than guess — and only on
+                pods needing 3+ people, where there's more than one other
+                schedule to work around. */}
+            {(pursuit.team_size_min || 2) > 2 && otherProposals.length > 0 && (
+              <View
+                style={[
+                  styles.otherProposalsCard,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: isNewTheme ? 'rgba(255,255,255,0.10)' : editorial.hairline,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.otherProposalsTitle,
+                    {
+                      color: colors.textPrimary,
+                      fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold',
+                    },
+                  ]}
+                >
+                  What everyone else proposed
+                </Text>
+                {otherProposals.map((p: any) => (
+                  <View key={p.id} style={styles.otherProposalRow}>
+                    <Text
+                      style={[
+                        styles.otherProposalName,
+                        {
+                          color: colors.textPrimary,
+                          fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold',
+                        },
+                      ]}
+                    >
+                      {p.user?.name || 'Member'}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.otherProposalSlots,
+                        {
+                          color: isNewTheme ? colors.accentGreen : editorial.carolinaDeep,
+                          fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold',
+                        },
+                      ]}
+                    >
+                      {formatProposedTimes(p.proposed_times)}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
           </>
         )}
 
@@ -2091,6 +2188,17 @@ const styles = StyleSheet.create({
   scheduleKickoffText: { color: '#fff', fontSize: 17, fontWeight: 'bold' },
   proposeTimesButton: { backgroundColor: '#0ea5e9', borderRadius: 12, padding: 18, alignItems: 'center', marginTop: 20, shadowColor: '#0ea5e9', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
   proposeTimesText: { color: '#fff', fontSize: 17, fontWeight: 'bold' },
+  otherProposalsCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginTop: 12,
+  },
+  otherProposalsTitle: { fontSize: 15, letterSpacing: -0.2, marginBottom: 10 },
+  otherProposalRow: { marginBottom: 10 },
+  otherProposalName: { fontSize: 13 },
+  otherProposalSlots: { fontSize: 13, lineHeight: 18, marginTop: 2 },
   proposalSubmittedBadge: { backgroundColor: '#e0f2fe', borderRadius: 12, padding: 18, alignItems: 'center', marginTop: 20, borderWidth: 2, borderColor: '#0ea5e9' },
   proposalSubmittedText: { color: '#0ea5e9', fontSize: 17, fontWeight: 'bold', marginBottom: 4 },
   proposalSubmittedSubtext: { color: '#0369a1', fontSize: 14 },

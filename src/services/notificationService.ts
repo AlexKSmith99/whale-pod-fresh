@@ -36,6 +36,87 @@ export interface NotificationData {
   [key: string]: any;
 }
 
+/**
+ * Which preference switch governs each notification type.
+ *
+ * Categories match the columns in migration 081. Pod chat and DMs separate
+ * cleanly because pod chat sends `pod_chat_message` (PodChatScreen) while DMs
+ * send `new_message` (ChatScreen).
+ */
+const PUSH_CATEGORY_BY_TYPE: Record<string, string> = {
+  // Pod activity
+  kickoff_activated: 'pod_alerts',
+  kickoff_scheduled: 'pod_alerts',
+  kickoff_scheduled_team: 'pod_alerts',
+  kickoff_scheduled_creator: 'pod_alerts',
+  min_team_size_reached: 'pod_alerts',
+  all_proposals_submitted: 'pod_alerts',
+  time_proposal: 'pod_alerts',
+  new_meeting: 'pod_alerts',
+  meeting: 'pod_alerts',
+  meeting_invitation: 'pod_alerts',
+  team_board_update: 'pod_alerts',
+  pursuit_created: 'pod_alerts',
+
+  // Messages
+  pod_chat_message: 'pod_chats',
+  new_message: 'direct_messages',
+  message: 'direct_messages',
+
+  // Joining a pod
+  application_received: 'applications',
+  application_accepted: 'applications',
+  application_rejected: 'applications',
+  membership_approved: 'applications',
+  membership_rejected: 'applications',
+  edit_access: 'applications',
+
+  connection_request: 'connections',
+  connection_accepted: 'connections',
+
+  general: 'from_whale_pod',
+};
+
+/**
+ * Unknown types deliberately fall through to 'uncategorized', which is NOT one
+ * of the categories get_pushable_tokens recognises — so the RPC delivers it.
+ * A notification nobody fine-tuned is better than silence caused by a type
+ * someone forgot to add to the map above.
+ */
+export function pushCategoryForType(type?: string): string {
+  return (type && PUSH_CATEGORY_BY_TYPE[type]) || 'uncategorized';
+}
+
+/**
+ * Expo tokens for recipients who actually want this category of push.
+ *
+ * Goes through get_pushable_tokens (migration 081) rather than reading
+ * push_tokens directly, so preference filtering happens in the database and
+ * senders never see anyone else's preferences.
+ */
+async function fetchPushableTokens(
+  userIds: string[],
+  type?: string
+): Promise<{ user_id: string; expo_push_token: string }[]> {
+  if (!userIds || userIds.length === 0) return [];
+
+  const { data, error } = await supabase.rpc('get_pushable_tokens', {
+    p_user_ids: userIds,
+    p_category: pushCategoryForType(type),
+  });
+
+  if (!error) return (data as any[]) || [];
+
+  // Fallback for environments where 081 hasn't been applied yet: behave exactly
+  // as before (push everyone with a token), so notifications keep working
+  // regardless of migration/deploy ordering.
+  const { data: rows } = await supabase
+    .from('push_tokens')
+    .select('expo_push_token, user_id')
+    .in('user_id', userIds);
+  return (rows as any[]) || [];
+}
+
 export const notificationService = {
   // Register push token for the current user
   async registerPushToken(userId: string): Promise<string | null> {
@@ -120,14 +201,14 @@ export const notificationService = {
         return;
       }
 
-      // Get push tokens for users
-      const { data: tokens, error: tokenError } = await supabase
-        .from('push_tokens')
-        .select('expo_push_token, user_id')
-        .in('user_id', userIds);
+      // Only recipients whose preferences allow this category. sendPushOnly
+      // has no `type` parameter — callers put it in `data` (e.g. PodChatScreen
+      // sends 'pod_chat_message', ChatScreen sends 'new_message'), which is
+      // what separates pod chats from DMs.
+      const tokens = await fetchPushableTokens(userIds, (data as any)?.type);
 
-      if (tokenError || !tokens || tokens.length === 0) {
-        console.log('No push tokens found for users - skipping push notification');
+      if (!tokens || tokens.length === 0) {
+        console.log('No pushable tokens (none registered, or push disabled for this category) - skipping push notification');
         return;
       }
 
@@ -166,7 +247,11 @@ export const notificationService = {
     data?: NotificationData,
     type: string = 'general',
     relatedId?: string,
-    relatedType?: string
+    relatedType?: string,
+    // Who triggered this, for the avatar in the alerts tab (migration 082).
+    // Optional: not every notification has a human actor — some are triggered
+    // by state changes (a pod hitting its minimum size) rather than a person.
+    actorId?: string
   ): Promise<void> {
     try {
       // ALWAYS store notification history for in-app notifications, regardless of push tokens
@@ -178,6 +263,7 @@ export const notificationService = {
         related_id: relatedId,
         related_type: relatedType,
         data: data || null,
+        actor_id: actorId || null,
       }));
 
       if (notifications.length === 0) {
@@ -206,14 +292,14 @@ export const notificationService = {
         console.warn('⚠️ Notification insert failed:', insertError);
       }
 
-      // Try to send push notifications if tokens are available
-      const { data: tokens, error: tokenError } = await supabase
-        .from('push_tokens')
-        .select('expo_push_token, user_id')
-        .in('user_id', userIds);
+      // Only recipients whose preferences allow this category. The in-app
+      // notification row was already written above regardless — the preference
+      // governs whether the phone also buzzes, not whether the notification
+      // exists, so the Alerts inbox stays complete.
+      const tokens = await fetchPushableTokens(userIds, type);
 
-      if (tokenError || !tokens || tokens.length === 0) {
-        console.log('No push tokens found for users - skipping push notification (in-app notification already created)');
+      if (!tokens || tokens.length === 0) {
+        console.log('No pushable tokens (none registered, or push disabled for this category) - in-app notification already created');
         return;
       }
 
@@ -245,18 +331,32 @@ export const notificationService = {
 
   // Get user's notification history
   async getUserNotifications(userId: string) {
+    // Embeds the actor's profile in the same round trip. This only resolves
+    // because 082 points notifications.actor_id at profiles(id) rather than
+    // auth.users — PostgREST cannot traverse into the auth schema, which is
+    // what makes the equivalent embed off meetings.creator_id fail (PGRST200).
     const { data, error } = await supabase
+      .from('notifications')
+      .select('*, actor:profiles!notifications_actor_id_fkey(id, name, profile_picture)')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (!error) return data || [];
+
+    // Fallback for environments where 082 hasn't been applied: no actor column
+    // or FK yet, so fetch plain rows and let the UI show its typed icons.
+    const { data: plain, error: plainError } = await supabase
       .from('notifications')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching notifications:', error);
+    if (plainError) {
+      console.error('Error fetching notifications:', plainError);
       return [];
     }
 
-    return data || [];
+    return plain || [];
   },
 
   // Mark notification as read
@@ -290,7 +390,8 @@ export const notificationService = {
       },
       'application_received',
       pursuitId,
-      'pursuit'
+      'pursuit',
+      applicantId
     );
   },
 
@@ -321,7 +422,8 @@ export const notificationService = {
     teamMemberIds: string[],
     pursuitId: string,
     pursuitName: string,
-    creatorName: string
+    creatorName: string,
+    actorId?: string
   ) {
     await this.sendPushNotification(
       teamMemberIds,
@@ -333,7 +435,8 @@ export const notificationService = {
       },
       'kickoff_activated',
       pursuitId,
-      'pursuit'
+      'pursuit',
+      actorId
     );
   },
 
@@ -365,7 +468,8 @@ export const notificationService = {
     pursuitName: string,
     creatorName: string,
     meetingDate: string,
-    meetingTime: string
+    meetingTime: string,
+    actorId?: string
   ) {
     await this.sendPushNotification(
       teamMemberIds,
@@ -377,7 +481,8 @@ export const notificationService = {
       },
       'kickoff_scheduled',
       pursuitId,
-      'pursuit'
+      'pursuit',
+      actorId
     );
   },
 
@@ -439,7 +544,8 @@ export const notificationService = {
       },
       'connection_request',
       requesterId,
-      'user'
+      'user',
+      requesterId
     );
   },
 
@@ -459,7 +565,8 @@ export const notificationService = {
       },
       'connection_accepted',
       accepterId,
-      'user'
+      'user',
+      accepterId
     );
   },
 
@@ -468,7 +575,8 @@ export const notificationService = {
     applicantId: string,
     pursuitId: string,
     pursuitName: string,
-    creatorName: string
+    creatorName: string,
+    actorId?: string
   ) {
     await this.sendPushNotification(
       [applicantId],
@@ -480,7 +588,8 @@ export const notificationService = {
       },
       'application_accepted',
       pursuitId,
-      'pursuit'
+      'pursuit',
+      actorId
     );
   },
 
@@ -489,7 +598,8 @@ export const notificationService = {
     applicantId: string,
     pursuitId: string,
     pursuitName: string,
-    creatorName: string
+    creatorName: string,
+    actorId?: string
   ) {
     await this.sendPushNotification(
       [applicantId],
@@ -501,29 +611,38 @@ export const notificationService = {
       },
       'application_rejected',
       pursuitId,
-      'pursuit'
+      'pursuit',
+      actorId
     );
   },
 
   // Membership application approved (waitlist → member)
-  async notifyMembershipApproved(applicantId: string) {
+  async notifyMembershipApproved(
+    applicantId: string,
+    actorId?: string
+  ) {
     await this.sendPushNotification(
       [applicantId],
       `you're in! welcome to whale pod`,
       `your application was approved. tap to set up your profile.`,
       { type: 'membership_approved' },
-      'membership_approved'
+      'membership_approved',
+      actorId
     );
   },
 
   // Membership application rejected
-  async notifyMembershipRejected(applicantId: string) {
+  async notifyMembershipRejected(
+    applicantId: string,
+    actorId?: string
+  ) {
     await this.sendPushNotification(
       [applicantId],
       `update on your application`,
       `we're not able to offer you a spot right now.`,
       { type: 'membership_rejected' },
-      'membership_rejected'
+      'membership_rejected',
+      actorId
     );
   },
 
@@ -546,7 +665,8 @@ export const notificationService = {
       },
       'time_proposal',
       pursuitId,
-      'pursuit'
+      'pursuit',
+      memberId
     );
   },
 
@@ -556,7 +676,8 @@ export const notificationService = {
     pursuitId: string,
     pursuitName: string,
     updaterName: string,
-    updateType: string
+    updateType: string,
+    actorId?: string
   ) {
     await this.sendPushNotification(
       teamMemberIds,
@@ -568,7 +689,8 @@ export const notificationService = {
       },
       'team_board_update',
       pursuitId,
-      'pursuit'
+      'pursuit',
+      actorId
     );
   },
 
@@ -599,7 +721,8 @@ export const notificationService = {
     meetingTitle: string,
     creatorName: string,
     meetingDate: string,
-    meetingTime: string
+    meetingTime: string,
+    actorId?: string
   ) {
     await this.sendPushNotification(
       participantIds,
@@ -611,7 +734,8 @@ export const notificationService = {
       },
       'meeting',
       meetingId,
-      'meeting'
+      'meeting',
+      actorId
     );
   },
 
@@ -623,7 +747,8 @@ export const notificationService = {
     creatorName: string,
     meetingDate: string,
     meetingTime: string,
-    pursuitName: string
+    pursuitName: string,
+    actorId?: string
   ) {
     await this.sendPushNotification(
       participantIds,
@@ -635,7 +760,8 @@ export const notificationService = {
       },
       'meeting_invitation',
       meetingId,
-      'meeting'
+      'meeting',
+      actorId
     );
   },
 
@@ -793,7 +919,8 @@ export const notificationService = {
     applicationId: string,
     pursuitId: string,
     pursuitName: string,
-    creatorName: string
+    creatorName: string,
+    actorId?: string
   ) {
     await this.sendPushNotification(
       [applicantId],
@@ -806,7 +933,8 @@ export const notificationService = {
       },
       'interview_scheduling_requested',
       applicationId,
-      'application'
+      'application',
+      actorId
     );
   },
 
@@ -817,7 +945,8 @@ export const notificationService = {
     pursuitId: string,
     pursuitName: string,
     applicantName: string,
-    applicantId?: string
+    applicantId?: string,
+    actorId?: string
   ) {
     const pronoun = applicantId ? await fetchPossessivePronoun(applicantId) : 'their';
     await this.sendPushNotification(
@@ -831,7 +960,8 @@ export const notificationService = {
       },
       'interview_times_submitted',
       applicationId,
-      'application'
+      'application',
+      actorId
     );
   },
 
@@ -843,7 +973,8 @@ export const notificationService = {
     pursuitName: string,
     creatorName: string,
     interviewDate: string,
-    interviewTime: string
+    interviewTime: string,
+    actorId?: string
   ) {
     await this.sendPushNotification(
       [applicantId],
@@ -856,7 +987,8 @@ export const notificationService = {
       },
       'interview_scheduled',
       applicationId,
-      'application'
+      'application',
+      actorId
     );
   },
 

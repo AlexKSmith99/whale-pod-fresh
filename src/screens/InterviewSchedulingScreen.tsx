@@ -233,7 +233,8 @@ export default function InterviewSchedulingScreen({
                 pursuitTitle,
                 creatorName,
                 displayDateTime.date,
-                displayDateTime.time
+                displayDateTime.time,
+                user?.id // actor: the leader who scheduled the interview
               );
 
               AppAlert.alert('Success!', 'Interview scheduled successfully!', [

@@ -24,6 +24,7 @@ import { possessivePronoun } from '../utils/pronouns';
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
+import ProfileBadges from '../components/ui/ProfileBadges';
 import GradientBackground from '../components/ui/GradientBackground';
 import WhaleLoader from '../components/ui/WhaleLoader';
 import { AppAlert } from '../components/ui/AppAlert';
@@ -221,7 +222,9 @@ export default function UserProfileScreen({ route, navigation }: any) {
             </View>
           )}
 
-          <Text style={[styles.name, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>
+          {/* Not in a nameRow, so it keeps the top margin that moved off
+              styles.name when badges were added to the main profile view. */}
+          <Text style={[styles.name, { marginTop: 16, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>
             {profile?.name || 'User'}
           </Text>
 
@@ -481,9 +484,14 @@ export default function UserProfileScreen({ route, navigation }: any) {
       })()}
 
       <View style={[styles.profileSection, { backgroundColor: isNewTheme ? colors.surface : 'transparent' }]}>
-        <Text style={[styles.name, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold', letterSpacing: isNewTheme ? 0 : -0.5 }]}>
-          {profile?.name || 'Name not set'}
-        </Text>
+        {/* Name + credential badges. Deliberately not shown on the private
+            profile variant above — that view exists to withhold detail. */}
+        <View style={styles.nameRow}>
+          <Text style={[styles.name, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold', letterSpacing: isNewTheme ? 0 : -0.5 }]}>
+            {profile?.name || 'Name not set'}
+          </Text>
+          <ProfileBadges userId={userId} size={17} />
+        </View>
 
         {profile?.bio && <Text style={[styles.bio, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>{profile.bio}</Text>}
       </View>
@@ -777,11 +785,18 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
   },
+  // marginTop lives on nameRow now: left on the text it would push the name
+  // down relative to the badges sitting beside it.
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 16,
+  },
   name: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
-    marginTop: 16,
   },
   bio: {
     fontSize: 14,

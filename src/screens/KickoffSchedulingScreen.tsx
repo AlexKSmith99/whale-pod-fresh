@@ -225,7 +225,8 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                       pursuitTitle,
                       creatorName,
                       meetingDate,
-                      meetingTime
+                      meetingTime,
+                      user?.id // actor: the leader who scheduled it
                     );
                   }
                 }

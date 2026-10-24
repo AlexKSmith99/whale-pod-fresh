@@ -16,6 +16,7 @@ import { useInterviewListeners } from './hooks/useInterviewListeners';
 import { useMessageBadges } from './hooks/useMessageBadges';
 import { useToastNavigation } from './hooks/useToastNavigation';
 import { useKickoffReminder } from './hooks/useKickoffReminder';
+import { useMeetingReminders } from './hooks/useMeetingReminders';
 import { createAppNavigation } from './navigation/createAppNavigation';
 import AppRouter from './navigation/AppRouter';
 import { DEV_BYPASS_GATE } from './config/devFlags';
@@ -111,6 +112,9 @@ export default function AppContent() {
   const { loadBadgeCounts, clearBadgeForTab } = useNotifications(auth, { setBadgeCounts, setCurrentToast });
   // Nudge the leader on every app open if a pod is team-ready but not kicked off.
   useKickoffReminder(auth, { setCurrentToast });
+  // Schedules local iOS reminders 1 day and 1 hour before each upcoming pod
+  // meeting, resyncing on every foreground.
+  useMeetingReminders(auth);
   const { fetchInterviewProposalData, fetchInterviewSchedulingData } = useInterviewListeners(auth, {
     setCurrentToast,
     setViewingInterviewProposal,

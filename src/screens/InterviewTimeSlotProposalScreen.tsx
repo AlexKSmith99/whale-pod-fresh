@@ -230,7 +230,8 @@ export default function InterviewTimeSlotProposalScreen({ applicationId, pursuit
           pursuitId,
           pursuitTitle,
           applicantName,
-          user?.id
+          user?.id,
+          user?.id // actor: the applicant submitting their times
         );
       }
 

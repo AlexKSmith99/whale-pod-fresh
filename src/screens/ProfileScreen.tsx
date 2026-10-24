@@ -14,6 +14,7 @@ import PodMemberCollage from '../components/PodMemberCollage';
 import { colors as legacyColors, typography, spacing, borderRadius, shadows, editorial } from '../theme/designSystem';
 import PieButton from '../components/ui/PieButton';
 import WhaleLoader from '../components/ui/WhaleLoader';
+import ProfileBadges from '../components/ui/ProfileBadges';
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
@@ -308,7 +309,11 @@ const handleRejectConnection = async (connectionId: string) => {
         })()}
 
         <View style={{ alignItems: 'center', marginBottom: 16 }}>
-          <Text style={[styles.name, themedStyles.textPrimary, { fontSize: typography.fontSize.xl, fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold', letterSpacing: -0.5 }]}>{profile?.name || 'No name set'}</Text>
+          {/* Your own badges, so you can see what others see while vetting you. */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text style={[styles.name, themedStyles.textPrimary, { fontSize: typography.fontSize.xl, fontFamily: isNewTheme ? 'Sora_700Bold' : 'PlayfairDisplay_700Bold', letterSpacing: -0.5, marginBottom: 0 }]}>{profile?.name || 'No name set'}</Text>
+            <ProfileBadges userId={user?.id} size={17} />
+          </View>
         </View>
 {/* Modern Pill Tabs */}
         <ScrollView

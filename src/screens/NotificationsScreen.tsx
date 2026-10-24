@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, StatusBar, Dimensions, Modal, TouchableWithoutFeedback, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, StatusBar, Dimensions, Modal, TouchableWithoutFeedback, ScrollView, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { notificationService } from '../services/notificationService';
@@ -10,6 +10,64 @@ import { getThemedStyles } from '../theme/themedStyles';
 import { editorial } from '../theme/designSystem';
 
 const { height: SCREEN_H } = Dimensions.get('window');
+
+interface NotificationActor {
+  id: string;
+  name?: string | null;
+  profile_picture?: string | null;
+}
+
+interface NotificationGroup {
+  key: string;
+  ids: string[];          // every row folded in, so a tap marks them all read
+  item: any;              // newest row — supplies title, body, type, timestamp
+  actors: NotificationActor[];
+  unread: boolean;
+}
+
+/**
+ * Folds notifications about the same thing into one row.
+ *
+ * Several people applying to the same pod produces one entry per applicant;
+ * showing them as separate rows buries everything else. Grouping on
+ * (type, related_id) collapses them and lets the row carry both faces.
+ *
+ * Rows without a related_id are never grouped — they have no shared subject,
+ * so merging them would fold together unrelated events.
+ */
+function groupNotifications(rows: any[]): NotificationGroup[] {
+  const groups: NotificationGroup[] = [];
+  const byKey = new Map<string, NotificationGroup>();
+
+  for (const row of rows) {
+    const key = row.related_id ? `${row.type}:${row.related_id}` : `solo:${row.id}`;
+    const actor: NotificationActor | null = row.actor?.id ? row.actor : null;
+
+    const existing = byKey.get(key);
+    if (!existing) {
+      const group: NotificationGroup = {
+        key,
+        ids: [row.id],
+        item: row,              // rows arrive newest-first, so the first wins
+        actors: actor ? [actor] : [],
+        unread: !row.read,
+      };
+      byKey.set(key, group);
+      groups.push(group);
+      continue;
+    }
+
+    existing.ids.push(row.id);
+    // Unread if ANY folded row is unread — otherwise a group could look read
+    // while still holding something you haven't seen.
+    existing.unread = existing.unread || !row.read;
+    if (actor && !existing.actors.some(a => a.id === actor.id)) {
+      existing.actors.push(actor);
+    }
+  }
+
+  return groups;
+}
 // Each notification card takes up 1/7 of available space (below header + filter)
 const CARD_HEIGHT = Math.floor((SCREEN_H - 180) / 7);
 
@@ -93,10 +151,20 @@ export default function NotificationsScreen({ navigation }: any) {
     return notifications.filter(n => getPursuitId(n) === podFilter);
   }, [notifications, podFilter]);
 
-  const handleNotificationPress = async (notification: any) => {
-    await notificationService.markAsRead(notification.id);
+  // Group after filtering, so a pod filter can't split a group in half.
+  const groupedNotifications = useMemo(
+    () => groupNotifications(filteredNotifications),
+    [filteredNotifications]
+  );
+
+  const handleNotificationPress = async (notification: any, groupIds?: string[]) => {
+    // A grouped row stands for several notifications, so opening it has to
+    // clear all of them — otherwise the badge keeps counting rows the user can
+    // no longer see separately.
+    const ids = groupIds?.length ? groupIds : [notification.id];
+    await Promise.all(ids.map(id => notificationService.markAsRead(id)));
     setNotifications(prev =>
-      prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
+      prev.map(n => ids.includes(n.id) ? { ...n, read: true } : n)
     );
 
     switch (notification.type) {
@@ -319,17 +387,29 @@ export default function NotificationsScreen({ navigation }: any) {
     return 'now';
   };
 
-  const renderNotification = ({ item }: { item: any }) => {
-    const isUnread = !item.read;
-    return (
-      <TouchableOpacity
-        style={[styles.card, isUnread && styles.cardUnread]}
-        onPress={() => handleNotificationPress(item)}
-        activeOpacity={0.6}
-      >
-        {/* Left accent bar for unread */}
-        {isUnread && <View style={styles.cardAccentBar} pointerEvents="none" />}
-        {/* Icon */}
+  /** One actor's picture, or their initial when they have no photo. */
+  const renderAvatar = (actor: NotificationActor, style: any, fontSize: number) =>
+    actor.profile_picture ? (
+      <Image key={actor.id} source={{ uri: actor.profile_picture }} style={style} />
+    ) : (
+      <View key={actor.id} style={[style, styles.avatarFallback]}>
+        <Text style={[styles.avatarInitial, { fontSize }]}>
+          {(actor.name || '?').charAt(0).toUpperCase()}
+        </Text>
+      </View>
+    );
+
+  /**
+   * Leading visual for a row: the actor's face when we know who acted, two
+   * overlapping faces when several people did the same thing, and the original
+   * typed icon when there's no actor at all — which covers system-triggered
+   * events and every notification created before migration 082.
+   */
+  const renderLeading = (group: NotificationGroup, isUnread: boolean) => {
+    const { actors, item } = group;
+
+    if (actors.length === 0) {
+      return (
         <View style={[styles.iconCircle, isUnread && styles.iconCircleUnread]}>
           <Ionicons
             name={getNotificationIcon(item.type) as any}
@@ -337,6 +417,37 @@ export default function NotificationsScreen({ navigation }: any) {
             color={isUnread ? colors.accentGreen : (isNewTheme ? 'rgba(200, 255, 107, 0.55)' : colors.textTertiary)}
           />
         </View>
+      );
+    }
+
+    if (actors.length === 1) {
+      return <View style={styles.avatarWrap}>{renderAvatar(actors[0], styles.avatarSingle, 18)}</View>;
+    }
+
+    // Two smaller bubbles, the second tucked under the first.
+    return (
+      <View style={styles.avatarWrap}>
+        {renderAvatar(actors[1], [styles.avatarSmall, styles.avatarBack], 13)}
+        {renderAvatar(actors[0], [styles.avatarSmall, styles.avatarFront], 13)}
+      </View>
+    );
+  };
+
+  const renderNotification = ({ item: group }: { item: NotificationGroup }) => {
+    const item = group.item;
+    const isUnread = group.unread;
+    const extra = group.actors.length - 2;
+
+    return (
+      <TouchableOpacity
+        style={[styles.card, isUnread && styles.cardUnread]}
+        onPress={() => handleNotificationPress(item, group.ids)}
+        activeOpacity={0.6}
+      >
+        {/* Left accent bar for unread */}
+        {isUnread && <View style={styles.cardAccentBar} pointerEvents="none" />}
+
+        {renderLeading(group, isUnread)}
 
         {/* Content */}
         <View style={styles.content}>
@@ -345,6 +456,10 @@ export default function NotificationsScreen({ navigation }: any) {
           </Text>
           <Text style={styles.body} numberOfLines={2}>
             {item.body}
+            {/* The stored title names one person; this is what signals the rest,
+                rather than rewriting copy the server wrote. */}
+            {group.ids.length > 1 ? `  ·  and ${group.ids.length - 1} more` : ''}
+            {extra > 0 ? ` (+${extra})` : ''}
           </Text>
         </View>
 
@@ -451,9 +566,9 @@ export default function NotificationsScreen({ navigation }: any) {
         </View>
       ) : (
         <FlatList
-          data={filteredNotifications}
+          data={groupedNotifications}
           renderItem={renderNotification}
-          keyExtractor={item => item.id}
+          keyExtractor={item => item.key}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={isNewTheme ? colors.accentGreen : editorial.carolina} />
           }
@@ -626,6 +741,40 @@ function makeStyles(colors: any, isNewTheme: boolean) {
   },
 
   // Icon
+  // Same 40x40 footprint as iconCircle so rows don't shift depending on
+  // whether a notification has a known actor.
+  avatarWrap: {
+    width: 40,
+    height: 40,
+    marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarSingle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  avatarSmall: {
+    width: 27,
+    height: 27,
+    borderRadius: 14,
+    position: 'absolute',
+    // Ring in the card colour so the overlap reads as depth rather than a smudge.
+    borderWidth: 2,
+    borderColor: isNewTheme ? colors.surface : editorial.surface,
+  },
+  avatarBack: { top: 0, right: 0 },
+  avatarFront: { bottom: 0, left: 0 },
+  avatarFallback: {
+    backgroundColor: isNewTheme ? colors.accentGreen : editorial.carolina,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarInitial: {
+    color: isNewTheme ? colors.background : '#FFFFFF',
+    fontFamily: isNewTheme ? 'Sora_700Bold' : 'InterTight_600SemiBold',
+  },
   iconCircle: {
     width: 40,
     height: 40,

@@ -227,7 +227,8 @@ export const applicationService = {
           application.applicant_id,
           application.pursuit_id,
           pursuit.title,
-          creatorName
+          creatorName,
+          pursuit.creator_id // actor: the leader who accepted
         );
 
         console.log('✅ Acceptance notification sent successfully');
@@ -311,7 +312,8 @@ export const applicationService = {
           application.applicant_id,
           application.pursuit_id,
           pursuit.title,
-          creatorName
+          creatorName,
+          pursuit.creator_id // actor: the leader who declined
         );
 
         console.log('✅ Rejection notification sent successfully');

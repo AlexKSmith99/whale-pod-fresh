@@ -337,7 +337,8 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
           creatorName,
           formattedDate,
           formattedTime,
-          selectedPursuit.title
+          selectedPursuit.title,
+          user?.id // actor: whoever created the meeting
         );
       }
 

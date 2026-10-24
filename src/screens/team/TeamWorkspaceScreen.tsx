@@ -841,7 +841,8 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
           selectedPodId,
           currentPod.title,
           userName,
-          'a document update'
+          'a document update',
+          user?.id // actor: whoever edited the doc
         );
       }
     } catch (error: any) {

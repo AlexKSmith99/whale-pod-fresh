@@ -158,7 +158,8 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
                 app.id,
                 pursuitId,
                 pursuit?.title || 'Pursuit',
-                creatorName
+                creatorName,
+                user?.id // actor: the leader requesting interview times
               );
 
               console.log('✅ Notification sent successfully');
