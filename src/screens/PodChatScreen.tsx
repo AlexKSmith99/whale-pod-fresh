@@ -882,7 +882,12 @@ function makeStyles(colors: any, isNewTheme: boolean) {
   inputContainer: {
     flexDirection: 'row',
     padding: 12,
-    paddingBottom: isNewTheme ? 92 : 28,
+    // 92 in BOTH themes, not just dark. Pod chat renders inside
+    // PursuitDetailScreen, which sits under AppRouter's viewingPodDetail branch
+    // and still shows the floating tab bar — so the composer has to clear the
+    // pill (bottom 16 + ~64 tall). Light mode's old 28 only cleared the home
+    // indicator, leaving the input unreachable in editorial theme.
+    paddingBottom: 92,
     backgroundColor: surfaceCard,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,

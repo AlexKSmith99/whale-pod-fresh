@@ -87,6 +87,7 @@ export default function AppRouter(props: any) {
     renderTabBar,
     handleToastPress,
     loadUnreadMessageCount,
+    setChatOpenInMessages,
   } = props;
 
   // Show Create Pursuit screen as modal
@@ -277,8 +278,16 @@ if (viewingUserId) {
   );
 }
 
-// Show Connections screen
-if (showConnections) {
+// Show Connections screen.
+// `&& !chatPartnerId` matters: this branch sits ABOVE the chat branch, and
+// opening a chat does not clear showConnections. Without the guard, tapping
+// Message on a profile you reached *from* Connections set chatPartnerId but
+// got short-circuited here, dropping you back on the connections list — the
+// intermittent "sometimes it works" bug (it worked when you'd reached the
+// profile from the feed or a pod roster, where showConnections was false).
+// Guarding rather than clearing the flag also preserves the back stack:
+// Connections -> profile -> chat -> back returns you to Connections.
+if (showConnections && !chatPartnerId) {
   return (
     <View style={{ flex: 1 }}>
       <ConnectionsScreen navigation={navigation} />
@@ -287,8 +296,10 @@ if (showConnections) {
   );
 }
 
-// Show Legal doc viewer (Terms / Privacy / Support)
-if (viewingLegalDoc) {
+// Show Legal doc viewer (Terms / Privacy / Support).
+// Same guard as Connections above: a pending chat (e.g. opened by tapping a
+// message toast) outranks this overlay instead of being swallowed by it.
+if (viewingLegalDoc && !chatPartnerId) {
   return (
     <View style={{ flex: 1 }}>
       <LegalScreen doc={viewingLegalDoc} onBack={() => setViewingLegalDoc(null)} />
@@ -321,7 +332,12 @@ if (chatPartnerId && chatPartnerEmail) {
           }}
         />
       </KeyboardAvoidingView>
-      {renderTabBar()}
+      {/* Deliberately no tab bar here. PieTabBar is a floating pill
+          (position: absolute, bottom: 16, zIndex: 100) and it sat directly on
+          top of the chat composer, so the text input could not be tapped. A
+          conversation is a drill-down with its own back button, not a tab root,
+          so the pill does not belong over it. Removing it also keeps the bar
+          from fighting KeyboardAvoidingView when the keyboard opens. */}
     </View>
   );
 }
@@ -468,6 +484,9 @@ if (teamBoardPursuitId) {
       // Also try to reload from DB (in case migration has been run)
       loadUnreadMessageCount();
     }}
+    // Lets AppContent drop the floating tab bar while a conversation is open
+    // inline, so it can't sit on top of the message composer.
+    onChatOpenChange={setChatOpenInMessages}
   />
 )}
       {currentScreen === 'Pods' && (

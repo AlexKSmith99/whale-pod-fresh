@@ -78,6 +78,10 @@ export default function AppContent() {
   const [currentToast, setCurrentToast] = useState<any>(null);
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   const [locallyReadCount, setLocallyReadCount] = useState(0);
+  // MessagesListScreen can render a conversation inline (its sidebar-drawer
+  // layout). The tab bar is a floating pill that would sit on top of the chat
+  // composer, so it reports when a chat is open and we hide the bar.
+  const [chatOpenInMessages, setChatOpenInMessages] = useState(false);
 
   // Onboarding state
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
@@ -207,7 +211,10 @@ export default function AppContent() {
     fetchInterviewSchedulingData,
   });
 
-  const renderTabBar = () => (
+  // No tab bar while a chat is open anywhere. PieTabBar is absolutely
+  // positioned at bottom:16 / zIndex:100, so it overlays any fixed-position
+  // message composer and makes the text input untappable.
+  const renderTabBar = () => chatOpenInMessages ? null : (
     <AppTabBar
       isNewTheme={isNewTheme}
       themeColors={themeColors}
@@ -276,6 +283,7 @@ export default function AppContent() {
       renderTabBar={renderTabBar}
       handleToastPress={handleToastPress}
       loadUnreadMessageCount={loadUnreadMessageCount}
+      setChatOpenInMessages={setChatOpenInMessages}
     />
   );
 }

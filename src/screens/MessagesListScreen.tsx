@@ -89,9 +89,15 @@ interface MessagesListScreenProps {
   navigation?: any;
   onSelectConversation?: (partnerId: string, partnerEmail: string) => void;
   onConversationRead?: () => void;
+  /**
+   * Reports whether a conversation is open inline on this screen, so the shell
+   * can hide the floating tab bar. The bar is absolutely positioned over the
+   * content and would otherwise cover the message composer.
+   */
+  onChatOpenChange?: (open: boolean) => void;
 }
 
-export default function MessagesListScreen({ navigation, onSelectConversation, onConversationRead }: MessagesListScreenProps) {
+export default function MessagesListScreen({ navigation, onSelectConversation, onConversationRead, onChatOpenChange }: MessagesListScreenProps) {
   const { user } = useAuth();
   const { theme, isNewTheme } = useTheme();
   const colors = theme.colors;
@@ -108,6 +114,19 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
   const [connections, setConnections] = useState<any[]>([]);
   const [connectionsLoading, setConnectionsLoading] = useState(false);
   const [connectionSearch, setConnectionSearch] = useState('');
+
+  // Tell the shell whenever a conversation opens or closes inline, so the
+  // floating tab bar can be hidden while the composer is on screen. Covers both
+  // DMs (including the "+ New chat" flow) and pod chats, since selectChat's pod
+  // branch also renders inline rather than routing through AppRouter.
+  useEffect(() => {
+    onChatOpenChange?.(!!selectedChat);
+  }, [selectedChat, onChatOpenChange]);
+
+  // Separate unmount-only cleanup: leaving this screen with a chat open must
+  // restore the tab bar. Folding it into the effect above would fire on every
+  // selectedChat change and flicker the bar.
+  useEffect(() => () => onChatOpenChange?.(false), []);
 
   useEffect(() => {
     loadAllChats();

@@ -155,8 +155,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   whale: {
-    width: 160,
-    height: 96,
+    // Doubled from 160x96. Aspect ratio preserved, and 320 still leaves a
+    // comfortable margin on the narrowest phone widths (~375pt).
+    width: 320,
+    height: 192,
   },
   titleRow: {
     flexDirection: 'row',

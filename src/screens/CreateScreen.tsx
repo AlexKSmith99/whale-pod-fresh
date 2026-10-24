@@ -17,7 +17,7 @@ import { AppAlert } from '../components/ui/AppAlert';
 import KeyboardAwareScreen from '../components/ui/KeyboardAwareScreen';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const TOTAL_PAGES = 3;
+const TOTAL_PAGES = 8;
 
 const countWords = (s: string): number =>
   s.trim() === '' ? 0 : s.trim().split(/\s+/).length;
@@ -85,12 +85,18 @@ const F_LIGHT = {
   header: 'InterTight_600SemiBold',
   body: 'InterTight_600SemiBold',
   bodyMedium: 'InterTight_600SemiBold',
+  // Editorial: prompts echo the "Create a Pod" wordmark (Playfair), which is
+  // what gives this flow its voice. Typed content stays InterTight.
+  prompt: 'PlayfairDisplay_700Bold',
 };
 const F_DARK = {
   title: 'Sora_700Bold',
   header: 'Sora_700Bold',
   body: 'Sora_600SemiBold',
   bodyMedium: 'Sora_600SemiBold',
+  // Pie dark keeps Sora — same value fieldLabel used before, so dark is
+  // pixel-identical to the pre-redesign screen.
+  prompt: 'Sora_600SemiBold',
 };
 const F: any = { ...F_LIGHT };
 
@@ -214,7 +220,9 @@ export default function CreateScreen({ onClose }: Props = {}) {
   const themePalette = isNewTheme ? C_DARK : C_LIGHT;
   Object.assign(C, themePalette);
   Object.assign(F, isNewTheme ? F_DARK : F_LIGHT);
-  const styles = React.useMemo(() => makeStyles(themePalette), [isNewTheme]);
+  // isNewTheme is passed so prompt typography can differ per theme without the
+  // editorial redesign leaking into Pie dark.
+  const styles = React.useMemo(() => makeStyles(themePalette, isNewTheme), [isNewTheme]);
   // Pager position as a translateX (not a horizontal ScrollView) so each page's
   // KeyboardAwareScreen is the only scroll ancestor — keyboard-controller's
   // auto-scroll no-ops when nested inside another ScrollView.
@@ -250,6 +258,12 @@ export default function CreateScreen({ onClose }: Props = {}) {
   const [showPursuitTypeModal, setShowPursuitTypeModal] = useState(false);
   const [pursuitTypeSearch, setPursuitTypeSearch] = useState('');
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  // Applications (toggles + the growing custom-question list) live in their own
+  // sheet so no prompt page ever needs to scroll.
+  const [showApplicationsSheet, setShowApplicationsSheet] = useState(false);
+  // Address + pin + the 200pt map. Inline these alone were ~380pt, which blew
+  // the location page past one viewport.
+  const [showExactLocationSheet, setShowExactLocationSheet] = useState(false);
   const [categorySearch, setCategorySearch] = useState('');
 
   // Business
@@ -618,18 +632,32 @@ export default function CreateScreen({ onClose }: Props = {}) {
     setCurrentPage(page);
   };
 
+  // The original three rules, unchanged — just split to follow each field to
+  // its new page: title (p0), description (p1), types (p2), location (p4),
+  // cadence (p5). Pages holding only optional fields always pass.
   const canProceedPage = (page: number): boolean => {
     switch (page) {
       case 0:
-        return title.trim().length > 0 && description.length >= 50 && selectedTypes.length >= 1;
+        return title.trim().length > 0;
       case 1:
+        return description.length >= 50;
+      case 2:
+        return selectedTypes.length >= 1;
+      case 3:
+        return true; // team size and decision system both have defaults
+      case 4: {
         if (locationTypes.length === 0) return false;
         const requiresLoc = locationTypes.includes('In-person') || locationTypes.includes('Hybrid');
         if (requiresLoc && (!locationCity.trim() || !locationState.trim())) return false;
-        // Meeting address and pin location are optional
+        // Neighborhood, address and pin remain optional
         return true;
-      case 2:
+      }
+      case 5:
         return meetingCadence.trim().length > 0;
+      case 6:
+        return true; // roles and experience are optional
+      case 7:
+        return true; // duration, age and applications are optional
       default:
         return false;
     }
@@ -649,20 +677,17 @@ export default function CreateScreen({ onClose }: Props = {}) {
 
   // ===== SECTION TITLES & LABELS =====
 
+  // One or two words. The prompts underneath carry the meaning now.
   const getSectionTitle = (page: number): string => {
     switch (page) {
-      case 0: return 'The Basics';
-      case 1: return 'Details';
-      case 2: return 'Structure';
-      default: return '';
-    }
-  };
-
-  const getStepLabel = (page: number): string => {
-    switch (page) {
-      case 0: return 'Name it, describe it, categorize it';
-      case 1: return 'Size, location, and decisions';
-      case 2: return 'Meetings, roles, and applications';
+      case 0: return 'Cover';
+      case 1: return 'Describe it';
+      case 2: return 'Type';
+      case 3: return 'Size';
+      case 4: return 'Where';
+      case 5: return 'Meetings';
+      case 6: return 'Roles';
+      case 7: return 'Wrap up';
       default: return '';
     }
   };
@@ -691,9 +716,8 @@ export default function CreateScreen({ onClose }: Props = {}) {
         {renderProgressDots()}
       </View>
       <View style={styles.accentLine} />
-      {getStepLabel(page) ? (
-        <Text style={styles.stepLabel}>{getStepLabel(page)}</Text>
-      ) : null}
+      {/* Per-page subtitle removed: the prompts below already say what the page
+          is for, so it was words restating words. */}
     </View>
   );
 
@@ -767,19 +791,22 @@ export default function CreateScreen({ onClose }: Props = {}) {
     </TouchableOpacity>
   );
 
-  // ===== PAGE 1: THE BASICS =====
-
-  const renderPage1 = () => (
+  // ===== PAGES =====
+  // Eight fixed-height pages. No per-page ScrollView: each page must fit its
+  // viewport outright, which is the point of the redesign. If content stops
+  // fitting, redistribute prompts rather than reintroducing a scroll view.
+  const renderPageShell = (page: number, children: React.ReactNode) => (
     <View style={[styles.pageContainer, { width: SCREEN_WIDTH }]}>
       <View style={styles.pageInner}>
-        {renderStepHeader(0)}
-        <KeyboardAwareScreen
-          mode="replace-scrollview"
-          bottomOffset={90}
-          style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: 20 }}
-          >
-          {/* Cover Photo */}
+        {renderStepHeader(page)}
+        <View style={styles.pageBody}>{children}</View>
+        {renderBottomNav(page)}
+      </View>
+    </View>
+  );
+
+  const renderPage1 = () => renderPageShell(0, (
+    <>
           {renderFieldLabel('Cover Photo')}
           <PodCoverImagePicker
             value={coverImageUrl}
@@ -799,8 +826,12 @@ export default function CreateScreen({ onClose }: Props = {}) {
           />
 
           {/* Description */}
+    </>
+  ));
+
+  const renderPage2 = () => renderPageShell(1, (
+    <>
           {renderFieldLabel('Description', true)}
-          <Text style={styles.charCount}>{countWords(description)} / 150 words</Text>
           <TextInput
             style={styles.textAreaInput}
             placeholder="Describe your pod, who you're looking for, and what you're pursuing. Be specific!"
@@ -824,8 +855,12 @@ export default function CreateScreen({ onClose }: Props = {}) {
           {/* Type & Categories — one compact section, mirroring the detail
               screen's chip cluster: types pop (accent tint), categories stay
               quiet (neutral). Two slim selectors share a single row. */}
+    </>
+  ));
+
+  const renderPage3 = () => renderPageShell(2, (
+    <>
           {renderFieldLabel('Type & Categories', true)}
-          {renderHint(`Types: ${selectedTypes.length}/5  ·  Categories: ${selectedCategories.length}/5`)}
 
           {(selectedTypes.length > 0 || selectedCategories.length > 0) && (
             <View style={styles.selectedTypesContainer}>
@@ -870,25 +905,11 @@ export default function CreateScreen({ onClose }: Props = {}) {
               <Ionicons name="chevron-down" size={18} color={C.muted} />
             </TouchableOpacity>
           </View>
-        </KeyboardAwareScreen>
-        {renderBottomNav(0)}
-      </View>
-    </View>
-  );
+    </>
+  ));
 
-  // ===== PAGE 2: DETAILS =====
-
-  const renderPage2 = () => (
-    <View style={[styles.pageContainer, { width: SCREEN_WIDTH }]}>
-      <View style={styles.pageInner}>
-        {renderStepHeader(1)}
-        <KeyboardAwareScreen
-          mode="replace-scrollview"
-          bottomOffset={90}
-          style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: 20 }}
-          >
-          {/* Team Size Range */}
+  const renderPage4 = () => renderPageShell(3, (
+    <>
           {renderFieldLabel('Team Size')}
           <View style={styles.row}>
             <View style={styles.halfInput}>
@@ -926,6 +947,24 @@ export default function CreateScreen({ onClose }: Props = {}) {
           </View>
 
           {/* Location Type */}
+          {renderFieldLabel('Decisions')}
+          <View style={styles.chipContainer}>
+            {DECISION_SYSTEMS.map((system) =>
+              renderChip(system, decisionSystem === system, () => setDecisionSystem(system))
+            )}
+          </View>
+          <TextInput
+            style={styles.underlineInput}
+            placeholder="Add a note about your decision system (optional)"
+            placeholderTextColor={C.placeholder}
+            value={decisionNote}
+            onChangeText={setDecisionNote}
+          />
+    </>
+  ));
+
+  const renderPage5 = () => renderPageShell(4, (
+    <>
           {renderFieldLabel('Location', true)}
           <View style={styles.chipContainer}>
             {['In-person', 'Hybrid', 'Remote'].map((type) =>
@@ -938,11 +977,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
             <>
               {/* City */}
               {renderFieldLabel('City', true)}
-              {renderHint(
-                locationState
-                  ? `Start typing to search cities in ${locationState}`
-                  : 'Start typing to search cities'
-              )}
+              {/* Hint removed — the placeholder already says "Search city". */}
               <View style={{ zIndex: 1000 }}>
                 <TextInput
                   style={styles.underlineInput}
@@ -988,7 +1023,6 @@ export default function CreateScreen({ onClose }: Props = {}) {
               {availableNeighborhoods.length > 0 && (
                 <>
                   {renderFieldLabel('Neighborhood')}
-                  {renderHint(`Search neighborhoods in ${locationCity}`)}
                   <View style={{ zIndex: 999 }}>
                     <TextInput
                       style={styles.underlineInput}
@@ -1017,77 +1051,29 @@ export default function CreateScreen({ onClose }: Props = {}) {
                 </>
               )}
 
-              {/* Address & Map (In-person or Hybrid) */}
+              {/* Address, pin and the 200pt map moved to their own sheet —
+                  inline they pushed this page far past one viewport. */}
               {(locationTypes.includes('In-person') || locationTypes.includes('Hybrid')) && (
-                <>
-                  {renderFieldLabel('Address')}
-                  <TextInput
-                    style={styles.underlineInput}
-                    placeholder="e.g., 123 Main St"
-                    placeholderTextColor={C.placeholder}
-                    value={address}
-                    onChangeText={setAddress}
-                    onBlur={geocodeAddress}
-                    returnKeyType="done"
-                    onSubmitEditing={geocodeAddress}
-                  />
-
-                  {renderFieldLabel('Pin Location')}
-                  {renderHint(geocoding ? 'Looking up address...' : pinLatitude != null ? 'Pin placed automatically — tap map to adjust' : 'Enter an address above or tap the map')}
-                  <LocationMapView
-                    latitude={pinLatitude}
-                    longitude={pinLongitude}
-                    interactive={true}
-                    initialCity={locationCity}
-                    onLocationSelect={(lat, lng) => {
-                      setPinLatitude(lat);
-                      setPinLongitude(lng);
-                    }}
-                    style={{ marginBottom: 8 }}
-                  />
-                  {pinLatitude != null && pinLongitude != null && (
-                    <Text style={[styles.hintText, { color: C.accent }]}>
-                      Location pinned
-                    </Text>
-                  )}
-                </>
+                <TouchableOpacity
+                  style={styles.sheetEntryRow}
+                  onPress={() => setShowExactLocationSheet(true)}
+                  activeOpacity={0.6}
+                >
+                  <Text style={styles.sheetEntryText}>
+                    {pinLatitude != null ? 'Exact location · pinned' : 'Exact location · optional'}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={20} color={C.ink} />
+                </TouchableOpacity>
               )}
             </>
           )}
 
           {/* Decision System */}
-          {renderFieldLabel('Decisions')}
-          <View style={styles.chipContainer}>
-            {DECISION_SYSTEMS.map((system) =>
-              renderChip(system, decisionSystem === system, () => setDecisionSystem(system))
-            )}
-          </View>
-          <TextInput
-            style={styles.underlineInput}
-            placeholder="Add a note about your decision system (optional)"
-            placeholderTextColor={C.placeholder}
-            value={decisionNote}
-            onChangeText={setDecisionNote}
-          />
-        </KeyboardAwareScreen>
-        {renderBottomNav(1)}
-      </View>
-    </View>
-  );
+    </>
+  ));
 
-  // ===== PAGE 3: STRUCTURE =====
-
-  const renderPage3 = () => (
-    <View style={[styles.pageContainer, { width: SCREEN_WIDTH }]}>
-      <View style={styles.pageInner}>
-        {renderStepHeader(2)}
-        <KeyboardAwareScreen
-          mode="replace-scrollview"
-          bottomOffset={90}
-          style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: 40 }}
-          >
-          {/* Meeting Cadence */}
+  const renderPage6 = () => renderPageShell(5, (
+    <>
           {renderFieldLabel('Cadence', true)}
           <TextInput
             style={styles.underlineInput}
@@ -1120,8 +1106,13 @@ export default function CreateScreen({ onClose }: Props = {}) {
           />
 
           {/* Roles */}
+    </>
+  ));
+
+  const renderPage7 = () => renderPageShell(6, (
+    <>
           {renderFieldLabel('Roles')}
-          {renderHint('Search for a role or type your own. Press Enter to add. Add as many as you want.')}
+          {renderHint('Press Enter to add')}
           <TextInput
             style={styles.underlineInput}
             placeholder="e.g., Developer"
@@ -1191,6 +1182,11 @@ export default function CreateScreen({ onClose }: Props = {}) {
           />
 
           {/* Projected Duration */}
+    </>
+  ));
+
+  const renderPage8 = () => renderPageShell(7, (
+    <>
           {renderFieldLabel('Duration')}
           <TextInput
             style={styles.underlineInput}
@@ -1210,6 +1206,97 @@ export default function CreateScreen({ onClose }: Props = {}) {
             onChangeText={setAgeRestriction}
           />
 
+      {/* Applications open in their own sheet: the custom-question list grows
+          at runtime and could never fit a fixed-height page.
+          Phrased as a question so it reads like the other prompts rather than a
+          settings row, with the state line spelling out what "application"
+          actually means in each mode. */}
+      <TouchableOpacity
+        style={styles.applicationsCard}
+        onPress={() => setShowApplicationsSheet(true)}
+        activeOpacity={0.6}
+        accessibilityRole="button"
+        accessibilityLabel="Make it an application"
+      >
+        <View style={{ flex: 1 }}>
+          <Text style={styles.applicationsPromptText}>Make it an application?</Text>
+          <Text style={styles.applicationsStateText}>
+            {isOpenPod
+              ? 'No — anyone can join instantly'
+              : (() => {
+                  const n = applicationQuestions.filter(q => q.trim()).length;
+                  return `Yes — people apply to join${n > 0 ? ` · ${n} question${n === 1 ? '' : 's'}` : ''}`;
+                })()}
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={22} color={C.accent} />
+      </TouchableOpacity>
+    </>
+  ));
+
+
+  const renderExactLocationSheet = () => (
+    <Modal visible={showExactLocationSheet} animationType="slide" onRequestClose={() => setShowExactLocationSheet(false)}>
+      <View style={[styles.container, { backgroundColor: C.bg }]}>
+        <View style={styles.topBar}>
+          <TouchableOpacity onPress={() => setShowExactLocationSheet(false)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            <Ionicons name="chevron-back" size={26} color={C.ink} />
+          </TouchableOpacity>
+          <Text style={[styles.mainTitle, !isNewTheme && { color: C.ink }]}>Exact location</Text>
+          <View style={{ width: 26 }} />
+        </View>
+        <KeyboardAwareScreen mode="replace-scrollview" bottomOffset={90} style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 28, paddingBottom: 40 }}>
+              {/* Address & Map (In-person or Hybrid) */}
+              {(locationTypes.includes('In-person') || locationTypes.includes('Hybrid')) && (
+                <>
+                  {renderFieldLabel('Address')}
+                  <TextInput
+                    style={styles.underlineInput}
+                    placeholder="e.g., 123 Main St"
+                    placeholderTextColor={C.placeholder}
+                    value={address}
+                    onChangeText={setAddress}
+                    onBlur={geocodeAddress}
+                    returnKeyType="done"
+                    onSubmitEditing={geocodeAddress}
+                  />
+
+                  {renderFieldLabel('Pin Location')}
+                  {renderHint(geocoding ? 'Looking up address...' : pinLatitude != null ? 'Pin placed automatically — tap map to adjust' : 'Enter an address above or tap the map')}
+                  <LocationMapView
+                    latitude={pinLatitude}
+                    longitude={pinLongitude}
+                    interactive={true}
+                    initialCity={locationCity}
+                    onLocationSelect={(lat, lng) => {
+                      setPinLatitude(lat);
+                      setPinLongitude(lng);
+                    }}
+                    style={{ marginBottom: 8 }}
+                  />
+                  {pinLatitude != null && pinLongitude != null && (
+                    <Text style={[styles.hintText, { color: C.accent }]}>
+                      Location pinned
+                    </Text>
+                  )}
+                </>
+              )}
+        </KeyboardAwareScreen>
+      </View>
+    </Modal>
+  );
+
+  const renderApplicationsSheet = () => (
+    <Modal visible={showApplicationsSheet} animationType="slide" onRequestClose={() => setShowApplicationsSheet(false)}>
+      <View style={[styles.container, { backgroundColor: C.bg }]}>
+        <View style={styles.topBar}>
+          <TouchableOpacity onPress={() => setShowApplicationsSheet(false)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            <Ionicons name="chevron-back" size={26} color={C.ink} />
+          </TouchableOpacity>
+          <Text style={[styles.mainTitle, !isNewTheme && { color: C.ink }]}>Applications</Text>
+          <View style={{ width: 26 }} />
+        </View>
+        <KeyboardAwareScreen mode="replace-scrollview" bottomOffset={90} style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 28, paddingBottom: 40 }}>
           {/* Application Settings */}
           <Text style={styles.subSectionTitle}>Application Settings</Text>
 
@@ -1380,9 +1467,8 @@ export default function CreateScreen({ onClose }: Props = {}) {
           </View>
           )}
         </KeyboardAwareScreen>
-        {renderBottomNav(2)}
       </View>
-    </View>
+    </Modal>
   );
 
   // ===== MAIN RENDER =====
@@ -1421,10 +1507,18 @@ export default function CreateScreen({ onClose }: Props = {}) {
           {renderPage1()}
           {renderPage2()}
           {renderPage3()}
+          {renderPage4()}
+          {renderPage5()}
+          {renderPage6()}
+          {renderPage7()}
+          {renderPage8()}
         </Animated.View>
       </View>
 
       {/* State Picker Modal */}
+      {renderExactLocationSheet()}
+      {renderApplicationsSheet()}
+
       <Modal
         visible={showStateModal}
         transparent
@@ -1701,7 +1795,7 @@ export default function CreateScreen({ onClose }: Props = {}) {
   );
 }
 
-function makeStyles(C: any) { return StyleSheet.create({
+function makeStyles(C: any, isNewTheme: boolean = false) { return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: C.bg,
@@ -1734,6 +1828,56 @@ function makeStyles(C: any) { return StyleSheet.create({
   pageContainer: {
     flex: 1,
   },
+  // Replaces the per-page scroll view. Fixed height, no overflow: if content
+  // stops fitting here, redistribute prompts rather than re-adding a scroll.
+  pageBody: {
+    flex: 1,
+  },
+  // Row on the final page that opens the Applications sheet.
+  sheetEntryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    marginTop: 24,
+    borderTopWidth: 1.5,
+    borderTopColor: C.ink,
+  },
+  sheetEntryText: {
+    fontFamily: isNewTheme ? F.bodyMedium : F.prompt,
+    fontSize: isNewTheme ? 14 : 18,
+    color: C.ink,
+  },
+  // The applications prompt gets a bordered block rather than the plain
+  // hairline row the location sheet uses — it's the one decision on this page
+  // that changes how people join, so it should carry more weight than a
+  // "tap for more settings" affordance.
+  applicationsCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginTop: 28,
+    paddingVertical: 18,
+    paddingHorizontal: 18,
+    borderWidth: 1.5,
+    borderColor: C.ink,
+    borderRadius: 12,
+  },
+  applicationsPromptText: {
+    fontFamily: isNewTheme ? F.bodyMedium : F.prompt,
+    fontSize: isNewTheme ? 15 : 20,
+    color: C.ink,
+    letterSpacing: isNewTheme ? 0 : -0.3,
+  },
+  // Carolina (lime in Pie) is what makes the block read as live state rather
+  // than static chrome — the only accent on an otherwise black-and-white page.
+  applicationsStateText: {
+    fontFamily: F.body,
+    fontSize: 13,
+    color: C.accent,
+    marginTop: 5,
+  },
   pageInner: {
     flex: 1,
     paddingTop: 8,
@@ -1757,11 +1901,15 @@ function makeStyles(C: any) { return StyleSheet.create({
     marginBottom: 14,
   },
   sectionTitle: {
-    fontFamily: F.header,
+    // Playfair in editorial so the page title echoes "Create a Pod"; Sora in Pie.
+    fontFamily: isNewTheme ? F.header : F.prompt,
     fontSize: 28,
-    fontWeight: '700',
     color: C.ink,
     letterSpacing: -0.4,
+    // Dark keeps its explicit 700 so it renders exactly as before. Editorial
+    // omits it: Playfair_700Bold is already bold, and stacking fontWeight on
+    // top of a named bold face triggers synthetic bolding (smeared on Android).
+    ...(isNewTheme ? { fontWeight: '700' as const } : null),
   },
   progressDots: {
     flexDirection: 'row',
@@ -1785,12 +1933,6 @@ function makeStyles(C: any) { return StyleSheet.create({
     height: 2,
     backgroundColor: C.accent,
     marginBottom: 16,
-  },
-  stepLabel: {
-    fontFamily: F.body,
-    fontSize: 14,
-    color: C.muted,
-    letterSpacing: 0.3,
   },
 
   // Bottom navigation (matching onboarding)
@@ -1824,16 +1966,28 @@ function makeStyles(C: any) { return StyleSheet.create({
   },
 
   // Form fields — quiet, tracked, muted labels (de-shouted; accent reserved for CTAs)
-  fieldLabel: {
-    fontFamily: F.bodyMedium,
-    fontSize: 12,
-    fontWeight: '600',
-    color: C.muted,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginTop: 24,
-    marginBottom: 10,
-  },
+  // The centrepiece of the editorial redesign: prompts become large black
+  // Playfair questions instead of small grey uppercase labels. Dark mode keeps
+  // its original 12px uppercase Sora treatment untouched.
+  fieldLabel: isNewTheme
+    ? {
+        fontFamily: F.prompt,
+        fontSize: 12,
+        fontWeight: '600' as const,
+        color: C.muted,
+        textTransform: 'uppercase' as const,
+        letterSpacing: 1,
+        marginTop: 24,
+        marginBottom: 10,
+      }
+    : {
+        fontFamily: F.prompt,
+        fontSize: 22,
+        color: C.ink,
+        letterSpacing: -0.4,
+        marginTop: 24,
+        marginBottom: 12,
+      },
   miniLabel: {
     fontFamily: F.body,
     fontSize: 12,
@@ -1845,13 +1999,6 @@ function makeStyles(C: any) { return StyleSheet.create({
     fontSize: 12,
     color: C.muted,
     marginBottom: 8,
-  },
-  charCount: {
-    fontFamily: F.body,
-    fontSize: 12,
-    color: C.muted,
-    textAlign: 'right',
-    marginBottom: 4,
   },
   underlineInput: {
     fontFamily: F.body,

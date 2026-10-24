@@ -316,6 +316,10 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
     inputContainer: {
       flexDirection: 'row' as const,
       padding: spacing.sm,
+      // Clears the home indicator. The floating tab bar no longer renders over
+      // the chat route (see AppRouter), so this only needs the safe-area gap,
+      // not the full ~92 the pill would require.
+      paddingBottom: 28,
       backgroundColor: colors.surface,
       borderTopWidth: 1,
       borderTopColor: colors.border,
