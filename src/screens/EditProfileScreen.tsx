@@ -50,8 +50,6 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
   const [employer, setEmployer] = useState('');
   const [bio, setBio] = useState('');
   // Optional lifestyle fields
-  const [alcohol, setAlcohol] = useState('');
-  const [drugs, setDrugs] = useState('');
   const [workoutLevel, setWorkoutLevel] = useState('');
   const [hobbies, setHobbies] = useState('');
   const [instagram, setInstagram] = useState('');
@@ -87,8 +85,6 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
         setWork(data.work || '');
         setEmployer(data.employer || '');
         setBio(data.bio || '');
-        setAlcohol(data.alcohol || '');
-        setDrugs(data.drugs || '');
         setWorkoutLevel(data.workout_level || '');
         setHobbies(data.hobbies || '');
         setInstagram(data.instagram || '');
@@ -218,8 +214,6 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
         work: work || null,
         employer: employer || null,
         bio: bio || null,
-        alcohol: alcohol || null,
-        drugs: drugs || null,
         workout_level: workoutLevel || null,
         hobbies: hobbies || null,
         instagram: instagram || null,
@@ -400,24 +394,6 @@ export default function EditProfileScreen({ onBack }: EditProfileScreenProps) {
 
           <Text style={[styles.sectionTitle, !isNewTheme && { color: colors.textPrimary, fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3 }]}>Lifestyle</Text>
           <Text style={[styles.label, { color: colors.textTertiary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold', marginTop: 0 }]}>All optional — share only what you want.</Text>
-
-          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Alcohol</Text>
-          <TextInput
-            style={[styles.input, { backgroundColor: isNewTheme ? colors.surface : 'transparent', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
-            placeholder="e.g., Never, Socially, Regularly"
-            placeholderTextColor={colors.textTertiary}
-            value={alcohol}
-            onChangeText={setAlcohol}
-          />
-
-          <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Drugs</Text>
-          <TextInput
-            style={[styles.input, { backgroundColor: isNewTheme ? colors.surface : 'transparent', borderColor: colors.border, color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}
-            placeholder="e.g., Never, Sometimes, 420-friendly"
-            placeholderTextColor={colors.textTertiary}
-            value={drugs}
-            onChangeText={setDrugs}
-          />
 
           <Text style={[styles.label, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>Workout activity level</Text>
           <TextInput

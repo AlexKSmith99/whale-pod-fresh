@@ -427,12 +427,10 @@ const handleRejectConnection = async (connectionId: string) => {
           </View>
         )}
 
-        {(profile?.alcohol || profile?.drugs || profile?.workout_level || profile?.hobbies) && (
+        {(profile?.workout_level || profile?.hobbies) && (
           <View style={[styles.section, themedStyles.card]}>
             <Text style={isNewTheme ? styles.sectionTitleNew : [styles.sectionTitle, themedStyles.cardTitle, { fontFamily: 'PlayfairDisplay_700Bold', letterSpacing: -0.3, color: editorial.ink }]}>Lifestyle</Text>
             {([
-              { label: 'Alcohol', value: profile?.alcohol },
-              { label: 'Drugs', value: profile?.drugs },
               { label: 'Workout', value: profile?.workout_level },
               { label: 'Hobbies', value: profile?.hobbies },
             ] as { label: string; value?: string }[]).filter(r => r.value).map(r => (

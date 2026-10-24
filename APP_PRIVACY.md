@@ -9,9 +9,9 @@ change with it. A mismatch between this form and real behavior is both a
 rejection risk and a regulatory one, and Apple treats the form as a binding
 declaration.
 
-Three answers are genuine judgment calls, not lookups — they're in
-[§3](#3-the-three-judgment-calls) and need a decision from you before you
-submit.
+Three answers were judgment calls rather than lookups. §3.1 (health data) is
+now **resolved** — the fields were dropped. §3.2 and §3.3 have recommendations
+attached and are low-stakes either way.
 
 ---
 
@@ -55,12 +55,15 @@ no `expo-location` dependency and nothing calls `getCurrentPositionAsync`. That
 is why **Location is answered No** below. Don't conflate the two; declaring
 Precise Location when you don't collect it invites questions you can't answer.
 
-### Health & Fitness — YES (see §3.1)
+### Health & Fitness — YES, Fitness only
 
 | Type | Collected | Purpose | Where |
 |---|---|---|---|
-| Fitness | Yes | PP | `profiles.workout_level` |
-| Health | Yes | PP | `profiles.alcohol`, `profiles.drugs` |
+| Fitness | **Yes** | PP | `profiles.workout_level` |
+| Health | **No** | — | `alcohol` and `drugs` were dropped in migration 090 |
+
+Declare **Fitness** and leave **Health** unchecked. Migration 090 removed the
+two substance-use fields precisely so this answer could be No — see §3.1.
 
 ### User Content — YES
 
@@ -109,30 +112,23 @@ belongs here.
 
 ---
 
-## 3. The three judgment calls
+## 3. The judgment calls
 
-### 3.1 Declaring health data at all
+### 3.1 Health data — RESOLVED
 
-`workout_level`, `alcohol` and `drugs` are the only reason you'd check
-**Health & Fitness**, and checking it has a cost: health declarations draw extra
-review attention, carry stricter handling expectations under HIPAA-adjacent and
-GDPR special-category rules, and have to be reflected in your privacy policy.
+**Decision: `alcohol` and `drugs` were dropped** (migration 090, 2026-10-24).
 
-Three options:
+They were the only reason to declare Health & Fitness → **Health**, which
+brings extra review scrutiny, stricter handling expectations under GDPR
+special-category rules, and a disclosure obligation — all for two free-text
+fields that did nothing for pod matching.
 
-1. **Declare it** (recommended if you keep the fields). Honest and defensible.
-   Not declaring data you visibly collect is the worse failure — reviewers can
-   see the fields in your own UI.
-2. **Drop the three fields.** A real product question worth asking: do
-   `alcohol` / `drugs` / `workout_level` earn their place in pod matching? If
-   they're vestigial, removing them removes a whole compliance surface.
-3. Declare `workout_level` as Fitness only and argue alcohol/drugs are lifestyle
-   preference rather than health. **I wouldn't** — "user provided health data"
-   reads naturally onto substance-use questions, and the downside of
-   under-declaring is worse than the downside of over-declaring.
+`workout_level` stays, so **Fitness** is still declared. That's a much cheaper
+declaration than Health and genuinely relevant to fitness pods.
 
-**Decision needed from you.** If you want option 2, say so and I'll remove the
-fields from the schema, the profile UI and `UserProfileScreen`.
+Removed from: `profiles` (090), `get_viewable_profile`'s allowlist (090),
+`EditProfileScreen` inputs, and the Lifestyle sections of `ProfileScreen` and
+`UserProfileScreen`. If this is ever reversed, Health goes back on the form.
 
 ### 3.2 Gender
 
@@ -207,5 +203,5 @@ about, so know the reasoning rather than just the answer.
       App Store Connect
 - [ ] Account deletion claim in the policy matches 087's actual behavior
       (updated 2026-10-24 — pods are reassigned, not deleted)
-- [ ] Decision made on §3.1
+- [x] §3.1 resolved — alcohol/drugs dropped in 090, declare Fitness not Health
 - [ ] No analytics SDK was added after this file was written
