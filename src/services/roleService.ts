@@ -2,6 +2,7 @@ import { supabase } from '../config/supabase';
 import { notificationService } from './notificationService';
 import { ROLE_MANAGER_TITLE } from '../constants/podRoles';
 
+import { displayName } from '../utils/displayName';
 // Single source of truth for all role-management logic.
 // Mirrors the pattern used by applicationService/connectionService.
 
@@ -123,7 +124,7 @@ export const roleService = {
     const editorIds = await this.getRoleEditorIds(pursuitId);
     const { data: requesterProfile } = await supabase
       .from('profiles')
-      .select('name, email')
+      .select('name')
       .eq('id', requesterUserId)
       .single();
     const { data: pursuit } = await supabase
@@ -132,9 +133,7 @@ export const roleService = {
       .eq('id', pursuitId)
       .single();
 
-    const requesterName = requesterProfile?.name
-      || requesterProfile?.email?.split('@')[0]
-      || 'A pod member';
+    const requesterName = displayName(requesterProfile, 'A pod member');
     const pursuitTitle = pursuit?.title || 'your pod';
 
     if (editorIds.length > 0) {

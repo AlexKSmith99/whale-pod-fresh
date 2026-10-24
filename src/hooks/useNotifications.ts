@@ -5,6 +5,7 @@ import { messageService } from '../services/messageService';
 import { podChatService } from '../services/podChatService';
 import { Celebration, CelebrationConfig } from '../components/ui/CelebrationOverlay';
 
+import { displayName } from '../utils/displayName';
 type Setter = (value: any) => void;
 
 // Milestone notifications get the full-screen confetti celebration instead of
@@ -72,7 +73,7 @@ export function useNotifications(
         // Get the most recent unread direct message
         const { data: recentMessages, error } = await supabase
           .from('messages')
-          .select('*, sender:profiles!sender_id(name, email)')
+          .select('*, sender:profiles!sender_id(name)')
           .eq('recipient_id', auth.user.id)
           .or('is_read.eq.false,is_read.is.null')
           .order('created_at', { ascending: false })
@@ -89,7 +90,7 @@ export function useNotifications(
         if (dmTime >= podChatTime && recentDm) {
           // Show DM toast
           const senderProfile = recentDm.sender as any;
-          const senderName = senderProfile?.name || senderProfile?.email?.split('@')[0] || 'Someone';
+          const senderName = displayName(senderProfile, 'Someone');
           const messagePreview = recentDm.content?.length > 50 
             ? recentDm.content.substring(0, 50) + '...' 
             : recentDm.content;

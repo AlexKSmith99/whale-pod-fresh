@@ -27,14 +27,15 @@ import PodActionSheet, { PodAction } from '../components/ui/PodActionSheet';
 import { useSavedPods } from '../hooks/useSavedPods';
 import { SHARE_URL } from './settings/settingsShared';
 
+import { displayName } from '../utils/displayName';
 interface Props {
   pursuit: any;
   onBack: () => void;
   onDelete?: () => void;
   onEdit?: () => void;
   isOwner: boolean;
-  onViewProfile?: (userId: string, userEmail: string) => void;
-  onSendMessage?: (userId: string, userEmail: string) => void;
+  onViewProfile?: (userId: string, userName: string) => void;
+  onSendMessage?: (userId: string, userName: string) => void;
   onOpenTeamBoard?: (pursuitId: string) => void;
   onOpenMeetingNotes?: (pursuitId: string) => void;
   initialSubScreen?: string | null;
@@ -248,7 +249,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('name, profile_picture, email')
+        .select('name, profile_picture')
         .eq('id', pursuit.creator_id)
         .single();
 
@@ -325,7 +326,6 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
           user:profiles!user_id(
             id,
             name,
-            email,
             profile_picture
           )
         `)
@@ -424,7 +424,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
 
                 if (teamMembers && teamMembers.length > 0) {
                   const teamMemberIds = teamMembers.map(tm => tm.user_id);
-                  const creatorName = user?.name || user?.email?.split('@')[0] || 'The creator';
+                  const creatorName = displayName(user, 'The creator');
                   await notificationService.notifyKickoffActivated(
                     teamMemberIds,
                     pursuit.id,
@@ -636,7 +636,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
             .eq('id', user.id)
             .single();
 
-          const userName = profileData?.name || user.email?.split('@')[0] || 'A team member';
+          const userName = displayName(profileData, 'A team member');
           await notificationService.sendPushNotification(
             [pursuit.creator_id],
             `${userName} left ${pursuit.title}`,
@@ -693,7 +693,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
         try {
           const memberIds = teamMembers.map(m => m.user_id).filter(id => id !== user?.id);
           if (memberIds.length > 0) {
-            const creatorName = user?.name || user?.email?.split('@')[0] || 'The pod creator';
+            const creatorName = displayName(user, 'The pod creator');
             await notificationService.sendPushNotification(
               memberIds,
               `Pod Terminated: ${pursuit.title}`,
@@ -790,7 +790,7 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
         if (screen === 'Chat' && params?.partnerId) {
           setShowUserProfile(false);
           setSelectedMemberId(null);
-          onSendMessage?.(params.partnerId, params.partnerEmail || 'User');
+          onSendMessage?.(params.partnerId, params.partnerName || 'User');
         }
       },
       goBack: () => {

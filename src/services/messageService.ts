@@ -1,4 +1,5 @@
 import { supabase } from '../config/supabase';
+import { displayName } from '../utils/displayName';
 
 export const messageService = {
   // Send a message
@@ -34,7 +35,7 @@ export const messageService = {
   async getConversations(userId: string) {
     const { data, error } = await supabase
       .from('messages')
-      .select('*, sender:profiles!sender_id(email), recipient:profiles!recipient_id(email)')
+      .select('*, sender:profiles!sender_id(name), recipient:profiles!recipient_id(name)')
       .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
       .order('created_at', { ascending: false });
 
@@ -44,7 +45,7 @@ export const messageService = {
     const conversationsMap = new Map();
     data?.forEach((msg: any) => {
       const partnerId = msg.sender_id === userId ? msg.recipient_id : msg.sender_id;
-      const partnerEmail = msg.sender_id === userId ? msg.recipient?.email : msg.sender?.email;
+      const partnerName = displayName(msg.sender_id === userId ? msg.recipient : msg.sender);
 
       if (!conversationsMap.has(partnerId)) {
         // Check if there are any unread messages FROM this partner TO the current user
@@ -56,7 +57,7 @@ export const messageService = {
 
         conversationsMap.set(partnerId, {
           partnerId,
-          partnerEmail,
+          partnerName,
           lastMessage: msg.content,
           lastMessageTime: msg.created_at,
           isRead: !hasUnreadMessages,

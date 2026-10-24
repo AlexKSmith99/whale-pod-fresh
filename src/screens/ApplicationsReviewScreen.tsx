@@ -12,6 +12,7 @@ import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
 import { AppAlert } from '../components/ui/AppAlert';
 
+import { displayName } from '../utils/displayName';
 interface Props {
   pursuitId: string;
   pursuit?: any;
@@ -115,7 +116,7 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
   };
 
   const handleScheduleInterview = async (app: any) => {
-    const applicantName = app.applicant?.name || app.applicant?.email?.split('@')[0] || 'the applicant';
+    const applicantName = displayName(app.applicant, 'the applicant');
 
     AppAlert.alert(
       'Schedule Interview',
@@ -145,11 +146,11 @@ export default function ApplicationsReviewScreen({ pursuitId, pursuit, onBack, o
               // Get creator's profile for notification
               const { data: creatorProfile } = await supabase
                 .from('profiles')
-                .select('name, email')
+                .select('name')
                 .eq('id', user!.id)
                 .single();
 
-              const creatorName = creatorProfile?.name || creatorProfile?.email?.split('@')[0] || 'The creator';
+              const creatorName = displayName(creatorProfile, 'The creator');
               console.log('📤 Sending notification to applicant:', app.applicant_id, 'from creator:', creatorName);
 
               // Send notification to applicant to propose interview times

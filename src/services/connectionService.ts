@@ -1,19 +1,10 @@
 import { supabase } from '../config/supabase';
 import { notificationService } from './notificationService';
 
-// Resolve a display name for a given user id (falls back to email local-part).
-const resolveDisplayName = async (userId: string): Promise<string> => {
-  try {
-    const { data } = await supabase
-      .from('profiles')
-      .select('name, email')
-      .eq('id', userId)
-      .single();
-    return data?.name || data?.email?.split('@')[0] || 'Someone';
-  } catch {
-    return 'Someone';
-  }
-};
+import { displayName, fetchDisplayName } from '../utils/displayName';
+
+// Resolve a display name for a given user id.
+const resolveDisplayName = (userId: string) => fetchDisplayName(userId, 'Someone');
 
 export const connectionService = {
   // Send connection request — creates a pending row AND fires an alert-tab notification
@@ -98,7 +89,7 @@ export const connectionService = {
         const otherUserId = conn.user_id_1 === userId ? conn.user_id_2 : conn.user_id_1;
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('name, profile_picture, email, bio')
+          .select('name, profile_picture, bio')
           .eq('id', otherUserId)
           .single();
         return { ...conn, profile: profileData, otherUserId };
@@ -123,7 +114,7 @@ export const connectionService = {
       (data || []).map(async (req) => {
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('name, profile_picture, email')
+          .select('name, profile_picture')
           .eq('id', req.user_id_1)
           .single();
         return { ...req, profile: profileData };
@@ -148,7 +139,7 @@ export const connectionService = {
       (data || []).map(async (req) => {
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('name, profile_picture, email')
+          .select('name, profile_picture')
           .eq('id', req.user_id_2)
           .single();
         return { ...req, profile: profileData };

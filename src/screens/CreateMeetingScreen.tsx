@@ -14,6 +14,7 @@ import GrainTexture from '../components/ui/GrainTexture';
 import { AppAlert } from '../components/ui/AppAlert';
 import KeyboardAwareScreen from '../components/ui/KeyboardAwareScreen';
 
+import { displayName } from '../utils/displayName';
 interface Props {
   onClose: () => void;
   onMeetingCreated?: () => void;
@@ -178,7 +179,7 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
         .from('team_members')
         .select(`
           user_id,
-          user:profiles(id, name, email, profile_picture)
+          user:profiles(id, name, profile_picture)
         `)
         .eq('pursuit_id', selectedPursuit.id)
         .neq('status', 'removed');
@@ -308,11 +309,11 @@ export default function CreateMeetingScreen({ onClose, onMeetingCreated }: Props
       // Get creator's profile for notification
       const { data: creatorProfile } = await supabase
         .from('profiles')
-        .select('name, email')
+        .select('name')
         .eq('id', user!.id)
         .single();
 
-      const creatorName = creatorProfile?.name || creatorProfile?.email?.split('@')[0] || 'The organizer';
+      const creatorName = displayName(creatorProfile, 'The organizer');
 
       // Format date and time for notification
       const meetingDate = scheduledDateTime;

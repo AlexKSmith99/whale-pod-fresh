@@ -11,6 +11,7 @@ import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
 import { AppAlert } from '../components/ui/AppAlert';
 
+import { fetchDisplayName } from '../utils/displayName';
 interface Props {
   applicationId: string;
   pursuitId: string;
@@ -223,7 +224,7 @@ export default function InterviewTimeSlotProposalScreen({ applicationId, pursuit
 
       // Notify creator that applicant submitted interview times
       if (creatorId) {
-        const applicantName = user?.name || user?.email?.split('@')[0] || 'The applicant';
+        const applicantName = await fetchDisplayName(user?.id, 'The applicant');
         await notificationService.notifyInterviewTimesSubmitted(
           creatorId,
           applicationId,

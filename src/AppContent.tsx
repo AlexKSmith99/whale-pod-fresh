@@ -27,7 +27,7 @@ export default function AppContent() {
   const themeColors = theme.colors;
   const [currentScreen, setCurrentScreen] = useState('Feed');
   const [chatPartnerId, setChatPartnerId] = useState<string | null>(null);
-  const [chatPartnerEmail, setChatPartnerEmail] = useState<string | null>(null);
+  const [chatPartnerName, setChatPartnerName] = useState<string | null>(null);
   const [chatOpenedFromUserId, setChatOpenedFromUserId] = useState<string | null>(null);
   const [podDetailOpenedFromUserId, setPodDetailOpenedFromUserId] = useState<string | null>(null);
   const [teamBoardPursuitId, setTeamBoardPursuitId] = useState<string | null>(null);
@@ -124,7 +124,7 @@ export default function AppContent() {
   const { handleToastPress } = useToastNavigation(auth, {
     setCurrentScreen,
     setChatPartnerId,
-    setChatPartnerEmail,
+    setChatPartnerName,
     setShowConnections,
     setViewingPodDetail,
     setPodDetailSubScreen,
@@ -196,7 +196,7 @@ export default function AppContent() {
     setShowConnections,
     setChatOpenedFromUserId,
     setChatPartnerId,
-    setChatPartnerEmail,
+    setChatPartnerName,
     setCurrentScreen,
     setViewingPodDetail,
     setPodDetailSubScreen,
@@ -234,7 +234,7 @@ export default function AppContent() {
     <AppRouter
       currentScreen={currentScreen}
       chatPartnerId={chatPartnerId}
-      chatPartnerEmail={chatPartnerEmail}
+      chatPartnerName={chatPartnerName}
       chatOpenedFromUserId={chatOpenedFromUserId}
       podDetailOpenedFromUserId={podDetailOpenedFromUserId}
       teamBoardPursuitId={teamBoardPursuitId}
@@ -259,7 +259,7 @@ export default function AppContent() {
       currentToast={currentToast}
       setCurrentScreen={setCurrentScreen}
       setChatPartnerId={setChatPartnerId}
-      setChatPartnerEmail={setChatPartnerEmail}
+      setChatPartnerName={setChatPartnerName}
       setChatOpenedFromUserId={setChatOpenedFromUserId}
       setPodDetailOpenedFromUserId={setPodDetailOpenedFromUserId}
       setTeamBoardPursuitId={setTeamBoardPursuitId}

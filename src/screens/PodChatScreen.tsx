@@ -26,6 +26,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
 import { AppAlert } from '../components/ui/AppAlert';
+import { displayName, initialOf } from '../utils/displayName';
 import PursuitDetailScreen from './PursuitDetailScreen';
 import TeamWorkspaceScreen from './team/TeamWorkspaceScreen';
 
@@ -118,7 +119,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
       if (user) {
         const { data, error } = await supabase
           .from('profiles')
-          .select('name, profile_picture, email')
+          .select('name, profile_picture')
           .eq('id', user.id)
           .single();
 
@@ -180,7 +181,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
       // With inverted FlatList, newest messages are already at position 0 (bottom visually)
       
       // Send push notification to all other pod members (push only, no Alerts tab)
-      const senderName = myProfile?.name || user.email || 'Someone';
+      const senderName = displayName(myProfile, 'Someone');
       const messagePreview = messageText.length > 50 ? messageText.substring(0, 50) + '...' : messageText;
       const otherMemberIds = members
         .filter(m => m.user_id !== user.id)
@@ -318,8 +319,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
       ) : (
         <View style={[styles.messageAvatar, { backgroundColor: isNewTheme ? colors.accentGreen : legacyColors.primary }]}>
           <Text style={[styles.messageAvatarText, { color: isNewTheme ? colors.background : '#fff' }]}>
-            {profile?.name?.charAt(0).toUpperCase() ||
-             profile?.email?.charAt(0).toUpperCase() || '?'}
+            {initialOf(profile)}
           </Text>
         </View>
       );
@@ -400,7 +400,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
                 {/* Sender name - only on first in thread */}
                 {showHeaderAndAvatar && (
                   <Text style={[styles.senderName, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'PlayfairDisplay_700Bold' }]}>
-                    {sender?.name || 'User'}
+                    {displayName(sender)}
                   </Text>
                 )}
                 <View style={styles.bubbleWrapper}>
@@ -538,7 +538,7 @@ export default function PodChatScreen({ pursuitId, pursuitTitle, customName, pod
           pursuit={pursuitData}
           onBack={() => setActiveView('chat')}
           isOwner={pursuitData.creator_id === user?.id}
-          onSendMessage={(userId, userEmail) => navigation?.navigate('Chat', { partnerId: userId, partnerEmail: userEmail })}
+          onSendMessage={(userId, userName) => navigation?.navigate('Chat', { partnerId: userId, partnerName: userName })}
         />
       )}
 

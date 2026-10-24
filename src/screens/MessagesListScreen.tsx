@@ -30,6 +30,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
 import WhaleLoader from '../components/ui/WhaleLoader';
+import { displayName, initialOf, UNNAMED_USER } from '../utils/displayName';
 
 // Sidebar width is 90% of screen width for the drawer
 const SIDEBAR_WIDTH = Dimensions.get('window').width * 0.9;
@@ -67,10 +68,9 @@ interface IndividualChat {
   partnerId: string;
   partnerProfile?: {
     name?: string;
-    email?: string;
     profile_picture?: string;
   };
-  partnerEmail?: string;
+  partnerName?: string;
   lastMessage?: string;
   lastMessageTime?: string;
   isRead: boolean;
@@ -87,7 +87,7 @@ type FilterTab = 'all' | 'direct' | 'pods';
 
 interface MessagesListScreenProps {
   navigation?: any;
-  onSelectConversation?: (partnerId: string, partnerEmail: string) => void;
+  onSelectConversation?: (partnerId: string, partnerName: string) => void;
   onConversationRead?: () => void;
   /**
    * Reports whether a conversation is open inline on this screen, so the shell
@@ -173,8 +173,8 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
           content,
           created_at,
           is_read,
-          sender:profiles!sender_id(name, email, profile_picture),
-          recipient:profiles!recipient_id(name, email, profile_picture)
+          sender:profiles!sender_id(name, profile_picture),
+          recipient:profiles!recipient_id(name, profile_picture)
         `)
         .or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`)
         .order('created_at', { ascending: false });
@@ -193,7 +193,7 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
             type: 'individual',
             partnerId,
             partnerProfile,
-            partnerEmail: partnerProfile?.email,
+            partnerName: displayName(partnerProfile),
             lastMessage: msg.content,
             lastMessageTime: msg.created_at,
             isRead: !isUnread,
@@ -287,7 +287,7 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
         }
 
         if (onSelectConversation) {
-          onSelectConversation(chat.partnerId, chat.partnerEmail || '');
+          onSelectConversation(chat.partnerId, chat.partnerName || '');
         }
       } else {
         await AsyncStorage.setItem(LAST_CHAT_KEY, JSON.stringify({
@@ -365,13 +365,13 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
     setConnectionSearch('');
 
     const partnerId = conn.otherUserId;
-    const partnerEmail = conn.profile?.email || conn.profile?.name || 'User';
+    const partnerName = displayName(conn.profile);
 
     const chat: IndividualChat = {
       type: 'individual',
       partnerId,
       partnerProfile: conn.profile,
-      partnerEmail,
+      partnerName,
       lastMessage: undefined,
       lastMessageTime: undefined,
       isRead: true,
@@ -447,7 +447,7 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
             ) : (
               <View style={[styles.avatarPlaceholder, themedStyles.avatar, { width: 52, height: 52, borderRadius: 26 }]}>
                 <Text style={[styles.avatarText, themedStyles.avatarText]}>
-                  {(chat.partnerProfile?.name || chat.partnerEmail || '?')[0].toUpperCase()}
+                  {initialOf(chat.partnerProfile ?? { name: chat.partnerName })}
                 </Text>
               </View>
             )}
@@ -457,7 +457,7 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
           <View style={styles.chatInfo}>
             <View style={styles.chatHeader}>
               <Text style={[styles.chatName, themedStyles.listItemTitle, hasUnread && styles.chatNameUnread]} numberOfLines={1}>
-                {chat.partnerProfile?.name || chat.partnerEmail || 'User'}
+                {chat.partnerProfile?.name || chat.partnerName || UNNAMED_USER}
               </Text>
               <Text style={[styles.chatTime, themedStyles.textTertiary, hasUnread && { color: themedStyles.accentIconColor }]}>
                 {formatTime(chat.lastMessageTime)}
@@ -780,7 +780,7 @@ export default function MessagesListScreen({ navigation, onSelectConversation, o
         {selectedChat.type === 'individual' ? (
           <ChatScreen
             partnerId={(selectedChat as IndividualChat).partnerId}
-            partnerEmail={(selectedChat as IndividualChat).partnerEmail || ''}
+            partnerName={(selectedChat as IndividualChat).partnerName || ''}
             navigation={navigation}
             onBack={() => setSelectedChat(null)}
             showMenuButton={true}

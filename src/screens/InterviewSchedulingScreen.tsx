@@ -14,6 +14,7 @@ import GrainTexture from '../components/ui/GrainTexture';
 import { AppAlert } from '../components/ui/AppAlert';
 import KeyboardAwareScreen from '../components/ui/KeyboardAwareScreen';
 
+import { fetchDisplayName } from '../utils/displayName';
 interface Props {
   applicationId: string;
   pursuitId: string;
@@ -225,7 +226,7 @@ export default function InterviewSchedulingScreen({
               }
 
               // Notify applicant about the scheduled interview
-              const creatorName = user?.name || user?.email?.split('@')[0] || 'The creator';
+              const creatorName = await fetchDisplayName(user?.id, 'The creator');
               await notificationService.notifyInterviewScheduled(
                 applicantId,
                 applicationId,

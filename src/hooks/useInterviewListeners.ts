@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { supabase } from '../config/supabase';
 
+import { displayName } from '../utils/displayName';
 type Setter = (value: any) => void;
 
 export function useInterviewListeners(
@@ -45,8 +46,7 @@ export function useInterviewListeners(
         .select(`
           applicant_id,
           applicant:profiles!applicant_id(
-            name,
-            email
+            name
           )
         `)
         .eq('id', applicationId)
@@ -68,7 +68,7 @@ export function useInterviewListeners(
         pursuitId,
         pursuitTitle: pursuitData?.title || 'Pursuit',
         applicantId: appData?.applicant_id || '',
-        applicantName: applicantProfile?.name || applicantProfile?.email || 'Applicant',
+        applicantName: displayName(applicantProfile, 'Applicant'),
       });
     } catch (error) {
       console.error('Error fetching interview scheduling data:', error);
@@ -103,12 +103,12 @@ export function useInterviewListeners(
               try {
                 const { data: pursuitData } = await supabase
                   .from('pursuits')
-                  .select('title, creator_id, profiles:creator_id(name, email)')
+                  .select('title, creator_id, profiles:creator_id(name)')
                   .eq('id', updatedApp.pursuit_id)
                   .single();
 
                 const creatorProfile = pursuitData?.profiles as any;
-                const creatorName = creatorProfile?.name || creatorProfile?.email?.split('@')[0] || 'The creator';
+                const creatorName = displayName(creatorProfile, 'The creator');
                 const pursuitTitle = pursuitData?.title || 'a pursuit';
 
                 // Show toast notification
@@ -185,11 +185,11 @@ export function useInterviewListeners(
                   // Fetch applicant name
                   const { data: applicantData } = await supabase
                     .from('profiles')
-                    .select('name, email')
+                    .select('name')
                     .eq('id', updatedApp.applicant_id)
                     .single();
 
-                  const applicantName = applicantData?.name || applicantData?.email?.split('@')[0] || 'An applicant';
+                  const applicantName = displayName(applicantData, 'An applicant');
                   const pursuitTitle = pursuitData?.title || 'a pursuit';
 
                   // Show toast notification with data for navigation

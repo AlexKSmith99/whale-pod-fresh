@@ -19,6 +19,7 @@ import GrainTexture from '../../components/ui/GrainTexture';
 import WhaleLoader from '../../components/ui/WhaleLoader';
 import { AppAlert } from '../../components/ui/AppAlert';
 
+import { initialOf } from '../../utils/displayName';
 export default function ConnectionsScreen({ navigation }: any) {
   const { user } = useAuth();
   const { theme, isNewTheme } = useTheme();
@@ -254,8 +255,7 @@ export default function ConnectionsScreen({ navigation }: any) {
                         ) : (
                           <View style={[styles.avatar, { backgroundColor: accentColor }]}>
                             <Text style={[styles.avatarText, { color: isNewTheme ? colors.background : colors.white }]}>
-                              {request.profile?.name?.charAt(0).toUpperCase() ||
-                               request.profile?.email?.charAt(0).toUpperCase() || '?'}
+                              {initialOf(request.profile)}
                             </Text>
                           </View>
                         )}

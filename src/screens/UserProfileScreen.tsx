@@ -21,6 +21,7 @@ import { privacyService, ViewerRelationship } from '../services/privacyService';
 import PodMemberCollage from '../components/PodMemberCollage';
 import { colors as legacyColors, typography, spacing, editorial } from '../theme/designSystem';
 import { possessivePronoun } from '../utils/pronouns';
+import { displayName } from '../utils/displayName';
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
@@ -99,12 +100,16 @@ export default function UserProfileScreen({ route, navigation }: any) {
 
   const loadProfile = async () => {
     try {
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      // get_viewable_profile (migration 084) rather than select('*'): the RPC
+      // applies this user's privacy allowlists server-side and never returns
+      // email, phone, date_of_birth or account state. A viewer who isn't
+      // entitled to the profile body gets identity only, so the restricted
+      // state below still has a name and picture to render.
+      const { data, error } = await supabase.rpc('get_viewable_profile', {
+        p_target_id: userId,
+      });
 
+      if (error) throw error;
       setProfile(data);
     } catch (error) {
       console.error('Error loading profile:', error);
@@ -167,7 +172,7 @@ export default function UserProfileScreen({ route, navigation }: any) {
   const handleMessage = () => {
     navigation.navigate('Chat', {
       partnerId: userId,
-      partnerEmail: profile?.email || 'User',
+      partnerName: displayName(profile),
     });
   };
 

@@ -34,7 +34,7 @@ export default function AppRouter(props: any) {
   const {
     currentScreen,
     chatPartnerId,
-    chatPartnerEmail,
+    chatPartnerName,
     chatOpenedFromUserId,
     podDetailOpenedFromUserId,
     teamBoardPursuitId,
@@ -59,7 +59,7 @@ export default function AppRouter(props: any) {
     currentToast,
     setCurrentScreen,
     setChatPartnerId,
-    setChatPartnerEmail,
+    setChatPartnerName,
     setChatOpenedFromUserId,
     setPodDetailOpenedFromUserId,
     setTeamBoardPursuitId,
@@ -309,7 +309,7 @@ if (viewingLegalDoc && !chatPartnerId) {
 }
 
 // Show chat screen if a conversation is selected
-if (chatPartnerId && chatPartnerEmail) {
+if (chatPartnerId && chatPartnerName) {
   return (
     <View style={{ flex: 1 }}>
       <KeyboardAvoidingView
@@ -319,7 +319,7 @@ if (chatPartnerId && chatPartnerEmail) {
       >
         <ChatScreen
           partnerId={chatPartnerId}
-          partnerEmail={chatPartnerEmail}
+          partnerName={chatPartnerName}
           navigation={navigation}
           onBack={() => {
             // If we came from a user profile, go back to it
@@ -328,7 +328,7 @@ if (chatPartnerId && chatPartnerEmail) {
               setChatOpenedFromUserId(null);
             }
             setChatPartnerId(null);
-            setChatPartnerEmail(null);
+            setChatPartnerName(null);
           }}
         />
       </KeyboardAvoidingView>
@@ -403,7 +403,7 @@ if (viewingPodDetail) {
           ]
         );
       }}
-      onViewProfile={(userId, userEmail) => {
+      onViewProfile={(userId, userName) => {
         // If viewing own profile, go to Profile tab
         if (userId === auth.user?.id) {
           setViewingPodDetail(null);
@@ -416,10 +416,10 @@ if (viewingPodDetail) {
         setViewingPodDetail(null);
         setTeamBoardPursuitId(pursuitId);
       }}
-      onSendMessage={(userId, userEmail) => {
+      onSendMessage={(userId, userName) => {
         setViewingPodDetail(null);
         setChatPartnerId(userId);
-        setChatPartnerEmail(userEmail);
+        setChatPartnerName(userName);
         setCurrentScreen('Messages');
       }}
     />
@@ -445,9 +445,9 @@ if (teamBoardPursuitId) {
   );
 }
 
-  const startMessage = (userId: string, userEmail: string) => {
+  const startMessage = (userId: string, userName: string) => {
     setChatPartnerId(userId);
-    setChatPartnerEmail(userEmail);
+    setChatPartnerName(userName);
     setCurrentScreen('Messages');
   };
 
@@ -474,9 +474,9 @@ if (teamBoardPursuitId) {
       {currentScreen === 'Messages' && (
   <MessagesListScreen
     navigation={navigation}
-    onSelectConversation={(partnerId: string, partnerEmail: string) => {
+    onSelectConversation={(partnerId: string, partnerName: string) => {
       setChatPartnerId(partnerId);
-      setChatPartnerEmail(partnerEmail);
+      setChatPartnerName(partnerName);
     }}
     onConversationRead={() => {
       // Update the locally-read message count to trigger badge update

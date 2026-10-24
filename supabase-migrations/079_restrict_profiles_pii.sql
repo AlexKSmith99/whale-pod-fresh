@@ -135,29 +135,42 @@ GRANT SELECT ON public.public_profiles TO authenticated;
 -- SELECT public.username_available('somename');
 
 -- ============================================================
--- FOLLOW-UP required to fully close C-1 (app changes + testing):
+-- FOLLOW-UP — DONE in migration 084 + the app changes alongside it.
 --
---   1. src/screens/UserProfileScreen.tsx:103 — `.from('profiles').select('*')`
---      is the main leak: it pulls every column for someone else's profile.
---      Repoint to `.from('public_profiles').select('*')`.
+-- Step 1 below was WRONG and was not carried out as written. Read 084 before
+-- acting on anything here.
 --
---   2. Audit the other-user reads that select `email`
---      (e.g. 'id, name, email, profile_picture') and drop the email column,
---      using `id` as the identifier instead.
+--   1. ~~Repoint UserProfileScreen to `public_profiles`.~~ Not done, on
+--      purpose. UserProfileScreen renders age, gender, hometown, alcohol,
+--      drugs, workout_level and the socials — every one of which this view
+--      deliberately excludes. Repointing it would have blanked most of the
+--      profile UI while calling it a security fix.
 --
---   3. ProfileScreen.tsx:58 and EditProfileScreen.tsx:73 also use select('*'),
---      but both read the CURRENT user's own row — leave them on `profiles`.
+--      084 adds `get_viewable_profile(uuid)` instead: a SECURITY DEFINER RPC
+--      that consults can_view_profile_section and returns exactly the
+--      sections the viewer is entitled to. The screen now calls that.
 --
---   4. Once nothing reads another user's row from `profiles` directly, tighten
---      the policy in step 2 from `USING (true)` to
---      `USING (id = (select auth.uid()))`, which makes the base table
---      owner-only and leaves `public_profiles` as the sole cross-user path.
---      Do this last — it is the step that will break anything still missed.
+--   2. DONE — `email` is gone from every cross-user profile read (~35 select
+--      lists) and the ~20 `name || email.split('@')[0]` display fallbacks now
+--      go through src/utils/displayName.ts. The chat flow's `partnerEmail`
+--      was only ever a display label, so it was renamed `partnerName`.
 --
---   5. The privacy allowlists in privacyService.ts are enforced in JavaScript
---      after rows arrive, so they are advisory only. Moving those checks into
---      `public_profiles` (or a SECURITY DEFINER RPC that consults
---      can_view_profile_section) is what makes them real.
+--   3. Still true: ProfileScreen.tsx and EditProfileScreen.tsx use select('*')
+--      on their OWN row and correctly stay on `profiles`.
+--
+--   4. STILL OPEN, and now the only remaining step. With nothing reading
+--      another user's row from `profiles` directly, the SELECT policy can be
+--      tightened from `USING (true)` to `USING (id = (select auth.uid()))`,
+--      making the base table owner-only. Deliberately not done here: it is
+--      the step that breaks anything still missed, so it wants a pass through
+--      the app on a device first. `public_profiles` and
+--      `get_viewable_profile` are both ready to be the only cross-user paths.
+--
+--   5. DONE — the allowlists are no longer advisory for profile reads. 084
+--      moved the check server-side, so `profile_access` and `socials` are
+--      enforced before rows leave Postgres rather than hidden afterwards in
+--      JavaScript. privacyService still drives what the UI *shows*; it is no
+--      longer what keeps the data back.
 -- ============================================================
 
 -- ============================================================

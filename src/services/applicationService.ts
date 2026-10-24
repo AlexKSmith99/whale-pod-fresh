@@ -1,6 +1,7 @@
 import { supabase } from '../config/supabase';
 import { notificationService } from './notificationService';
 
+import { displayName } from '../utils/displayName';
 export const applicationService = {
   // Submit an application
   async createApplication(data: any) {
@@ -33,7 +34,7 @@ export const applicationService = {
       // Get applicant profile
       const { data: applicant, error: applicantError } = await supabase
         .from('profiles')
-        .select('name, email')
+        .select('name')
         .eq('id', data.applicant_id)
         .single();
 
@@ -45,7 +46,7 @@ export const applicationService = {
       console.log('✅ Applicant found:', applicant);
 
       if (pursuit && applicant) {
-        const applicantName = applicant.name || applicant.email?.split('@')[0] || 'Someone';
+        const applicantName = displayName(applicant, 'Someone');
         console.log('🔔 Sending notification to creator:', pursuit.creator_id, 'about applicant:', applicantName);
 
         await notificationService.notifyApplicationReceived(
@@ -208,7 +209,7 @@ export const applicationService = {
       // Get creator profile
       const { data: creator, error: creatorError } = await supabase
         .from('profiles')
-        .select('name, email')
+        .select('name')
         .eq('id', pursuit.creator_id)
         .single();
 
@@ -220,7 +221,7 @@ export const applicationService = {
       console.log('✅ Creator found:', creator);
 
       if (pursuit && creator) {
-        const creatorName = creator.name || creator.email?.split('@')[0] || 'The creator';
+        const creatorName = displayName(creator, 'The creator');
         console.log('🔔 Sending acceptance notification to:', application.applicant_id, 'for pursuit:', pursuit.title);
 
         await notificationService.notifyApplicationAccepted(
@@ -293,7 +294,7 @@ export const applicationService = {
       // Get creator profile
       const { data: creator, error: creatorError } = await supabase
         .from('profiles')
-        .select('name, email')
+        .select('name')
         .eq('id', pursuit.creator_id)
         .single();
 
@@ -305,7 +306,7 @@ export const applicationService = {
       console.log('✅ Creator found:', creator);
 
       if (pursuit && creator) {
-        const creatorName = creator.name || creator.email?.split('@')[0] || 'The creator';
+        const creatorName = displayName(creator, 'The creator');
         console.log('🔔 Sending rejection notification to:', application.applicant_id, 'for pursuit:', pursuit.title);
 
         await notificationService.notifyApplicationRejected(

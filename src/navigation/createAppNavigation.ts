@@ -1,6 +1,7 @@
 import { supabase } from '../config/supabase';
 import { hapticService } from '../services/hapticService';
 import { LegalDoc } from '../screens/LegalScreen';
+import { UNNAMED_USER } from '../utils/displayName';
 
 type Setter = (value: any) => void;
 
@@ -9,7 +10,7 @@ interface UseAppNavigationDeps {
   setShowConnections: Setter;
   setChatOpenedFromUserId: Setter;
   setChatPartnerId: Setter;
-  setChatPartnerEmail: Setter;
+  setChatPartnerName: Setter;
   setCurrentScreen: Setter;
   setViewingPodDetail: Setter;
   setPodDetailSubScreen: Setter;
@@ -45,7 +46,7 @@ export function createAppNavigation(
     setShowConnections,
     setChatOpenedFromUserId,
     setChatPartnerId,
-    setChatPartnerEmail,
+    setChatPartnerName,
     setCurrentScreen,
     setViewingPodDetail,
     setPodDetailSubScreen,
@@ -76,7 +77,7 @@ export function createAppNavigation(
         // Remember if we came from a user profile so we can go back to it
         setChatOpenedFromUserId(viewingUserId);
         setChatPartnerId(params.partnerId);
-        setChatPartnerEmail(params.partnerEmail || 'User');
+        setChatPartnerName(params.partnerName || UNNAMED_USER);
         setViewingUserId(null); // Clear profile view so chat takes priority
         setCurrentScreen('Messages');
       } else if (screen === 'Profile') {
@@ -169,7 +170,7 @@ export function createAppNavigation(
     setShowConnections(false);
     setViewingLegalDoc(null);
     setChatPartnerId(null);
-    setChatPartnerEmail(null);
+    setChatPartnerName(null);
     setChatOpenedFromUserId(null);
     setViewingPodDetail(null);
     setPodDetailSubScreen(null);

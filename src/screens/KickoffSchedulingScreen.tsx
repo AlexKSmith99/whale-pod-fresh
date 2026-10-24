@@ -16,6 +16,7 @@ import GrainTexture from '../components/ui/GrainTexture';
 import { AppAlert } from '../components/ui/AppAlert';
 import KeyboardAwareScreen from '../components/ui/KeyboardAwareScreen';
 
+import { fetchDisplayName } from '../utils/displayName';
 interface Props {
   pursuitId: string;
   pursuitTitle: string;
@@ -218,7 +219,7 @@ export default function KickoffSchedulingScreen({ pursuitId, pursuitTitle, onClo
                   const teamMemberIds = participantIds.filter(id => id !== user!.id);
                   if (teamMemberIds.length > 0) {
                     // Get creator name for notification
-                    const creatorName = user?.name || user?.email?.split('@')[0] || 'The creator';
+                    const creatorName = await fetchDisplayName(user?.id, 'The creator');
                     await notificationService.notifyKickoffScheduledToTeam(
                       teamMemberIds,
                       pursuitId,

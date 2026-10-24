@@ -1,12 +1,13 @@
 import { supabase } from '../config/supabase';
 import { notificationService } from '../services/notificationService';
+import { displayName } from '../utils/displayName';
 
 type Setter = (value: any) => void;
 
 interface UseToastNavigationDeps {
   setCurrentScreen: Setter;
   setChatPartnerId: Setter;
-  setChatPartnerEmail: Setter;
+  setChatPartnerName: Setter;
   setShowConnections: Setter;
   setViewingPodDetail: Setter;
   setPodDetailSubScreen: Setter;
@@ -25,7 +26,7 @@ interface UseToastNavigationDeps {
 export function useToastNavigation(
   auth: any,
   {
-    setCurrentScreen, setChatPartnerId, setChatPartnerEmail, setShowConnections,
+    setCurrentScreen, setChatPartnerId, setChatPartnerName, setShowConnections,
     setViewingPodDetail, setPodDetailSubScreen, setPodDetailFromNotifications,
     setTeamBoardPursuitId, setTeamBoardSubTab, setViewingMeetingInvitation,
     setViewingInterviewProposal, setViewingRemovalReason, setViewingMemberLeft,
@@ -74,12 +75,12 @@ export function useToastNavigation(
           if (data?.conversationId) {
             const { data: senderData } = await supabase
               .from('profiles')
-              .select('email')
+              .select('name')
               .eq('id', data.conversationId)
               .single();
 
             setChatPartnerId(data.conversationId);
-            setChatPartnerEmail(senderData?.email || 'User');
+            setChatPartnerName(displayName(senderData));
             setCurrentScreen('Messages');
           } else {
             setCurrentScreen('Messages');

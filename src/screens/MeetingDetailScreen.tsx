@@ -13,6 +13,7 @@ import WhaleLoader from '../components/ui/WhaleLoader';
 import { AppAlert } from '../components/ui/AppAlert';
 import KeyboardAwareScreen from '../components/ui/KeyboardAwareScreen';
 
+import { displayName } from '../utils/displayName';
 // Editorial light-mode helpers.
 const lightLabel = {
   color: editorial.muted,
@@ -432,7 +433,7 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
         )}
         <View style={styles.participantInfo}>
           <Text style={[styles.participantName, { color: colors.textPrimary }, !isNewTheme && { fontFamily: 'InterTight_600SemiBold' }]}>
-            {profile?.name || profile?.email?.split('@')[0] || 'Unknown'}
+            {displayName(profile, 'Unknown')}
             {isParticipantCreator && ' (Organizer)'}
           </Text>
           <Text style={[styles.participantStatus, { color: getParticipantStatusColor(participant.status) }, !isNewTheme && { fontFamily: 'InterTight_600SemiBold' }]}>
@@ -795,7 +796,7 @@ export default function MeetingDetailScreen({ meeting, onClose, onJoinCall, onMe
                         </View>
                       )}
                       <Text style={[styles.memberName, { color: colors.textPrimary }, !isNewTheme && { fontFamily: 'InterTight_600SemiBold' }]}>
-                        {profile?.name || profile?.email?.split('@')[0] || 'Unknown'}
+                        {displayName(profile, 'Unknown')}
                       </Text>
                       <Ionicons name="add-circle" size={24} color={accentColor} />
                     </TouchableOpacity>

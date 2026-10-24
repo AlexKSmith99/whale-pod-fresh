@@ -19,6 +19,7 @@ import GrainTexture from '../components/ui/GrainTexture';
 import WhaleLoader from '../components/ui/WhaleLoader';
 import { AppAlert } from '../components/ui/AppAlert';
 
+import { displayName } from '../utils/displayName';
 // Editorial light-mode card: white surface, hairline border, soft shadow.
 const lightCard = {
   backgroundColor: editorial.surface,
@@ -54,7 +55,6 @@ interface MeetingDetails {
   creator: {
     id: string;
     name: string;
-    email: string;
   };
 }
 
@@ -103,7 +103,7 @@ export default function MeetingInvitationScreen({ meetingId, onBack, onResponded
       if (meetingData?.creator_id) {
         const { data: creatorData } = await supabase
           .from('profiles')
-          .select('id, name, email')
+          .select('id, name')
           .eq('id', meetingData.creator_id)
           .maybeSingle();
         creator = creatorData ?? null;
@@ -254,7 +254,7 @@ export default function MeetingInvitationScreen({ meetingId, onBack, onResponded
         <View style={styles.organizerRow}>
           <Text style={[styles.organizerLabel, { color: colors.textSecondary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }, !isNewTheme && { color: editorial.muted }]}>Organized by </Text>
           <Text style={[styles.organizerName, { color: colors.textPrimary, fontFamily: isNewTheme ? 'Sora_600SemiBold' : 'InterTight_600SemiBold' }]}>
-            {meeting.creator?.name || meeting.creator?.email?.split('@')[0] || 'The organizer'}
+            {displayName(meeting.creator, 'The organizer')}
           </Text>
         </View>
 

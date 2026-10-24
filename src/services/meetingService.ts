@@ -1,6 +1,7 @@
 import { supabase } from '../config/supabase';
 import { notificationService } from './notificationService';
 
+import { displayName } from '../utils/displayName';
 /**
  * Participant rows for a meeting, always including the creator.
  *
@@ -237,11 +238,11 @@ export const meetingService = {
       // Get submitter's name
       const { data: submitter } = await supabase
         .from('profiles')
-        .select('name, email')
+        .select('name')
         .eq('id', userId)
         .single();
 
-      const memberName = submitter?.name || submitter?.email?.split('@')[0] || 'A team member';
+      const memberName = displayName(submitter, 'A team member');
 
       // Notify creator that this member submitted their availability
       await notificationService.notifyTimeProposalSubmitted(
@@ -314,7 +315,7 @@ export const meetingService = {
     const userIds = [...new Set(proposals.map(p => p.user_id))];
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
-      .select('id, name, email')
+      .select('id, name')
       .in('id', userIds);
 
     if (profilesError) throw profilesError;
@@ -411,7 +412,7 @@ export const meetingService = {
     const userIds = participants.map(p => p.user_id);
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
-      .select('id, name, email, profile_picture')
+      .select('id, name, profile_picture')
       .in('id', userIds);
 
     if (profilesError) throw profilesError;
@@ -688,7 +689,7 @@ export const meetingService = {
     const userIds = members.map(m => m.user_id);
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
-      .select('id, name, email, profile_picture')
+      .select('id, name, profile_picture')
       .in('id', userIds);
 
     if (profilesError) throw profilesError;

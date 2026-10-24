@@ -8,7 +8,6 @@ export interface PodChatMessage {
   created_at: string;
   sender?: {
     name: string;
-    email: string;
     profile_picture?: string;
   };
 }
@@ -43,7 +42,7 @@ export const podChatService = {
       }])
       .select(`
         *,
-        sender:profiles!sender_id(name, email, profile_picture)
+        sender:profiles!sender_id(name, profile_picture)
       `)
       .single();
 
@@ -57,7 +56,7 @@ export const podChatService = {
       .from('pod_chat_messages')
       .select(`
         *,
-        sender:profiles!sender_id(name, email, profile_picture)
+        sender:profiles!sender_id(name, profile_picture)
       `)
       .eq('pursuit_id', pursuitId)
       .order('created_at', { ascending: true });
@@ -251,7 +250,7 @@ export const podChatService = {
       .from('pursuits')
       .select(`
         creator_id,
-        creator:profiles!creator_id(id, name, email, profile_picture)
+        creator:profiles!creator_id(id, name, profile_picture)
       `)
       .eq('id', pursuitId)
       .single();
@@ -261,7 +260,7 @@ export const podChatService = {
       .from('team_members')
       .select(`
         user_id,
-        user:profiles!user_id(id, name, email, profile_picture)
+        user:profiles!user_id(id, name, profile_picture)
       `)
       .eq('pursuit_id', pursuitId)
       .in('status', ['active', 'accepted']);

@@ -46,6 +46,7 @@ import KeyboardAwareScreen from '../../components/ui/KeyboardAwareScreen';
 import { AppAlert } from '../../components/ui/AppAlert';
 import { colors as legacyColors, typography, spacing, borderRadius, shadows, editorial } from '../../theme/designSystem';
 
+import { displayName } from '../../utils/displayName';
 // ===== Editorial light-mode theme =====
 // Cream paper, charcoal ink, hairline borders. Carolina blue is the discreet
 // primary accent (replaces the old forest green); red is semantic-only.
@@ -167,7 +168,7 @@ interface DocumentEdit {
   user_id: string;
   content: string;
   created_at: string;
-  profiles: { name: string; email: string };
+  profiles: { name: string };
 }
 
 export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialSubTab }: Props) {
@@ -306,7 +307,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
           .eq('id', selectedPodId)
           .single();
         if (!pursuit) return;
-        const userName = user.name || user.email?.split('@')[0] || 'A member';
+        const userName = displayName(user, 'A member');
         const pageLabel = page === 'guide' ? 'Pod Guide' : 'Pod Rules';
         await notificationService.sendPushNotification(
           [pursuit.creator_id],
@@ -505,7 +506,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
     try {
       const { data: members } = await supabase
         .from('team_members')
-        .select('user_id, profiles!user_id(id, name, email, profile_picture)')
+        .select('user_id, profiles!user_id(id, name, profile_picture)')
         .eq('pursuit_id', selectedPodId);
 
       // NOTE: do not embed `profiles` off pursuits.creator_id. That column is a
@@ -526,7 +527,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
 
         const { data: creatorData } = await supabase
           .from('profiles')
-          .select('id, name, email, profile_picture')
+          .select('id, name, profile_picture')
           .eq('id', pursuit.creator_id)
           .maybeSingle();
         creatorProfile = creatorData ?? null;
@@ -576,7 +577,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
     try {
       const { data, error } = await supabase
         .from('meeting_contributions')
-        .select('*, profiles!user_id(name, email)')
+        .select('*, profiles!user_id(name)')
         .eq('pursuit_id', selectedPodId)
         .order('created_at', { ascending: true });
 
@@ -600,7 +601,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
     try {
       const { data, error } = await supabase
         .from('member_roles')
-        .select('*, profiles!user_id(name, email)')
+        .select('*, profiles!user_id(name)')
         .eq('pursuit_id', selectedPodId);
 
       if (error) throw error;
@@ -619,7 +620,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
             const ids = reqs.map(r => r.requester_id);
             const { data: profiles } = await supabase
               .from('profiles')
-              .select('id, name, email, profile_picture')
+              .select('id, name, profile_picture')
               .in('id', ids);
             const byId = new Map((profiles || []).map(p => [p.id, p]));
             setPendingRoleRequests(reqs.map(r => ({ ...r, requester: byId.get(r.requester_id) || null })));
@@ -823,7 +824,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
           contribution_type: 'meeting notes',
           content: newContent.trim(),
         }])
-        .select('*, profiles!user_id(name, email)')
+        .select('*, profiles!user_id(name)')
         .single();
 
       if (error) throw error;
@@ -835,7 +836,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
       const currentPod = pods.find((p) => p.id === selectedPodId);
       if (otherMemberIds.length > 0 && currentPod) {
         const currentUserProfile = teamMembers.find(m => m.id === user.id);
-        const userName = currentUserProfile?.name || currentUserProfile?.email?.split('@')[0] || 'A teammate';
+        const userName = displayName(currentUserProfile, 'A teammate');
         await notificationService.notifyTeamBoardUpdate(
           otherMemberIds,
           selectedPodId,
@@ -946,7 +947,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
             contribution_type: 'meeting notes',
             content: trimmedText,
           }])
-          .select('*, profiles!user_id(name, email)')
+          .select('*, profiles!user_id(name)')
           .single();
 
         if (error) throw error;
@@ -958,7 +959,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
         const currentPod = pods.find((p) => p.id === selectedPodId);
         if (otherMemberIds.length > 0 && currentPod) {
           const currentUserProfile = teamMembers.find(m => m.id === user.id);
-          const userName = currentUserProfile?.name || currentUserProfile?.email?.split('@')[0] || 'A teammate';
+          const userName = displayName(currentUserProfile, 'A teammate');
           await notificationService.notifyTeamBoardUpdate(
             otherMemberIds,
             selectedPodId,
@@ -1171,7 +1172,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
       const currentPod = pods.find((p) => p.id === selectedPodId);
       if (otherMemberIds.length > 0 && currentPod) {
         const currentUserProfile = teamMembers.find(m => m.id === user.id);
-        const userName = currentUserProfile?.name || currentUserProfile?.email?.split('@')[0] || 'A teammate';
+        const userName = displayName(currentUserProfile, 'A teammate');
         await notificationService.notifyTeamBoardUpdate(
           otherMemberIds,
           selectedPodId,
@@ -1274,7 +1275,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
             updated_at: new Date().toISOString(),
           })
           .eq('id', editingRole.id)
-          .select('*, profiles!user_id(name, email)')
+          .select('*, profiles!user_id(name)')
           .single();
 
         if (error) throw error;
@@ -1289,7 +1290,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
             role_title: roleTitle.trim(),
             role_description: roleDescription.trim() || null,
           }])
-          .select('*, profiles!user_id(name, email)')
+          .select('*, profiles!user_id(name)')
           .single();
 
         if (error) throw error;
@@ -1301,7 +1302,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
       const currentPod = pods.find((p) => p.id === selectedPodId);
       if (otherMemberIds.length > 0 && currentPod && user) {
         const currentUserProfile = teamMembers.find(m => m.id === user.id);
-        const userName = currentUserProfile?.name || currentUserProfile?.email?.split('@')[0] || 'A teammate';
+        const userName = displayName(currentUserProfile, 'A teammate');
         await notificationService.notifyTeamBoardUpdate(
           otherMemberIds,
           selectedPodId,
@@ -1797,7 +1798,7 @@ export default function TeamWorkspaceScreen({ onBack, initialPursuitId, initialS
               {pendingRoleRequests.map(req => (
                 <View key={req.id} style={{ backgroundColor: isNewTheme ? theme.secondaryLight : '#FDF3DC', borderRadius: 14, padding: 14, marginBottom: 8, borderLeftWidth: 3, borderLeftColor: theme.secondary }}>
                   <Text style={{ fontSize: 14, color: theme.text, marginBottom: 10, fontFamily: 'Sora_600SemiBold' }}>
-                    <Text style={{ fontWeight: '600' }}>{req.requester?.name || req.requester?.email?.split('@')[0] || 'A member'}</Text> wants to manage pod roles.
+                    <Text style={{ fontWeight: '600' }}>{displayName(req.requester, 'A member')}</Text> wants to manage pod roles.
                   </Text>
                   <View style={{ flexDirection: 'row', gap: 8 }}>
                     <TouchableOpacity

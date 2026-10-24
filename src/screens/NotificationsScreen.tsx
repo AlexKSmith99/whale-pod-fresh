@@ -308,7 +308,7 @@ export default function NotificationsScreen({ navigation }: any) {
     try {
       const { data: pursuit, error } = await supabase
         .from('pursuits')
-        .select('*, profiles:creator_id (id, email, name)')
+        .select('*, profiles:creator_id (id, name)')
         .eq('id', pursuitId)
         .single();
       if (error || !pursuit) {
@@ -325,7 +325,7 @@ export default function NotificationsScreen({ navigation }: any) {
     try {
       const { data: pursuit, error } = await supabase
         .from('pursuits')
-        .select('*, profiles:creator_id (id, email, name)')
+        .select('*, profiles:creator_id (id, name)')
         .eq('id', pursuitId)
         .single();
       if (error || !pursuit) {

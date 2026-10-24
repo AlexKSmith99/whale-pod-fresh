@@ -49,7 +49,7 @@ const LOCATION_SUGGESTIONS = [
 ];
 
 interface Props {
-  onStartMessage?: (userId: string, userEmail: string) => void;
+  onStartMessage?: (userId: string, userName: string) => void;
   onOpenTeamBoard?: (pursuitId: string) => void;
   onOpenMeetingNotes?: (pursuitId: string) => void;
   onOpenCreate?: () => void;
@@ -292,13 +292,13 @@ export default function FeedScreen({ onStartMessage, onOpenTeamBoard, onOpenMeet
           unfoldAnim.setValue(0);
           onEditPursuit(target);
         } : undefined}
-        onViewProfile={(userId, userEmail) => {
+        onViewProfile={(userId, userName) => {
           // Profile viewing is handled within PursuitDetailScreen now
         }}
-        onSendMessage={(userId, userEmail) => {
+        onSendMessage={(userId, userName) => {
           setSelectedPursuit(null);
           if (onStartMessage) {
-            onStartMessage(userId, userEmail);
+            onStartMessage(userId, userName);
           }
         }}
         onOpenTeamBoard={(pursuitId) => {

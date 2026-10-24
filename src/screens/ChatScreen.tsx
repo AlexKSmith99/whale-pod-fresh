@@ -23,10 +23,11 @@ import { colors as legacyColors, typography, spacing } from '../theme/designSyst
 import { useTheme } from '../theme/ThemeContext';
 import { getThemedStyles } from '../theme/themedStyles';
 import GrainTexture from '../components/ui/GrainTexture';
+import { displayName, initialOf } from '../utils/displayName';
 
 interface Props {
   partnerId: string;
-  partnerEmail: string;
+  partnerName: string;
   onBack: () => void;
   navigation?: any;
   showMenuButton?: boolean;
@@ -34,7 +35,7 @@ interface Props {
   onDelete?: () => void;
 }
 
-export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation, showMenuButton, onMenuPress, onDelete }: Props) {
+export default function ChatScreen({ partnerId, partnerName, onBack, navigation, showMenuButton, onMenuPress, onDelete }: Props) {
   const { user } = useAuth();
   const { theme, isNewTheme } = useTheme();
   const colors = theme.colors;
@@ -82,7 +83,7 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('name, profile_picture, email')
+        .select('name, profile_picture')
         .eq('id', partnerId)
         .single();
 
@@ -99,7 +100,7 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
       if (user) {
         const { data, error } = await supabase
           .from('profiles')
-          .select('name, profile_picture, email')
+          .select('name, profile_picture')
           .eq('id', user.id)
           .single();
 
@@ -156,7 +157,7 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
       // With inverted FlatList, newest messages are already at position 0 (bottom visually)
       
       // Send notification to recipient
-      const senderName = myProfile?.name || user.email || 'Someone';
+      const senderName = displayName(myProfile, 'Someone');
       const messagePreview = messageText.length > 50 ? messageText.substring(0, 50) + '...' : messageText;
       await notificationService.notifyNewMessage(
         partnerId,
@@ -443,8 +444,7 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
       ) : (
         <View style={dynamicStyles.messageAvatar}>
           <Text style={dynamicStyles.messageAvatarText}>
-            {profile?.name?.charAt(0).toUpperCase() ||
-             profile?.email?.charAt(0).toUpperCase() || '?'}
+            {initialOf(profile)}
           </Text>
         </View>
       );
@@ -563,13 +563,12 @@ export default function ChatScreen({ partnerId, partnerEmail, onBack, navigation
           ) : (
             <View style={dynamicStyles.headerAvatar}>
               <Text style={dynamicStyles.headerAvatarText}>
-                {otherUserProfile?.name?.charAt(0).toUpperCase() ||
-                 otherUserProfile?.email?.charAt(0).toUpperCase() || '?'}
+                {initialOf(otherUserProfile)}
               </Text>
             </View>
           )}
           <Text style={dynamicStyles.headerUserName}>
-            {otherUserProfile?.name || 'User'}
+            {displayName(otherUserProfile)}
           </Text>
         </TouchableOpacity>
         <View style={{ width: 24 }} />
