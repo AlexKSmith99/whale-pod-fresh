@@ -221,6 +221,12 @@ export default function PursuitDetailScreen({ pursuit, onBack, onDelete, onEdit,
       setShowKickoffScheduling(true);
     } else if (initialSubScreen === 'propose_times') {
       setShowTimeSlotProposal(true);
+    } else if (initialSubScreen === 'chat') {
+      // Lets a notification land in the pod chat itself rather than on the
+      // Messages list. Roll calls and pod chat messages both need this —
+      // "someone called a roll call" is useless if it drops you on a list of
+      // conversations and makes you find the right one.
+      setShowPodChat(true);
     }
   }, [initialSubScreen]);
 

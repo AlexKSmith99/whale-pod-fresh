@@ -122,6 +122,11 @@ export function createAppNavigation(
         setTeamBoardSubTab(params.subTab || null);
       } else if (screen === 'Pods') {
         setCurrentScreen('Pods');
+      } else if (screen === 'Feed') {
+        // Was missing: navigate('Feed') silently did nothing, so any caller
+        // routing to the feed — e.g. a membership_approved notification —
+        // just stayed where it was.
+        setCurrentScreen('Feed');
       } else if (screen === 'Calendar') {
         setCurrentScreen('Calendar');
       } else if (screen === 'Messages') {

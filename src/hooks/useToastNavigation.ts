@@ -70,6 +70,7 @@ export function useToastNavigation(
       };
 
       switch (type) {
+        case 'message':
         case 'new_message':
           // Navigate to chat with that person
           if (data?.conversationId) {
@@ -87,8 +88,28 @@ export function useToastNavigation(
           }
           break;
 
+        // Pod chat and roll calls both land IN the pod's chat. Dropping the
+        // user on the Messages list and making them find the right
+        // conversation defeats the point of the notification.
+        case 'roll_call':
+        case 'pod_chat':
         case 'pod_chat_message':
-          setCurrentScreen('Messages');
+          if (data?.pursuitId) {
+            await navigateToPod(data.pursuitId, 'chat');
+          } else {
+            setCurrentScreen('Messages');
+          }
+          break;
+
+        // Was unrouted — tapping these did nothing but fall through to the
+        // default. Being approved means the app just opened up, so send them
+        // to the feed rather than back to the alert they were reading.
+        case 'membership_approved':
+          setCurrentScreen('Feed');
+          break;
+
+        case 'membership_rejected':
+          setCurrentScreen('Notifications');
           break;
 
         case 'connection_request':

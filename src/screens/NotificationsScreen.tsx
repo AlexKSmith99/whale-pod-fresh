@@ -170,9 +170,33 @@ export default function NotificationsScreen({ navigation }: any) {
     switch (notification.type) {
       case 'message':
       case 'new_message':
-      case 'pod_chat':
-      case 'pod_chat_message':
         navigation?.navigate?.('Messages');
+        break;
+
+      // Pod chat and roll calls land IN the pod's chat, not on the Messages
+      // list. "Someone called a roll call" is useless if it drops you on a
+      // list of conversations and makes you find the right one.
+      case 'roll_call':
+      case 'pod_chat':
+      case 'pod_chat_message': {
+        const podId = notification.related_type === 'pursuit'
+          ? notification.related_id
+          : notification.data?.pursuitId;
+        if (podId) {
+          await navigateToPod(podId, 'chat');
+        } else {
+          navigation?.navigate?.('Messages');
+        }
+        break;
+      }
+
+      // Both were unrouted — tapping them fell through to the default and did
+      // nothing. Approval means the app just opened up, so go to the feed.
+      case 'membership_approved':
+        navigation?.navigate?.('Feed');
+        break;
+
+      case 'membership_rejected':
         break;
       case 'connection_request':
       case 'connection_accepted':
@@ -215,6 +239,7 @@ export default function NotificationsScreen({ navigation }: any) {
           navigation?.navigate?.('Pods');
         }
         break;
+      case 'pursuit_created':
       case 'application_accepted':
       case 'application_rejected':
       case 'min_team_size_reached':
@@ -347,6 +372,9 @@ export default function NotificationsScreen({ navigation }: any) {
       case 'kickoff_activated': case 'time_proposal': return 'time';
       case 'min_team_size_reached': case 'team_board_update': return 'people-circle';
       case 'kickoff_scheduled': case 'meeting': case 'new_meeting': case 'meeting_invitation': return 'calendar';
+      case 'roll_call': return 'hand-left';
+      case 'membership_approved': return 'checkmark-circle';
+      case 'membership_rejected': return 'close-circle';
       case 'member_removed': return 'person-remove';
       case 'member_left': return 'exit-outline';
       case 'interview_scheduling_requested': case 'interview_times_submitted': case 'interview_scheduled': return 'videocam';
